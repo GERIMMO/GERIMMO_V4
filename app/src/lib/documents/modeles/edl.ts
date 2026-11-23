@@ -35,8 +35,12 @@ import {
 } from "./communs";
 import type { Assemblage } from "./index";
 import { RAPPEL_COMPLEMENT_EDL_ENTREE_DOCUMENT } from "@/lib/textes-signature-actes";
+import { ETATS_ELEMENT } from "@/lib/etats-elements-edl";
 
-const ETATS: Record<string, string> = { neuf: "Neuf", bon: "Bon", usage: "Usage", mauvais: "Mauvais" };
+// Phase 3, reprise du lot 36 : l'état d'un élément s'imprime avec la table de l'écran de saisie de la grille (« Usagé »,
+// « Absent »). La table locale disait « Usage » (le code avec une capitale) et n'avait pas « absent », valeur admise par
+// l'énumération etat_element : il s'imprimait brut. L'inventaire du même dossier dit « Usagé » (C03).
+const ETATS = ETATS_ELEMENT;
 
 export type LigneEdl = {
   categorie: string;

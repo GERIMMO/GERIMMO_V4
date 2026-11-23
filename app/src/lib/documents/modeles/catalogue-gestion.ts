@@ -1,10 +1,10 @@
 import { detailRapportGestion } from "./detail-rapport-gestion";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Fusion, assemblerPage, cadreSignature, cartouches, enTete, faitA, section, tableau, titre, eur, facultatif, nombreFr, pointFinal, moisEnToutesLettres, formaterDateFr } from "../gabarit";
-import { ETATS_INCIDENT, IMPUTATIONS_INCIDENT, URGENCES_INCIDENT, categorieIncident } from "@/lib/incidents";
+import { ETATS_INCIDENT_DOCUMENT, IMPUTATIONS_INCIDENT, URGENCES_INCIDENT, categorieIncident } from "@/lib/incidents";
 import { libelleCategorieEcriture } from "@/lib/categories-ecriture";
 import { ETATS_MANDAT } from "@/lib/baux";
-import { NATURES_TRAVAUX, STATUTS_DEVIS, STATUTS_INTERVENTION } from "@/app/agence/[orgId]/artisans/referentiel";
+import { NATURES_TRAVAUX, STATUTS_DEVIS, STATUTS_INTERVENTION_DOCUMENT } from "@/app/agence/[orgId]/artisans/referentiel";
 import { descriptionDevisLisible } from "@/lib/devis-structure";
 import { CATALOGUE_DOCUMENTS } from "../catalogue";
 import { lireLignes, lignesTableau, RefusDocument, texte, montant, anneeDocument, MESSAGE_CHARGEMENT_IMPOSSIBLE, type LigneDocument } from "./catalogue-bail";
@@ -267,9 +267,11 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       // Phase 3, lot 42 (C89) : le récapitulatif dit quand l'incident a été signalé et son urgence (la date du constat, sinon celle
       // de l'enregistrement, comme l'historique des incidents du bien).
       const signaleLe = texte(incident.date_signalement) || texte(incident.created_at);
+      // Reprise du lot 36 : l'état de l'incident et celui de la mission avec les libellés de DOCUMENT (sans la consigne de travail
+      // de l'écran, « Terminé — à clôturer », « Confiée — l'artisan n'a pas encore répondu ») : l'ordre part à l'entreprise.
       contenu = `${section(`Incident ${texte(incident.numero)}`)}<p>Signalement : ${f.champ(texte(incident.description),"description du signalement")}${pointFinal(texte(incident.description))}</p>
         ${code === "recap_incident" ? `<p>Signalé le ${f.date(signaleLe || null,"date du signalement")} ; urgence : ${facultatif(libelleDe(URGENCES_INCIDENT,incident.urgence))}.</p>` : ""}
-        <p>Pièce : ${facultatif(texte(incident.piece))} ; catégorie : ${facultatif(libelleCategorie(incident.categorie))} ; état : ${f.champ(libelleDe(ETATS_INCIDENT,incident.etat),"état du dossier")}.</p>`;
+        <p>Pièce : ${facultatif(texte(incident.piece))} ; catégorie : ${facultatif(libelleCategorie(incident.categorie))} ; état : ${f.champ(libelleDe(ETATS_INCIDENT_DOCUMENT,incident.etat),"état du dossier")}.</p>`;
       if (intervention) {
         const artisans = await lireLignes(db.from("artisans").select("raison_sociale,siret,telephone,email").eq("id",intervention.artisan_id).limit(1));
         if (!artisans.length) throw new RefusDocument("Les coordonnées de l’artisan ne sont pas accessibles.");
@@ -287,7 +289,7 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
         const nature = libelleDe(NATURES_TRAVAUX, intervention.nature_travaux);
         contenu += `${section("Mission enregistrée")}<p>${f.champ(nature,"nature des travaux")}${pointFinal(nature)}</p>
           <p>Artisan : ${entreprise} ; SIRET : ${facultatif(texte(a.siret))}. Contact : ${facultatif(texte(a.telephone))} · ${facultatif(texte(a.email))}.</p>
-          <p>État de la mission : ${f.champ(libelleDe(STATUTS_INTERVENTION,intervention.statut),"statut de la mission")} ; confiée le ${f.date(texte(intervention.confiee_le))}.</p>`;
+          <p>État de la mission : ${f.champ(libelleDe(STATUTS_INTERVENTION_DOCUMENT,intervention.statut),"statut de la mission")} ; confiée le ${f.date(texte(intervention.confiee_le))}.</p>`;
         if (code === "ordre_intervention") {
           if (["annulee","refusee"].includes(texte(intervention.statut))) throw new RefusDocument("Cette mission a été annulée ou refusée. Préparez une nouvelle mission pour émettre un ordre d’intervention.");
           // C79 : le créneau garde ses heures (heure de Paris). Début ou fin manquant : le document reste à compléter, comme avant.
@@ -345,7 +347,7 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
           return [nomArtisan(m.artisan_id), f.date(texte(m.confiee_le),"date de la mission"),
             texte(m.debut_prevu) ? creneauParis(texte(m.debut_prevu), texte(m.fin_prevue)||null).replace(/^le /,"") : "à fixer",
             texte(m.terminee_le) ? formaterDateFr(texte(m.terminee_le)) : "—",
-            facultatif(libelleDe(STATUTS_INTERVENTION,m.statut)),
+            facultatif(libelleDe(STATUTS_INTERVENTION_DOCUMENT,m.statut)),
             !cr ? "pas encore déposé" : cr.montant_final_cents == null ? "non déclaré" : eur(montant(cr.montant_final_cents)/100)];
         });
         contenu += `${section("Suivi des travaux")}<p>${phraseDevis}</p>${lignesMissions.length

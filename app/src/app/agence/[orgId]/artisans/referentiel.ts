@@ -115,6 +115,19 @@ export const STATUTS_INTERVENTION: Record<string, string> = {
   annulee: "Annulée",
 };
 
+// Phase 3, reprise du lot 36 : le statut d'une mission tel qu'un DOCUMENT l'imprime (ordre d'intervention adressé à l'entreprise,
+// compte rendu, récapitulatif d'incident). Les libellés ci-dessus portent la consigne du gestionnaire (« — à réaffecter ») ou
+// parlent de l'artisan à la troisième personne (« l'artisan n'a pas encore répondu ») : ils restent à l'écran.
+export const STATUTS_INTERVENTION_DOCUMENT: Record<string, string> = {
+  proposee: "En attente de réponse",
+  acceptee: "Acceptée",
+  planifiee: "Planifiée",
+  en_cours: "En cours",
+  terminee: "Terminée",
+  refusee: "Refusée",
+  annulee: "Annulée",
+};
+
 export const COULEURS_INTERVENTION: Record<string, string> = {
   proposee: "puce puce-prep",
   acceptee: "puce puce-encre",

@@ -272,9 +272,11 @@ describe("Modèles 14/15 — états des lieux", () => {
     expect(doc.html).toContain("État des lieux de sortie");
     const synthese = doc.html.slice(doc.html.indexOf("Synthèse"), doc.html.indexOf("Adresse de restitution du dépôt"));
     const lignes = [...synthese.matchAll(/<tr>([\s\S]*?)<\/tr>/g)].map((m) => m[1].replace(/<[^>]+>/g, "|").replace(/\|+/g, "|").replace(/^\||\|$/g, ""));
+    // Phase 3, reprise du lot 36 : l'état « usage » s'imprime « Usagé », comme l'écran de la grille et l'inventaire du même
+    // dossier ; ce test affirmait « Usage », le code avec une capitale, que la table locale de l'état des lieux imprimait.
     expect(lignes).toEqual([
       "Pièce|Élément|État à l'entrée|État à la sortie",
-      "Chambre|Murs|Neuf|Usage",
+      "Chambre|Murs|Neuf|Usagé",
       "Séjour|Murs|Neuf|Mauvais",
       "Équipements|Réfrigérateur|Bon|—",
     ]);

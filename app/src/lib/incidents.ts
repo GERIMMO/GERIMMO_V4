@@ -43,6 +43,20 @@ export const ETATS_INCIDENT: Record<string, string> = {
   rouvert: "Rouvert — à requalifier",
 };
 
+// Phase 3, reprise du lot 36 : l'état d'un incident tel qu'un DOCUMENT l'imprime (ordre d'intervention adressé à l'entreprise,
+// compte rendu, comparatif, récapitulatif, rapport de gestion du mandant). Les libellés ci-dessus portent la consigne de travail
+// du gestionnaire (« — à clôturer », « À qualifier ») : à l'écran elle guide, sur un document remis à un tiers elle n'a pas sa
+// place. Mêmes mots que l'écran, sans la consigne ; « Signalé » comme la navigation du dossier.
+export const ETATS_INCIDENT_DOCUMENT: Record<EtatIncident, string> = {
+  declare: "Signalé",
+  qualifie: "Qualifié",
+  affecte: "Affecté",
+  en_cours: "En cours",
+  termine: "Terminé",
+  clos: "Clos",
+  rouvert: "Rouvert",
+};
+
 // Grammaire maquette : rouge = action attendue de l'agence, encre = en cours,
 // vert = clos.
 export const COULEURS_ETAT_INCIDENT: Record<string, string> = {

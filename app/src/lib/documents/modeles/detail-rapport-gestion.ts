@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Fusion, echapper, eur, section } from "../gabarit";
 import { lireLignes, lignesTableau, montant, texte, type LigneDocument } from "./catalogue-bail";
+import { libelleCategorieEcriture } from "@/lib/categories-ecriture";
+import { ETATS_INCIDENT_DOCUMENT } from "@/lib/incidents";
 
 const centimes = (v: unknown) => Math.round(montant(v) * 100);
 export function syntheseOperations(operations: LigneDocument[]) {
@@ -53,7 +55,9 @@ export async function detailRapportGestion(db: SupabaseClient, orgId: string, f:
     });
     const familles = new Map<string, number>();
     for (const e of ops.filter(e => e.sens === "depense")) {
-      const categorie = texte(e.categorie) || "Non renseignée";
+      // Reprise du lot 36 (C92) : la famille avec le libellé du livre (« Taxe foncière »), comme le journal et le relevé annuel ;
+      // elle s'imprimait avec le code de la base, tirets bas remplacés (« taxe fonciere »).
+      const categorie = texte(e.categorie) ? libelleCategorieEcriture(texte(e.categorie)) : "Non renseignée";
       familles.set(categorie, (familles.get(categorie) ?? 0) + centimes(e.montant));
     }
     const idsBaux = baux.filter(b => listeLots.includes(texte(b.lot_id))).map(b => texte(b.id));
@@ -61,11 +65,13 @@ export async function detailRapportGestion(db: SupabaseClient, orgId: string, f:
       const bail = baux.find(b => b.id === t.bail_id);
       return { lot: bien.groupe.find(l => l.id === bail?.lot_id)?.nom, periode: t.periode, reste: (centimes(t.montant_du) - centimes(t.montant_couvert)) / 100 };
     });
-    const ouverts = incidents.filter(i => listeLots.includes(texte(i.lot_id)) && i.etat !== "clos");
+    // Reprise du lot 36 : l'état d'un incident en clair (libellés de document), plus le code de la base (« en_cours »).
+    const ouverts = incidents.filter(i => listeLots.includes(texte(i.lot_id)) && i.etat !== "clos")
+      .map(i => ({ ...i, etat: ETATS_INCIDENT_DOCUMENT[texte(i.etat) as keyof typeof ETATS_INCIDENT_DOCUMENT] ?? texte(i.etat) }));
     html += `<div class="saut"></div>${section(bien.nom)}<p>${echapper([bien.bien?.address_line1, bien.bien?.postal_code, bien.bien?.city].filter(Boolean).join(" "))}</p>
       ${lignesTableau(f,detailsLots,[["Lot","lot","texte"],["Recettes","recettes","montant"],["Dépenses","depenses","montant"],["Net","net","montant"],["Taux au mandat (%)","taux","texte"]])}
       <p>Net du bien : ${eur(bien.net)}. Les taux sont rappelés à titre de lecture du mandat ; les honoraires inclus dans le net sont ceux des écritures enregistrées.</p>
-      ${section("Dépenses par famille")}${familles.size ? lignesTableau(f,[...familles].map(([famille,n]) => ({famille: famille.replaceAll("_"," "), montant:n/100})),[["Famille","famille","texte"],["Montant","montant","montant"]]) : "<p>Aucune dépense enregistrée ce mois.</p>"}
+      ${section("Dépenses par famille")}${familles.size ? lignesTableau(f,[...familles].map(([famille,n]) => ({famille, montant:n/100})),[["Famille","famille","texte"],["Montant","montant","montant"]]) : "<p>Aucune dépense enregistrée ce mois.</p>"}
       ${section("Impayés à suivre")}
       <p>Échéances jusqu’à la fin du mois du rapport, restant dues lors de l’édition. Ces sommes ne sont pas comptées dans le net à reverser.</p>
       ${impayes.length ? lignesTableau(f,impayes,[["Lot","lot","texte"],["Période","periode","date"],["Reste dû","reste","montant"]]) : "<p>Aucun impayé constaté sur ces échéances lors de l’édition.</p>"}

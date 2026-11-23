@@ -26,8 +26,13 @@ import { assemblerRappelAssurance } from "@/lib/documents/modeles/rappel-assuran
 import { assemblerRecuDepot } from "@/lib/documents/modeles/recu-depot";
 import { chargerCiblesCatalogue } from "@/lib/documents/catalogue-cibles";
 import { CATALOGUE_DOCUMENTS } from "@/lib/documents/catalogue";
-import { moisEnToutesLettres } from "@/lib/documents/gabarit";
+import { Fusion, moisEnToutesLettres } from "@/lib/documents/gabarit";
 import type { Assemblage } from "@/lib/documents/modeles";
+import { construireEdl, type DonneesEdl } from "@/lib/documents/modeles/edl";
+import { detailRapportGestion } from "@/lib/documents/modeles/detail-rapport-gestion";
+import { ETATS_ELEMENT } from "@/lib/etats-elements-edl";
+import { ETATS_INCIDENT, ETATS_INCIDENT_DOCUMENT } from "@/lib/incidents";
+import { STATUTS_INTERVENTION, STATUTS_INTERVENTION_DOCUMENT } from "@/app/agence/[orgId]/artisans/referentiel";
 
 type Ligne = Record<string, unknown>;
 
@@ -298,5 +303,138 @@ describe("S34, S46 — liste de choix des dossiers", () => {
     const db = base({ ...incidents(), incidents: [{ id: "incident", numero: "INC-2026-0002", lot_id: "lot", etat: "en_cours" }] });
     const [choix] = (await chargerCiblesCatalogue(db, "org", modele("recap_incident"))).choix;
     expect(choix.libelle).toBe("Studio meublé n° 7 · Incident INC-2026-0002 · En cours · réf. incident");
+  });
+});
+
+/**
+ * Reprise du lot 36 (relecture contradictoire du commit 571d6bbe). Chaque cas échouait avant la reprise.
+ *  · L'état des lieux gardait sa propre table d'états : « Usage » (le code avec une capitale) au lieu de « Usagé », et « absent »
+ *    (valeur admise par l'énumération etat_element) imprimé brut. L'inventaire du même dossier dit « Usagé » (C03).
+ *  · Les documents d'incident reprenaient les libellés des tableaux de bord, consignes de travail du gestionnaire comprises
+ *    (« Terminé — à clôturer », « Confiée — l'artisan n'a pas encore répondu ») : l'ordre d'intervention part à l'entreprise.
+ *  · Relevé annuel du mandat et rapport de gestion : la nature, la famille de dépense et l'état d'un incident en clair (C92).
+ */
+const lignesDe = (html: string) => [...html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/g)].map((m) => [...m[1].matchAll(/<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/g)].map((c) => c[1].replace(/<[^>]+>/g, "").replace(/[\u00a0\u202f]/g, " ").trim()).join("|"));
+
+describe("Reprise — état des lieux : l'état d'un élément comme à l'écran et dans l'inventaire", () => {
+  const donnees = (sur: Partial<DonneesEdl>): DonneesEdl => ({
+    type: "entree", reference: "EDL-1", dateEdl: "2026-10-07", signeLe: null, personnesPresentes: "Les parties",
+    detecteurFumeePresent: true, detecteurFumeeEtat: "bon", attestationAssuranceFournie: true, adresseRestitutionDepot: null,
+    observations: "Néant", compteurs: [], cles: [], comparatif: [],
+    lignes: [
+      { categorie: "piece", piece: "Séjour", libelle: "Sols", etat: "usage", commentaire: "Rayure de 20 cm près de la fenêtre" },
+      { categorie: "piece", piece: "Séjour", libelle: "Volets", etat: "absent", commentaire: null },
+      { categorie: "piece", piece: "Séjour", libelle: "Murs", etat: "neuf", commentaire: null },
+    ],
+    bailleurNom: "Moreau Claire", locatairesNoms: "Martin Paul", logementAdresse: "1 rue", referenceBail: "BAIL-1",
+    exp: { nom: "Moreau Claire", adresse: "3 rue du Domicile, 69001 Lyon", email: null, telephone: null, ville: "Lyon" },
+    typeOrganisation: "proprietaire_direct", f: new Fusion(), ...sur,
+  });
+
+  it("entrée : « Usagé » et « Absent », jamais « Usage » ni le code « absent »", () => {
+    const lignes = lignesDe(construireEdl(donnees({})).html);
+    expect(lignes).toContain("Sols|Usagé|Rayure de 20 cm près de la fenêtre");
+    expect(lignes).toContain("Volets|Absent|—");
+    expect(lignes).toContain("Murs|Neuf|—");
+    expect(lignes.join("\n")).not.toMatch(/\|Usage\||\|absent\|/);
+  });
+
+  it("sortie : la synthèse des écarts parle comme la grille", () => {
+    const lignes = lignesDe(construireEdl(donnees({
+      type: "sortie", dateEdlEntree: "2023-09-01", adresseRestitutionDepot: "5 rue Neuve, 69003 Lyon",
+      comparatif: [
+        { piece: "Séjour", libelle: "Murs", etat_entree: "neuf", etat_sortie: "usage", ecart: true },
+        { piece: "Séjour", libelle: "Volets", etat_entree: "bon", etat_sortie: "absent", ecart: true },
+      ],
+    })).html);
+    expect(lignes).toContain("Séjour|Murs|Neuf|Usagé");
+    expect(lignes).toContain("Séjour|Volets|Bon|Absent");
+  });
+
+  it("une seule table : celle de l'écran de saisie de la grille", () => {
+    expect(ETATS_ELEMENT).toEqual({ neuf: "Neuf", bon: "Bon", usage: "Usagé", mauvais: "Mauvais", absent: "Absent" });
+  });
+});
+
+describe("Reprise C81 — un document dit l'état, pas la consigne de travail de l'écran", () => {
+  it("chaque état d'incident et de mission a son libellé de document, sans consigne (« — à … », « À qualifier »)", () => {
+    expect(Object.keys(ETATS_INCIDENT_DOCUMENT).sort()).toEqual(Object.keys(ETATS_INCIDENT).sort());
+    expect(Object.keys(STATUTS_INTERVENTION_DOCUMENT).sort()).toEqual(Object.keys(STATUTS_INTERVENTION).sort());
+    for (const libelle of [...Object.values(ETATS_INCIDENT_DOCUMENT), ...Object.values(STATUTS_INTERVENTION_DOCUMENT)]) {
+      expect(libelle).not.toMatch(/ — |^À |artisan/);
+    }
+  });
+
+  it.each([
+    ["declare", "Signalé"], ["termine", "Terminé"], ["rouvert", "Rouvert"], ["en_cours", "En cours"],
+  ])("ordre d'intervention, incident « %s » : état « %s »", async (etat, attendu) => {
+    const t = incidents(); t.incidents[0].etat = etat;
+    const texte = texteDe(succes(await assemblerComplementGestion("ordre_intervention", base(t), "org", "intervention", { acces: "Clé chez la gardienne." })).document.html);
+    expect(texte).toContain(`; état : ${attendu}.`);
+    expect(texte).not.toMatch(/à clôturer|à requalifier|À qualifier/);
+  });
+
+  it("ordre d'intervention, mission proposée : « En attente de réponse », sans parler de l'artisan à la troisième personne", async () => {
+    const t = incidents(); t.incident_interventions[0].statut = "proposee";
+    const texte = texteDe(succes(await assemblerComplementGestion("ordre_intervention", base(t), "org", "intervention", { acces: "Clé chez la gardienne." })).document.html);
+    expect(texte).toContain("État de la mission : En attente de réponse ; confiée le 22/11/2026.");
+    expect(texte).not.toContain("pas encore répondu");
+  });
+
+  it("compte rendu, incident terminé : « Terminé », mission « Terminée »", async () => {
+    const t = incidents(); t.incidents[0].etat = "termine"; t.incident_interventions[0].statut = "terminee";
+    const texte = texteDe(succes(await assemblerComplementGestion("compte_rendu_intervention", base(t), "org", "intervention")).document.html);
+    expect(texte).toContain("; état : Terminé.");
+    expect(texte).toContain("État de la mission : Terminée ;");
+    expect(texte).not.toContain("à clôturer");
+  });
+
+  it("récapitulatif d'incident : la colonne « État » des missions sans consigne (mission refusée : « Refusée »)", async () => {
+    const t = incidents(); t.incident_interventions[0].statut = "refusee";
+    const html = succes(await assemblerComplementGestion("recap_incident", base(t), "org", "incident")).document.html;
+    expect(lignesDe(html).some((l) => l.startsWith("Plomberie Fictive|") && l.includes("|Refusée|"))).toBe(true);
+    expect(texteDe(html)).not.toContain("à réaffecter");
+  });
+});
+
+describe("Reprise C92 — documents de mandat : nature, famille de dépense et état d'incident en clair", () => {
+  const agence = (): Record<string, Ligne[]> => ({
+    organizations: [{ id: "org", type: "agence", name: "Agence Fictive", city: "Lyon" }],
+    mandats: [{ id: "mandat-0000", person_id: "mandant", etat: "actif" }],
+    persons: [{ id: "mandant", nom: "Fictif", prenom: "Paul" }],
+    mandat_lignes: [{ mandat_id: "mandat-0000", lot_id: "lot", date_debut: "2026-01-01", date_fin: null, taux_honoraires: 7 }],
+    lots: [{ id: "lot", nom: "T2", bien_id: "bien" }],
+    ecritures: [
+      { id: "e1", lot_id: "lot", categorie: "loyer", libelle: "Loyer d'octobre", sens: "recette", montant: 700, date_piece: "2026-10-05", date_imputation: "2026-10-05" },
+      { id: "e2", lot_id: "lot", categorie: "depot_garantie", libelle: "Dépôt reçu", sens: "recette", montant: 700, date_piece: "2026-10-10", date_imputation: "2026-10-10" },
+      { id: "e3", lot_id: "lot", categorie: "taxe_fonciere", libelle: "Taxe foncière", sens: "depense", montant: 310, date_piece: "2026-10-12", date_imputation: "2026-10-12" },
+    ],
+  });
+
+  it("relevé annuel du mandat : « Loyer », « Dépôt de garantie », « Taxe foncière » (le lot 42 l'avait corrigé ; il reste vérifié ici)", async () => {
+    const html = succes(await assemblerComplementGestion("recap_fiscal_agence", base(agence()), "org", "mandat-0000", { annee: "2026" })).document.html;
+    const lignes = lignesDe(html);
+    expect(lignes).toContain("05/10/2026|Loyer|Loyer d'octobre|Recette|700,00 €");
+    expect(lignes).toContain("10/10/2026|Dépôt de garantie|Dépôt reçu|Recette|700,00 €");
+    expect(lignes).toContain("12/10/2026|Taxe foncière|Taxe foncière|Dépense|310,00 €");
+    expect(texteDe(html)).not.toMatch(/depot_garantie|taxe_fonciere|\bloyer\b/);
+  });
+
+  it("rapport de gestion : la famille de dépense et l'état d'un incident ouvert comme à l'écran", async () => {
+    const tables: Record<string, Ligne[]> = {
+      biens: [{ id: "bien", nom: "Immeuble Fictif", address_line1: "5 quai des Essais" }],
+      baux: [], etat_loyers_bail: [],
+      incidents: [{ lot_id: "lot", numero: "INC-01", description: "Robinet", etat: "termine" }, { lot_id: "lot", numero: "INC-02", description: "Volet", etat: "declare" }],
+    };
+    const html = await detailRapportGestion(base(tables), "org", new Fusion(), [{ id: "lot", nom: "T2", bien_id: "bien" }],
+      [{ lot_id: "lot", date_debut: "2026-01-01", taux_honoraires: 7 }],
+      [{ lot_id: "lot", sens: "depense", montant: 310, categorie: "taxe_fonciere" }, { lot_id: "lot", sens: "depense", montant: 14, categorie: "honoraires" }],
+      "2026-10-01", "2026-11-01");
+    const lignes = lignesDe(html);
+    expect(lignes).toContain("Taxe foncière|310,00 €");
+    expect(lignes).toContain("Honoraires|14,00 €");
+    expect(lignes).toContain("INC-01|Robinet|Terminé");
+    expect(lignes).toContain("INC-02|Volet|Signalé");
+    expect(texteDe(html)).not.toMatch(/taxe fonciere|\btermine\b|\bdeclare\b/);
   });
 });

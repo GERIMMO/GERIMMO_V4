@@ -814,7 +814,8 @@ function OngletResume({
             {fiche.mandat_id ? (
               <>
                 <Ligne libelle="Honoraires" valeur={fiche.taux_honoraires !== null ? `${Number(fiche.taux_honoraires)} %` : null} />
-                <Ligne libelle="Rapport" valeur={fiche.jour_rapport ? `le ${fiche.jour_rapport} du mois` : null} />
+                {/* Reprise du lot 43 : « le 1er du mois », comme l'échéance et le mandat imprimé (plus « le 1 du mois »). */}
+                <Ligne libelle="Rapport" valeur={fiche.jour_rapport ? `le ${jourDuMois(fiche.jour_rapport)} du mois` : null} />
                 <div className="mt-3">
                   <button type="button" onClick={() => allerA("compta")} className={buttonVariants({ size: "sm" })}>
                     Envoyer le rapport

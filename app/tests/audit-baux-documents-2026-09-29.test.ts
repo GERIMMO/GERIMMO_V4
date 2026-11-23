@@ -298,6 +298,14 @@ describe("mandat de gestion : mandant personne physique", () => {
     expect(h).toContain("VII — Date et signatures");
   });
 
+  // Reprise du lot 43 : le mandat s'imprimait « Fait à Lyon, le <jour de génération>, en deux exemplaires originaux » au-dessus
+  // des cadres vides « Le mandant » et « Le mandataire ». Comme les baux et les avenants, la date se porte à la signature.
+  it("le mandat se date à la signature des parties, plus au jour de sa génération", async () => {
+    const texte = html(await assemblerMandatGestion(faux("SCI", null), "org", "m1")).replace(/<[^>]+>/g, "").replace(/\s+/g, " ");
+    expect(texte).toContain("Fait à Lyon, le date effective à compléter lors de la signature, en deux exemplaires originaux, dont un est remis au mandant.");
+    expect(texte).not.toMatch(/Fait à Lyon, le \d{2}\/\d{2}\/\d{4}/);
+  });
+
   it("personne morale : pas de mentions consommateur", async () => {
     const doc = await assemblerMandatGestion(faux("SCI", null), "org", "m1");
     expect(html(doc)).not.toContain("mandant consommateur");

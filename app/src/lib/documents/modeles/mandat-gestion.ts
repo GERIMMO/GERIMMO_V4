@@ -19,7 +19,7 @@ import {
   echapper,
   enTete,
   eur,
-  faitA,
+  faitALaSignature,
   section,
   tableau,
   titre,
@@ -260,7 +260,9 @@ export async function assemblerMandatGestion(
 
     <div class="bloc-signataires">
     ${section(`${num.signatures} — Date et signatures`)}
-    ${faitA(f, exp.ville, new Date().toISOString(), ", en deux exemplaires originaux, dont un est remis au mandant.")}
+    ${/* Reprise du lot 43 : le mandat est un acte que les deux parties signent ; il n'est plus daté du jour de sa génération
+      au-dessus des cadres vides : « Fait à …, le » se complète à la signature, comme dans les baux et les avenants. */
+      faitALaSignature(f, exp.ville, ", en deux exemplaires originaux, dont un est remis au mandant.")}
     <div class="signatures">
       ${cadreSignature("Le mandant", `${nomMandant}<br/>Signature précédée de la mention « Bon pour mandat »`)}
       ${cadreSignature("Le mandataire", `${echapper(organisation.name)}<br/>Signature précédée de la mention « Mandat accepté »`)}

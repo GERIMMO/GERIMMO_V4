@@ -444,6 +444,38 @@ describe("Reprise C92 — documents de mandat : nature, famille de dépense et �
     expect(bordereau).not.toContain("2026-11-05");
   });
 
+  // Reprise du lot 43 : les accords que l'agence et le mandant signent (avenants, résiliation convenue) s'imprimaient « Fait à
+  // Lyon, le <jour de génération> » au-dessus des cadres vides « Le mandataire » et « Partie concernée » : même règle que les
+  // inventaires (lot 40), le protocole d'apurement et l'autorisation de travaux (lot 43). Le bordereau, que l'agence émet
+  // seule, garde le jour de sa génération.
+  it("documents de mandat signés par les deux parties : « Fait à …, le » se complète à la signature", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-11-23T13:32:00Z"));
+      const t = agence();
+      t.mandats = [{ id: "mandat-0000", person_id: "mandant", etat: "actif", preavis_mois: 3 }];
+      const accords: [string, Record<string, string>][] = [
+        ["avenant_mandat", { date_effet: "2026-12-01", modifications: "Taux d'honoraires porté à 7 %" }],
+        ["avenant_perimetre", { date_effet: "2026-12-01", modifications: "Ajout du lot T3" }],
+        ["resiliation_mandat", { date_effet: "2027-03-31", motif: "Vente du bien", remise: "Remise du dossier à la date d'effet" }],
+      ];
+      for (const [code, options] of accords) {
+        const r = succes(await assemblerComplementGestion(code as "avenant_mandat", base(t), "org", "mandat-0000", options));
+        const texte = texteDe(r.document.html);
+        expect(texte, code).toContain("Fait à Lyon, le date effective à compléter lors de la signature.");
+        expect(texte, code).not.toContain("Fait à Lyon, le 23/11/2026");
+        expect(r.document.html, code).toContain('<div class="bandeau">Le mandataire</div>');
+        expect(r.document.html, code).toContain('<div class="bandeau">Partie concernée</div>');
+      }
+      t.rapports_gestion = [{ id: "rapport-0000", mandat_id: "mandat-0000", mois: "2026-10-01", statut: "envoye", net: 0, versement_montant: 650, versement_date: "2026-11-05", commentaire: null }];
+      t.ecritures = [];
+      const bordereau = texteDe(succes(await assemblerComplementGestion("bordereau_versement", base(t), "org", "rapport-0000")).document.html);
+      expect(bordereau).toContain("Fait à Lyon, le 23/11/2026.");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("rapport de gestion : la famille de dépense et l'état d'un incident ouvert comme à l'écran", async () => {
     const tables: Record<string, Ligne[]> = {
       biens: [{ id: "bien", nom: "Immeuble Fictif", address_line1: "5 quai des Essais" }],

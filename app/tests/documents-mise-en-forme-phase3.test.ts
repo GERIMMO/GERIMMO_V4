@@ -73,6 +73,12 @@ describe("étage du logement (C09, C26, C63, C84)", () => {
     ["2e et 3e, porte A", "2e et 3e étages, porte A"],
     ["premier et deuxième", "premier et deuxième étages"],
     ["Duplex 2e et 3e", "Duplex 2e et 3e"],
+    // Reprise du lot 43 : « 5e et dernier » est UN étage (le 5e, qui est le dernier). Le lot 43 l'imprimait comme un duplex,
+    // « 5e et dernier étages » ; avant lui, « 5e étage et dernier ».
+    ["5e et dernier", "5e et dernier étage"],
+    ["3ème et dernier, porte gauche", "3ème et dernier étage, porte gauche"],
+    ["1er et dernier", "1er et dernier étage"],
+    ["dernier", "dernier étage"],
   ])("« %s » s'imprime « %s »", (saisie, attendu) => {
     expect(mentionEtage(saisie)).toBe(attendu);
   });
@@ -127,6 +133,26 @@ describe("étage du logement (C09, C26, C63, C84)", () => {
     // Un autre niveau que celui du nom reste imprimé ; un nom qui ne dit l'étage que par un nombre nu reste reconnu.
     expect(adresseLogement({ ...lot, etage: "5" }, ctx.bien)).toBe("12 rue des Lilas, 69003 Lyon, Lot 5 étage 2, étage 5");
     expect(mentionEtage("4", "T3 4 étage")).toBeNull();
+  });
+
+  // Reprise du lot 43 : le nom d'un duplex qui dit déjà ses deux niveaux était suivi de la même mention (« Duplex — 1er et 2e
+  // étages, 1er et 2e étages ») ; un niveau suivi de « et … » perdait sa tête (« Studio 2 étage 1, et 2 »).
+  it("un duplex déjà nommé par le lot n'est pas redit, un niveau suivi de « et » reste entier", () => {
+    const ctx = contexte();
+    const duplex = { ...ctx.lot, nom: "Duplex — 1er et 2e étages", etage: "1er et 2e" };
+    expect(adresseLogement(duplex, ctx.bien)).toBe("12 rue des Lilas, 69003 Lyon, Duplex — 1er et 2e étages");
+    expect(adresseLogement({ ...duplex, etage: "1er et 2e, porte A" }, ctx.bien)).toBe("12 rue des Lilas, 69003 Lyon, Duplex — 1er et 2e étages, porte A");
+    expect(adresseLogement({ ...duplex, etage: "1er et 2e étages" }, ctx.bien)).toBe("12 rue des Lilas, 69003 Lyon, Duplex — 1er et 2e étages");
+    // D'autres niveaux que ceux du nom restent imprimés : la saisie contradictoire se voit.
+    expect(mentionEtage("2e et 3e", "Duplex — 1er et 2e étages")).toBe("2e et 3e étages");
+    expect(mentionEtage("2e", "Duplex — 1er et 2e étages")).toBe("2e étage");
+    expect(mentionEtage("1er et 2e", "Lot 5 étage 1")).toBe("1er et 2e étages");
+    // Un niveau prolongé par « et », « à » : jamais « et 2 » ni « à 3 ».
+    expect(mentionEtage("1 et 2", "Studio 2 étage 1")).toBe("étage 1 et 2");
+    expect(mentionEtage("1er étage et 2e", "Studio 2 étage 1")).toBe("1er étage et 2e");
+    expect(mentionEtage("étage 1 à 3", "Lot étage 1")).toBe("étage 1 à 3");
+    // « 5e et dernier » sous un nom qui dit le 5e : la mention garde « dernier », au singulier.
+    expect(mentionEtage("5e et dernier", "T4 — 5e étage")).toBe("5e et dernier étage");
   });
 
   // Reprise du lot 35 : les écrans recopiaient l'ancienne règle (« étage 2e étage, porte gauche » à l'écran, « 2e étage,
@@ -195,6 +221,17 @@ describe("jour d'échéance (S10)", () => {
       const source = readFileSync(join(process.cwd(), fichier), "utf8");
       expect(source, fichier).not.toMatch(/`Le \$\{[\w.]*jour_echeance\}/);
       expect(source, fichier).toContain("jourDuMois(");
+    }
+  });
+
+  // Reprise du lot 43 : le jour du rapport de gestion (mandat d'agence) s'écrivait encore « le 1 du mois » dans la fenêtre du
+  // lot, deux lignes au-dessus de l'échéance corrigée, et « le 1 de chaque mois » sur la fiche du mandant. Le mandat imprimé
+  // écrit déjà « le 1er » (mandat-gestion.ts).
+  it("les écrans écrivent le jour du rapport de gestion avec la même règle", () => {
+    for (const fichier of ["src/components/fenetre-lot.tsx", "src/app/agence/[orgId]/personnes/[personId]/page.tsx"]) {
+      const source = readFileSync(join(process.cwd(), fichier), "utf8");
+      expect(source, fichier).not.toMatch(/\$\{[\w.]*jour_rapport\}|\{[\w.]*date_rapport\}/);
+      expect(source, fichier).toMatch(/jourDuMois\([\w.]*(?:jour|date)_rapport\)/);
     }
   });
 });

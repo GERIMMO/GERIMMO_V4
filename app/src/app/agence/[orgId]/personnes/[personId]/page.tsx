@@ -48,6 +48,7 @@ import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { exigerUuids } from "@/lib/identifiants";
 import { baseEspace } from "@/lib/racine-espace";
 import { etatInvitation, LIBELLES_INVITATION } from "@/lib/invitations-locataire";
+import { jourDuMois } from "@/lib/jour-du-mois";
 
 export const metadata = { title: "Fiche personne — Gerimmo" };
 
@@ -807,9 +808,10 @@ export default async function PagePersonne(
                         </span>
                       )}
                       {/* En toutes lettres (24/09) : « Rapport le 10 · seuil 500 € »
-                          ne disait ni « du mois » ni de quoi était le seuil. */}
+                          ne disait ni « du mois » ni de quoi était le seuil.
+                          Reprise du lot 43 : « le 1er de chaque mois », comme le mandat imprimé (plus « le 1 »). */}
                       <span className="text-sm text-muted-foreground">
-                        Rapport de gestion le {m.date_rapport} de chaque mois · délégation
+                        Rapport de gestion le {jourDuMois(m.date_rapport)} de chaque mois · délégation
                         de travaux jusqu&apos;à{" "}
                         {m.seuil_delegation != null
                           ? `${Number(m.seuil_delegation).toLocaleString("fr-FR")}\u00A0€`

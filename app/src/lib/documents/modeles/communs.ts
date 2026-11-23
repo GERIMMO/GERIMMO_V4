@@ -125,6 +125,8 @@ export type ContexteBail = {
 };
 
 // Les colonnes d'une personne que lisent les documents (bailleurs, occupants, garants).
+// Reprise du lot 43 : les selects la citent directement. L'alias local `const CHAMPS_PERSONNE = CHAMPS_PERSONNE_DOCUMENT`
+// (lot 37) les rendait illisibles par tests/embeds-ambigus.test.ts, qui ne résout que les constantes littérales du fichier.
 const CHAMPS_PERSONNE_DOCUMENT =
   "id, nom, prenom, email, telephone, date_naissance, commune_naissance, address_line1, postal_code, city, qualite, siren";
 
@@ -133,8 +135,6 @@ export async function chargerContexteBail(
   orgId: string,
   bailId: string
 ): Promise<ContexteBail | { erreur: string }> {
-  const CHAMPS_PERSONNE = CHAMPS_PERSONNE_DOCUMENT;
-
   const [{ data: organisation, error: erreurOrganisation }, { data: bail, error: erreurBail }] = await Promise.all([
     supabase
       .from("organizations")
@@ -206,15 +206,15 @@ export async function chargerContexteBail(
   const [{ data: detentions, error: erreurDetentions }, { data: bailPersonnes, error: erreurPersonnes }, { data: principal, error: erreurPrincipal }] = await Promise.all([
     supabase
       .from("detentions")
-      .select(`quote_part, person:persons!detentions_person_id_fkey(${CHAMPS_PERSONNE})`)
+      .select(`quote_part, person:persons!detentions_person_id_fkey(${CHAMPS_PERSONNE_DOCUMENT})`)
       .eq("lot_id", lot.id)
       .is("date_fin", null),
     supabase
       .from("bail_personnes")
-      .select(`role, garant_de, person:persons!bail_personnes_person_meme_org_fk(${CHAMPS_PERSONNE})`)
+      .select(`role, garant_de, person:persons!bail_personnes_person_meme_org_fk(${CHAMPS_PERSONNE_DOCUMENT})`)
       .eq("bail_id", bailId),
     bail.locataire_principal
-      ? supabase.from("persons").select(CHAMPS_PERSONNE).eq("id", bail.locataire_principal).maybeSingle()
+      ? supabase.from("persons").select(CHAMPS_PERSONNE_DOCUMENT).eq("id", bail.locataire_principal).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
   ]);
   if (erreurDetentions || erreurPersonnes || erreurPrincipal) return { erreur: "Les bailleurs et les occupants ne peuvent pas être vérifiés. Réessayez." };

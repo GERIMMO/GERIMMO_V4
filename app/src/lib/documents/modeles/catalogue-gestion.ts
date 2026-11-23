@@ -1,6 +1,6 @@
 import { detailRapportGestion } from "./detail-rapport-gestion";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { Fusion, assemblerPage, cadreSignature, cartouches, enTete, faitA, section, tableau, titre, eur, facultatif, nombreFr, pointFinal, moisEnToutesLettres, formaterDateFr } from "../gabarit";
+import { Fusion, assemblerPage, cadreSignature, cartouches, enTete, faitA, faitALaSignature, section, tableau, titre, eur, facultatif, nombreFr, pointFinal, moisEnToutesLettres, formaterDateFr } from "../gabarit";
 import { ETATS_INCIDENT_DOCUMENT, IMPUTATIONS_INCIDENT, URGENCES_INCIDENT, categorieIncident } from "@/lib/incidents";
 import { libelleCategorieEcriture } from "@/lib/categories-ecriture";
 import { ETATS_MANDAT } from "@/lib/baux";
@@ -200,6 +200,10 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
     const champ = (cle:string,libelle:string) => f.champ(options[cle]?.trim()||null,libelle);
     const liens: LienDocument[] = [];
     let contenu = "", destinataire = "", logement = "", libelleLieu = "Logement", signatures = false;
+    // Reprise du lot 43 : un accord que l'agence et le mandant signent (avenants au mandat, résiliation convenue) n'est plus
+    // daté du jour de sa génération au-dessus de cadres vides : « Fait à …, le » se complète à la signature, comme les
+    // inventaires (lot 40), le protocole d'apurement et l'autorisation de travaux (lot 43). « Établi le » garde ce jour.
+    let dateALaSignature = false;
     // Phase 3, lot 42 (C88) : le logement s'écrit comme dans les documents du bail (adresseLogement), étage et porte compris ;
     // l'ordre envoyé à l'artisan n'en donnait que le nom et l'adresse de l'immeuble.
     const lotConcerne = async (id:string) => {
@@ -502,16 +506,16 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
           <p>Relevé annuel du mandat, à rapprocher des pièces et à transmettre au comptable. Les transferts de fonds et dépôts ne constituent pas automatiquement des recettes fiscales. Ce relevé ne calcule pas un revenu imposable.</p>`;
       } else if (code === "resiliation_mandat") {
         contenu += `${section("Résiliation proposée")}<p>Date d’effet : ${f.date(options.date_effet||null,"date d’effet de la résiliation")} ; motif : ${champ("motif","motif et fondement de la résiliation")}${pointFinal(options.motif)}</p><p>Remise des fonds, pièces et dossiers : ${champ("remise","modalités de remise du dossier et du solde")}${pointFinal(options.remise)}</p>
-          <p>Le préavis prévu au mandat est de ${f.champ(texte(mandat.preavis_mois),"durée du préavis")} mois. La génération ne résilie pas le mandat dans Gerimmo ; la date convenue doit être enregistrée après notification.</p>`; signatures = true;
+          <p>Le préavis prévu au mandat est de ${f.champ(texte(mandat.preavis_mois),"durée du préavis")} mois. La génération ne résilie pas le mandat dans Gerimmo ; la date convenue doit être enregistrée après notification.</p>`; signatures = true; dateALaSignature = true;
       } else {
-        contenu += `${section(code === "avenant_perimetre" ? "Périmètre convenu" : "Conditions convenues")}<p>Date d’effet : ${f.date(options.date_effet||null,"date d’effet de l’avenant")}.</p><p>${champ("modifications",code === "avenant_perimetre" ? "lots ajoutés ou retirés et conditions applicables" : "clauses modifiées et nouvelles conditions convenues")}${pointFinal(options.modifications)}</p><p>Les autres stipulations du mandat restent inchangées. Les modifications doivent être enregistrées dans le dossier après signature ; ce document ne les applique pas automatiquement.</p>`; signatures = true;
+        contenu += `${section(code === "avenant_perimetre" ? "Périmètre convenu" : "Conditions convenues")}<p>Date d’effet : ${f.date(options.date_effet||null,"date d’effet de l’avenant")}.</p><p>${champ("modifications",code === "avenant_perimetre" ? "lots ajoutés ou retirés et conditions applicables" : "clauses modifiées et nouvelles conditions convenues")}${pointFinal(options.modifications)}</p><p>Les autres stipulations du mandat restent inchangées. Les modifications doivent être enregistrées dans le dossier après signature ; ce document ne les applique pas automatiquement.</p>`; signatures = true; dateALaSignature = true;
       }
     }
     const reference = referenceCourte(code.toUpperCase().replaceAll("_","-"),cibleId);
     // C83 : un document interne sans destinataire (comparatif, récapitulatif, journal, récapitulatif fiscal) n'imprime plus la case
     // « Destinataire » : le mot de repli « Organisation » ne désignait personne.
     const corps = `${enTete(f,exp,{libelle:"Dossier",reference,etabliLe:dateDocument})}${titre(meta.nom,"Document de gestion",[])}
-      ${cartouches([["Dossier",reference],...(destinataire ? [["Destinataire",destinataire] as [string,string]] : []),...(logement ? [[libelleLieu,logement] as [string,string]] : [])])}${contenu}${faitA(f,exp.ville,dateDocument)}
+      ${cartouches([["Dossier",reference],...(destinataire ? [["Destinataire",destinataire] as [string,string]] : []),...(logement ? [[libelleLieu,logement] as [string,string]] : [])])}${contenu}${dateALaSignature ? faitALaSignature(f,exp.ville) : faitA(f,exp.ville,dateDocument)}
       ${signatures?`<div class="signatures">${cadreSignature(code === "restitution_cles" ? libelleSignataireBailleur(organisation.type) : "Le mandataire",f.champ(exp.nom,"nom et prénom(s), ou dénomination"))}${cadreSignature("Partie concernée",destinataire)}</div>`:""}`;
     return {document:assemblerPage({f,titreDocument:meta.nom,nomPied:meta.nom,reference,corps:`<style>.bloc-titre{padding:10pt 0;margin-bottom:8pt}h1{font-size:19pt;letter-spacing:.2em}h2{margin:14pt 0 8pt}.cartouches{margin:10pt 0}p{margin:4pt 0}</style>${corps}`}),titreGed:meta.nom,nomFichier:`${code}-${cibleId.slice(0,8)}`,liens};
   } catch(e) { if(e instanceof RefusDocument) return {erreur:e.message}; throw e; }

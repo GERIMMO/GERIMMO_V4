@@ -180,8 +180,10 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
     // L'organisation telle que l'en-tête la lit (une valeur absente reste absente).
     const organisation = { name:texte(org.name), type:texte(org.type), address_line1:texte(org.address_line1)||null, postal_code:texte(org.postal_code)||null, city:texte(org.city)||null, telephone:texte(org.telephone)||null, email_contact:texte(org.email_contact)||null };
     // Phase 3 (C36, C76) : un document de bail est émis par les détenteurs du bail hors espace d'agence (expediteur, comme les
-    // autres documents du bail) ; les autres documents de gestion, par l'organisation. L'en-tête construit ici à partir du nom
-    // de l'espace faisait du nom technique du parc le bailleur et le signataire du bordereau des clés et des courriers de charges.
+    // autres documents du bail), de même que l'ordre et le compte rendu d'une intervention (reprise du lot 37) ; les autres
+    // documents de gestion (comparatif, récapitulatif d'incident, journal, récapitulatifs fiscaux), par l'organisation.
+    // L'en-tête construit ici à partir du nom de l'espace faisait du nom technique du parc le bailleur et le signataire du
+    // bordereau des clés et des courriers de charges.
     let exp = expediteur({ organisation });
     // Le jour à Paris, pas en UTC : entre 0 h et 2 h, toISOString donnait la veille.
     const aujourdhui = aujourdhuiParis();
@@ -276,16 +278,20 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
         const artisans = await lireLignes(db.from("artisans").select("raison_sociale,siret,telephone,email").eq("id",intervention.artisan_id).limit(1));
         if (!artisans.length) throw new RefusDocument("Les coordonnées de l’artisan ne sont pas accessibles.");
         const a = artisans[0], entreprise = f.champ(texte(a.raison_sociale),"entreprise intervenante");
-        // C90 : l'ordre d'intervention est adressé à l'entreprise ; le compte rendu, qu'elle a déclaré, au donneur d'ordre :
-        // l'agence, ou hors agence les détenteurs du lot (la règle d'expediteur). Il désignait l'artisan lui-même. Une lecture des
-        // détenteurs en échec refuse le document plutôt que de redonner le nom technique de l'espace.
-        destinataire = entreprise;
-        if (code === "compte_rendu_intervention") {
-          // C82 : pour les parties communes (aucun lot), les détenteurs des logements de l'immeuble.
-          const detenteurs = organisation.type === "agence" ? [] : texte(incident.lot_id) ? await chargerDetenteursLot(db, texte(incident.lot_id)) : await chargerDetenteursBien(db, texte(incident.bien_id));
+        // Reprise du lot 37 (C90, C36/C76 pour l'ordre) : les deux documents d'une mission sont ceux du DONNEUR D'ORDRE, l'agence
+        // dans son espace, ailleurs les détenteurs du lot (C82 : pour les parties communes, ceux des logements de l'immeuble),
+        // selon la règle d'expediteur. L'ordre partait au nom technique de l'espace et avec son téléphone, alors que le compte
+        // rendu de la même mission désignait la bailleresse. Une lecture des détenteurs en échec refuse le document plutôt que de
+        // redonner le nom de l'espace.
+        if (organisation.type !== "agence") {
+          const detenteurs = texte(incident.lot_id) ? await chargerDetenteursLot(db, texte(incident.lot_id)) : await chargerDetenteursBien(db, texte(incident.bien_id));
           if (!detenteurs) throw new RefusDocument(MESSAGE_CHARGEMENT_IMPOSSIBLE);
-          destinataire = f.champ(expediteur({ organisation, bailleurs: detenteurs }).nom, "donneur d’ordre");
+          exp = expediteur({ organisation, bailleurs: detenteurs });
         }
+        // L'ordre est adressé à l'entreprise. Le compte rendu est la pièce du donneur d'ordre qui consigne ce que l'artisan a
+        // déclaré : il n'a pas de case « Destinataire » (C83). Il désignait l'artisan lui-même (C90), puis le donneur d'ordre, qui
+        // en était déjà l'émetteur (l'agence s'adressait le document à elle-même).
+        destinataire = code === "ordre_intervention" ? entreprise : "";
         const nature = libelleDe(NATURES_TRAVAUX, intervention.nature_travaux);
         contenu += `${section("Mission enregistrée")}<p>${f.champ(nature,"nature des travaux")}${pointFinal(nature)}</p>
           <p>Artisan : ${entreprise} ; SIRET : ${facultatif(texte(a.siret))}. Contact : ${facultatif(texte(a.telephone))} · ${facultatif(texte(a.email))}.</p>

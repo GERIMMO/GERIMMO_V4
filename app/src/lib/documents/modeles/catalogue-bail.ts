@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Fusion, assemblerPage, cadreSignature, blocSignatureEmetteur, cartouches, enTete, faitA, faitALaSignature, section, tableau, titre, eur, nombreFr, pointFinal, facultatif, ouNeant, echapper, formaterDateFr } from "../gabarit";
 import { CATALOGUE_DOCUMENTS } from "../catalogue";
-import { signatureOrganisation, chargerContexteBail, expediteur, adresseLogement, nomsBailleurs, nomsLocataires, nomPersonne, liensLocataires, referenceCourte, referenceAvenant, libellePeriodeTerme, interlocuteurLocataire, libelleSignataireBailleur, coordonneesBancaires, demandeVirement } from "./communs";
+import { signatureOrganisation, chargerContexteBail, expediteur, adresseLogement, adressePostaleLogement, nomsBailleurs, nomsLocataires, nomPersonne, liensLocataires, referenceCourte, referenceAvenant, libellePeriodeTerme, interlocuteurLocataire, libelleSignataireBailleur, coordonneesBancaires, demandeVirement } from "./communs";
 import { TYPES_DIAGNOSTIC } from "@/lib/parc";
 import { LIBELLE_ETAT_INVENTAIRE } from "@/lib/inventaire-meuble";
 import { modeSignatureDocument } from "@/lib/politique-signature";
@@ -54,8 +54,9 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
     // Phase 3 (C21 à C25) : l'avenant de remplacement a sa propre référence (en-tête et pied), le contrat qu'il modifie avec sa
     // date de prise d'effet, une date laissée à compléter à la signature et un cadre par partie.
     let avenant: { reference: string; contrat: string; signatures: string } | null = null;
-    // S39 : l'adresse postale du destinataire d'un courrier de recouvrement (`undefined` : pas un courrier ; `null` : inconnue).
-    let adresseDestinataire: string | null | undefined;
+    // S39 : l'adresse postale du destinataire d'un courrier de recouvrement, ligne par ligne (`undefined` : pas un courrier ;
+    // aucune ligne : inconnue).
+    let adresseDestinataire: string[] | undefined;
     const opt = (cle: string, libelle: string) => f.champ(options[cle]?.trim() || null, libelle);
     if (["attestation_loyer", "attestation_caf"].includes(code) && !["actif","preavis"].includes(ctx.bail.etat)) return { erreur: "Cette attestation concerne un contrat actuellement en cours." };
     if (["attestation_loyer", "attestation_caf", "relance_simple", "seconde_relance", "mise_en_demeure", "protocole_apurement"].includes(code) && ctx.bail.etat === "brouillon") return { erreur: "Ce document se prépare pour un bail engagé, après la signature du contrat." };
@@ -154,12 +155,15 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
         const niveau = code === "relance_simple" ? "relance_1" : code === "seconde_relance" ? "relance_2" : "recommande";
         const suivi = await verifierCourrierDuBail(supabase, orgId, bailId, echus, aujourdhui, niveau);
         if (suivi.erreur) return { erreur: suivi.erreur };
-        // S39 : ces trois courriers portent l'adresse postale du locataire. Tant qu'il occupe les lieux, c'est le logement loué ;
+        // S39 : ces trois courriers portent l'adresse postale du locataire. Tant qu'il occupe les lieux, c'est le logement loué,
+        // écrit comme une adresse postale (adressePostaleLogement : étage et porte, voie, code postal et commune en dernier) ;
         // après sa sortie (bail terminé, ou état des lieux de sortie signé), l'adresse laissée à l'état des lieux de sortie si
-        // elle existe. Sinon, aucune adresse n'est inventée : le nom figure seul.
+        // elle existe, telle que saisie (ses lignes conservées). Sinon, aucune adresse n'est inventée : le nom figure seul.
         const [edlSortie] = await lireLignes(supabase.from("etats_des_lieux").select("etat,adresse_restitution_depot").eq("organization_id",orgId).eq("bail_id",bailId).eq("type","sortie").limit(1));
         const sorti = ctx.bail.etat === "termine" || texte(edlSortie?.etat) === "signe";
-        adresseDestinataire = (sorti ? texte(edlSortie?.adresse_restitution_depot).trim() : adresseLogement(ctx.lot,ctx.bien)) || null;
+        adresseDestinataire = sorti
+          ? texte(edlSortie?.adresse_restitution_depot).split(/\r?\n/).map(l => l.trim()).filter(Boolean)
+          : adressePostaleLogement(ctx.lot,ctx.bien);
         if (code === "seconde_relance") contenu += `<p>Notre précédent courrier du ${f.date(suivi.precedente)} reste sans régularisation complète à ce jour. Merci de régler ce solde ou de prendre contact avec votre ${interlocuteur}.</p>`;
       }
       if (code === "mise_en_demeure") contenu += `<p>Par le présent courrier, nous vous mettons en demeure de régler les sommes échues détaillées ci-dessus dans un délai de ${opt("delai","délai de règlement à compter de la réception")} jours à compter de sa réception, sous réserve des règlements intervenus depuis son établissement.</p><p>Ce courrier est à notifier avec preuve de réception. Il ne constitue ni un commandement de payer ni une décision de résiliation du bail.</p>`;
@@ -271,7 +275,7 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
     const plusieurs = ctx.locataires.length > 1;
     const caseLocataires = plusieurs ? "Locataires" : "Locataire";
     const corps = `${enTete(f,exp,avenant ? {libelle:"Avenant",reference:avenant.reference,etabliLe:aujourdhui} : {libelle:"Dossier",reference:referenceCourte("BAIL",bailId),etabliLe:aujourdhui})}${titre(meta.nom,avenant ? "Modification du contrat commun de location" : "Dossier de location",[])}
-      ${cartouches([["Bailleur",nomsBailleurs(f,ctx.bailleurs)],adresseDestinataire === undefined ? [caseLocataires,nomsLocataires(f,ctx.locataires)] : [`${caseLocataires} (${plusieurs ? "destinataires" : "destinataire"})`,`${nomsLocataires(f,ctx.locataires)}${adresseDestinataire ? `<div>${facultatif(adresseDestinataire)}</div>` : ""}`],["Locaux concernés",f.champ(adresseLogement(ctx.lot,ctx.bien),"adresse du logement")],["Contrat",avenant?.contrat ?? referenceCourte("BAIL",bailId)]])}
+      ${cartouches([["Bailleur",nomsBailleurs(f,ctx.bailleurs)],adresseDestinataire === undefined ? [caseLocataires,nomsLocataires(f,ctx.locataires)] : [`${caseLocataires} (${plusieurs ? "destinataires" : "destinataire"})`,`${nomsLocataires(f,ctx.locataires)}${adresseDestinataire.map(ligne => `<div>${facultatif(ligne)}</div>`).join("")}`],["Locaux concernés",f.champ(adresseLogement(ctx.lot,ctx.bien),"adresse du logement")],["Contrat",avenant?.contrat ?? referenceCourte("BAIL",bailId)]])}
       ${contenu}${avenant ? `${faitALaSignature(f,exp.ville)}${avenant.signatures}` : `${faitA(f,exp.ville,aujourdhui)}${signatureEmetteur ?? (signatures ? `<div class="signatures">${cadreSignature(libelleSignataireBailleur(ctx.organisation.type),nomsBailleurs(f,ctx.bailleurs))}${cadreSignature(plusieurs ? "Les locataires" : "Le locataire",nomsLocataires(f,ctx.locataires))}</div>` : "")}`}`;
     return { document:assemblerPage({f,titreDocument:meta.nom,nomPied:meta.nom,reference,corps:`<style>.bloc-titre{padding:10pt 0;margin-bottom:8pt}h1{font-size:19pt;letter-spacing:.2em}h2{margin:14pt 0 8pt}.cartouches{margin:10pt 0}p{margin:4pt 0}</style>${corps}`}),titreGed:meta.nom,nomFichier:`${code}-${bailId.slice(0,8)}`,liens:[{entite:"bail",entiteId:bailId},{entite:"lot",entiteId:ctx.lot.id},...liensLocataires(ctx)] };
   } catch(e) { if(e instanceof RefusDocument) return {erreur:e.message}; throw e; }

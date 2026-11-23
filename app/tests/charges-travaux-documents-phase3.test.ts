@@ -26,6 +26,12 @@ vi.mock("@/lib/documents/modeles/communs", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   chargerContexteBail: vi.fn(),
   signatureOrganisation: vi.fn(async () => null),
+  // Reprise du lot 37 : hors agence, l'ordre et le compte rendu d'une intervention lisent les détenteurs du lot (leur en-tête,
+  // celui du donneur d'ordre). La base simulée ne lit pas la jointure detentions → persons ; ces tests portent sur le créneau,
+  // les travaux et le logement : aucun détenteur, l'en-tête reste celui de l'espace (règle d'expediteur). L'en-tête du donneur
+  // d'ordre est vérifié par documents-interlocuteurs-phase3 et documents-interlocuteurs-reprise-phase3.
+  chargerDetenteursLot: vi.fn(async () => []),
+  chargerDetenteursBien: vi.fn(async () => []),
 }));
 import { chargerContexteBail, type ContexteBail } from "@/lib/documents/modeles/communs";
 import { assemblerComplementGestion, creneauParis as creneauDuGabarit, delaiDecompteRespecte, mentionExerciceProvisoire, unMoisApres } from "@/lib/documents/modeles/catalogue-gestion";

@@ -261,7 +261,12 @@ describe("C16, C24 — cadre de signature : « Le bailleur » hors agence, « Le
   });
 });
 
-describe("C90 — compte rendu d'intervention : adressé au donneur d'ordre, pas à l'artisan", () => {
+// Reprise du lot 37 : le compte rendu avait reçu pour destinataire le donneur d'ordre, mais son en-tête restait celui de l'espace :
+// l'agence s'adressait le document à elle-même ; chez une propriétaire, il partait du nom technique de l'espace vers la
+// bailleresse. Les deux documents de la mission (ordre et compte rendu) sont désormais ceux du donneur d'ordre (en-tête), et le
+// compte rendu, pièce du donneur d'ordre, n'a plus de case « Destinataire ». Les attentes « destinataire = donneur d'ordre »
+// sont remplacées par celles-ci.
+describe("C90 — compte rendu et ordre d'intervention : les pièces du donneur d'ordre", () => {
   const tables = (type: Espace) => ({
     organizations: [organisation(type)],
     lots: [{ id: "lot", nom: "Studio meublé n° 7", bien_id: "bien", meuble: true }],
@@ -273,19 +278,44 @@ describe("C90 — compte rendu d'intervention : adressé au donneur d'ordre, pas
     detentions: [{ quote_part: 100, person: bailleuse() }],
   });
   const destinataire = (html: string) => /<div class="etiquette">Destinataire<\/div><div><span class="v">([^<]*)<\/span>/.exec(html)?.[1];
-  it("propriétaire : la bailleresse, détentrice du lot ; l'artisan reste nommé dans la mission", async () => {
+  const ordre = (type: Espace) => { const t = tables(type); t.incident_interventions[0].statut = "planifiee"; return t; };
+  it("propriétaire : le compte rendu est émis par la bailleresse, détentrice du lot, sans case « Destinataire » ; l'artisan reste nommé", async () => {
     const html = succes(await assemblerComplementGestion("compte_rendu_intervention", base(tables("proprietaire_direct")), "org", "intervention")).document.html;
-    expect(destinataire(html)).toBe("Moreau Claire");
+    expect(enTeteDe(html)).toContain("Moreau Claire");
+    expect(enTeteDe(html)).toContain("06 11 11 11 11");
+    expect(html).not.toContain("Parc de Claire Moreau");
+    expect(html).not.toContain("04 00 00 00 00");
+    expect(destinataire(html)).toBeUndefined();
+    expect(html).not.toContain(">Destinataire<");
     expect(texteDe(html)).toContain("Artisan : Plomberie Fictive ;");
   });
-  it("agence : l'agence", async () => {
+  it("agence : le compte rendu est émis par l'agence, qui ne se l'adresse plus", async () => {
     const html = succes(await assemblerComplementGestion("compte_rendu_intervention", base(tables("agence")), "org", "intervention")).document.html;
-    expect(destinataire(html)).toBe("Agence du Parc");
+    expect(enTeteDe(html)).toContain("Agence du Parc");
+    expect(enTeteDe(html)).not.toContain("Moreau Claire");
+    expect(html).not.toContain(">Destinataire<");
   });
-  it("l'ordre d'intervention reste adressé à l'artisan", async () => {
-    const t = tables("proprietaire_direct"); t.incident_interventions[0].statut = "planifiee";
-    const html = succes(await assemblerComplementGestion("ordre_intervention", base(t), "org", "intervention", { acces: "Clé chez la gardienne." })).document.html;
+  it("propriétaire : l'ordre part de la bailleresse (le donneur d'ordre du compte rendu), adressé à l'artisan", async () => {
+    const html = succes(await assemblerComplementGestion("ordre_intervention", base(ordre("proprietaire_direct")), "org", "intervention", { acces: "Clé chez la gardienne." })).document.html;
+    expect(enTeteDe(html)).toContain("Moreau Claire");
+    expect(enTeteDe(html)).toContain("06 11 11 11 11");
+    expect(html).not.toContain("Parc de Claire Moreau");
+    expect(html).not.toContain("04 00 00 00 00");
     expect(destinataire(html)).toBe("Plomberie Fictive");
+    expect(texteDe(html)).toContain("sans accord préalable du donneur d’ordre.");
+  });
+  it("agence : l'ordre part de l'agence, adressé à l'artisan", async () => {
+    const html = succes(await assemblerComplementGestion("ordre_intervention", base(ordre("agence")), "org", "intervention", { acces: "Clé chez la gardienne." })).document.html;
+    expect(enTeteDe(html)).toContain("Agence du Parc");
+    expect(enTeteDe(html)).not.toContain("Moreau Claire");
+    expect(destinataire(html)).toBe("Plomberie Fictive");
+  });
+  it("comparatif et récapitulatif d'incident, documents internes, gardent l'en-tête de l'espace", async () => {
+    const t = { ...tables("proprietaire_direct"), incident_devis: [{ incident_id: "incident", artisan_id: "artisan", description: "Thermostat", montant_ttc_cents: 16170, statut: "depose", depose_le: "2026-11-23" }] };
+    for (const code of ["comparatif_devis", "recap_incident"] as const) {
+      const html = succes(await assemblerComplementGestion(code, base(t), "org", "incident")).document.html;
+      expect(enTeteDe(html)).toContain("Parc de Claire Moreau");
+    }
   });
 });
 
@@ -295,12 +325,19 @@ describe("S39 — courriers de recouvrement : un bloc destinataire avec l'adress
   const COURRIERS = ["relance_simple", "seconde_relance", "mise_en_demeure"] as const;
   /** Le contenu de la case « Locataire (destinataire) » (jusqu'à la case suivante). */
   const blocDestinataire = (html: string) => html.split('<div class="etiquette">Locataire (destinataire)</div>')[1]?.split('<div class="case">')[0];
-  it.each(COURRIERS)("%s : tant que le locataire occupe les lieux, le logement loué", async (code) => {
+  // Reprise du lot 37 : le bloc reprenait `adresseLogement` (« 12 rue des Lilas, 69003 Lyon, T3 — 4e étage, porte face »), mot
+  // pour mot la case « Locaux concernés », la commune au milieu et suivie du nom du lot. Il est désormais écrit comme une adresse
+  // postale, une ligne par élément : étage et porte, voie, code postal et commune en dernier ; le nom du lot n'y figure pas.
+  it.each(COURRIERS)("%s : tant que le locataire occupe les lieux, le logement loué, en adresse postale", async (code) => {
+    ctx.lot.nom = "T3 — 4e étage";
+    ctx.lot.etage = "4e, porte face";
     const html = succes(await assemblerComplementBail(code, base(tables()), "org", "b1", { delai: "8" })).document.html;
     const bloc = blocDestinataire(html);
     expect(bloc).toBeDefined();
-    expect(texteDe(bloc!)).toContain("Leblanc Julie");
-    expect(texteDe(bloc!)).toContain(adresseLogement(ctx.lot, ctx.bien));
+    expect(bloc).toContain('<span class="v">Leblanc Julie</span><div><span class="v">4e étage, porte face</span></div><div><span class="v">12 rue des Lilas</span></div><div><span class="v">69003 Lyon</span></div>');
+    expect(texteDe(bloc!)).not.toContain("T3");
+    // « Locaux concernés » garde la désignation complète du logement.
+    expect(html).toContain(`<div class="etiquette">Locaux concernés</div><div><span class="v">${adresseLogement(ctx.lot, ctx.bien)}</span></div>`);
   });
   it.each(COURRIERS)("%s : après la sortie, l'adresse laissée à l'état des lieux de sortie", async (code) => {
     ctx.bail.etat = "termine";

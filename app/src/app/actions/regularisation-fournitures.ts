@@ -45,8 +45,11 @@ export async function emettreRegularisationFournitures(orgId: string, bailId: st
   if (f.get("empreinte") !== d.empreinte) return { erreur: "Le brouillon a changé. Recalculez-le puis vérifiez les nouveaux montants." };
   if (f.get("complet") !== "on") return { erreur: "Confirmez que toutes les charges de l’exercice sont présentes." };
   const etaler = f.get("etaler") === "on";
+  // Reprise du lot 37 : le décompte renvoie le locataire au gestionnaire en agence, au bailleur ailleurs (type de l'espace).
+  const organisation = await supabase.from("organizations").select("type").eq("id", orgId).maybeSingle();
+  if (organisation.error || !organisation.data) return { erreur: "L’espace de gestion ne peut pas être vérifié. Réessayez." };
   try {
-    const pdf = await rendrePdf(documentRegularisationFournitures(d, etaler));
+    const pdf = await rendrePdf(documentRegularisationFournitures(d, etaler, organisation.data.type));
     const prep = await preparerFichierGed(supabase, orgId, new File([new Uint8Array(pdf)], `decompte-charges-${d.annee}.pdf`, { type: "application/pdf" }), false, true);
     if (!prep.fichier) return { erreur: prep.erreur ?? "Le décompte n’a pas pu être conservé." };
     const piece = prep.fichier;

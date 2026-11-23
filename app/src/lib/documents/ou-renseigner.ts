@@ -1,4 +1,4 @@
-import { RACINE_AGENCE } from "@/lib/racine-espace";
+import { RACINE_AGENCE, RACINE_PROPRIETAIRE } from "@/lib/racine-espace";
 // Où renseigner un champ resté en libellé dans un PDF généré (chantier
 // documentaire 08/09, refondu à l'audit du 09/09) : chaque « manquant »
 // pointe l'écran où la donnée se saisit — Gerimmo sait où vit chaque
@@ -111,6 +111,10 @@ const REGLES: Regle[] = [
   { motifs: ["jj/mm/aaaa"], cible: "bail", cibleBail: "personne" },
 ];
 
+// Les documents d'un dossier (lot, incident) dont l'en-tête reste celui de l'espace, même chez un propriétaire qui gère
+// lui-même (catalogue-gestion) : documents internes et comptables.
+const MODELES_EN_TETE_ESPACE = new Set(["comparatif_devis", "recap_incident", "recap_fiscal_nu", "recap_fiscal_meuble", "ecriture_rectificative", "cloture_mensuelle"]);
+
 export function lienPourManquant(
   libelle: string,
   orgId: string,
@@ -165,6 +169,15 @@ export function lienPourManquant(
   // motif invoqué se saisissent dans le formulaire du congé lui-même. Le repli « fiche de la personne » enverrait
   // chercher l'adresse du bénéficiaire sur la fiche du LOCATAIRE.
   if (modele === "conge_bailleur" && ["bénéficiaire de la reprise", "lien avec le bailleur", "raisons de la reprise", "motif invoqué"].some((m) => l.includes(m))) return null;
+
+  // Reprise du lot 37 : chez un propriétaire qui gère lui-même, l'en-tête d'un document du bail (et de l'ordre ou du compte
+  // rendu d'une intervention) est celui des détenteurs du lot (`expediteur`) : son adresse et sa commune se complètent sur la
+  // fiche du propriétaire, dans Personnes. Le profil de l'espace, où ces deux libellés envoyaient, n'est pas lu par ces
+  // documents : on le complétait sans que le PDF se débloque. Les documents de gestion propres à l'espace (journal,
+  // récapitulatifs, comparatif) gardent l'en-tête de l'espace, et donc son profil.
+  if (racine === RACINE_PROPRIETAIRE && (bail || lot) && !MODELES_EN_TETE_ESPACE.has(modele ?? "") && (l === "domicile ou siège social" || l === "commune")) {
+    return { href: `${base}/personnes`, ecran: "fiche du propriétaire, dans Personnes" };
+  }
 
   // « nombre » (pièces principales du bail type) est un libellé d'un seul mot :
   // en fragment il matcherait trop large, on le prend en égalité stricte

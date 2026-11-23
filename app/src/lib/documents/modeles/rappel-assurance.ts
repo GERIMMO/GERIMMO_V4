@@ -104,17 +104,31 @@ export async function assemblerRappelAssurance(
     : { data: null };
   if (!personne) return { erreur: "L'attestation n'est rattachée à aucune personne." };
 
-  // Le logement : le bail vivant dont cette personne est locataire principal
-  const { data: bail } = await supabase
-    .from("baux")
-    .select(
-      "id, locataire_principal, chambre:lot_chambres!baux_chambre_meme_lot_fk(nom), lot:lots!baux_lot_meme_org_fk(id, nom, etage, bien:biens!lots_bien_id_fkey(address_line1, postal_code, city))"
-    )
-    .eq("organization_id", orgId)
-    .eq("locataire_principal", personne.id)
-    .in("etat", ["actif", "preavis"])
-    .limit(1)
-    .maybeSingle();
+  // Le logement : le bail vivant de cette personne, qu'elle en soit locataire principal ou colocataire. Reprise du lot 37 (C56) :
+  // seul le locataire principal était cherché ; pour un colocataire, le rappel perdait son logement et ses bailleurs, et
+  // repartait au nom de l'espace. Une lecture en échec refuse le document (elle passait pour « aucun bail en cours »).
+  const CHAMPS_BAIL =
+    "id, locataire_principal, chambre:lot_chambres!baux_chambre_meme_lot_fk(nom), lot:lots!baux_lot_meme_org_fk(id, nom, etage, bien:biens!lots_bien_id_fkey(address_line1, postal_code, city))";
+  const BAIL_ILLISIBLE = "Le bail de cette personne ne peut pas être vérifié. Réessayez.";
+  const bauxVivants = () => supabase.from("baux").select(CHAMPS_BAIL).eq("organization_id", orgId).in("etat", ["actif", "preavis"]);
+  const principal = await bauxVivants().eq("locataire_principal", personne.id).limit(1).maybeSingle();
+  if (principal.error) return { erreur: BAIL_ILLISIBLE };
+  let bail = principal.data;
+  if (!bail) {
+    const { data: colocations, error: erreurColocations } = await supabase
+      .from("bail_personnes")
+      .select("bail_id")
+      .eq("organization_id", orgId)
+      .eq("person_id", personne.id)
+      .eq("role", "colocataire");
+    if (erreurColocations) return { erreur: BAIL_ILLISIBLE };
+    const ids = ((colocations ?? []) as { bail_id: string }[]).map((c) => c.bail_id);
+    if (ids.length) {
+      const colocation = await bauxVivants().in("id", ids).limit(1).maybeSingle();
+      if (colocation.error) return { erreur: BAIL_ILLISIBLE };
+      bail = colocation.data;
+    }
+  }
   const lot = bail ? premier(bail.lot as UnOuPlusieurs<{ id: string; nom: string; etage: string | null; bien: UnOuPlusieurs<{ address_line1: string; postal_code: string; city: string }> }>) : null;
   const bien = lot ? premier(lot.bien) : null;
   // C59 : le logement loué s'imprime comme dans les autres documents du bail (adresseLogement : immeuble, lot, étage) ; un
@@ -122,7 +136,8 @@ export async function assemblerRappelAssurance(
   const chambre = bail ? premier((bail as { chambre?: UnOuPlusieurs<{ nom: string }> }).chambre ?? null) : null;
 
   // C56 : le rappel est émis et signé comme les autres documents du bail, par ses détenteurs hors espace d'agence (expediteur).
-  // Il l'était au nom de l'espace de travail, avec son téléphone. Sans bail en cours (aucun lot connu), l'organisation émet.
+  // Il l'était au nom de l'espace de travail, avec son téléphone. Sans bail en cours (aucun lot connu), l'organisation émet ;
+  // le logement manque alors et le document reste à compléter.
   const detenteurs = lot && organisation.type !== "agence" ? await chargerDetenteursLot(supabase, lot.id) : [];
   if (!detenteurs) return { erreur: "Les bailleurs du logement ne peuvent pas être vérifiés. Réessayez." };
 

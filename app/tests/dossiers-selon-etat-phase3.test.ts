@@ -311,12 +311,18 @@ describe("C82 — incident des parties communes (sans lot)", () => {
     const r = await assemblerComplementGestion("ordre_intervention", baseFiltrante(t).db, "org", "int", { acces: "Clé chez le gardien" });
     expect(texteDe(succes(r).document.html)).toContain(lieu);
   });
-  it("compte rendu hors agence : adressé aux détenteurs des logements de l'immeuble, chacun une fois", async () => {
+  // Reprise du lot 37 (C90) : le compte rendu est la pièce du donneur d'ordre ; les détenteurs en sont l'ÉMETTEUR (en-tête), et il
+  // n'a plus de case « Destinataire » (il leur était adressé alors que l'en-tête restait celui de l'espace). La règle des parties
+  // communes (C82) ne change pas : les détenteurs des logements de l'immeuble, chacun une fois.
+  it("compte rendu hors agence : émis par les détenteurs des logements de l'immeuble, chacun une fois", async () => {
     const { db, appels } = baseFiltrante(tables());
-    const texte = texteDe(succes(await assemblerComplementGestion("compte_rendu_intervention", db, "org", "int")).document.html);
-    const html = succes(await assemblerComplementGestion("compte_rendu_intervention", baseFiltrante(tables()).db, "org", "int")).document.html;
-    expect(html).toMatch(/<div class="etiquette">Destinataire<\/div><div>(?:<[^>]+>)*Moreau Claire</);
-    expect(texte).not.toContain("Autre Personne");
+    const html = succes(await assemblerComplementGestion("compte_rendu_intervention", db, "org", "int")).document.html;
+    const entete = texteDe(html.split('<div class="cartouche-ref">')[0]);
+    expect(entete).toContain("Moreau Claire");
+    expect(entete.match(/Moreau Claire/g)).toHaveLength(1);
+    expect(entete).not.toContain("Parc de Claire Moreau");
+    expect(html).not.toContain(">Destinataire<");
+    expect(texteDe(html)).not.toContain("Autre Personne");
     expect(appels.flatMap((a) => a.ops).some((o) => o[0] === "eq" && o[2] === "")).toBe(false);
   });
   it("un incident sans lot ni immeuble est refusé avec un motif, jamais « Réessayez »", async () => {

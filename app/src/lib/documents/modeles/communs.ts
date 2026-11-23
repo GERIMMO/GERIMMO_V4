@@ -296,6 +296,19 @@ export function adresseLogement(
     .join(", ");
 }
 
+// S39 (reprise du lot 37) : le logement comme ADRESSE POSTALE, ligne par ligne, pour le bloc destinataire d'un courrier :
+// l'étage et la porte (complément de distribution), puis la voie, puis le code postal et la commune, en dernière ligne. Le nom
+// du lot (« T3 — 4e étage », « Studio meublé ») est un libellé de gestion, pas un élément d'adresse : il reste dans « Locaux
+// concernés ». Le bloc reprenait `adresseLogement`, la commune au milieu de l'adresse et suivie du nom du lot.
+export function adressePostaleLogement(
+  lot: Pick<ContexteBail["lot"], "etage">,
+  bien: Pick<ContexteBail["bien"], "address_line1" | "postal_code" | "city">
+): string[] {
+  return [mentionEtage(lot.etage), bien.address_line1, `${bien.postal_code ?? ""} ${bien.city ?? ""}`.trim()]
+    .map((ligne) => ligne?.trim() ?? "")
+    .filter(Boolean);
+}
+
 // L'expéditeur de l'en-tête : l'organisation qui génère (agence ou parc du
 // propriétaire) — le « Fait à » vient de sa ville. Type structurel minimal :
 // certains modèles chargent l'organisation avec leurs propres colonnes.

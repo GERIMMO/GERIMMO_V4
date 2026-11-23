@@ -13,6 +13,7 @@ vi.mock("@/lib/documents/rendu", () => ({ rendrePdf: m.rendre, copieDeTravail: v
 vi.mock("@/lib/documents/completude", () => ({ refusDocumentIncomplet: vi.fn(() => null) }));
 vi.mock("@/lib/documents/modeles", () => ({ MODELES: { notice: { assembler: m.assembler, typeGed: "notice" } } }));
 import { genererDocument } from "../src/app/actions/documents-generes";
+import { refusDocumentIncomplet } from "@/lib/documents/completude";
 
 const liens = [{ entite: "bail", entiteId: "bail-1" }, { entite: "personne", entiteId: "personne-1" }];
 const generer = () => genererDocument("org-1", "notice", "bail-1", "/agence/org-1/baux/bail-1");
@@ -75,5 +76,20 @@ describe("reprise d'un PDF déjà rangé", () => {
     expect(m.assembler).not.toHaveBeenCalled();
     expect(m.depot).not.toHaveBeenCalled();
     expect(m.liens).not.toHaveBeenCalled();
+  });
+});
+
+// Phase 3, lot 46 (T19) : la liste « À renseigner » suit l'en-tête imprimé ; l'action transmet son origine avec les manquants.
+describe("document incomplet : l'origine de l'en-tête accompagne les manquants", () => {
+  it("rend l'émetteur du document assemblé, sans rendre ni ranger de PDF", async () => {
+    vi.mocked(refusDocumentIncomplet).mockReturnValueOnce({ erreur: "PDF non généré", manquants: ["commune"] });
+    m.assembler.mockResolvedValueOnce({ document: { emetteur: "detenteurs" }, liens: [], titreGed: "Notice", nomFichier: "notice" });
+    expect(await generer()).toEqual({ erreur: "PDF non généré", manquants: ["commune"], liens: [], emetteur: "detenteurs" });
+    expect(m.rendre).not.toHaveBeenCalled();
+    expect(m.depot).not.toHaveBeenCalled();
+  });
+  it("sans origine connue (en-tête construit hors expediteur), rien n'est ajouté", async () => {
+    vi.mocked(refusDocumentIncomplet).mockReturnValueOnce({ erreur: "PDF non généré", manquants: ["commune"] });
+    expect(await generer()).toEqual({ erreur: "PDF non généré", manquants: ["commune"], liens });
   });
 });

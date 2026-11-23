@@ -80,7 +80,7 @@ export function FormulaireCatalogue({orgId,modeleId,choix,garants=[],titulaires=
       <h3 className="text-sm font-semibold">Encore {etat.manquants.length} {etat.manquants.length===1?"information":"informations"} à compléter</h3>
       <p className="mt-1 text-sm text-muted-foreground">Complétez le dossier, puis revenez générer le PDF.</p>
       <ul className="mt-3 divide-y divide-blue-100">{etat.manquants.map(m=>{
-        const destination=lienPourManquant(m,orgId,etat.liens??[],modeleId,racine);
+        const destination=lienPourManquant(m,orgId,etat.liens??[],modeleId,racine,etat.emetteur);
         return <li key={m} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm"><span className="min-w-0 flex-1">{m}</span>{destination&&<Link className="font-medium text-primary underline underline-offset-4" href={destination.href} aria-label={`Compléter : ${m} (${destination.ecran})`}>Compléter →</Link>}</li>;
       })}</ul>
     </section>}

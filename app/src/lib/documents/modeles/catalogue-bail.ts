@@ -23,6 +23,19 @@ type PlanProtocole = { date_arrete: string; dette_initiale: number; acompte: num
 export const LIBELLE_PLAN_A_ENREGISTRER = "plan d’apurement à enregistrer sur la fiche du bail";
 export const texte = (v: unknown) => v == null ? "" : String(v);
 export const montant = (v: unknown) => Number(v ?? 0);
+// Phase 3, lot 46 (T21) : les refus des courriers de recouvrement qui tiennent à l'état du bail. La liste du catalogue
+// (catalogue-cibles, motifsDeRefus) écarte les mêmes baux, avec le même motif et les mêmes calculs (termes échus, solde, plan).
+export const CODES_RECOUVREMENT = ["relance_simple", "seconde_relance", "mise_en_demeure", "situation_dette", "protocole_apurement"] as const;
+export const REFUS_SOLDE_DANS_DECOMPTE = "Le solde de ce bail figure dans le décompte de départ. Consultez ce document avant toute demande de règlement.";
+export const REFUS_AUCUNE_DETTE = "Aucune dette échue n’est constatée : ce courrier n’a pas lieu d’être généré.";
+export const REFUS_PLAN_SANS_TRANCHE = "Ce plan d’apurement n’a aucune tranche.";
+/** Les états d'un plan d'apurement sur lequel un protocole se prépare (plan « vivant »). */
+export const ETATS_PLAN_PROTOCOLE = ["propose", "actif", "en_defaut"];
+/** Les termes échus (avant `jour`) et non soldés d'un bail, lus par etat_loyers_bail. */
+export const termesEchus = (termes: LigneDocument[], jour: string) =>
+  termes.filter(l => texte(l.date_echeance).slice(0,10) < jour && montant(l.montant_du) > montant(l.montant_couvert));
+/** Le reste dû d'une échéance, au centime (jamais négatif). */
+export const resteCentimes = (l: LigneDocument) => Math.max(0, Math.round(montant(l.montant_du)*100) - Math.round(montant(l.montant_couvert)*100));
 export const MESSAGE_CHARGEMENT_IMPOSSIBLE = "Les données du dossier n’ont pas pu être chargées. Réessayez avant de générer ce document.";
 export async function lireLignes(requete: PromiseLike<{ data: unknown; error: unknown }>): Promise<LigneDocument[]> {
   const r = await requete;
@@ -131,13 +144,12 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
         ${ctx.chambre ? `Surface privative : ${f.champ(ctx.chambre.surface_m2 == null ? null : nombreFr(ctx.chambre.surface_m2),"surface privative")} m².` : ""}</p>
         <p>Le formulaire officiel Cerfa 10842*07 reste à compléter et signer par le bailleur. Ce récapitulatif prépare la saisie ; il ne vaut pas formulaire CAF/MSA homologué.</p>`;
       signatures = true;
-    } else if (["relance_simple","seconde_relance","mise_en_demeure","situation_dette","protocole_apurement"].includes(code)) {
+    } else if ((CODES_RECOUVREMENT as readonly string[]).includes(code)) {
       const restitutions = await lireLignes(supabase.from("restitutions").select("id").eq("organization_id", orgId).eq("bail_id", bailId).eq("statut", "finalise"));
-      if (restitutions.length) return { erreur: "Le solde de ce bail figure dans le décompte de départ. Consultez ce document avant toute demande de règlement." };
+      if (restitutions.length) return { erreur: REFUS_SOLDE_DANS_DECOMPTE };
       const termes = await lireLignes(supabase.rpc("etat_loyers_bail", { p_bail: bailId }));
-      const echus = termes.filter(l => texte(l.date_echeance).slice(0,10) < aujourdhui && montant(l.montant_du) > montant(l.montant_couvert));
-      // Phase 3 (C73) : le reste dû de chaque échéance, au centime, et le solde échu qui en est la somme.
-      const resteCentimes = (l: LigneDocument) => Math.max(0, Math.round(montant(l.montant_du)*100) - Math.round(montant(l.montant_couvert)*100));
+      const echus = termesEchus(termes, aujourdhui);
+      // Phase 3 (C73) : le reste dû de chaque échéance, au centime (resteCentimes), et le solde échu qui en est la somme.
       const soldeEchuCentimes = echus.reduce((s,l)=>s+resteCentimes(l),0);
       // Phase 3 (C65, C66, C74) : le protocole s'appuie sur un plan d'apurement ENREGISTRÉ — celui désigné (plan_id, depuis
       // l'écran du plan), à défaut le plan en cours du bail. Ses tranches, sa tolérance et son seuil de caducité sont ceux que
@@ -148,7 +160,7 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
         const champsPlan = "id,bail_id,etat,date_arrete,dette_initiale,acompte,tolerance_jours,seuil_caducite,conditions";
         const [lu] = options.plan_id
           ? await lireLignes(supabase.from("plans_apurement").select(champsPlan).eq("id", options.plan_id).eq("organization_id", orgId))
-          : await lireLignes(supabase.from("plans_apurement").select(champsPlan).eq("organization_id", orgId).eq("bail_id", bailId).in("etat", ["propose","actif","en_defaut"]).order("created_at", { ascending: false }).limit(1));
+          : await lireLignes(supabase.from("plans_apurement").select(champsPlan).eq("organization_id", orgId).eq("bail_id", bailId).in("etat", ETATS_PLAN_PROTOCOLE).order("created_at", { ascending: false }).limit(1));
         if (options.plan_id && (!lu || texte(lu.bail_id) !== bailId)) return { erreur: "Ce plan d’apurement n’appartient pas à ce bail." };
         if (lu) {
           // Phase 3, lot 39 (reprise, C65) : un protocole ne se prépare que sur un plan vivant (proposé, actif ou en défaut), comme
@@ -165,7 +177,7 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
         }
       }
       const detteCentimes = plan ? Math.round(plan.dette_initiale * 100) : soldeEchuCentimes;
-      if (code !== "situation_dette" && detteCentimes <= 0) return { erreur: "Aucune dette échue n’est constatée : ce courrier n’a pas lieu d’être généré." };
+      if (code !== "situation_dette" && detteCentimes <= 0) return { erreur: REFUS_AUCUNE_DETTE };
       // C67, C68 : la colonne « Période » écrit le mois (« novembre 2026 ») et signale un terme au prorata avec ses bornes réelles.
       // L'indicateur vient de l'appel lui-même (appels_loyer.prorata), le calcul des termes ne le rendant pas.
       const appelsAuProrata = new Set((await lireLignes(supabase.from("appels_loyer").select("id").eq("organization_id",orgId).eq("bail_id",bailId).eq("prorata",true))).map(a => texte(a.id)));
@@ -201,7 +213,7 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
         if (!plan) {
           contenu += `${section("Échéancier convenu")}<p>Échéancier : ${f.champ(null, LIBELLE_PLAN_A_ENREGISTRER)}.</p>`;
         } else {
-          if (!plan.tranches.length) return { erreur: "Ce plan d’apurement n’a aucune tranche." };
+          if (!plan.tranches.length) return { erreur: REFUS_PLAN_SANS_TRANCHE };
           const n = plan.tranches.length, tolerance = plan.tolerance_jours, seuil = plan.seuil_caducite;
           const pluriel = (k: number, mot: string) => `${k} ${mot}${k > 1 ? "s" : ""}`;
           const conditions = (plan.conditions ?? options.conditions)?.trim() || null;

@@ -204,8 +204,9 @@ describe.each(INSTANTS)("documents de contrat produits à %s : « Établi le » 
       persons: personne({ id: "p1" }),
       baux: null,
     };
+    // Lot 46 (T18) : la recherche du bail d'un colocataire filtre aussi la date de départ (`or`), comme sa fiche.
     const from = (table: string) => {
-      const q = { select: () => q, eq: () => q, in: () => q, limit: () => q,
+      const q = { select: () => q, eq: () => q, in: () => q, limit: () => q, or: () => q,
         maybeSingle: async () => ({ data: donnees[table] }) };
       return q;
     };

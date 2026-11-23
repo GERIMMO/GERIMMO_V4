@@ -9,6 +9,7 @@ import { appliquerMarqueDocument } from "@/lib/documents/marque";
 import { rendrePdf, copieDeTravail } from "@/lib/documents/rendu";
 import { MODELES, type CodeModele, type Modele } from "@/lib/documents/modeles";
 import { refusDocumentIncomplet } from "@/lib/documents/completude";
+import type { EmetteurEnTete } from "@/lib/documents/gabarit";
 import { versRouteAgence } from "@/lib/racine-espace";
 
 export type EtatGeneration = {
@@ -19,6 +20,9 @@ export type EtatGeneration = {
   manquants?: string[];
   // Les rattachements du document — le résolveur « où renseigner » s'en sert
   liens?: { entite: "bail" | "personne" | "lot" | "mandat"; entiteId: string }[];
+  // Phase 3, lot 46 (T19) : l'origine de l'en-tête imprimé (détenteurs du lot ou espace), pour que l'adresse et la commune
+  // manquantes mènent à l'écran qui les corrige.
+  emetteur?: EmetteurEnTete;
 };
 
 // Les droits et l’assemblage sont vérifiés à chaque demande. Seul le rendu
@@ -66,6 +70,7 @@ export async function genererDocument(
       return {
         ...refus,
         liens: assemblage.liens,
+        ...(assemblage.document.emetteur ? { emetteur: assemblage.document.emetteur } : {}),
       };
     }
 

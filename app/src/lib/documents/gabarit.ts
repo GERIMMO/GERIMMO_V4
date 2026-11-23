@@ -55,6 +55,8 @@ const CHARTE = {
 // ------------------------------------------------------------------
 export class Fusion {
   manquants: string[] = [];
+  /** Phase 3, lot 46 (T19) : l'origine de l'en-tête imprimé (enTete), que la liste « À renseigner » suit. */
+  emetteur?: EmetteurEnTete;
 
   // Une valeur présente s'imprime ; absente, le libellé de l'épreuve reste
   // en réserve et le champ est compté manquant (une seule fois par libellé).
@@ -216,12 +218,19 @@ export function montantEnLettres(n: number): string {
 // ------------------------------------------------------------------
 // Briques HTML de l'épreuve
 // ------------------------------------------------------------------
+/**
+ * Phase 3, lot 46 (T19) : d'où vient l'en-tête imprimé. « detenteurs » : les détenteurs du lot (bailleurs), hors espace d'agence ;
+ * leur adresse et leur commune se complètent sur leur fiche. « espace » : l'espace de travail ; elles se complètent sur son profil.
+ */
+export type EmetteurEnTete = "detenteurs" | "espace";
+
 export type EnTeteExpediteur = {
   nom: string | null | undefined;
   adresse: string | null | undefined;
   email: string | null | undefined;
   telephone?: string | null;
   contactGestion?: boolean;
+  emetteur?: EmetteurEnTete;
 };
 
 // Bloc expéditeur + cartouche référence, sous filet (page 1 de chaque épreuve)
@@ -230,6 +239,7 @@ export function enTete(
   exp: EnTeteExpediteur,
   cartouche: { libelle: string; reference: string | null | undefined; etabliLe: string }
 ): string {
+  if (exp.emetteur) f.emetteur = exp.emetteur;
   return `<header class="entete">
     <div class="exp">
       <div class="exp-nom">${f.champ(exp.nom, "nom et prénom(s), ou dénomination")}</div>
@@ -330,6 +340,8 @@ export type DocumentAssemble = {
   reference: string;
   empreinte: string;
   manquants: string[];
+  /** L'origine de l'en-tête imprimé, quand il vient d'`expediteur` (lot 46, T19). */
+  emetteur?: EmetteurEnTete;
 };
 
 export function assemblerPage(params: {
@@ -354,6 +366,7 @@ export function assemblerPage(params: {
     reference: params.reference,
     empreinte,
     manquants: params.f.manquants,
+    ...(params.f.emetteur ? { emetteur: params.f.emetteur } : {}),
   };
 }
 

@@ -127,7 +127,10 @@ describe("la liste de choix ne propose que les baux que le modèle accepte", () 
     expect(colonnesCibles(modele("accuse_conge"), "*")).toBe("*,conges!conges_bail_meme_org_fk!inner(par)");
   });
   it("C46 acte de cautionnement : bail en préparation ou actif, ni en préavis ni terminé", async () => {
-    expect(await ids("cautionnement", { baux: quatreEtats })).toEqual(["brouillon", "actif"]);
+    // Lot 46 (T21) : l'acte engage un garant rattaché au bail ; les quatre baux en ont un (le cas sans garant est vérifié dans
+    // catalogue-emetteur-phase3-tour2).
+    const avecGarant = quatreEtats.map((b) => ({ ...b, bail_personnes: [{ role: "garant" }] }));
+    expect(await ids("cautionnement", { baux: avecGarant })).toEqual(["brouillon", "actif"]);
   });
   it("S09 inventaires : un logement meublé ; à la sortie, après l'enregistrement du congé", async () => {
     const meuble = { lots: { meuble: true } }, nu = { lots: { meuble: false } };
@@ -166,7 +169,10 @@ describe("C49 — avis d'échéance : seulement les termes restant à régler", 
     const appels = Array.from({ length: 51 }, (_, i) => appel(`a-${String(i).padStart(2, "0")}`));
     const quittances = appels.slice(0, 50).map((a) => ({ organization_id: "org", appel_id: a.id, est_quittance: true }));
     const r = await chargerCiblesCatalogue(baseFiltrante({ ...tables, appels_loyer: appels, quittances }).db, "org", modele("avis_echeance"));
-    expect(r).toEqual({ choix: [], suite: true });
+    // Lot 46 (T20) : la lecture continue après une page de 50 termes tous payés, jusqu'à 50 dossiers compatibles ou la fin de la
+    // liste : le terme à régler qui suit est proposé sur cette page (elle affichait « Aucun dossier compatible sur cette page »
+    // et renvoyait à « Dossiers suivants », ce que ce test attendait).
+    expect(r).toEqual({ choix: [expect.objectContaining({ id: "a-50" })], suite: false });
   });
   it("un terme payé forcé est refusé avec le motif ; un terme à régler passe", async () => {
     const { db } = baseFiltrante(tables);

@@ -115,12 +115,16 @@ export async function assemblerRappelAssurance(
   if (principal.error) return { erreur: BAIL_ILLISIBLE };
   let bail = principal.data;
   if (!bail) {
+    // Phase 3, lot 46 (T18, C56) : un colocataire PARTI (date de départ passée, après un avenant de remplacement par exemple)
+    // n'est plus locataire du bail, comme sur sa fiche (date_depart vide ou à venir, jour de Paris). Il recevait une demande
+    // émise par la bailleresse, avec le logement et la référence du bail ; il retombe sur l'en-tête de l'espace, sans logement.
     const { data: colocations, error: erreurColocations } = await supabase
       .from("bail_personnes")
       .select("bail_id")
       .eq("organization_id", orgId)
       .eq("person_id", personne.id)
-      .eq("role", "colocataire");
+      .eq("role", "colocataire")
+      .or(`date_depart.is.null,date_depart.gte.${aujourdhuiParis()}`);
     if (erreurColocations) return { erreur: BAIL_ILLISIBLE };
     const ids = ((colocations ?? []) as { bail_id: string }[]).map((c) => c.bail_id);
     if (ids.length) {

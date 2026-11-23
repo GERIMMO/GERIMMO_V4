@@ -327,9 +327,9 @@ export function expediteur(ctx: {
       adresse:ctx.bailleurs.every(p=>adressePersonne(p))?uniques(ctx.bailleurs.map(adressePersonne)):null,
       email:emailBailleurs ?? contactGestion, ...(!emailBailleurs && contactGestion ? { contactGestion: true } : {}),
       telephone:uniques(ctx.bailleurs.map(p=>p.telephone)),
-      ville:ctx.bailleurs[0]?.city??null};
+      ville:ctx.bailleurs[0]?.city??null, emetteur:"detenteurs"};
   }
-  return {nom:ctx.organisation.name,adresse:adresseOrganisation(ctx.organisation),email:ctx.organisation.email_contact,telephone:ctx.organisation.telephone,ville:ctx.organisation.city};
+  return {nom:ctx.organisation.name,adresse:adresseOrganisation(ctx.organisation),email:ctx.organisation.email_contact,telephone:ctx.organisation.telephone,ville:ctx.organisation.city,emetteur:"espace"};
 }
 
 // Les détenteurs actuels d'un lot (détention sans date de fin), lus comme dans le contexte d'un bail. Pour un document

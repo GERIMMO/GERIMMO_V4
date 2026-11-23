@@ -1,4 +1,5 @@
 import { RACINE_AGENCE, RACINE_PROPRIETAIRE } from "@/lib/racine-espace";
+import type { EmetteurEnTete } from "@/lib/documents/gabarit";
 // Où renseigner un champ resté en libellé dans un PDF généré (chantier
 // documentaire 08/09, refondu à l'audit du 09/09) : chaque « manquant »
 // pointe l'écran où la donnée se saisit — Gerimmo sait où vit chaque
@@ -112,7 +113,7 @@ const REGLES: Regle[] = [
 ];
 
 // Les documents d'un dossier (lot, incident) dont l'en-tête reste celui de l'espace, même chez un propriétaire qui gère
-// lui-même (catalogue-gestion) : documents internes et comptables.
+// lui-même (catalogue-gestion) : documents internes et comptables. Repli quand l'origine de l'en-tête n'est pas transmise.
 const MODELES_EN_TETE_ESPACE = new Set(["comparatif_devis", "recap_incident", "recap_fiscal_nu", "recap_fiscal_meuble", "ecriture_rectificative", "cloture_mensuelle"]);
 
 export function lienPourManquant(
@@ -121,7 +122,9 @@ export function lienPourManquant(
   liens: Liens,
   modele?: string,
   /** « /espace » pour le propriétaire direct, « /agence » par défaut (décision D27, lib/racine-espace.ts). */
-  racine: string = RACINE_AGENCE
+  racine: string = RACINE_AGENCE,
+  /** L'origine de l'en-tête effectivement imprimé (document assemblé, lot 46) ; absente, elle est déduite des liens et du modèle. */
+  emetteur?: EmetteurEnTete
 ): LienManquant | null {
   const base = `${racine}/${orgId}`;
   const l = libelle.toLowerCase();
@@ -175,7 +178,12 @@ export function lienPourManquant(
   // fiche du propriétaire, dans Personnes. Le profil de l'espace, où ces deux libellés envoyaient, n'est pas lu par ces
   // documents : on le complétait sans que le PDF se débloque. Les documents de gestion propres à l'espace (journal,
   // récapitulatifs, comparatif) gardent l'en-tête de l'espace, et donc son profil.
-  if (racine === RACINE_PROPRIETAIRE && (bail || lot) && !MODELES_EN_TETE_ESPACE.has(modele ?? "") && (l === "domicile ou siège social" || l === "commune")) {
+  // Phase 3, lot 46 (T19) : la règle suit l'en-tête que le document a réellement imprimé (`emetteur`), plus une déduction des
+  // liens et du modèle. L'ordre et le compte rendu d'un incident des parties communes (aucun lien : l'immeuble n'en a pas) sont
+  // émis par les détenteurs des logements de l'immeuble et renvoyaient au profil de l'espace ; un document d'un lot sans
+  // détenteur garde l'en-tête de l'espace et renvoyait à la fiche du propriétaire.
+  const enTeteDesDetenteurs = emetteur ? emetteur === "detenteurs" : Boolean(bail || lot) && !MODELES_EN_TETE_ESPACE.has(modele ?? "");
+  if (racine === RACINE_PROPRIETAIRE && enTeteDesDetenteurs && (l === "domicile ou siège social" || l === "commune")) {
     return { href: `${base}/personnes`, ecran: "fiche du propriétaire, dans Personnes" };
   }
 

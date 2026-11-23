@@ -34,6 +34,7 @@ import {
   libelleSignataireBailleur,
 } from "./communs";
 import type { Assemblage } from "./index";
+import { MESSAGE_CHARGEMENT_IMPOSSIBLE } from "./catalogue-bail";
 import { RAPPEL_COMPLEMENT_EDL_ENTREE_DOCUMENT } from "@/lib/textes-signature-actes";
 import { ETATS_ELEMENT } from "@/lib/etats-elements-edl";
 
@@ -364,7 +365,7 @@ export async function assemblerEdl(
   const { edl, ctx } = charge;
   const sortie = edl.type === "sortie";
 
-  const [{ data: lignes }, { data: compteurs }, { data: cles }, comparatifRes, entreeRes] =
+  const lectures =
     await Promise.all([
       supabase
         .from("edl_lignes")
@@ -388,6 +389,12 @@ export async function assemblerEdl(
             .maybeSingle()
         : Promise.resolve({ data: null }),
     ]);
+  // Phase 3, reprise du lot 45 (T17) : une lecture en échec refuse le document. Avant, elle donnait une liste vide, et un état des
+  // lieux signé (figé) imprimait « Relevés de compteurs : non relevés. » ou « Clés et moyens d'accès : non comptés. » alors que
+  // des relevés et des clés sont enregistrés ; de même pour la grille, le comparatif et la date de l'entrée. Le bordereau des clés
+  // refuse déjà de cette façon (lireLignes).
+  if (lectures.some((r) => "error" in r && r.error)) return { erreur: MESSAGE_CHARGEMENT_IMPOSSIBLE };
+  const [{ data: lignes }, { data: compteurs }, { data: cles }, comparatifRes, entreeRes] = lectures;
   const entreeSignee = entreeRes.data as { date_edl: string | null; signe_le: string | null } | null;
 
   const photos = await chargerPhotosEdl(supabase, orgId, ((lignes ?? []) as LigneEdl[]).map((l) => l.photo_document_id));

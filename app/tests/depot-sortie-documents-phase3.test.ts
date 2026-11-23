@@ -32,12 +32,16 @@ import type { Assemblage } from "@/lib/documents/modeles";
 
 type Ligne = Record<string, unknown>;
 
-/** Une base simulée : chaque table rend toutes ses lignes (les filtres sont ignorés), `maybeSingle` la première. */
-function base(tables: Record<string, Ligne[]>): SupabaseClient {
+/**
+ * Une base simulée : chaque table rend toutes ses lignes (les filtres sont ignorés), `maybeSingle` la première. Les tables de
+ * `enEchec` rendent une erreur de lecture (`{ data: null, error }`), comme PostgREST quand une requête échoue.
+ */
+function base(tables: Record<string, Ligne[]>, enEchec: string[] = []): SupabaseClient {
   const requete = (table: string) => {
     const lignes = tables[table] ?? [];
+    const reponse = enEchec.includes(table) ? { data: null, error: { message: "lecture impossible" } } : { data: lignes, error: null };
     const q: Record<string, unknown> = {
-      then: (ok: (x: unknown) => unknown) => Promise.resolve({ data: lignes, error: null }).then(ok),
+      then: (ok: (x: unknown) => unknown) => Promise.resolve(reponse).then(ok),
       maybeSingle: async () => ({ data: lignes[0] ?? null, error: null }),
     };
     for (const op of ["select", "eq", "is", "in", "not", "or", "order", "limit", "range", "gte", "lt", "lte"]) q[op] = () => q;
@@ -146,6 +150,21 @@ describe("C42, S20 — bordereau de remise des clés", () => {
     expect(lignesDe(doc.html)).toContain("Cave|non compté|Cave n° 4");
     // Un nombre saisi, même 0, s'imprime tel quel : « non compté » ne remplace que l'absence de saisie.
     expect(lignesDe(doc.html)).toContain("Porte d'entrée|0|—");
+  });
+
+  // Reprise du lot 45 (T17, contre-relecture) : sans aucune clé, un état des lieux SIGNÉ recevait « Renseignez les clés dans l'état
+  // des lieux », consigne impossible (signé, il refuse tout ajout de clé). Le refus dit ce qui est ; avant la signature, la consigne
+  // reste celle-ci, qui se suit.
+  it("T17 (reprise) : état des lieux signé sans aucune clé, le refus dit ce qui est au lieu d'une consigne impossible", async () => {
+    const r = await assemblerComplementGestion("restitution_cles", base(tables([])), "org", "edl1");
+    expect(r).toEqual({ erreur: "Aucune clé n’a été enregistrée dans cet état des lieux avant sa signature. Un état des lieux signé ne se modifie plus : le bordereau, qui reprend ses clés, ne peut pas être préparé." });
+    expect(await assemblerComplementGestion("restitution_cles", base(tables([], { etat: "brouillon" })), "org", "edl1"))
+      .toEqual({ erreur: "Renseignez les clés dans l’état des lieux avant de préparer le bordereau." });
+  });
+
+  it("une lecture des clés en échec refuse le bordereau (jamais une liste vide prise pour « aucune clé »)", async () => {
+    const r = await assemblerComplementGestion("restitution_cles", base(tables([{ libelle: "Cave", nombre: 1, reference: null }]), ["edl_cles"]), "org", "edl1");
+    expect(r).toEqual({ erreur: "Les données du dossier n’ont pas pu être chargées. Réessayez avant de générer ce document." });
   });
 });
 
@@ -267,5 +286,25 @@ describe("T17 — état des lieux signé : index et nombre de clés non saisis n
     const signe = succes(await assemblerEdl(base(tables("signe")), "org", "edl1")).document;
     expect(signe.manquants).toEqual([]);
     expect(lignesDe(signe.html)).toContain("Gaz|G-1|non relevé");
+  });
+
+  // Reprise du lot 45 (T17, contre-relecture) : une lecture en échec donnait une liste vide ; signé, l'état des lieux imprimait
+  // alors « non relevés » / « non comptés » alors que des relevés et des clés sont enregistrés. Le document est refusé.
+  it.each(["edl_compteurs", "edl_cles", "edl_lignes", "edl_compteurs et edl_cles"])("T17 (reprise) : lecture en échec (%s), le document est refusé au lieu d'affirmer « non relevés » / « non comptés »", async (tablesEnEchec) => {
+    const enEchec = tablesEnEchec.split(" et ");
+    const tables = (etat: string) => ({
+      organizations: [organisation],
+      etats_des_lieux: [{ id: "edl1", bail_id: "b1", type: "entree", etat, date_edl: "2023-09-01", signe_le: etat === "signe" ? "2023-09-01T08:30:00+00:00" : null,
+        personnes_presentes: "Les parties", detecteur_fumee_present: true, detecteur_fumee_etat: "bon", attestation_assurance_fournie: true, adresse_restitution_depot: null, observations: "Néant" }],
+      edl_lignes: [{ categorie: "piece", piece: "Séjour", libelle: "Murs", etat: "bon", commentaire: null, photo_document_id: null }],
+      edl_compteurs: [{ type: "Gaz", numero: "G-1", releve: 1234 }],
+      edl_cles: [{ libelle: "Porte d'entrée", nombre: 2, reference: null }],
+    });
+    for (const etat of ["signe", "brouillon"]) {
+      expect(await assemblerEdl(base(tables(etat), enEchec), "org", "edl1")).toEqual({ erreur: "Les données du dossier n’ont pas pu être chargées. Réessayez avant de générer ce document." });
+    }
+    // Sans échec, le même état des lieux signé imprime ce qui est enregistré.
+    const texte = texteDe(succes(await assemblerEdl(base(tables("signe")), "org", "edl1")).document.html);
+    expect(texte).not.toMatch(/non relevés|non comptés/);
   });
 });

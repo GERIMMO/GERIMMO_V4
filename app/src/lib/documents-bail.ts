@@ -90,6 +90,11 @@ export const TITRES_GED_RESUME_NOTICE = [TITRE_GED_RESUME_NOTICE, "Notice d'info
 // Reprise du lot 40 (C01) : un résumé rangé sous l'ancien titre a l'ancien texte (« annexée au contrat », « partie intégrante »,
 // « le locataire reconnaît avoir reçu ») : il est reconnu, mais à actualiser avant toute nouvelle préparation de signature.
 export const resumeNoticeAActualiser = (piece: { titre: string | null } | null | undefined) => Boolean(piece && piece.titre !== TITRE_GED_RESUME_NOTICE);
+// Phase 3, reprise du lot 45 (T15) : parmi les pièces d'un dossier de signature, le résumé rangé sous son titre actuel n'est pas
+// une annexe du contrat. La page de garde le liste à part, « Document d'information joint » (ajouterPagesSignature) ; l'envoi
+// au prestataire le nomme pour ce qu'il est (nomsFichiersPiecesJointes) ; l'écran de signature le sépare des annexes. Un résumé
+// rangé sous l'ancien titre (texte qui se disait annexé au contrat) reste parmi les annexes, comme sur sa page de garde.
+export const estResumeNoticeJoint = (piece: { titre: string | null }) => piece.titre === TITRE_GED_RESUME_NOTICE;
 
 export type PieceBail = { id: string; titre: string | null; type: string; purged_at: string | null };
 export function classerPiecesBail<T extends PieceBail>(pieces: T[], diagnosticIds: string[], reglementId: string | null) {

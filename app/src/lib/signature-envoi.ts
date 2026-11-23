@@ -2,7 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { configurationSignatureBail, type AnnexeSignature, type CircuitBail, type SignataireBail } from "@/lib/signature-bail";
-import { TITRE_GED_RESUME_NOTICE } from "@/lib/documents-bail";
+import { estResumeNoticeJoint } from "@/lib/documents-bail";
 import { activerDemandeSignature, preparerCircuitSignature } from "@/lib/signature-prestataire";
 import { verifierAvantEffet } from "@/lib/controle-effets";
 import { sansJargon } from "@/lib/erreurs";
@@ -59,7 +59,7 @@ export function telephonesGarantsConfirmes(signataires: SignataireBail[]): boole
  */
 export function nomsFichiersPiecesJointes(annexes: Pick<AnnexeSignature, "titre">[]): string[] {
   let numero = 0;
-  return annexes.map((a) => a.titre === TITRE_GED_RESUME_NOTICE ? "resume-notice-information.pdf" : `annexe-${++numero}.pdf`);
+  return annexes.map((a) => estResumeNoticeJoint(a) ? "resume-notice-information.pdf" : `annexe-${++numero}.pdf`);
 }
 
 /** Un circuit de bail (les anciens circuits sans `modele` en sont). */

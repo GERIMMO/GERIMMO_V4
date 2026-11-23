@@ -8,7 +8,7 @@ import { refusDocumentIncomplet } from "@/lib/documents/completude";
 import { configurationZohoSign } from "@/lib/zoho-sign";
 import { prestataireSignature, type ConfigurationSignature, type PrestataireSignature } from "@/lib/signature-prestataire";
 import { aujourdhuiParis } from "@/lib/ged";
-import { echeanceReglementaire, TITRE_GED_RESUME_NOTICE, TITRES_GED_RESUME_NOTICE } from "@/lib/documents-bail";
+import { echeanceReglementaire, estResumeNoticeJoint, TITRE_GED_RESUME_NOTICE, TITRES_GED_RESUME_NOTICE } from "@/lib/documents-bail";
 import { marquerDocumentEssai, signatureEnEssai } from "@/lib/signature-essai";
 import type { ModeleSignature } from "./politique-signature";
 import { MENTION_PAGE_SIGNATURE_GARANT, mentionCadreCautionBail } from "./textes-signature-actes";
@@ -155,8 +155,8 @@ export function ajouterPagesSignature(doc: DocumentAssemble, parties: Signataire
   // Reprise du lot 40 (C01) : le résumé de la notice établi par Gerimmo n'est pas présenté comme une annexe du contrat, que
   // le bail réserve à la notice officielle : il est listé à part, dit pour ce qu'il est. Un dossier préparé avant (résumé
   // rangé sous l'ancien titre, ou aucun résumé) garde sa page octet pour octet : son empreinte se recalcule à l'identique.
-  const resumes = annexes.filter(a => a.titre === TITRE_GED_RESUME_NOTICE);
-  const pieces = annexes.filter(a => a.titre !== TITRE_GED_RESUME_NOTICE);
+  const resumes = annexes.filter(estResumeNoticeJoint);
+  const pieces = annexes.filter(a => !estResumeNoticeJoint(a));
   const inventaire = !annexes.length ? "" : !resumes.length
     ? `<section style="break-before:page"><h1>Annexes remises avec le contrat</h1><p>Ces pièces accompagnent le document dans le même dossier de signature. Leur empreinte identifie exactement la version remise.</p>${annexes.map(piece).join("")}</section>`
     : `<section style="break-before:page">${pieces.length ? `<h1>Annexes remises avec le contrat</h1><p>Ces pièces accompagnent le document dans le même dossier de signature. Leur empreinte identifie exactement la version remise.</p>${pieces.map(piece).join("")}` : ""}<h1>Document d’information joint</h1><p>Ce résumé, établi par Gerimmo, accompagne le document dans le même dossier de signature. Il n’est pas une annexe du contrat et ne remplace pas la notice d’information officielle, que le bailleur remet au locataire avec le contrat.</p>${resumes.map(piece).join("")}</section>`;

@@ -262,7 +262,12 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       const edl = await unique("etats_des_lieux",cibleId);
       await bailConcerne(texte(edl.bail_id));
       const cles = await lireLignes(lire("edl_cles").eq("edl_id",cibleId).order("libelle"));
-      if (!cles.length) throw new RefusDocument("Renseignez les clés dans l’état des lieux avant de préparer le bordereau.");
+      // Phase 3, reprise du lot 45 (T17) : un état des lieux signé est figé (enregistrer_annexes_edl et le déclencheur refusent tout
+      // ajout de clé) ; « Renseignez les clés » y était une consigne impossible à suivre. Le refus dit ce qui est. Option prudente :
+      // le bordereau, dont les clés sont tout le contenu, n'est pas établi vide (l'état des lieux imprime « non comptés »).
+      if (!cles.length) throw new RefusDocument(edl.etat === "signe"
+        ? "Aucune clé n’a été enregistrée dans cet état des lieux avant sa signature. Un état des lieux signé ne se modifie plus : le bordereau, qui reprend ses clés, ne peut pas être préparé."
+        : "Renseignez les clés dans l’état des lieux avant de préparer le bordereau.");
       // Phase 3 (C42) : le bordereau est daté de la remise des clés, c'est-à-dire de l'état des lieux, pas du jour de génération
       // (une remise du 01/09/2023 portait « Fait à Lyon, le 23/11/2026 », après le départ du locataire).
       dateDocument = texte(edl.date_edl) || aujourdhui;

@@ -8,6 +8,11 @@
  *    qu'il n'est pas une annexe du contrat. Aucun appel réseau : le prestataire, le stockage et la base sont des doublures.
  *  - T16 (C08) : les « Compléments du contrat » d'un bail signé affichaient les travaux et leur montant pour une première
  *    location, et un montant sans travaux, quand le contrat imprime « Sans objet — première location » ou « Néant. ».
+ * Reprise du lot 45 (contre-relecture) :
+ *  - T15 : la page de garde, l'envoi au prestataire et l'écran de signature (tests/signature-ecran-resume-notice.test.ts)
+ *    reconnaissent le résumé par la même règle (estResumeNoticeJoint).
+ *  - T16 : un contrat préparé avant les modèles actuels (version g8) imprime les travaux saisis même pour une première location ;
+ *    la vue en lecture seule ne peut pas savoir lequel a été signé : dans ce seul cas, elle montre la saisie et renvoie au contrat.
  * Chaque cas échouait avant le correctif.
  */
 import { createHash } from "node:crypto";
@@ -90,7 +95,11 @@ import { FormulaireComplementsBail, type ComplementsBailDefauts } from "@/app/ag
 import { lireRecapitulatifPiecesBail } from "@/lib/recapitulatif-pieces-bail";
 import { annexesSignatureBail, type AnnexeSignature, type CircuitBail } from "@/lib/signature-bail";
 import { controlerEnvoi, nomsFichiersPiecesJointes } from "@/lib/signature-envoi";
-import { resumeNoticeRetenu, TITRE_GED_RESUME_NOTICE } from "@/lib/documents-bail";
+import { estResumeNoticeJoint, resumeNoticeRetenu, TITRE_GED_RESUME_NOTICE } from "@/lib/documents-bail";
+import { ajouterPagesSignature } from "@/lib/signature-bail";
+import { construireBailNu } from "@/lib/documents/modeles/bail-nu";
+import { construireBailMeuble } from "@/lib/documents/modeles/bail-meuble";
+import { RENVOI_TRAVAUX_PREMIERE_LOCATION } from "@/lib/travaux-dernier-contrat";
 import { rubriquesRecapBail } from "@/lib/presentation-recapitulatif-bail";
 import { travauxDepuisDernierContrat } from "@/lib/documents/modeles/mentions-location";
 import { Fusion } from "@/lib/documents/gabarit";
@@ -217,6 +226,18 @@ describe("T15 (C01) — dans l'enveloppe Zoho, le résumé n'est plus nommé « 
     expect(nomsFichiersPiecesJointes([{ titre: "DPE" }, { titre: "ERP" }])).toEqual(["annexe-1.pdf", "annexe-2.pdf"]);
     expect(nomsFichiersPiecesJointes([{ titre: ANCIEN_TITRE }, { titre: "ERP" }])).toEqual(["annexe-1.pdf", "annexe-2.pdf"]);
   });
+
+  it("reprise : la page de garde et l'envoi rangent les mêmes pièces hors des annexes (estResumeNoticeJoint), page inchangée", () => {
+    const pieces = [annexe("dpe", "DPE"), annexe("erp", "ERP — état des risques"), annexe("resume", TITRE_GED_RESUME_NOTICE)];
+    const html = ajouterPagesSignature({ html: "<html><body></body></html>", reference: "BAIL-1" } as Parameters<typeof ajouterPagesSignature>[0], [], pieces).html;
+    const garde = html.slice(html.indexOf("Annexes remises avec le contrat"));
+    const information = garde.slice(garde.indexOf("Document d’information joint"));
+    expect(garde.slice(0, garde.indexOf("Document d’information joint"))).not.toContain(TITRE_GED_RESUME_NOTICE);
+    expect(information).toContain(TITRE_GED_RESUME_NOTICE);
+    expect(pieces.filter(estResumeNoticeJoint).map((a) => a.id)).toEqual(["resume"]);
+    expect(nomsFichiersPiecesJointes(pieces)[pieces.findIndex(estResumeNoticeJoint)]).toBe("resume-notice-information.pdf");
+    expect(estResumeNoticeJoint({ titre: ANCIEN_TITRE })).toBe(false);
+  });
 });
 
 describe("T16 (C08) — les écrans des travaux disent ce que le contrat imprime", () => {
@@ -232,15 +253,50 @@ describe("T16 (C08) — les écrans des travaux disent ce que le contrat imprime
     return [...html.matchAll(/<div class="ligne-info"><span>([^<]*)<\/span><span[^>]*>([^<]*)<\/span><\/div>/g)]
       .map((m) => `${m[1]} | ${m[2]}`.replace(/[  ]/g, " ")).filter((l) => /travaux récents/i.test(l));
   };
+  /** Le renvoi au contrat signé affiché sous la rubrique (null s'il n'y en a pas). */
+  const renvoi = (bail: Partial<ComplementsBailDefauts>) => {
+    const html = renderToStaticMarkup(createElement(FormulaireComplementsBail, { orgId: ORG, bailId: BAIL, defauts: defauts(bail), zoneTendue: false, meuble: false, agence: false, modifiable: false }));
+    return /<p data-renvoi-contrat-signe="[^"]*"[^>]*>([^<]*)<\/p>/.exec(html)?.[1].replace(/&#x27;/g, "'").replace(/&quot;/g, "\"") ?? null;
+  };
   const recap = (bail: Parameters<typeof rubriquesRecapBail>[0]["bail"]) => rubriquesRecapBail({ bail, lot: { meuble: false }, bien: {}, personnes: [], liens: { lot: "#lot", bien: "#bien" } })
     .find((r) => r.id === "clauses")!.lignes.filter((l) => l.champ.startsWith("bail.travaux_recents")).map((l) => `${l.libelle} | ${l.valeur}`.replace(/[  ]/g, " "));
   const contrat = (bail: Partial<ContexteBail["bail"]>) => travauxDepuisDernierContrat({ bail } as ContexteBail, new Fusion()).replace(/<[^>]+>/g, "").replace(/[  ]/g, " ");
 
-  it("première location : « Sans objet — première location », sans les travaux ni le montant saisis", () => {
+  // Reprise du lot 45 (T16, contre-relecture) : ce cas attendait « Sans objet — première location » dans la vue en lecture seule.
+  // C'est vrai d'un contrat préparé avec les modèles actuels, faux d'un contrat préparé avant (version g8) : celui-ci imprime les
+  // travaux et leur montant (cas suivant), et la vue sert à tout bail sorti du brouillon. Le récapitulatif, lui, ne s'affiche
+  // qu'en brouillon : le contrat qu'il annonce sera préparé avec les modèles actuels.
+  it("première location : le contrat et le récapitulatif disent « Sans objet — première location » ; la vue montre la saisie et renvoie au contrat signé", () => {
     const bail = { precedente_location: "premiere", travaux_recents: "Remise en peinture complète du logement", travaux_recents_montant: 2400 };
     expect(contrat(bail)).toBe("Sans objet — première location.");
-    expect(lectureSeule(bail)).toEqual(["Travaux récents du bailleur | Sans objet — première location"]);
     expect(recap(bail)).toEqual(["Travaux récents | Sans objet — première location"]);
+    expect(lectureSeule(bail)).toEqual(["Travaux récents du bailleur | Remise en peinture complète du logement", "Montant des travaux récents | 2 400,00 €"]);
+    expect(renvoi(bail)).toBe(RENVOI_TRAVAUX_PREMIERE_LOCATION);
+  });
+
+  it.each(["nu", "meuble"] as const)("reprise : bail %s signé avant les modèles actuels — l'ancien contrat imprime les travaux, le nouveau « Sans objet » ; la vue ne contredit aucun des deux", (type) => {
+    const ctx = contexte();
+    ctx.bail = { ...ctx.bail, precedente_location: "premiere", travaux_recents: "Remise en peinture", travaux_recents_montant: 2400 } as ContexteBail["bail"];
+    const construire = (typographieArchivee: boolean) => type === "nu"
+      ? construireBailNu(ctx, { dpeClasse: "C", f: new Fusion(), typographieArchivee })
+      : construireBailMeuble(ctx, { dpeClasse: "C", f: new Fusion(), inventaire: [], typographieArchivee });
+    const rubrique = (html: string) => {
+      const t = html.replace(/<[^>]+>/g, " ").replace(/[\s  ]+/g, " ");
+      const i = t.indexOf("depuis la fin du dernier contrat");
+      return t.slice(i, t.indexOf("Travaux que le locataire", i));
+    };
+    expect(rubrique(construire(true).html)).toMatch(/Remise en peinture — montant : 2 400,00 €/);
+    expect(rubrique(construire(false).html)).toMatch(/Sans objet — première location\./);
+    const vue = lectureSeule(ctx.bail as Partial<ComplementsBailDefauts>);
+    expect(vue).toEqual(["Travaux récents du bailleur | Remise en peinture", "Montant des travaux récents | 2 400,00 €"]);
+    expect(vue.join(" ")).not.toContain("Sans objet");
+    expect(renvoi(ctx.bail as Partial<ComplementsBailDefauts>)).toContain("Reportez-vous au contrat signé.");
+  });
+
+  it("première location sans travaux saisis : « Sans objet — première location » (l'ancien contrat disait « Néant »), sans renvoi", () => {
+    const bail = { precedente_location: "premiere", travaux_recents: null, travaux_recents_montant: 900 };
+    expect(lectureSeule(bail)).toEqual(["Travaux récents du bailleur | Sans objet — première location"]);
+    expect(renvoi(bail)).toBeNull();
   });
 
   it("un montant saisi sans travaux : « Néant », sans montant", () => {
@@ -255,6 +311,7 @@ describe("T16 (C08) — les écrans des travaux disent ce que le contrat imprime
     expect(contrat(bail)).toBe("Remise en peinture — montant : 2 400,00 €.");
     expect(lectureSeule(bail)).toEqual(["Travaux récents du bailleur | Remise en peinture", "Montant des travaux récents | 2 400,00 €"]);
     expect(recap(bail)).toEqual(["Travaux récents | Remise en peinture", "Montant des travaux | 2 400,00 €"]);
+    expect(renvoi(bail)).toBeNull();
   });
 
   it("ni travaux ni montant : « Néant » à l'écran comme au contrat", () => {

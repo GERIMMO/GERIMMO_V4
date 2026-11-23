@@ -16,6 +16,9 @@ import {
   section,
   tableau,
   titre,
+  nombreFr,
+  pointFinal,
+  ligneTotal,
 } from "../gabarit";
 import {
   chargerContexteBail,
@@ -182,7 +185,7 @@ export function construireEdl(d: DonneesEdl) {
               echapper(c.type),
               c.numero ? echapper(c.numero) : f.champ(null, "numéro de compteur"),
               c.releve !== null && c.releve !== ""
-                ? echapper(String(c.releve))
+                ? echapper(nombreFr(c.releve))
                 : f.champ(null, "index"),
             ])
           )
@@ -217,7 +220,7 @@ export function construireEdl(d: DonneesEdl) {
                : d.detecteurFumeePresent
                  ? "présent"
                  : "absent"
-           } — état constaté : ${f.champ(d.detecteurFumeeEtat, "état constaté")}.<br/>
+           } — état constaté : ${f.champ(d.detecteurFumeeEtat, "état constaté")}${pointFinal(d.detecteurFumeeEtat)}<br/>
            Attestation d'assurance du locataire fournie : ${
              d.attestationAssuranceFournie === null
                ? f.champ(null, "attestation fournie ou non")
@@ -255,11 +258,10 @@ export function construireEdl(d: DonneesEdl) {
                       eur(Number(r.montant_retenu)),
                     ])
                   )}
-                  <table><tbody><tr class="total"><td><b>Total des retenues après vétusté</b></td>
-                  <td class="d"><b>${eur(totalRetenues)}</b></td></tr></tbody></table>`
+                  ${ligneTotal("Total des retenues après vétusté", eur(totalRetenues))}`
                : ""
            }
-           <p>Adresse de restitution du dépôt de garantie : ${f.champ(d.adresseRestitutionDepot, "adresse de restitution du dépôt")}.</p>`
+           <p>Adresse de restitution du dépôt de garantie : ${f.champ(d.adresseRestitutionDepot, "adresse de restitution du dépôt")}${pointFinal(d.adresseRestitutionDepot)}</p>`
     }
 
     ${sectionPhotos(d, numeros)}

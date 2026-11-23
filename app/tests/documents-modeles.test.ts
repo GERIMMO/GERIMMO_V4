@@ -192,11 +192,19 @@ describe("Modèles 14/15 — états des lieux", () => {
     expect(doc.manquants).toEqual([expect.stringMatching(/^État de Réfrigérateur — /)]);
   });
 
-  it.each([311.02, 8412, 0, "311.020"])("imprime l'index %s reçu de la base sans perdre le zéro", (releve) => {
+  // Phase 3 (C39) : l'index s'imprimait tel que la base le rend, avec un point décimal (« 311.02 ») au milieu de montants
+  // écrits à la française. Il s'imprime désormais au format français, sans zéro inutile ; un index nul reste « 0 ».
+  it.each([
+    [311.02, "311,02"],
+    [8412, "8\u202f412"],
+    [0, "0"],
+    ["311.020", "311,02"],
+    [4521.3, "4\u202f521,3"],
+  ])("imprime l'index %s reçu de la base au format français, sans perdre le zéro", (releve, attendu) => {
     const doc = construireEdl(donnees({
       compteurs: [{ type: "Eau froide", numero: "RCT-0317", releve }],
     }));
-    expect(doc.html).toContain(`>${String(releve)}<`);
+    expect(doc.html).toContain(`>${attendu}<`);
     expect(doc.manquants).not.toContain("index");
   });
 

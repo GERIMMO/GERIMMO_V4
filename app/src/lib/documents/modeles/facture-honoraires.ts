@@ -138,7 +138,7 @@ export function construireFactureHonoraires(d: DonneesFactureHonoraires): string
       [
         ["Total hors taxes", eur(d.totalHt)],
         [
-          o.tvaFranchise ? "TVA" : `TVA au taux de ${d.tauxTva.toLocaleString("fr-FR")} %`,
+          o.tvaFranchise ? "TVA" : `TVA au taux de ${d.tauxTva.toLocaleString("fr-FR")}\u00a0%`,
           o.tvaFranchise ? "Non applicable" : eur(d.tva),
         ],
         ["<b>Total toutes taxes comprises</b>", `<b>${eur(d.totalTtc)}</b>`],

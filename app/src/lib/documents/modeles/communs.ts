@@ -265,8 +265,21 @@ export function adresseOrganisation(o: {
     .join(", ");
 }
 
-export function adresseLogement(lot: ContexteBail["lot"], bien: ContexteBail["bien"]): string {
-  const complement = [lot.nom !== "Lot unique" ? lot.nom : null, lot.etage ? `étage ${lot.etage}` : null]
+// L'étage du lot tel qu'il s'imprime dans une adresse. Le champ est libre (« Étage — Facultatif ») : on y lit « 2 »
+// comme « 2e étage, porte gauche » ou « RDC ». Le mot « étage » ne s'ajoute que s'il n'y est pas déjà (casse et accents
+// ignorés), ni « rez-de-chaussée » ou « RDC » : sinon l'adresse imprimait « étage 2e étage » (phase 3 : C09, C26, C63, C84).
+export function mentionEtage(etage: string | null | undefined): string | null {
+  const saisie = etage?.trim();
+  if (!saisie) return null;
+  const lue = saisie.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  return /etage|\brdc\b|rez[\s-]*de[\s-]*chaussee/.test(lue) ? saisie : `étage ${saisie}`;
+}
+
+// `archivee` : l'adresse telle que l'imprimait un bail préparé pour la signature avant la version g8 (recalcul de
+// l'empreinte de son circuit, voir `typographie` dans gabarit.ts) : « étage » toujours ajouté.
+export function adresseLogement(lot: ContexteBail["lot"], bien: ContexteBail["bien"], archivee = false): string {
+  const etage = archivee ? (lot.etage ? `étage ${lot.etage}` : null) : mentionEtage(lot.etage);
+  const complement = [lot.nom !== "Lot unique" ? lot.nom : null, etage]
     .filter(Boolean)
     .join(", ");
   return [bien.address_line1, `${bien.postal_code ?? ""} ${bien.city ?? ""}`.trim(), complement]

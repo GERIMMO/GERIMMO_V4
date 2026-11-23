@@ -182,7 +182,7 @@ export async function assemblerMandatGestion(
 
   const lignesTableau = lignes.map((l) => [
     echapper(libelleLot(l.lot)),
-    `${Number(l.taux_honoraires).toLocaleString("fr-FR")} %`,
+    `${Number(l.taux_honoraires).toLocaleString("fr-FR")}\u00a0%`,
     f.date(l.date_debut),
   ]);
 
@@ -215,7 +215,7 @@ export async function assemblerMandatGestion(
     n° ${echapper(reference)}.</p>
 
     ${section("II — Objet du mandat")}
-    <p>Le mandant confie au mandataire, qui accepte, la <b>gestion locative</b> des lots désignés
+    <p class="annonce">Le mandant confie au mandataire, qui accepte, la <b>gestion locative</b> des lots désignés
     ci-dessous, dont il est propriétaire, aux conditions d'honoraires suivantes :</p>
     ${
       lignesTableau.length > 0
@@ -233,7 +233,7 @@ export async function assemblerMandatGestion(
     encaissées pour le compte du mandant, et prélevés lors de chaque reddition de comptes.</p>
 
     ${section("III — Missions du mandataire")}
-    <p>Au titre du présent mandat, le mandataire est chargé, pour le compte du mandant, de :</p>
+    <p class="annonce">Au titre du présent mandat, le mandataire est chargé, pour le compte du mandant, de :</p>
     <p>— <b>encaisser les loyers</b>, charges et accessoires dus par les locataires, et en
     poursuivre le recouvrement amiable ;<br/>
     — <b>délivrer les quittances</b> et reçus correspondants ;<br/>

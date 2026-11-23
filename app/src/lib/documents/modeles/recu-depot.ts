@@ -54,7 +54,7 @@ export function construireRecuDepot(d: DonneesRecuDepot) {
   const corps = `
     ${enTete(f, d.exp, { libelle: "Contrat", reference: d.referenceBail, etabliLe: d.dateVersement })}
     ${titre("Reçu de dépôt de garantie", `Versement du ${f.date(d.dateVersement)}`, [
-      "Articles 22 de la loi n° 89-462 du 6 juillet 1989",
+      "Article 22 de la loi n° 89-462 du 6 juillet 1989",
     ])}
     ${cartouches([
       ["Bailleur", `<div>${d.bailleurNom}</div>`],

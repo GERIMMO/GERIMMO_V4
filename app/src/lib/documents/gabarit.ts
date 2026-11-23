@@ -15,7 +15,7 @@ import { createHash } from "node:crypto";
 import { CSS_POLICES } from "./polices";
 import { domaineDuSite } from "@/lib/site";
 
-export const VERSION_MODELES = "2026.11-g7";
+export const VERSION_MODELES = "2026.11-g8";
 
 // ------------------------------------------------------------------
 // La charte, en valeurs imprimables
@@ -116,6 +116,64 @@ export function formaterDateFr(iso: string): string {
 
 export function eur(n: number): string {
   return `${n.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+}
+
+// Un nombre de la base (surface, volume, index de compteur) au format français : virgule décimale, milliers séparés par
+// une espace insécable, aucun zéro inutile (« 45 », « 24,5 », « 4 521,3 »). Imprimé tel que la base le rend (« 45.00 »,
+// 210.5), il sortait au format anglais au milieu de montants en euros français (phase 3 : C10, C27, C39, C62). Jusqu'à six
+// décimales : un index relevé n'est jamais arrondi en deçà de ce qui a été saisi.
+export function nombreFr(valeur: number | string): string {
+  const texte = String(valeur).trim();
+  const n = typeof valeur === "number" ? valeur : Number(texte);
+  if (texte === "" || !Number.isFinite(n)) return texte;
+  return n.toLocaleString("fr-FR", { maximumFractionDigits: 6 });
+}
+
+// Le point qui clôt une phrase après un texte saisi : rien quand la saisie finit déjà par une ponctuation finale. Le
+// modèle ajoutait toujours son point : « … à la signature de l'acte.. » (phase 3 : C38, C85).
+export function pointFinal(saisie: string | null | undefined): string {
+  return /[.!?…]$/.test((saisie ?? "").trim()) ? "" : ".";
+}
+
+// Le jour du mois d'une échéance tel qu'il s'écrit : « le 1er », puis « le 2 », « le 15 »… (phase 3 : S10).
+export function jourDuMois(jour: number | string | null | undefined): string | null {
+  const texte = jour === null || jour === undefined ? "" : String(jour).trim();
+  if (texte === "") return null;
+  return Number(texte) === 1 ? "1er" : texte;
+}
+
+// La typographie d'un contrat. Un bail préparé pour la signature avant la version g8 se relit, pour recalculer
+// l'empreinte de son circuit (`presentationArchivee`), avec la typographie d'alors : `TYPOGRAPHIE_ARCHIVEE` reproduit
+// octet pour octet ce qu'il imprimait, défauts compris. Elle ne sert jamais à un document remis.
+export type Typographie = {
+  archivee: boolean;
+  nombre: (valeur: number | string) => string;
+  jour: (jour: number | string | null | undefined) => number | string | null;
+  point: (saisie: string | null | undefined) => string;
+  classe: (nom: "annonce" | "fait-a") => string;
+  pourcent: string;
+};
+
+export const TYPOGRAPHIE: Typographie = {
+  archivee: false,
+  nombre: nombreFr,
+  jour: jourDuMois,
+  point: pointFinal,
+  classe: (nom) => ` class="${nom}"`,
+  pourcent: "\u00a0%",
+};
+
+const TYPOGRAPHIE_ARCHIVEE: Typographie = {
+  archivee: true,
+  nombre: (valeur) => String(valeur),
+  jour: (jour) => jour ?? null,
+  point: () => ".",
+  classe: () => "",
+  pourcent: " %",
+};
+
+export function typographie(archivee: boolean | undefined): Typographie {
+  return archivee ? TYPOGRAPHIE_ARCHIVEE : TYPOGRAPHIE;
 }
 
 // Un montant dit en toutes lettres (dépôt de garantie du bail — exigence du
@@ -235,8 +293,17 @@ export function blocSignatureEmetteur(nom: string | null | undefined, img: strin
   </div>`;
 }
 
+// La ligne « Fait à … le … » porte la classe `fait-a` : la feuille la garde avec ce qui précède et avec la signature
+// qui suit (phase 3 : un avis d'échéance laissait la signature seule en page 2).
 export function faitA(f: Fusion, ville: string | null | undefined, dateIso: string, suite = "."): string {
-  return `<p>Fait à ${f.champ(ville, "commune")}, le ${f.date(dateIso)}${suite}</p>`;
+  return `<p class="fait-a">Fait à ${f.champ(ville, "commune")}, le ${f.date(dateIso)}${suite}</p>`;
+}
+
+// La ligne de total posée sous un tableau, dans son propre tableau : la feuille ne la laisse jamais seule en haut d'une
+// page (phase 3 : « Total des retenues après vétusté » imprimé seul en tête de la page 5 d'un état des lieux de sortie).
+// `montant` est du HTML déjà assemblé (souvent un `f.montant(...)`).
+export function ligneTotal(libelle: string, montant: string): string {
+  return `<table class="ligne-total"><tbody><tr class="total"><td><b>${echapper(libelle)}</b></td><td class="d"><b>${montant}</b></td></tr></tbody></table>`;
 }
 
 // ------------------------------------------------------------------
@@ -258,11 +325,13 @@ export function assemblerPage(params: {
   nomPied: string;
   reference: string;
   corps: string;
+  /** Feuille g7, sans les correctifs g8 : réservée au recalcul de l'empreinte d'un circuit de signature déjà enregistré. */
+  feuilleArchivee?: boolean;
 }): DocumentAssemble {
   const empreinte = createHash("sha256").update(params.corps).digest("hex").slice(0, 16);
   const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"/>
 <title>${echapper(params.titreDocument)}</title>
-<style>${CSS_POLICES}${CSS_DOCUMENT}</style></head>
+<style>${CSS_POLICES}${params.feuilleArchivee ? CSS_DOCUMENT_G7 : CSS_DOCUMENT}</style></head>
 <body>${params.corps}</body></html>`;
   const piedHtml = piedDePage(params.nomPied, params.reference, empreinte);
   return {
@@ -300,7 +369,10 @@ function piedDePage(nom: string, reference: string, empreinte: string): string {
 
 // La charte de l'application, en CSS d'impression. Une seule source de
 // valeurs : CHARTE, tout en haut du fichier.
-const CSS_DOCUMENT = `
+//
+// La feuille g7 reste écrite telle quelle : un contrat préparé pour la signature avant la version g8 se relit avec elle
+// pour recalculer son empreinte (`feuilleArchivee`). Les correctifs g8 viennent après elle et l'emportent.
+const CSS_DOCUMENT_G7 = `
   :root { --encre:${CHARTE.encre}; --sur-encre:${CHARTE.surEncre};
           --laiton:${CHARTE.laiton}; --laiton-filet:${CHARTE.laitonFilet};
           --texte:${CHARTE.corps}; --texte-secondaire:${CHARTE.texteSecondaire};
@@ -388,3 +460,24 @@ const CSS_DOCUMENT = `
   .saut { break-before:page; page-break-before:always; }
   .centre { text-align:center; }
 `;
+
+// Correctifs g8 (phase 3 de la mission palier 1, lot 35 : mise en forme et mise en page des documents).
+const CSS_CORRECTIFS_G8 = `
+  /* Un long paragraphe peut se couper entre deux pages, trois lignes au moins de chaque côté. Insécable, il partait
+     entier à la page suivante : la page 1 du bail nu restait blanche aux deux cinquièmes, le titre « II — Objet du
+     contrat » seul en bas (C11, C28). Un paragraphe de cinq lignes ou moins ne se coupe donc toujours pas. */
+  p { break-inside:auto; page-break-inside:auto; }
+  /* Le paragraphe qui annonce la suite (« … ainsi déterminé : », « … les pièces suivantes : ») reste avec elle. */
+  .annonce { break-after:avoid-page; page-break-after:avoid; }
+  /* « Fait à … le … » ne quitte ni ce qui précède ni la signature qui suit : jamais de signature seule sur une page
+     (C51, C53, C69). */
+  .fait-a { break-before:avoid-page; page-break-before:avoid; break-after:avoid-page; page-break-after:avoid; }
+  /* Sans marge intérieure : elle laissait un blanc visible avant la ponctuation (« Lyon , le 23/11/2026 . », C75). */
+  .v { padding:0; }
+  /* Une colonne chiffrée ne coupe jamais un montant : « 520,00 » d'un côté, « € » à la ligne (C44, C87). */
+  td.d { white-space:nowrap; }
+  /* La ligne de total reste sous son tableau, jamais seule en haut d'une page (C45). */
+  table.ligne-total { break-before:avoid-page; page-break-before:avoid; }
+`;
+
+const CSS_DOCUMENT = CSS_DOCUMENT_G7 + CSS_CORRECTIFS_G8;

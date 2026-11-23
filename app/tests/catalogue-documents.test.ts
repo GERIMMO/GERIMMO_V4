@@ -115,6 +115,26 @@ describe("Catalogue — documents issus des dossiers",()=>{
     expect(r.document.html).toContain("100,01");expect(r.document.html).toContain("33,33");expect(r.document.html.match(/33,34/g)).toHaveLength(2);
     expect(r.document.html).toContain("28/02/2026");expect(r.document.html).toContain("31/03/2026");expect(r.document.html).not.toContain("2099");
   });
+  // Phase 3 (C85, C62) : le modèle n'ajoute plus son point à un texte saisi qui finit déjà par un point ; la surface
+  // s'imprime au format français.
+  it.each(["ordre_intervention","compte_rendu_intervention","recap_incident"] as const)("%s : un seul point après les textes saisis",async code=>{
+    const t=fixture();
+    t.incidents[0].description="Fuite sous l’évier, le meuble bas est humide.";t.incidents[0].imputation_justification="Réparation à la charge de la propriétaire.";
+    t.incident_interventions[0].nature_travaux="Remplacer le joint.";
+    t.intervention_comptes_rendus[0].travaux_realises="Joint remplacé, essai d’écoulement sans fuite.";t.intervention_comptes_rendus[0].cause_reelle="Usure.";
+    const r=succes(await assemblerComplementGestion(code,mockDb(t).db,"org",code==="recap_incident"?"incident":"intervention",{...options,acces:"Clé chez la gardienne."}));
+    const texte=r.document.html.replace(/<style>[\s\S]*?<\/style>/g,"").replace(/<[^>]+>/g,"");
+    expect(texte).not.toMatch(/\.\s*\./);
+    expect(texte).toContain("le meuble bas est humide.");
+  });
+  it("autorisation de travaux et attestation CAF : un seul point, surface au format français",async()=>{
+    vi.mocked(chargerContexteBail).mockResolvedValue({...ctx,lot:{...ctx.lot,surface_m2:45.5}});
+    const accord=succes(await assemblerComplementBail("autorisation_travaux",mockDb().db,"org","bail",{...options,travaux:"Peinture du séjour.",periode:"Octobre.",prise_en_charge:"Bailleur.",conditions:"Remise en état."}));
+    expect(accord.document.html.replace(/<style>[\s\S]*?<\/style>/g,"").replace(/<[^>]+>/g,"")).not.toMatch(/\.\s*\./);
+    const caf=succes(await assemblerComplementBail("attestation_caf",mockDb().db,"org","bail",options));
+    expect(caf.document.html).toContain("45,5</span> m²");
+    expect(caf.document.html).not.toContain("45.5");
+  });
   it.each(["relance_simple","seconde_relance","mise_en_demeure","situation_dette","protocole_apurement"] as const)("refuse %s lorsque la dette figure au décompte final",async code=>{
     expect(await assemblerComplementBail(code,mockDb().db,"org","bail",options)).toHaveProperty("erreur",expect.stringContaining("décompte de départ"));
   });

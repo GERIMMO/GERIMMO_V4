@@ -1,6 +1,6 @@
 import { detailRapportGestion } from "./detail-rapport-gestion";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { Fusion, assemblerPage, cadreSignature, cartouches, enTete, faitA, section, titre, eur, facultatif, echapper } from "../gabarit";
+import { Fusion, assemblerPage, cadreSignature, cartouches, enTete, faitA, section, titre, eur, facultatif, echapper, nombreFr, pointFinal } from "../gabarit";
 import { CATALOGUE_DOCUMENTS } from "../catalogue";
 import { lireLignes, lignesTableau, RefusDocument, texte, montant, anneeDocument, MESSAGE_CHARGEMENT_IMPOSSIBLE } from "./catalogue-bail";
 import { chargerContexteBail, nomsLocataires, adresseLogement, referenceCourte } from "./communs";
@@ -150,11 +150,11 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
           // Audit gestion du 29/09 : quote-part d'un contrat individuel de
           // colocation, et régularisation tardive (art. 23 loi 89-462).
           r.quote_part_colocation != null
-            ? `<p>Contrat individuel de colocation : charges du logement imputées à hauteur de ${Math.round(montant(r.quote_part_colocation) * 1000) / 10} % (surface de la chambre sur la surface cumulée des chambres), puis au prorata des jours d’occupation.</p>`
+            ? `<p>Contrat individuel de colocation : charges du logement imputées à hauteur de ${nombreFr(Math.round(montant(r.quote_part_colocation) * 1000) / 10)}\u00a0% (surface de la chambre sur la surface cumulée des chambres), puis au prorata des jours d’occupation.</p>`
             : ""
         }${
           Array.isArray(r.etalement_12_mois) && r.etalement_12_mois.length
-            ? `<p>À la demande du locataire, le complément est réglé en douze mensualités (régularisation tardive, art. 23 de la loi du 6 juillet 1989) :</p>${lignesTableau(f, r.etalement_12_mois as Record<string, unknown>[], [["Mensualité","rang","texte"],["Échéance","echeance","date"],["Montant","montant","montant"]])}`
+            ? `<p class="annonce">À la demande du locataire, le complément est réglé en douze mensualités (régularisation tardive, art. 23 de la loi du 6 juillet 1989) :</p>${lignesTableau(f, r.etalement_12_mois as Record<string, unknown>[], [["Mensualité","rang","texte"],["Échéance","echeance","date"],["Montant","montant","montant"]])}`
             : r.tardive && montant(r.ecart) < 0
               ? `<p>Régularisation effectuée après le terme de l’année civile suivant l’exercice : le locataire peut demander à régler ce complément par douzièmes (art. 23 de la loi du 6 juillet 1989).</p>`
               : ""
@@ -166,7 +166,7 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       if (code !== "consultation_charges") contenu += `${section("Décompte et répartition")}
         <p>${f.champ(detailSaisi||texte(r.note)||null,"détail des dépenses par nature et clé de répartition")}</p>
         <p>Justificatif annexé : ${r.justificatif_document ? "pièce enregistrée dans le dossier, à joindre" : f.champ(null,"décompte justificatif à déposer et joindre")}.</p>`;
-      contenu += `${section("Consultation des justificatifs")}<p>Modalités : ${champ("consultation","lieu ou accès, horaires et contact pour consulter les justificatifs")}.</p>
+      contenu += `${section("Consultation des justificatifs")}<p>Modalités : ${champ("consultation","lieu ou accès, horaires et contact pour consulter les justificatifs")}${pointFinal(options.consultation)}</p>
         <p>Le décompte par nature de charges et le mode de répartition sont communiqués un mois avant la régularisation. Les justificatifs restent à disposition pendant six mois à compter de l’envoi du décompte.</p>
         <p>Date du dossier : ${f.date(texte(r.date_emission))}. Ce PDF ne déclenche aucun prélèvement ni envoi.</p>`;
     } else if (code === "restitution_cles") {
@@ -183,24 +183,24 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       const incident = await unique("incidents",intervention ? texte(intervention.incident_id) : cibleId);
       await lotConcerne(texte(incident.lot_id));
       // Les comptes rendus sont rattachés au lot. Leur visibilité suit la GED du lot.
-      contenu = `${section(`Incident ${texte(incident.numero)}`)}<p>Signalement : ${f.champ(texte(incident.description),"description du signalement")}.</p>
+      contenu = `${section(`Incident ${texte(incident.numero)}`)}<p>Signalement : ${f.champ(texte(incident.description),"description du signalement")}${pointFinal(texte(incident.description))}</p>
         <p>Pièce : ${facultatif(texte(incident.piece))} ; catégorie : ${facultatif(texte(incident.categorie))} ; état : ${f.champ(texte(incident.etat),"état du dossier")}.</p>`;
       if (intervention) {
         const artisans = await lireLignes(db.from("artisans").select("raison_sociale,siret,telephone,email").eq("id",intervention.artisan_id).limit(1));
         if (!artisans.length) throw new RefusDocument("Les coordonnées de l’artisan ne sont pas accessibles.");
         const a = artisans[0]; destinataire = f.champ(texte(a.raison_sociale),"entreprise intervenante");
-        contenu += `${section("Mission enregistrée")}<p>${f.champ(texte(intervention.nature_travaux),"nature des travaux")}.</p>
+        contenu += `${section("Mission enregistrée")}<p>${f.champ(texte(intervention.nature_travaux),"nature des travaux")}${pointFinal(texte(intervention.nature_travaux))}</p>
           <p>Artisan : ${destinataire} ; SIRET : ${facultatif(texte(a.siret))}. Contact : ${facultatif(texte(a.telephone))} · ${facultatif(texte(a.email))}.</p>
           <p>État de la mission : ${f.champ(texte(intervention.statut),"statut de la mission")} ; confiée le ${f.date(texte(intervention.confiee_le))}.</p>`;
         if (code === "ordre_intervention") {
           if (["annulee","refusee"].includes(texte(intervention.statut))) throw new RefusDocument("Cette mission a été annulée ou refusée. Préparez une nouvelle mission pour émettre un ordre d’intervention.");
           contenu += `<p>Créneau prévu : ${f.date(texte(intervention.debut_prevu)||null,"début prévu")} au ${f.date(texte(intervention.fin_prevue)||null,"fin prévue")}.</p>
-            <p>Accès et personne à contacter : ${champ("acces","modalités d’accès et contact sur place")}.</p><p>Aucun travail supplémentaire n’est autorisé par ce document sans accord préalable du donneur d’ordre.</p>`;
+            <p>Accès et personne à contacter : ${champ("acces","modalités d’accès et contact sur place")}${pointFinal(options.acces)}</p><p>Aucun travail supplémentaire n’est autorisé par ce document sans accord préalable du donneur d’ordre.</p>`;
         } else {
           const crs = await lireLignes(lire("intervention_comptes_rendus").eq("intervention_id",cibleId).order("created_at",{ascending:false}));
           if (!crs.length) throw new RefusDocument("L’artisan doit déposer son compte rendu avant la génération du document.");
-          for (const cr of crs) contenu += `${section("Compte rendu déclaré par l’artisan")}<p>Travaux réalisés : ${f.champ(texte(cr.travaux_realises),"travaux réalisés")}.</p>
-            <p>Cause constatée : ${facultatif(texte(cr.cause_reelle))}.</p>
+          for (const cr of crs) contenu += `${section("Compte rendu déclaré par l’artisan")}<p>Travaux réalisés : ${f.champ(texte(cr.travaux_realises),"travaux réalisés")}${pointFinal(texte(cr.travaux_realises))}</p>
+            <p>Cause constatée : ${facultatif(texte(cr.cause_reelle))}${pointFinal(texte(cr.cause_reelle))}</p>
             <p>Montant final déclaré : ${cr.montant_final_cents == null ? f.champ(null,"montant final déclaré") : eur(montant(cr.montant_final_cents)/100)} ; nouvelle intervention nécessaire : ${cr.nouvelle_intervention_necessaire ? "oui" : "non"}.</p>
             <p>Compte rendu du ${f.date(texte(cr.created_at))}. Il ne remplace pas la facture de l’entreprise.</p>`;
         }
@@ -212,8 +212,8 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
         contenu += lignesTableau(f,devis.map(d=>({...d,entreprise:noms.get(d.artisan_id),montant:montant(d.montant_ttc_cents)/100})),[["Entreprise","entreprise","texte"],["Prestation","description","texte"],["TTC","montant","montant"],["Validité","valide_jusqu_au","date"],["Décision","statut","texte"]]);
         contenu += "<p>Comparaison des offres déposées. Le choix reste soumis à la validation prévue dans le dossier ; ce document ne commande aucune prestation.</p>";
       } else {
-        contenu += `${section("Décision et clôture")}<p>Imputation enregistrée : ${facultatif(texte(incident.imputation))}.</p>
-          <p>Justification : ${facultatif(texte(incident.imputation_justification))}.</p>
+        contenu += `${section("Décision et clôture")}<p>Imputation enregistrée : ${facultatif(texte(incident.imputation))}${pointFinal(texte(incident.imputation))}</p>
+          <p>Justification : ${facultatif(texte(incident.imputation_justification))}${pointFinal(texte(incident.imputation_justification))}</p>
           <p>${incident.clos_le ? `Clôturé le ${f.date(texte(incident.clos_le))}. ${facultatif(texte(incident.cloture_commentaire))}` : "Le dossier est toujours ouvert."}</p>`;
       }
     } else if (["recap_fiscal_nu","recap_fiscal_meuble"].includes(code)) {
@@ -249,7 +249,7 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
         if (!e.contre_ecriture_de) throw new RefusDocument("Ce justificatif concerne une contre-écriture enregistrée.");
         const origine = await unique("ecritures",texte(e.contre_ecriture_de));
         if (e.lot_id) await lotConcerne(texte(e.lot_id));
-        contenu = `${section("Pièce d’origine et rectification")}${lignesTableau(f,[{...origine,role:"Origine"},{...e,role:"Rectification"}],[["Pièce","role","texte"],["Libellé","libelle","texte"],["Sens","sens","texte"],["Montant","montant","montant"],["Date","date_piece","date"]])}<p>Motif : ${f.champ(texte(e.motif)||null,"motif de la rectification")}.</p>`;
+        contenu = `${section("Pièce d’origine et rectification")}${lignesTableau(f,[{...origine,role:"Origine"},{...e,role:"Rectification"}],[["Pièce","role","texte"],["Libellé","libelle","texte"],["Sens","sens","texte"],["Montant","montant","montant"],["Date","date_piece","date"]])}<p>Motif : ${f.champ(texte(e.motif)||null,"motif de la rectification")}${pointFinal(texte(e.motif))}</p>`;
       } else {
         if (cibleId !== orgId || !/^\d{4}-(0[1-9]|1[0-2])$/.test(options.mois ?? "")) throw new RefusDocument("Choisissez le mois du journal à exporter.");
         const debut = `${options.mois}-01`, finDate = new Date(`${debut}T12:00:00Z`); finDate.setUTCMonth(finDate.getUTCMonth()+1);
@@ -296,10 +296,10 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
         contenu += `${section(`Mouvements de gestion ${annee}`)}${lignesTableau(f,mouvements,[["Date","date_piece","date"],["Nature","categorie","texte"],["Libellé","libelle","texte"],["Sens","sens","texte"],["Montant","montant","montant"]])}
           <p>Relevé annuel du mandat, à rapprocher des pièces et à transmettre au comptable. Les transferts de fonds et dépôts ne constituent pas automatiquement des recettes fiscales. Ce relevé ne calcule pas un revenu imposable.</p>`;
       } else if (code === "resiliation_mandat") {
-        contenu += `${section("Résiliation proposée")}<p>Date d’effet : ${f.date(options.date_effet||null,"date d’effet de la résiliation")} ; motif : ${champ("motif","motif et fondement de la résiliation")}.</p><p>Remise des fonds, pièces et dossiers : ${champ("remise","modalités de remise du dossier et du solde")}.</p>
+        contenu += `${section("Résiliation proposée")}<p>Date d’effet : ${f.date(options.date_effet||null,"date d’effet de la résiliation")} ; motif : ${champ("motif","motif et fondement de la résiliation")}${pointFinal(options.motif)}</p><p>Remise des fonds, pièces et dossiers : ${champ("remise","modalités de remise du dossier et du solde")}${pointFinal(options.remise)}</p>
           <p>Le préavis prévu au mandat est de ${f.champ(texte(mandat.preavis_mois),"durée du préavis")} mois. La génération ne résilie pas le mandat dans Gerimmo ; la date convenue doit être enregistrée après notification.</p>`; signatures = true;
       } else {
-        contenu += `${section(code === "avenant_perimetre" ? "Périmètre convenu" : "Conditions convenues")}<p>Date d’effet : ${f.date(options.date_effet||null,"date d’effet de l’avenant")}.</p><p>${champ("modifications",code === "avenant_perimetre" ? "lots ajoutés ou retirés et conditions applicables" : "clauses modifiées et nouvelles conditions convenues")}.</p><p>Les autres stipulations du mandat restent inchangées. Les modifications doivent être enregistrées dans le dossier après signature ; ce document ne les applique pas automatiquement.</p>`; signatures = true;
+        contenu += `${section(code === "avenant_perimetre" ? "Périmètre convenu" : "Conditions convenues")}<p>Date d’effet : ${f.date(options.date_effet||null,"date d’effet de l’avenant")}.</p><p>${champ("modifications",code === "avenant_perimetre" ? "lots ajoutés ou retirés et conditions applicables" : "clauses modifiées et nouvelles conditions convenues")}${pointFinal(options.modifications)}</p><p>Les autres stipulations du mandat restent inchangées. Les modifications doivent être enregistrées dans le dossier après signature ; ce document ne les applique pas automatiquement.</p>`; signatures = true;
       }
     }
     const reference = referenceCourte(code.toUpperCase().replaceAll("_","-"),cibleId);

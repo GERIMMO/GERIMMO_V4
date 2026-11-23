@@ -16,6 +16,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Fusion, type DocumentAssemble } from "@/lib/documents/gabarit";
 import { construireQuittance, signataireQuittance, versementsDuTerme } from "@/lib/documents/modeles/quittance";
+import { mentionEtage } from "@/lib/documents/modeles/communs";
 import { refusDocumentIncomplet } from "@/lib/documents/completude";
 
 type Nom = { nom: string; prenom: string | null };
@@ -150,7 +151,8 @@ export function assemblerQuittanceDelivree(d: DonneesQuittanceDocument): Documen
   const logement = [
     adresse(d.logement.adresse, d.logement.code_postal, d.logement.ville),
     d.logement.lot_nom && d.logement.lot_nom !== "Lot unique" ? d.logement.lot_nom : null,
-    d.logement.etage ? `étage ${d.logement.etage}` : null,
+    // Même règle que le PDF : « étage » ne s'ajoute pas à une saisie qui le contient déjà (phase 3, C63).
+    mentionEtage(d.logement.etage),
   ]
     .filter(Boolean)
     .join(", ");

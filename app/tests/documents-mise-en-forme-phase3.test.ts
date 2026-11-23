@@ -1,0 +1,315 @@
+/**
+ * Phase 3 de la mission palier 1, lot 35 — socle commun des documents : mise en forme et mise en page.
+ *
+ * Défauts relevés sur les PDF des dossiers fictifs (C09, C10, C11, C26, C27, C28, C38, C39, C43, C44, C45, C51, C53,
+ * C55, C62, C63, C69, C75, C84, C85, C87, S10). Chaque cas ci-dessous échouait avant le correctif.
+ * Les correctifs de la feuille (g8) ne touchent pas la relecture « archivée » d'un bail déjà préparé pour la signature :
+ * son empreinte doit rester celle d'alors (voir tests/signature-empreinte-avant-24-octobre.test.ts).
+ */
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { describe, expect, it, vi } from "vitest";
+import { contexte } from "./fixtures/contexte-document";
+import { quittanceDocumentComplete } from "./fixtures/quittance-document";
+
+vi.mock("@/lib/documents/modeles/communs", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  chargerContexteBail: vi.fn(),
+  signatureOrganisation: vi.fn(async () => null),
+}));
+import {
+  assemblerPage,
+  faitA,
+  Fusion,
+  jourDuMois,
+  ligneTotal,
+  nombreFr,
+  pointFinal,
+  typographie,
+} from "@/lib/documents/gabarit";
+import { adresseLogement, chargerContexteBail, mentionEtage } from "@/lib/documents/modeles/communs";
+import { assemblerCongeBailleur } from "@/lib/documents/modeles/conge-bailleur";
+import { assemblerQuittanceDelivree } from "@/lib/quittance-conforme";
+import { construireBailNu } from "@/lib/documents/modeles/bail-nu";
+import { construireBailMeuble } from "@/lib/documents/modeles/bail-meuble";
+import { chargesInchangees, construireRevisionIrl } from "@/lib/documents/modeles/revision-irl";
+import { construireRecuDepot } from "@/lib/documents/modeles/recu-depot";
+import { construireAvisEcheance } from "@/lib/documents/modeles/avis-echeance";
+import { construireProrata } from "@/lib/documents/modeles/prorata";
+import { construireEdl } from "@/lib/documents/modeles/edl";
+
+const exp = { nom: "Parc de Claire Moreau", adresse: "8 avenue des Tilleuls, 69006 Lyon", email: "c@x.fr", telephone: null, ville: "Lyon" };
+const texteDe = (html: string) => html.replace(/<style>[\s\S]*?<\/style>/g, "").replace(/<[^>]+>/g, "").replace(/\s+/g, " ");
+
+describe("étage du logement (C09, C26, C63, C84)", () => {
+  it.each([
+    ["2e étage, porte gauche", "2e étage, porte gauche"],
+    ["1er Étage, porte 7", "1er Étage, porte 7"],
+    ["ETAGE 3", "ETAGE 3"],
+    ["RDC", "RDC"],
+    ["rdc, porte B", "rdc, porte B"],
+    ["Rez-de-chaussée sur cour", "Rez-de-chaussée sur cour"],
+    ["rez de chaussee", "rez de chaussee"],
+    ["2", "étage 2"],
+    ["3e, porte droite", "étage 3e, porte droite"],
+  ])("« %s » s'imprime « %s »", (saisie, attendu) => {
+    expect(mentionEtage(saisie)).toBe(attendu);
+  });
+
+  it("un étage vide ne s'imprime pas", () => {
+    expect(mentionEtage(null)).toBeNull();
+    expect(mentionEtage("  ")).toBeNull();
+  });
+
+  it("l'adresse du logement ne répète plus le mot « étage »", () => {
+    const ctx = contexte();
+    const lot = { ...ctx.lot, nom: "T2", etage: "2e étage, porte gauche" };
+    expect(adresseLogement(lot, ctx.bien)).not.toContain("étage 2e étage");
+    expect(adresseLogement(lot, ctx.bien)).toContain("T2, 2e étage, porte gauche");
+    expect(adresseLogement({ ...lot, etage: "3" }, ctx.bien)).toContain("T2, étage 3");
+  });
+
+  it("la quittance délivrée au locataire suit la même règle", () => {
+    const d = quittanceDocumentComplete();
+    const html = assemblerQuittanceDelivree({ ...d, logement: { ...d.logement, etage: "2e étage, porte gauche" } }).html;
+    expect(html).not.toContain("étage 2e étage");
+    expect(html).toContain("2e étage, porte gauche");
+  });
+});
+
+describe("nombres au format français (C10, C27, C39, C62)", () => {
+  it.each([
+    [45, "45"],
+    ["45.00", "45"],
+    [24.5, "24,5"],
+    ["24.50", "24,5"],
+    [210.5, "210,5"],
+    [4521.3, "4 521,3"],
+    [0, "0"],
+    [98.123, "98,123"],
+  ])("%s s'écrit « %s »", (valeur, attendu) => {
+    expect(nombreFr(valeur)).toBe(attendu);
+  });
+
+  it("une valeur illisible reste telle quelle", () => {
+    expect(nombreFr("")).toBe("");
+    expect(nombreFr("n.c.")).toBe("n.c.");
+  });
+});
+
+describe("point final après un texte saisi (C38, C85)", () => {
+  it.each([
+    ["Paiement comptant à la signature de l'acte.", ""],
+    ["Elle s'installe à Lyon pour son travail. ", ""],
+    ["Fuite réparée !", ""],
+    ["Pourquoi ?", ""],
+    ["Et cætera…", ""],
+    ["Retards de paiement répétés (essai fictif)", "."],
+    ["", "."],
+  ])("« %s » appelle « %s »", (saisie, attendu) => {
+    expect(pointFinal(saisie)).toBe(attendu);
+  });
+
+  it("une saisie absente garde le point du modèle", () => {
+    expect(pointFinal(null)).toBe(".");
+    expect(pointFinal(undefined)).toBe(".");
+  });
+});
+
+describe("jour d'échéance (S10)", () => {
+  it("le 1er, puis le 2, le 15", () => {
+    expect(jourDuMois(1)).toBe("1er");
+    expect(jourDuMois("1")).toBe("1er");
+    expect(jourDuMois(2)).toBe("2");
+    expect(jourDuMois(15)).toBe("15");
+    expect(jourDuMois(null)).toBeNull();
+  });
+});
+
+describe("feuille de style g8 (C11, C28, C44, C45, C51, C53, C69, C75, C87)", () => {
+  const page = (feuilleArchivee?: boolean) =>
+    assemblerPage({ f: new Fusion(), titreDocument: "Essai", nomPied: "Essai", reference: "R", corps: "<p>x</p>", feuilleArchivee }).html;
+
+  it("les correctifs de mise en page sont dans la feuille des documents remis", () => {
+    const html = page();
+    expect(html).toContain("p { break-inside:auto; page-break-inside:auto; }");
+    expect(html).toContain(".annonce { break-after:avoid-page;");
+    expect(html).toContain(".fait-a { break-before:avoid-page; page-break-before:avoid; break-after:avoid-page;");
+    expect(html).toContain(".v { padding:0; }");
+    expect(html).toContain("td.d { white-space:nowrap; }");
+    expect(html).toContain("table.ligne-total { break-before:avoid-page;");
+  });
+
+  it("la feuille archivée reste la feuille g7, sans aucun correctif", () => {
+    const html = page(true);
+    expect(html).toContain(".v { border-bottom:0.75pt dotted var(--filet); padding:0 2pt; }");
+    expect(html).not.toContain(".fait-a");
+    expect(html).not.toContain("td.d { white-space:nowrap; }");
+    expect(html).not.toContain("p { break-inside:auto");
+  });
+
+  it("« Fait à » porte la classe qui le garde avec ce qui précède et avec la signature", () => {
+    expect(faitA(new Fusion(), "Lyon", "2026-11-23")).toMatch(/^<p class="fait-a">Fait à /);
+  });
+
+  it("la ligne de total porte la classe qui la garde sous son tableau", () => {
+    expect(ligneTotal("Total du terme", "760,00 €")).toBe(
+      '<table class="ligne-total"><tbody><tr class="total"><td><b>Total du terme</b></td><td class="d"><b>760,00 €</b></td></tr></tbody></table>'
+    );
+    expect(ligneTotal("<b>", "1")).toContain("&lt;b&gt;");
+  });
+});
+
+describe("bail : adresse, surface, échéance et paragraphes d'annonce", () => {
+  const ctxBail = () => {
+    const ctx = contexte();
+    ctx.lot = { ...ctx.lot, nom: "T2", etage: "2e étage, porte gauche", surface_m2: 24.5 };
+    ctx.bail = { ...ctx.bail, jour_echeance: 1 };
+    return ctx;
+  };
+
+  it.each([
+    ["nu", (archivee: boolean) => construireBailNu(ctxBail(), { dpeClasse: "D", f: new Fusion(), presentationAncienne: archivee })],
+    ["meublé", (archivee: boolean) => construireBailMeuble(ctxBail(), { dpeClasse: "D", inventaire: [], f: new Fusion(), presentationAncienne: archivee })],
+  ])("bail %s remis : « 2e étage » sans doublon, « 24,5 m² », « le 1er de chaque mois », annonces gardées avec leur suite", (_nom, construire) => {
+    const html = construire(false).html;
+    const texte = texteDe(html);
+    expect(texte).not.toContain("étage 2e étage");
+    expect(texte).toContain("T2, 2e étage, porte gauche");
+    expect(texte).toContain("Surface habitable : 24,5 m²");
+    expect(texte).not.toContain("24.5");
+    expect(texte).toMatch(/le 1er de chaque mois/);
+    expect(html).toContain('<p class="annonce">Sont annexées et jointes au contrat les pièces suivantes :</p>');
+    expect(html).toMatch(/<p class="annonce">Le présent contrat a pour objet la location d'un logement/);
+    expect(html).toContain('<p class="fait-a">Fait à ');
+  });
+
+  it.each([
+    ["nu", () => construireBailNu(ctxBail(), { dpeClasse: "D", f: new Fusion(), presentationAncienne: true })],
+    ["meublé", () => construireBailMeuble(ctxBail(), { dpeClasse: "D", inventaire: [], f: new Fusion(), presentationAncienne: true })],
+  ])("bail %s relu pour l'empreinte d'un circuit déjà préparé : la typographie d'alors, octet pour octet", (_nom, construire) => {
+    const html = construire().html;
+    const texte = texteDe(html);
+    expect(texte).toContain("étage 2e étage");
+    expect(texte).toContain("Surface habitable : 24.5 m²");
+    expect(texte).toMatch(/le 1 de chaque mois/);
+    expect(html).not.toContain('class="annonce"');
+    expect(html).not.toContain('class="fait-a"');
+    expect(html).toContain(".v { border-bottom:0.75pt dotted var(--filet); padding:0 2pt; }");
+  });
+
+  it("la typographie archivée n'est jamais celle d'un document remis", () => {
+    expect(typographie(undefined).archivee).toBe(false);
+    expect(typographie(false).archivee).toBe(false);
+    expect(typographie(true).archivee).toBe(true);
+  });
+
+  it("contrat individuel : surface et volume privatifs au format français, pas de double point après la description", () => {
+    const ctx = ctxBail();
+    ctx.chambre = { id: "c1", nom: "Chambre 2", surface_m2: 14, volume_m3: 35.5, description: "Chambre sur cour.", espaces_partages: "Cuisine, salon", equipements: "Lit, bureau." };
+    const texte = texteDe(construireBailNu(ctx, { dpeClasse: "D", f: new Fusion() }).html);
+    expect(texte).toContain("Surface habitable privative : 14 m² ; volume habitable privatif : 35,5 m³.");
+    expect(texte).toContain("Description et accès : Chambre sur cour.");
+    expect(texte).not.toContain("Chambre sur cour..");
+    expect(texte).not.toContain("Lit, bureau..");
+    expect(texte).toContain("Pièces et équipements du logement partagés avec les autres occupants : Cuisine, salon.");
+  });
+});
+
+describe("textes fixes (C43, C55)", () => {
+  const revision = (chargesMode: string | null) =>
+    construireRevisionIrl({
+      reference: "REV-1", ancienLoyer: 700, nouveauLoyer: 710, dateEffet: "2026-10-15", dateEcheance: "2026-10-15", dateDemande: null,
+      irlReference: 145.47, irlNouveau: 147.41, trimestre: "2e trimestre", trimestreNouveau: "T2 2026", charges: 60, chargesMode,
+      bailleurNom: "Claire Moreau", locatairesNoms: "Julie Leblanc", logementAdresse: "1 rue", referenceBail: "BAIL-1", exp, f: new Fusion(),
+    }).html;
+
+  it("« (inchangé) » s'accorde avec le libellé des charges", () => {
+    expect(chargesInchangees("provision")).toBe("inchangée");
+    expect(chargesInchangees("forfait")).toBe("inchangé");
+    expect(chargesInchangees(null)).toBe("montant inchangé");
+    expect(revision("provision")).toContain("Provision sur charges (inchangée)");
+    expect(revision("forfait")).toContain("Forfait de charges (inchangé)");
+    expect(revision(null)).toContain("Provision ou forfait de charges (montant inchangé)");
+  });
+
+  it("le reçu de dépôt cite « Article 22 », au singulier", () => {
+    const html = construireRecuDepot({
+      reference: "DEP-1", dateVersement: "2026-11-23", montantVerse: 700, moyen: "virement", versant: "Julie Leblanc", depotConvenu: 700,
+      totalEncaisse: 700, plafond: "un mois de loyer hors charges", meuble: false, bailleurNom: "Claire Moreau", locatairesNoms: "Julie Leblanc",
+      logementAdresse: "1 rue", referenceBail: "BAIL-1", dateBail: "2026-09-01", exp, f: new Fusion(),
+    }).html;
+    expect(html).toContain("Article 22 de la loi n° 89-462 du 6 juillet 1989");
+    expect(html).not.toContain("Articles 22");
+  });
+});
+
+describe("courriers avec signature et lignes de total (C45, C51, C53)", () => {
+  it("avis d'échéance : la ligne de total et « Fait à » portent leurs classes de mise en page", () => {
+    const html = construireAvisEcheance({
+      reference: "AVIS-1", periode: "2026-03-01", prorata: false, dateBail: "2025-10-15", dateFinBail: null, dateEcheance: "2026-03-05",
+      loyerHc: 700, charges: 60, chargesMode: "provision", montantDu: 760, arriere: 0, lieuPaiement: "Virement bancaire.", iban: null,
+      bailleurNom: "Claire Moreau", locatairesNoms: "Julie Leblanc", logementAdresse: "1 rue", referenceBail: "BAIL-1", exp, f: new Fusion(), jour: "2026-02-20",
+    }).html;
+    expect(html).toContain('<table class="ligne-total"><tbody><tr class="total"><td><b>Total du terme</b>');
+    expect(html).toContain('<p class="fait-a">Fait à ');
+    expect(texteDe(html)).toContain("Lieu de paiement prévu au bail : Virement bancaire.");
+    expect(texteDe(html)).not.toContain("Virement bancaire..");
+  });
+
+  it("décompte de prorata : la ligne de total reste sous son tableau", () => {
+    const html = construireProrata({
+      reference: "PRO-1", motif: "entrée", periode: "2026-09-01", dateDebutOccupation: "2026-09-15", dateFinOccupation: null,
+      loyerHcPlein: 700, chargesPleines: 60, loyerHcProrate: 373.33, chargesProratees: 32, montantDu: 405.33,
+      bailleurNom: "Claire Moreau", locatairesNoms: "Julie Leblanc", logementAdresse: "1 rue", referenceBail: "BAIL-1", exp, f: new Fusion(),
+    }).html;
+    expect(html).toContain('<table class="ligne-total"><tbody><tr class="total"><td><b>Total dû pour la période</b>');
+  });
+
+  it("état des lieux de sortie : le total des retenues reste sous son tableau", () => {
+    const f = new Fusion();
+    const html = construireEdl({
+      type: "sortie", reference: "EDL-1", dateEdl: "2026-10-07", dateEdlEntree: "2025-10-01", signeLe: null, personnesPresentes: "Les parties",
+      lignes: [], compteurs: [], cles: [], comparatif: [], observations: null, detecteurFumeePresent: null, detecteurFumeeEtat: null,
+      attestationAssuranceFournie: null, adresseRestitutionDepot: "5 rue des Essais, 38000 Grenoble.",
+      retenues: [{ libelle: "Plan de travail", cout: 260, duree_vie_ans: 10, age_ans: 8, montant_retenu: 52 }],
+      bailleurNom: f.champ("Claire Moreau", "bailleur"), locatairesNoms: f.champ("Julie Leblanc", "locataire"), logementAdresse: "1 rue",
+      referenceBail: "BAIL-1", exp, f,
+    }).html;
+    expect(html).toContain('<table class="ligne-total"><tbody><tr class="total"><td><b>Total des retenues après vétusté</b>');
+    expect(texteDe(html)).toContain("5 rue des Essais, 38000 Grenoble.");
+    expect(texteDe(html)).not.toContain("Grenoble..");
+  });
+});
+
+describe("congé du bailleur : un seul point après le texte saisi (C38)", () => {
+  const assembler = async (options: Record<string, string>) => {
+    vi.mocked(chargerContexteBail).mockResolvedValue(contexte());
+    const rpc = vi.fn(async () => ({ data: "2029-08-31", error: null }));
+    const doc = await assemblerCongeBailleur({ rpc } as unknown as SupabaseClient, "org", "b1", options);
+    if (!("document" in doc)) throw new Error(`congé non assemblé : ${JSON.stringify(doc)}`);
+    return texteDe(doc.document.html);
+  };
+
+  it("vente : « … de l'acte. », jamais « acte.. »", async () => {
+    const texte = await assembler({ motif: "vente", prix_vente: "245000", conditions_vente: "Paiement comptant à la signature de l'acte." });
+    expect(texte).toContain("Conditions de la vente : Paiement comptant à la signature de l'acte.");
+    expect(texte).not.toContain("acte..");
+    const sansPoint = await assembler({ motif: "vente", prix_vente: "245000", conditions_vente: "Paiement comptant" });
+    expect(sansPoint).toContain("Conditions de la vente : Paiement comptant.");
+    const sansConditions = await assembler({ motif: "vente", prix_vente: "245000" });
+    expect(sansConditions).toMatch(/Prix de la vente projetée : 245 000,00 € \([^)]*\)\./);
+  });
+
+  it("reprise et motif légitime : le point du modèle ne s'ajoute pas à celui de la saisie", async () => {
+    const reprise = await assembler({
+      motif: "reprise", beneficiaire_nom: "Marie Dupont", beneficiaire_lien: "fille du bailleur",
+      beneficiaire_adresse: "12 rue des Lilas, 69003 Lyon", raisons_reprise: "Elle s'installe à Lyon pour son travail.",
+    });
+    expect(reprise).toContain("Raisons de la reprise : Elle s'installe à Lyon pour son travail.");
+    expect(reprise).not.toContain("travail..");
+    expect(reprise).toContain("demeurant 12 rue des Lilas, 69003 Lyon.");
+    const motif = await assembler({ motif: "motif_legitime", motif_detail: "Retards de paiement répétés (essai fictif)." });
+    expect(motif).toContain("à savoir : Retards de paiement répétés (essai fictif).");
+    expect(motif).not.toContain("fictif)..");
+  });
+});

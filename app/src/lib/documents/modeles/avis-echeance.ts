@@ -16,6 +16,8 @@ import {
   section,
   tableau,
   titre,
+  pointFinal,
+  ligneTotal,
 } from "../gabarit";
 import {
   chargerContexteBail,
@@ -91,10 +93,7 @@ export function construireAvisEcheance(d: DonneesAvisEcheance) {
         [libelleCharges(d.chargesMode), f.montant(d.charges)],
       ]
     )}
-    <table><tbody><tr class="total"><td><b>Total du terme</b></td><td class="d"><b>${f.montant(
-      d.montantDu,
-      "total à régler"
-    )}</b></td></tr></tbody></table>
+    ${ligneTotal("Total du terme", f.montant(d.montantDu, "total à régler"))}
     ${
       // Même règle que l'avis par e-mail (wiki « Quittancement des loyers »,
       // 18/09) : taire une dette en cours laisserait croire au locataire qu'il
@@ -105,7 +104,7 @@ export function construireAvisEcheance(d: DonneesAvisEcheance) {
         : ""
     }
     ${section("Modalités de règlement")}
-    <p>Lieu de paiement prévu au bail : ${f.champ(d.lieuPaiement ?? null, "domicile du bailleur, virement…")}.</p>
+    <p>Lieu de paiement prévu au bail : ${f.champ(d.lieuPaiement ?? null, "domicile du bailleur, virement…")}${pointFinal(d.lieuPaiement)}</p>
     <p>Coordonnées bancaires : ${facultatif(d.iban ?? null)}.</p>
     <div class="mentions">
       <p>En cas de difficulté de paiement, rapprochez-vous sans attendre de votre gestionnaire :

@@ -67,7 +67,7 @@ function vetusteAppliquee(r: Retenue): string {
   if (!r.duree_vie_ans) return "Aucune — coût retenu en intégralité";
   const cout = Number(r.cout);
   const decote = cout > 0 ? Math.round((1 - Number(r.montant_retenu) / cout) * 100) : 0;
-  return `${r.age_ans ?? 0}/${r.duree_vie_ans} ans — décote ${decote.toLocaleString("fr-FR")} %`;
+  return `${r.age_ans ?? 0}/${r.duree_vie_ans} ans — décote ${decote.toLocaleString("fr-FR")}\u00a0%`;
 }
 
 function moisLong(periode: string): string {

@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { Fusion, assemblerPage, cadreSignature, blocSignatureEmetteur, cartouches, enTete, faitA, section, tableau, titre, eur } from "../gabarit";
+import { Fusion, assemblerPage, cadreSignature, blocSignatureEmetteur, cartouches, enTete, faitA, section, tableau, titre, eur, nombreFr, pointFinal } from "../gabarit";
 import { CATALOGUE_DOCUMENTS } from "../catalogue";
 import { signatureOrganisation, chargerContexteBail, expediteur, adresseLogement, nomsBailleurs, nomsLocataires, liensLocataires, referenceCourte } from "./communs";
 import { modeSignatureDocument } from "@/lib/politique-signature";
@@ -70,12 +70,12 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
         <p>Le bailleur atteste que le locataire désigné est titulaire du contrat relatif aux locaux désignés, prenant effet le ${f.date(ctx.bail.date_debut)}.
         Loyer mensuel hors charges : ${f.montant(ctx.bail.loyer_hc)} ; charges mensuelles : ${f.montant(ctx.bail.charges)} (${ctx.bail.charges_mode === "forfait" ? "forfait" : "provisions"}).
         ${ctx.chambre ? "Les montants concernent exclusivement la chambre et le droit d’usage des espaces partagés de ce contrat individuel." : ""}</p>
-        <p>Destinataire : ${opt("destinataire","organisme ou destinataire")}.</p>
+        <p>Destinataire : ${opt("destinataire","organisme ou destinataire")}${pointFinal(options.destinataire)}</p>
         <p>Cette attestation décrit les conditions du bail ; les paiements effectifs sont justifiés par les quittances ou reçus.</p>`;
       if (code === "attestation_caf") contenu += `${section("Informations pour l’attestation officielle")}
         <p>Numéro allocataire : ${opt("allocataire","numéro allocataire CAF ou MSA")} ; nombre d’occupants du contrat : ${ctx.locataires.length}.
-        Logement ${ctx.lot.meuble ? "meublé" : "nu"} ; surface du logement : ${f.champ(ctx.lot.surface_m2,"surface du logement")} m².
-        ${ctx.chambre ? `Surface privative : ${f.champ(ctx.chambre.surface_m2,"surface privative")} m².` : ""}</p>
+        Logement ${ctx.lot.meuble ? "meublé" : "nu"} ; surface du logement : ${f.champ(ctx.lot.surface_m2 == null ? null : nombreFr(ctx.lot.surface_m2),"surface du logement")} m².
+        ${ctx.chambre ? `Surface privative : ${f.champ(ctx.chambre.surface_m2 == null ? null : nombreFr(ctx.chambre.surface_m2),"surface privative")} m².` : ""}</p>
         <p>Le formulaire officiel Cerfa 10842*07 reste à compléter et signer par le bailleur. Ce récapitulatif prépare la saisie ; il ne vaut pas formulaire CAF/MSA homologué.</p>`;
       signatures = true;
     } else if (["relance_simple","seconde_relance","mise_en_demeure","situation_dette","protocole_apurement"].includes(code)) {
@@ -131,7 +131,7 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
         contenu += `${section("Échéancier convenu")}${plan && plan.acompte > 0 ? `<p>Acompte versé ou à verser à la signature : ${eur(plan.acompte)}.</p>` : ""}${lignesTableau(f,lignes,[["Date","date","date"],["Montant","montant","montant"]])}
           <p>Les mensualités d’apurement s’ajoutent au loyer et aux charges courants. Les règlements déjà intervenus sont à déduire avant signature de cet accord. Toute adaptation de l’accord est convenue par écrit entre les parties.</p>
           <p>Le bailleur suspend ses relances tant que l’accord est respecté ; il ne renonce à aucun droit, ni à la clause résolutoire du bail. Une mensualité non réglée à son échéance rend l’accord caduc et les sommes restantes immédiatement exigibles.</p>
-          <p>Conditions particulières de suivi : ${f.champ(conditions?.trim() || null, "conditions convenues pour le suivi de l’accord")}.</p>`;
+          <p>Conditions particulières de suivi : ${f.champ(conditions?.trim() || null, "conditions convenues pour le suivi de l’accord")}${pointFinal(conditions)}</p>`;
         signatures = true;
       }
     } else if (code === "accuse_conge" || code === "attestation_fin_bail") {
@@ -162,19 +162,19 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
     } else if (code === "avenant_remplacement") {
       if (ctx.bail.type !== "colocation" || ctx.bail.chambre_id) return { erreur: "L’avenant de remplacement concerne un contrat commun. En contrat individuel, clôturez le sortant et créez le contrat du nouvel occupant." };
       contenu = `${section("Parties et remplacement convenu")}
-        <p>Colocataire sortant : ${opt("sortant","identité du colocataire sortant")} ; colocataire entrant : ${opt("entrant","identité, adresse et état civil de l’entrant")}.</p>
+        <p>Colocataire sortant : ${opt("sortant","identité du colocataire sortant")} ; colocataire entrant : ${opt("entrant","identité, adresse et état civil de l’entrant")}${pointFinal(options.entrant)}</p>
         <p>Date d’effet convenue : ${f.date(options.date_effet || null,"date d’effet du remplacement")}.</p>
         <p>Les parties conviennent de remplacer le colocataire sortant par l’entrant désigné, sous réserve de la signature de cet avenant par les parties concernées. Les autres clauses du contrat commun restent inchangées.</p>
         <p>La solidarité du sortant et de sa caution cesse à la date prévue par l’article 8-1 VI de la loi du 6 juillet 1989 : à la date d’effet du congé régulièrement délivré lorsqu’un nouveau colocataire figure au bail, ou au plus tard six mois après cette date à défaut de remplacement.</p>
-        <p>Accord relatif au dépôt de garantie entre colocataires : ${opt("depot","modalités convenues concernant le dépôt de garantie")}.</p>`;
+        <p>Accord relatif au dépôt de garantie entre colocataires : ${opt("depot","modalités convenues concernant le dépôt de garantie")}${pointFinal(options.depot)}</p>`;
       signatures = true;
     } else if (code === "autorisation_travaux") {
       contenu = `${section("Travaux autorisés")}
-        <p>Nature et périmètre : ${opt("travaux","description précise des travaux")}.</p>
-        <p>Intervenant : ${opt("intervenant","entreprise ou personne chargée des travaux")} ; période convenue : ${opt("periode","dates ou période des travaux")}.</p>
+        <p>Nature et périmètre : ${opt("travaux","description précise des travaux")}${pointFinal(options.travaux)}</p>
+        <p>Intervenant : ${opt("intervenant","entreprise ou personne chargée des travaux")} ; période convenue : ${opt("periode","dates ou période des travaux")}${pointFinal(options.periode)}</p>
         ${section("Conditions de l’autorisation")}
-        <p>Prise en charge et plafond convenus : ${opt("prise_en_charge","répartition des coûts et plafond autorisé")}.</p>
-        <p>Conditions d’accès, assurances et remise en état : ${opt("conditions","conditions convenues pour l’exécution et la remise en état")}.</p>
+        <p>Prise en charge et plafond convenus : ${opt("prise_en_charge","répartition des coûts et plafond autorisé")}${pointFinal(options.prise_en_charge)}</p>
+        <p>Conditions d’accès, assurances et remise en état : ${opt("conditions","conditions convenues pour l’exécution et la remise en état")}${pointFinal(options.conditions)}</p>
         <p>L’autorisation porte uniquement sur les travaux décrits. Les autorisations administratives ou de copropriété éventuellement nécessaires doivent être obtenues avant leur réalisation. Tout changement de périmètre fait l’objet d’un accord écrit.</p>`;
       signatures = true;
     }

@@ -15,6 +15,7 @@ import {
   section,
   tableau,
   titre,
+  ligneTotal,
 } from "../gabarit";
 import {
   chargerContexteBail,
@@ -209,7 +210,7 @@ export function construireQuittance(d: DonneesQuittance) {
     )}
     ${
       d.estQuittance
-        ? `<table><tbody><tr class="total"><td><b>Total du terme</b></td><td class="d"><b>${f.montant(d.montantDu, "total du terme")}</b></td></tr></tbody></table>`
+        ? ligneTotal("Total du terme", f.montant(d.montantDu, "total du terme"))
         : ""
     }
     <p>${reglements}.</p>

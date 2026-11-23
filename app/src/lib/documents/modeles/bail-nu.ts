@@ -21,6 +21,7 @@ import {
   section,
   sousSection,
   titre,
+  typographie,
 } from "../gabarit";
 import {
   chargerContexteBail,
@@ -68,6 +69,7 @@ function blocLocataire(f: Fusion, p: PersonneDocument): string {
 
 export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string | null; f: Fusion; presentationAncienne?: boolean }) {
   const f = options.f;
+  const t = typographie(options.presentationAncienne);
   const exp = expediteur(options.presentationAncienne ? { organisation: ctx.organisation } : ctx);
   const referenceBail = referenceCourte("BAIL", ctx.bail.id);
   const bailleurPrincipal = ctx.bailleurs[0] ?? null;
@@ -93,7 +95,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
     intégrante.</p>
 
     ${section("I — Désignation des parties")}
-    <p>Le présent contrat est conclu entre les soussignés :</p>
+    <p${t.classe("annonce")}>Le présent contrat est conclu entre les soussignés :</p>
     ${sousSection("Le bailleur")}
     <p>Nom et prénom(s) ou dénomination : ${f.champ(nomPersonne(bailleurPrincipal), "nom et prénom(s), ou dénomination")}
     — Qualité : ${f.champ(bailleurPrincipal?.qualite, "personne physique, indivision, SCI familiale, SCI, personne morale")}<br/>
@@ -105,7 +107,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
         ? `<p>Le logement étant détenu en indivision, sont également parties au présent contrat :
            ${ctx.bailleurs
              .slice(1)
-             .map((b) => `${echapper(nomPersonne(b) ?? "")}${!options.presentationAncienne && b.siren ? ` · SIREN ${echapper(b.siren)}` : ""} (${b.quote_part.toLocaleString("fr-FR")} %)`)
+             .map((b) => `${echapper(nomPersonne(b) ?? "")}${!options.presentationAncienne && b.siren ? ` · SIREN ${echapper(b.siren)}` : ""} (${b.quote_part.toLocaleString("fr-FR")}${t.pourcent})`)
              .join(" ; ")}.</p>`
         : ""
     }
@@ -137,10 +139,10 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
     <p>Ci-après dénommé${plusieursLocataires ? "s" : ""} « le locataire ».</p>
 
     ${section("II — Objet du contrat")}
-    <p>${individuel ? 'Le présent contrat porte exclusivement sur la chambre privative et le droit d’usage des espaces partagés désignés ci-dessous. Il ne loue pas le logement entier.' : "Le présent contrat a pour objet la location d'un logement, ainsi déterminé :"}</p>
-    ${designationIndividuelle(ctx, f)}
+    <p${t.classe("annonce")}>${individuel ? 'Le présent contrat porte exclusivement sur la chambre privative et le droit d’usage des espaces partagés désignés ci-dessous. Il ne loue pas le logement entier.' : "Le présent contrat a pour objet la location d'un logement, ainsi déterminé :"}</p>
+    ${designationIndividuelle(ctx, f, t)}
     ${sousSection("A. Consistance du logement")}
-    <p>Localisation du logement : ${f.champ(adresseLogement(ctx.lot, ctx.bien), "adresse complète, étage, porte")}<br/>
+    <p>Localisation du logement : ${f.champ(adresseLogement(ctx.lot, ctx.bien, t.archivee), "adresse complète, étage, porte")}<br/>
     Identifiant fiscal du logement : ${f.champ(ctx.lot.identifiant_fiscal, "le cas échéant", "identifiant fiscal du logement")}<br/>
     Type d'habitat : ${f.champ(
       ctx.bien.type === "appartement" || ctx.bien.type === "immeuble" ? "immeuble collectif" : "individuel",
@@ -148,7 +150,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
     )} — Régime juridique de l'immeuble : ${f.champ(copro ? "copropriété" : "monopropriété", "monopropriété ou copropriété")} —
     Période de construction : ${f.champ(periodeConstruction(ctx.bien.annee_construction), "avant 1949, 1949-1974, 1975-1989, 1990-2005, depuis 2006")}<br/>
     Surface habitable ${individuel ? "du logement entier" : ""} : ${f.champ(
-      ctx.lot.surface_m2 !== null ? `${ctx.lot.surface_m2} m²` : null,
+      ctx.lot.surface_m2 !== null ? `${t.nombre(ctx.lot.surface_m2)} m²` : null,
       "en m²"
     )} — Nombre de pièces principales : ${f.champ(ctx.lot.pieces, "nombre")}<br/>
     Autres parties du logement : ${f.champ(ctx.lot.description, "cave, grenier, balcon, terrasse, jardin…", "autres parties du logement")}<br/>
@@ -183,7 +185,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
     ${
       ctx.bail.duree_reduite_evenement
         ? `<p class="mentions">Un contrat d'une durée réduite (au moins un an) n'est possible que si un événement
-           précis justifie la reprise du logement par le bailleur : ${f.champ(ctx.bail.duree_reduite_evenement, "événement précis justifiant la durée réduite")}.</p>`
+           précis justifie la reprise du logement par le bailleur : ${f.champ(ctx.bail.duree_reduite_evenement, "événement précis justifiant la durée réduite")}${t.point(ctx.bail.duree_reduite_evenement)}</p>`
         : `<p class="mentions">Sans objet — le contrat est conclu pour la durée de droit commun.</p>`
     }
 
@@ -191,7 +193,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
     ${sousSection("A. Loyer")}
     <p>Montant du loyer mensuel hors charges : ${f.montant(ctx.bail.loyer_hc, "montant mensuel")}.<br/>
     Modalité de fixation du loyer : ${f.champ(fixationLoyer(ctx.bail.fixation_loyer), "libre, plafonnement, réévaluation après travaux…")}.</p>
-    ${encadrementLocation(ctx, f)}
+    ${encadrementLocation(ctx, f, t)}
     ${
       ctx.bail.revision_irl
         ? `<p>Le loyer est révisé chaque année à la date anniversaire du contrat, dans la limite de la
@@ -215,7 +217,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
       ctx.bail.paiement_echeance === "echu" ? "à terme échu" : "à échoir",
       "à échoir ou échu"
     )}
-    le ${f.champ(ctx.bail.jour_echeance, "jour du mois")} de chaque mois.<br/>
+    le ${f.champ(t.jour(ctx.bail.jour_echeance), "jour du mois")} de chaque mois.<br/>
     Lieu de paiement : ${f.champ(ctx.bail.lieu_paiement, "domicile du bailleur, virement…")} — Coordonnées bancaires :
     ${facultatif(ctx.organisation.iban)}.<br/>
     Montant total dû à la première échéance : ${premiereEcheance(f, ctx.bail)}.</p>
@@ -249,7 +251,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
     <p>${ouNeant(ctx.bail.clauses_particulieres)}</p>
 
     ${section(`${plusieursLocataires ? "XI" : "X"} — Annexes`)}
-    <p>Sont annexées et jointes au contrat les pièces suivantes :</p>
+    <p${t.classe("annonce")}>Sont annexées et jointes au contrat les pièces suivantes :</p>
     <p class="mentions">☐ Le dossier de diagnostic technique (DPE, ERP, et selon l'ancienneté du
     logement : plomb, amiante, électricité, gaz)<br/>
     ☐ La notice d'information relative aux droits et obligations des locataires et des bailleurs<br/>
@@ -261,7 +263,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
 
     <div class="bloc-signataires">
     ${section(`${plusieursLocataires ? "XII" : "XI"} — Date et signatures`)}
-    <p>Fait à ${f.champ(exp.ville, "commune")}, le <span class="fusion">date effective à compléter lors de la signature</span>, en autant
+    <p${t.classe("fait-a")}>Fait à ${f.champ(exp.ville, "commune")}, le <span class="fusion">date effective à compléter lors de la signature</span>, en autant
     d'exemplaires originaux que de parties.</p>
     <div class="signatures">
       ${options.presentationAncienne || !indivision
@@ -283,6 +285,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
     nomPied: individuel ? "Colocation — contrat individuel nu" : colocation ? "Colocation — bail commun nu" : "Contrat de location — logement nu",
     reference: referenceBail,
     corps,
+    feuilleArchivee: t.archivee,
   });
 }
 

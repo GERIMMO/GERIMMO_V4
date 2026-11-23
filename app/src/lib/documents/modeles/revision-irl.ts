@@ -54,13 +54,21 @@ export type DonneesRevisionIrl = {
   f: Fusion;
 };
 
+// « (inchangé) » s'accorde avec le libellé des charges : une provision est inchangée, un forfait inchangé ; sans mode
+// connu (« Provision ou forfait de charges »), le montant l'est (phase 3, C55).
+export function chargesInchangees(mode: string | null | undefined): string {
+  if (mode === "provision") return "inchangée";
+  if (mode === "forfait") return "inchangé";
+  return "montant inchangé";
+}
+
 export function construireRevisionIrl(d: DonneesRevisionIrl) {
   const f = d.f;
   const variation =
     d.irlReference && d.irlNouveau
       ? (((d.irlNouveau - d.irlReference) / d.irlReference) * 100).toLocaleString("fr-FR", {
           maximumFractionDigits: 2,
-        }) + " %"
+        }) + "\u00a0%"
       : null;
   const rapport =
     d.irlReference && d.irlNouveau
@@ -99,7 +107,7 @@ export function construireRevisionIrl(d: DonneesRevisionIrl) {
       [
         ["Loyer hors charges avant révision", f.montant(d.ancienLoyer)],
         [`<b>Loyer hors charges révisé, à compter du ${f.date(d.dateEffet)}</b>`, `<b>${f.montant(d.nouveauLoyer)}</b>`],
-        [`${libelleCharges(d.chargesMode)} (inchangé)`, f.montant(d.charges, "montant inchangé")],
+        [`${libelleCharges(d.chargesMode)} (${chargesInchangees(d.chargesMode)})`, f.montant(d.charges, "montant inchangé")],
       ]
     )}
     ${section("Indices retenus")}

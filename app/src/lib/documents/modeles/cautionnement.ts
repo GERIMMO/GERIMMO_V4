@@ -189,7 +189,7 @@ export async function assemblerCautionnement(
     ${/* Constat R28 : la date est celle de la signature, jamais celle de la génération (comme le bail) ; un exemplaire
          par partie, ou un exemplaire électronique remis à chacune. À relire par le juriste (source non ouverte le
          23/10/2026) : remise d'un exemplaire du bail à la caution, art. 22-1 de la loi du 6 juillet 1989. */ ""}
-    <p>Fait à ${f.champ(exp.ville, "commune")}, le <span class="fusion">date effective à compléter lors de la signature</span>,
+    <p class="fait-a">Fait à ${f.champ(exp.ville, "commune")}, le <span class="fusion">date effective à compléter lors de la signature</span>,
     en autant d'exemplaires originaux que de parties ou, en cas de signature électronique, sous forme d'un exemplaire
     électronique remis à chacune d'elles ; un exemplaire du contrat de location est remis à la caution (article 22-1 de
     la loi du 6 juillet 1989).</p>

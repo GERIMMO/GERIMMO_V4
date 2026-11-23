@@ -1,7 +1,7 @@
 // Sources vérifiées le 14/09/2026 : décret 2015-587, annexes 1 et 2 ;
 // décret 2026-596 (contrats conclus/renouvelés à partir du 01/10/2026) ;
 // arrêté du 13/11/2025 (honoraires 2026). Données absentes = manquants.
-import { Fusion, sousSection } from '../gabarit';
+import { Fusion, sousSection, TYPOGRAPHIE, type Typographie } from '../gabarit';
 import { plafondsHonoraires } from '@/lib/mentions-contrat';
 import type { ContexteBail } from './communs';
 
@@ -64,12 +64,12 @@ export function honorairesLocation(ctx: ContexteBail, f: Fusion): string {
     Ces honoraires sont dus à la réalisation de l’état des lieux d’entrée.</p>`;
 }
 
-export function encadrementLocation(ctx: ContexteBail, f: Fusion): string {
+export function encadrementLocation(ctx: ContexteBail, f: Fusion, t: Typographie = TYPOGRAPHIE): string {
   const b = ctx.bail;
   const reference = b.encadrement_loyer === true
     ? `<p>Loyers de référence imposés par arrêté local : oui. Loyer de référence : ${f.montant(b.loyer_reference, 'loyer de référence €/m²')} par m² ;
       loyer de référence majoré : ${f.montant(b.loyer_reference_majore, 'loyer de référence majoré €/m²')} par m².<br/>
-      ${b.complement_loyer == null ? 'Complément de loyer : néant.' : `Complément de loyer : ${f.montant(b.complement_loyer, 'complément de loyer')}, justifié par ${f.champ(b.complement_justification, 'justification du complément de loyer')}.`}</p>`
+      ${b.complement_loyer == null ? 'Complément de loyer : néant.' : `Complément de loyer : ${f.montant(b.complement_loyer, 'complément de loyer')}, justifié par ${f.champ(b.complement_justification, 'justification du complément de loyer')}${t.point(b.complement_justification)}`}</p>`
     : `<p>Loyers de référence imposés par arrêté local : ${b.encadrement_loyer === false ? 'non' : f.champ(null, 'application des loyers de référence à vérifier')}.</p>`;
   const situation = b.precedente_location ?? (b.dernier_loyer != null ? 'recente' : null);
   let historique: string;

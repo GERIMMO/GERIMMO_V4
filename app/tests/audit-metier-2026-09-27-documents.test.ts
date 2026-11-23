@@ -92,7 +92,8 @@ describe("révision IRL : la lettre nomme l'indice réellement utilisé", () => 
     expect(html).not.toContain("Indice de l'année précédente");
     expect(html).toContain("Indice de référence (dernière révision, à défaut indice figé au bail)");
     expect(html).toContain("Nouvel indice retenu");
-    expect(html).toContain("Provision sur charges (inchangé)");
+    // Phase 3 (C55) : « (inchangé) » s'accorde avec « provision » ; l'ancien texte attendu portait la faute d'accord.
+    expect(html).toContain("Provision sur charges (inchangée)");
   });
 });
 

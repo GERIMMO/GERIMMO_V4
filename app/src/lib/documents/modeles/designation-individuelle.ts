@@ -1,15 +1,15 @@
-import { Fusion, section } from "../gabarit";
+import { Fusion, section, TYPOGRAPHIE, type Typographie } from "../gabarit";
 import type { ContexteBail } from "./communs";
 
-export function designationIndividuelle(ctx: ContexteBail, f: Fusion): string {
+export function designationIndividuelle(ctx: ContexteBail, f: Fusion, t: Typographie = TYPOGRAPHIE): string {
   const c = ctx.chambre;
   if (!c) return "";
   return `${section("Partie privative et espaces partagés")}
     <p>Chambre réservée au seul locataire : ${f.champ(c.nom, "désignation de la chambre")}.
-    Surface habitable privative : ${f.champ(c.surface_m2, "surface privative")} m² ; volume habitable privatif : ${f.champ(c.volume_m3, "volume privatif")} m³.</p>
-    <p>Description et accès : ${f.champ(c.description, "description de la chambre")}.</p>
-    <p>Équipements privatifs : ${f.champ(c.equipements, "équipements privatifs, ou néant")}.</p>
-    <p>Pièces et équipements du logement partagés avec les autres occupants : ${f.champ(c.espaces_partages, "espaces partagés")}.</p>
+    Surface habitable privative : ${f.champ(c.surface_m2 == null ? null : t.nombre(c.surface_m2), "surface privative")} m² ; volume habitable privatif : ${f.champ(c.volume_m3 == null ? null : t.nombre(c.volume_m3), "volume privatif")} m³.</p>
+    <p>Description et accès : ${f.champ(c.description, "description de la chambre")}${t.point(c.description)}</p>
+    <p>Équipements privatifs : ${f.champ(c.equipements, "équipements privatifs, ou néant")}${t.point(c.equipements)}</p>
+    <p>Pièces et équipements du logement partagés avec les autres occupants : ${f.champ(c.espaces_partages, "espaces partagés")}${t.point(c.espaces_partages)}</p>
     <p>Les autres chambres ne font pas partie des locaux loués au titre de ce contrat. Les droits d’usage communs n’autorisent pas l’accès aux parties privatives d’un autre occupant.</p>
     ${section("Indépendance du contrat")}
     <p>Le loyer, les charges et le dépôt ci-dessous sont ceux de ce seul contrat. Il n’existe aucune solidarité entre les titulaires des différents contrats individuels du logement.

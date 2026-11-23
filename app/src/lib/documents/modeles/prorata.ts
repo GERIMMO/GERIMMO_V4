@@ -14,6 +14,7 @@ import {
   section,
   tableau,
   titre,
+  ligneTotal,
 } from "../gabarit";
 import {
   chargerContexteBail,
@@ -102,10 +103,7 @@ export function construireProrata(d: DonneesProrata) {
         ), f.montant(d.chargesProratees)],
       ]
     )}
-    <table><tbody><tr class="total"><td><b>Total dû pour la période</b></td><td class="d"><b>${f.montant(
-      d.montantDu,
-      "total dû"
-    )}</b></td></tr></tbody></table>
+    ${ligneTotal("Total dû pour la période", f.montant(d.montantDu, "total dû"))}
     <div class="mentions">
       <p>Le prorata est calculé au réel du mois considéré, au centime le plus proche. Ce décompte
       accompagne l'avis d'échéance ou la quittance du terme concerné.</p>

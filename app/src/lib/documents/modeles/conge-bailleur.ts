@@ -27,6 +27,7 @@ import {
   montantEnLettres,
   section,
   titre,
+  pointFinal,
 } from "../gabarit";
 import {
   adresseLogement,
@@ -177,8 +178,8 @@ export async function assemblerCongeBailleur(
          <b>vaut offre de vente</b> à votre profit : vous disposez d'un droit de préemption pendant
          les <b>deux premiers mois</b> du délai de préavis.</p>
          <p>Prix de la vente projetée : ${prixHtml}${
-           conditions ? `.<br/>Conditions de la vente : ${echapper(conditions)}` : ""
-         }.</p>
+           conditions ? `.<br/>Conditions de la vente : ${echapper(conditions)}${pointFinal(conditions)}` : "."
+         }</p>
          <p class="mentions">Le prix et les conditions de la vente figurent dans le congé à peine de
          nullité de l'offre. À défaut d'acceptation dans ce délai, vous êtes déchu de plein droit de
          tout titre d'occupation au terme du préavis. Si le logement est ensuite vendu à des
@@ -189,8 +190,8 @@ export async function assemblerCongeBailleur(
       pour l'habiter à titre de résidence principale, au bénéfice de
       ${f.champ(options?.beneficiaire_nom, "nom du bénéficiaire de la reprise")},
       ${f.champ(options?.beneficiaire_lien, "lien avec le bailleur")},
-      demeurant ${f.champ(options?.beneficiaire_adresse, "adresse du bénéficiaire de la reprise")}.</p>
-      <p>Raisons de la reprise : ${f.champ(options?.raisons_reprise, "raisons de la reprise")}.</p>
+      demeurant ${f.champ(options?.beneficiaire_adresse, "adresse du bénéficiaire de la reprise")}${pointFinal(options?.beneficiaire_adresse)}</p>
+      <p>Raisons de la reprise : ${f.champ(options?.raisons_reprise, "raisons de la reprise")}${pointFinal(options?.raisons_reprise)}</p>
       <p class="mentions">Le bénéficiaire de la reprise ne peut être que le bailleur, son conjoint,
       le partenaire auquel il est lié par un pacte civil de solidarité, son concubin notoire depuis
       au moins un an, ses ascendants ou descendants, ou ceux de son conjoint, partenaire ou
@@ -198,7 +199,7 @@ export async function assemblerCongeBailleur(
       reprise : une reprise fictive ou frauduleuse expose le bailleur à des dommages et intérêts.</p>`;
   } else {
     blocMotif = `<p>Le présent congé vous est délivré pour un <b>motif légitime et sérieux</b>,
-      à savoir : ${f.champ(options?.motif_detail, "motif invoqué")}.</p>
+      à savoir : ${f.champ(options?.motif_detail, "motif invoqué")}${pointFinal(options?.motif_detail)}</p>
       <p class="mentions">Le motif légitime et sérieux résulte notamment de l'inexécution par le
       locataire de l'une de ses obligations (impayés répétés, troubles de voisinage…) ; en cas de
       contestation, son bien-fondé est apprécié par le juge.</p>`;

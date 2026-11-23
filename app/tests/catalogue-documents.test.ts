@@ -92,7 +92,10 @@ describe("Catalogue — documents issus des dossiers",()=>{
     if(code==="inventaire_sortie") ctx.bail.etat="preavis";
     if(code==="attestation_fin_bail") ctx.bail.etat="termine";
     if(code==="avenant_remplacement") ctx.bail.type="colocation";
-    const {db,calls}=mockDb(fixtureCourrier(code));const r=succes(await assemblerComplementBail(code,db,"org","bail",options));
+    // Phase 3 (C40) : l'accusé de réception se prépare pendant le préavis, avant l'état des lieux de sortie.
+    const t=fixtureCourrier(code);
+    if(code==="accuse_conge"){ctx.bail.etat="preavis";t.etats_des_lieux=[];}
+    const {db,calls}=mockDb(t);const r=succes(await assemblerComplementBail(code,db,"org","bail",options));
     expect(r.document.html).toContain(CATALOGUE_DOCUMENTS.find(m=>m.id===code)!.nom);
     expect(r.liens).toContainEqual({entite:"bail",entiteId:"bail"});
     for(const c of calls.filter(c=>c.table!=="etat_loyers_bail")) expect(c.ops).toContainEqual(["eq",c.table==="organizations"?"id":"organization_id","org"]);
@@ -242,7 +245,9 @@ it.skipIf(!process.env.GERIMMO_CATALOGUE_PDF_DIR || !process.env.GERIMMO_CHROME)
     if(code==="inventaire_sortie") ctx.bail.etat="preavis";
     if(code==="attestation_fin_bail") ctx.bail.etat="termine";
     if(code==="avenant_remplacement") ctx.bail.type="colocation";
-    const r=succes(await assemblerComplementBail(code,mockDb(fixtureCourrier(code)).db,"org","bail",options));
+    const t=fixtureCourrier(code);
+    if(code==="accuse_conge"){ctx.bail.etat="preavis";t.etats_des_lieux=[];}
+    const r=succes(await assemblerComplementBail(code,mockDb(t).db,"org","bail",options));
     const pdf=await rendrePdf(r.document);expect(pdf.length).toBeGreaterThan(10000);writeFileSync(join(dir,`${code}.pdf`),pdf);
   }
   for(const code of CODES_COMPLEMENTS_GESTION){

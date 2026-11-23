@@ -169,16 +169,36 @@ describe("congé du bailleur (PDF)", () => {
     const rpc = vi.fn(async () => ({ data: termes.shift() ?? null, error: null }));
     return { client: { rpc } as unknown as SupabaseClient, rpc };
   };
+  // Phase 3 (C31, C32) : le congé du bailleur se délivre sur un bail actif ; le contexte d'essai par défaut est un brouillon.
+  const bailActif = () => {
+    const ctx = contexte();
+    ctx.bail.etat = "actif";
+    return ctx;
+  };
+
+  it.each([
+    ["termine", "Ce bail est terminé : aucun congé n’est à délivrer."],
+    ["preavis", "Un congé est déjà enregistré pour ce bail (préavis en cours)"],
+    ["brouillon", "Ce bail n’est pas encore en cours : le congé du bailleur se prépare pour un bail actif."],
+  ])("bail %s : aucune lettre, et le refus dit pourquoi (C31, C32)", async (etat, message) => {
+    const ctx = contexte();
+    ctx.bail.etat = etat;
+    vi.mocked(chargerContexteBail).mockResolvedValue(ctx);
+    const { client: c, rpc } = client(["2029-08-31"]);
+    const doc = await assemblerCongeBailleur(c, "org", "b1", { motif: "vente", prix_vente: "245000" });
+    expect("erreur" in doc && doc.erreur).toContain(message);
+    expect(rpc).not.toHaveBeenCalled();
+  });
 
   it("vente en location nue : pas de PDF sans prix", async () => {
-    vi.mocked(chargerContexteBail).mockResolvedValue(contexte());
+    vi.mocked(chargerContexteBail).mockResolvedValue(bailActif());
     const { client: c } = client(["2029-08-31"]);
     const doc = await assemblerCongeBailleur(c, "org", "b1", { motif: "vente" });
     expect("erreur" in doc && doc.erreur).toMatch(/prix de vente proposé/);
   });
 
   it("vente en location nue : le prix et le terme calculé par la base sont imprimés", async () => {
-    vi.mocked(chargerContexteBail).mockResolvedValue(contexte());
+    vi.mocked(chargerContexteBail).mockResolvedValue(bailActif());
     const { client: c, rpc } = client(["2029-08-31"]);
     const doc = await assemblerCongeBailleur(c, "org", "b1", {
       motif: "vente",
@@ -195,7 +215,7 @@ describe("congé du bailleur (PDF)", () => {
   });
 
   it("présenté trop tard pour le terme en cours : vise le terme suivant", async () => {
-    vi.mocked(chargerContexteBail).mockResolvedValue(contexte());
+    vi.mocked(chargerContexteBail).mockResolvedValue(bailActif());
     const { client: c, rpc } = client(["2029-08-31", "2032-08-31"]);
     const doc = await assemblerCongeBailleur(c, "org", "b1", {
       motif: "vente",
@@ -208,7 +228,7 @@ describe("congé du bailleur (PDF)", () => {
   });
 
   it("vente en meublé : le prix reste facultatif (art. 25-8)", async () => {
-    const ctx = contexte();
+    const ctx = bailActif();
     ctx.bail.type = "meuble";
     vi.mocked(chargerContexteBail).mockResolvedValue(ctx);
     const { client: c } = client(["2027-08-31"]);

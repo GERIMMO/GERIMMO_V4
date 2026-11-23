@@ -26,6 +26,13 @@ import {
 } from "./communs";
 import type { Assemblage } from "./index";
 
+export function refusAvenantSelonEtat(etat: string): string | null {
+  if (etat === "actif" || etat === "preavis") return null;
+  if (etat === "brouillon") return "L’avenant modifie un bail signé et en cours. Ce bail est encore en préparation : modifiez directement le contrat avant sa signature, ou activez d’abord la location s’il est déjà signé.";
+  if (etat === "termine") return "Ce bail est terminé : il ne se modifie plus par avenant.";
+  return "L’avenant se prépare pour un bail signé et en cours (actif ou en préavis).";
+}
+
 export async function assemblerAvenant(
   supabase: SupabaseClient,
   orgId: string,
@@ -34,6 +41,10 @@ export async function assemblerAvenant(
 ): Promise<Assemblage> {
   const ctx = await chargerContexteBail(supabase, orgId, bailId);
   if ("erreur" in ctx) return ctx;
+  // Phase 3 (C06) : l'avenant modifie « le contrat de location conclu entre les parties » — un bail signé et en cours (actif
+  // ou en préavis). Un brouillon n'est pas conclu ; un bail terminé ne se modifie plus. Même règle que la liste du catalogue.
+  const refusEtat = refusAvenantSelonEtat(ctx.bail.etat);
+  if (refusEtat) return { erreur: refusEtat };
 
   const f = new Fusion();
   const exp = expediteur(ctx);

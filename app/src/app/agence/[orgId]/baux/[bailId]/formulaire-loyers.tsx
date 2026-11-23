@@ -534,15 +534,18 @@ export function FormulaireLoyers({
                           />
                         </>
                       )}
-                      {/* Documents-0 : avis d'échéance (17), prorata (21) */}
-                      <BoutonGenererDocument
-                        orgId={orgId}
-                        code="avis_echeance"
-                        cibleId={l.appel_id}
-                        cheminRetour={`${base}/baux/${bailId}`}
-                        libelle="Avis d'échéance (PDF)"
-                        variant="ghost"
-                      />
+                      {/* Documents-0 : avis d'échéance (17), prorata (21). Phase 3 (C49) : l'avis réclame le terme ; il n'est
+                          proposé que pour un terme restant à régler (le document d'un terme soldé est sa quittance). */}
+                      {Number(l.montant_couvert) < Number(l.montant_du) && (
+                        <BoutonGenererDocument
+                          orgId={orgId}
+                          code="avis_echeance"
+                          cibleId={l.appel_id}
+                          cheminRetour={`${base}/baux/${bailId}`}
+                          libelle="Avis d'échéance (PDF)"
+                          variant="ghost"
+                        />
+                      )}
                       {Number(l.montant_du) > 0 && l.prorata && (
                         <BoutonGenererDocument
                           orgId={orgId}

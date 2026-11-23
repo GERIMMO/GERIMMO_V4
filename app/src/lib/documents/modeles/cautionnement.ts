@@ -65,6 +65,10 @@ export async function assemblerCautionnement(
 ): Promise<Assemblage> {
   const ctx = await chargerContexteBail(supabase, orgId, bailId);
   if ("erreur" in ctx) return ctx;
+  // Phase 3 (C46) : l'acte engage la caution « pour la durée du bail et celle de ses renouvellements » : il s'établit à la
+  // signature du bail ou pendant la location, jamais une fois le congé enregistré ni après la fin du bail.
+  if (ctx.bail.etat === "termine") return { erreur: "Ce bail est terminé : un acte de cautionnement ne s’établit plus pour ce contrat." };
+  if (ctx.bail.etat !== "brouillon" && ctx.bail.etat !== "actif") return { erreur: "Un congé est enregistré pour ce bail (préavis en cours) : un nouvel acte de cautionnement n’a plus lieu d’être." };
 
   const garant = ctx.garants.find((g) => g.id === options?.garant);
   if (!garant) return { erreur: "Ce garant n'est pas rattaché au bail." };

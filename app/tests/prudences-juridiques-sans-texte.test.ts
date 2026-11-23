@@ -128,8 +128,14 @@ describe("P0-07 — notice d'information", () => {
 });
 
 describe("P0-08 — congé du bailleur pour vente ou pour reprise", () => {
+  // Phase 3 (C31, C32) : le congé du bailleur se délivre sur un bail actif (le contexte d'essai par défaut est un brouillon).
+  const bailActif = () => {
+    const ctx = contexte();
+    ctx.bail.etat = "actif";
+    return ctx;
+  };
   const assembler = async (options: Record<string, string>) => {
-    vi.mocked(chargerContexteBail).mockResolvedValue(contexte());
+    vi.mocked(chargerContexteBail).mockResolvedValue(bailActif());
     const rpc = vi.fn(async () => ({ data: "2029-08-31", error: null }));
     const doc = await assemblerCongeBailleur({ rpc } as unknown as SupabaseClient, "org", "b1", options);
     if (!("document" in doc)) throw new Error(`congé non assemblé : ${JSON.stringify(doc)}`);
@@ -178,7 +184,7 @@ describe("P0-08 — congé du bailleur pour vente ou pour reprise", () => {
   });
 
   it("ce qui est saisi est échappé : une adresse ne peut pas injecter de balise dans la lettre", async () => {
-    vi.mocked(chargerContexteBail).mockResolvedValue(contexte());
+    vi.mocked(chargerContexteBail).mockResolvedValue(bailActif());
     const rpc = vi.fn(async () => ({ data: "2029-08-31", error: null }));
     const doc = await assemblerCongeBailleur({ rpc } as unknown as SupabaseClient, "org", "b1", { motif: "reprise", beneficiaire_adresse: "<img src=x onerror=alert(1)>", raisons_reprise: "<script>x</script>" });
     if (!("document" in doc)) throw new Error("congé non assemblé");

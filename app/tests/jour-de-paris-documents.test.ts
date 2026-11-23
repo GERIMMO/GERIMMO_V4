@@ -187,7 +187,10 @@ describe.each(INSTANTS)("documents de contrat produits à %s : « Établi le » 
   });
 
   it("congé du bailleur : sans date de présentation, le terme est calculé au jour de Paris ; « Établi le » et « Fait le » au jour de Paris", async () => {
-    vi.mocked(chargerContexteBail).mockResolvedValue(contexte());
+    // Phase 3 (C31, C32) : le congé du bailleur se délivre sur un bail actif (le contexte d'essai par défaut est un brouillon).
+    const ctx = contexte();
+    ctx.bail.etat = "actif";
+    vi.mocked(chargerContexteBail).mockResolvedValue(ctx);
     const rpc = vi.fn(async () => ({ data: "2029-08-31", error: null }));
     const doc = await assemblerCongeBailleur({ rpc } as unknown as SupabaseClient, "org", "b1", { motif: "vente", prix_vente: "245000" });
     expect(rpc).toHaveBeenCalledWith("terme_bail", { p_bail: "b1", p_date: jourIso });

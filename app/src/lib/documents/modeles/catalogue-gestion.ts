@@ -6,8 +6,8 @@ import { ETATS_MANDAT } from "@/lib/baux";
 import { NATURES_TRAVAUX, STATUTS_DEVIS, STATUTS_INTERVENTION } from "@/app/agence/[orgId]/artisans/referentiel";
 import { descriptionDevisLisible } from "@/lib/devis-structure";
 import { CATALOGUE_DOCUMENTS } from "../catalogue";
-import { lireLignes, lignesTableau, RefusDocument, texte, montant, anneeDocument, MESSAGE_CHARGEMENT_IMPOSSIBLE } from "./catalogue-bail";
-import { chargerContexteBail, chargerDetenteursLot, expediteur, libelleSignataireBailleur, nomsLocataires, adresseLogement, referenceCourte } from "./communs";
+import { lireLignes, lignesTableau, RefusDocument, texte, montant, anneeDocument, MESSAGE_CHARGEMENT_IMPOSSIBLE, type LigneDocument } from "./catalogue-bail";
+import { chargerContexteBail, chargerDetenteursBien, chargerDetenteursLot, expediteur, libelleSignataireBailleur, nomsLocataires, adresseLogement, referenceCourte } from "./communs";
 import { LIBELLE_DEPENSES_EXCLUES, LIBELLE_RECETTES_EXCLUES, phrasePerimetreFiscal, phrasePiecesAQualifier, recapitulatifFiscal, type ComposantesFiscales, type EcritureFiscale, type ExerciceFiscalLot, type QualificationFiscale, type RecapitulatifFiscal } from "@/lib/fiscal";
 import type { Assemblage, LienDocument } from "./index";
 import { aujourdhuiParis } from "@/lib/ged";
@@ -141,12 +141,21 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
     const aujourdhui = aujourdhuiParis();
     const champ = (cle:string,libelle:string) => f.champ(options[cle]?.trim()||null,libelle);
     const liens: LienDocument[] = [];
-    let contenu = "", destinataire = "", logement = "", signatures = false;
+    let contenu = "", destinataire = "", logement = "", libelleLieu = "Logement", signatures = false;
     const lotConcerne = async (id:string) => {
       const lot = await unique("lots",id), bien = await unique("biens",texte(lot.bien_id));
       logement = [lot.nom,bien.address_line1,bien.postal_code,bien.city].filter(Boolean).join(" · ");
       liens.push({entite:"lot",entiteId:id});
       return lot;
+    };
+    // Phase 3 (C82) : un incident des parties communes n'a pas de lot ; il porte l'immeuble. Le document le dit, avec l'adresse
+    // de l'immeuble ; il n'y a plus de lecture d'un lot à l'identifiant vide, qui finissait en « Réessayez » sans issue.
+    const lieuIncident = async (incident:LigneDocument) => {
+      if (texte(incident.lot_id)) { await lotConcerne(texte(incident.lot_id)); return; }
+      if (!texte(incident.bien_id)) throw new RefusDocument("Ce signalement n’indique ni logement ni immeuble : précisez le lieu de l’incident avant de générer ce document.");
+      const bien = await unique("biens",texte(incident.bien_id));
+      libelleLieu = "Lieu";
+      logement = [texte(bien.nom),"Parties communes",bien.address_line1,bien.postal_code,bien.city].filter(Boolean).join(" · ");
     };
     const bailConcerne = async (id:string) => {
       const ctx = await chargerContexteBail(db,orgId,id);
@@ -195,7 +204,7 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
     } else if (["ordre_intervention","comparatif_devis","compte_rendu_intervention","recap_incident"].includes(code)) {
       const intervention = ["ordre_intervention","compte_rendu_intervention"].includes(code) ? await unique("incident_interventions",cibleId) : null;
       const incident = await unique("incidents",intervention ? texte(intervention.incident_id) : cibleId);
-      await lotConcerne(texte(incident.lot_id));
+      await lieuIncident(incident);
       // Les comptes rendus sont rattachés au lot. Leur visibilité suit la GED du lot.
       contenu = `${section(`Incident ${texte(incident.numero)}`)}<p>Signalement : ${f.champ(texte(incident.description),"description du signalement")}${pointFinal(texte(incident.description))}</p>
         <p>Pièce : ${facultatif(texte(incident.piece))} ; catégorie : ${facultatif(libelleCategorie(incident.categorie))} ; état : ${f.champ(libelleDe(ETATS_INCIDENT,incident.etat),"état du dossier")}.</p>`;
@@ -208,7 +217,8 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
         // détenteurs en échec refuse le document plutôt que de redonner le nom technique de l'espace.
         destinataire = entreprise;
         if (code === "compte_rendu_intervention") {
-          const detenteurs = organisation.type === "agence" ? [] : await chargerDetenteursLot(db, texte(incident.lot_id));
+          // C82 : pour les parties communes (aucun lot), les détenteurs des logements de l'immeuble.
+          const detenteurs = organisation.type === "agence" ? [] : texte(incident.lot_id) ? await chargerDetenteursLot(db, texte(incident.lot_id)) : await chargerDetenteursBien(db, texte(incident.bien_id));
           if (!detenteurs) throw new RefusDocument(MESSAGE_CHARGEMENT_IMPOSSIBLE);
           destinataire = f.champ(expediteur({ organisation, bailleurs: detenteurs }).nom, "donneur d’ordre");
         }
@@ -332,7 +342,7 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
     // C83 : un document interne sans destinataire (comparatif, récapitulatif, journal, récapitulatif fiscal) n'imprime plus la case
     // « Destinataire » : le mot de repli « Organisation » ne désignait personne.
     const corps = `${enTete(f,exp,{libelle:"Dossier",reference,etabliLe:aujourdhui})}${titre(meta.nom,"Document de gestion",[])}
-      ${cartouches([["Dossier",reference],...(destinataire ? [["Destinataire",destinataire] as [string,string]] : []),...(logement ? [["Logement",logement] as [string,string]] : [])])}${contenu}${faitA(f,exp.ville,aujourdhui)}
+      ${cartouches([["Dossier",reference],...(destinataire ? [["Destinataire",destinataire] as [string,string]] : []),...(logement ? [[libelleLieu,logement] as [string,string]] : [])])}${contenu}${faitA(f,exp.ville,aujourdhui)}
       ${signatures?`<div class="signatures">${cadreSignature(code === "restitution_cles" ? libelleSignataireBailleur(organisation.type) : "Le mandataire",f.champ(exp.nom,"nom et prénom(s), ou dénomination"))}${cadreSignature("Partie concernée",destinataire)}</div>`:""}`;
     return {document:assemblerPage({f,titreDocument:meta.nom,nomPied:meta.nom,reference,corps:`<style>.bloc-titre{padding:10pt 0;margin-bottom:8pt}h1{font-size:19pt;letter-spacing:.2em}h2{margin:14pt 0 8pt}.cartouches{margin:10pt 0}p{margin:4pt 0}</style>${corps}`}),titreGed:meta.nom,nomFichier:`${code}-${cibleId.slice(0,8)}`,liens};
   } catch(e) { if(e instanceof RefusDocument) return {erreur:e.message}; throw e; }

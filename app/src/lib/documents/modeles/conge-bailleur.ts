@@ -102,6 +102,12 @@ export async function assemblerCongeBailleur(
 
   const ctx = await chargerContexteBail(supabase, orgId, bailId);
   if ("erreur" in ctx) return ctx;
+  // Phase 3 (C31, C32) : un congé du bailleur se délivre sur un bail actif, comme l'enregistrement du congé le veut (la base
+  // refuse tout autre bail). En préavis, un congé est déjà enregistré ; terminé, le bail est clos : la lettre annonçait une
+  // échéance postérieure à la sortie et renvoyait à un enregistrement impossible.
+  if (ctx.bail.etat === "termine") return { erreur: "Ce bail est terminé : aucun congé n’est à délivrer." };
+  if (ctx.bail.etat === "preavis") return { erreur: "Un congé est déjà enregistré pour ce bail (préavis en cours) : la location prend fin à sa date d’effet. Un congé du bailleur se prépare pour un bail actif." };
+  if (ctx.bail.etat !== "actif") return { erreur: "Ce bail n’est pas encore en cours : le congé du bailleur se prépare pour un bail actif." };
 
   // Nu ou meublé : le type du bail prime ; un bail « colocation » suit
   // l'ameublement du lot. Le préavis et la base légale en dépendent.

@@ -518,8 +518,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             modifiable={bail.etat === "brouillon"}
           />);
   const annexesContrat = (<div id="inventaire" className="space-y-4">      {/* Cautionnement : un acte par garant (réforme 2021 — mention type à
-          apposer par la caution), forme solidaire par défaut. */}
-      {garantsDuBail.length > 0 && (
+          apposer par la caution), forme solidaire par défaut. Phase 3 (C46) : à la signature ou pendant la location,
+          jamais une fois le congé enregistré ni après la fin du bail (l'acte serait refusé). */}
+      {garantsDuBail.length > 0 && (bail.etat === "brouillon" || bail.etat === "actif") && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Cautionnement</CardTitle>

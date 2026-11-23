@@ -125,6 +125,13 @@ export function construireAvisEcheance(d: DonneesAvisEcheance) {
   });
 }
 
+// Phase 3 (C49) : un avis annonce un terme à régler (« Le règlement est attendu à cette date »). Sur un terme soldé, il
+// réclamerait une somme déjà payée : le document qui atteste le paiement est la quittance.
+export const REFUS_TERME_SOLDE =
+  "Ce terme est déjà réglé : l’avis d’échéance n’a plus lieu d’être. Pour attester le paiement, préparez la quittance de ce terme.";
+export const REFUS_TERME_NON_DU =
+  "Ce terme suit la fin du bail : aucun loyer n’est dû pour cette période, l’avis d’échéance n’a pas lieu d’être.";
+
 export async function assemblerAvisEcheance(
   supabase: SupabaseClient,
   orgId: string,
@@ -141,9 +148,15 @@ export async function assemblerAvisEcheance(
   const ctx = await chargerContexteBail(supabase, orgId, appel.bail_id);
   if ("erreur" in ctx) return ctx;
 
-  // L'arriéré : ce qui reste dû sur les termes antérieurs à celui-ci.
-  const { data: etat } = await supabase.rpc("etat_loyers_bail", { p_bail: appel.bail_id });
-  const arriere = ((etat ?? []) as { periode: string; montant_du: number; montant_couvert: number }[])
+  // L'arriéré : ce qui reste dû sur les termes antérieurs à celui-ci. La même lecture dit si ce terme-ci est soldé (C49) :
+  // sans elle, l'avis ne peut ni dire l'arriéré ni écarter un terme déjà payé.
+  const { data: etat, error: erreurEtat } = await supabase.rpc("etat_loyers_bail", { p_bail: appel.bail_id });
+  if (erreurEtat) return { erreur: "La situation des paiements du bail n’a pas pu être lue. Réessayez avant de générer cet avis." };
+  const termes = (etat ?? []) as { appel_id?: string; periode: string; montant_du: number; montant_couvert: number; statut?: string }[];
+  const ceTerme = termes.find((t) => t.appel_id === appel.id);
+  if (ceTerme?.statut === "non_du") return { erreur: REFUS_TERME_NON_DU };
+  if (ceTerme && Number(ceTerme.montant_couvert) >= Number(ceTerme.montant_du)) return { erreur: REFUS_TERME_SOLDE };
+  const arriere = termes
     .filter((t) => t.periode < appel.periode && Number(t.montant_couvert) < Number(t.montant_du))
     .reduce((s, t) => s + Number(t.montant_du) - Number(t.montant_couvert), 0);
 

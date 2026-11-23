@@ -177,14 +177,19 @@ describe("fiche du bail : la page et son formulaire des loyers", () => {
         lots: { id: LOT, nom: "Lot TEST", bien_id: BIEN, meuble: false, colocation_loyer_reference: null, bien: { zone_tendue: true, copropriete: false } },
         persons: [{ id: LOCATAIRE, nom: "Martin", prenom: "Léa", email: "lea@example.invalid" }],
         etats_des_lieux: [{ id: "edl-1", type: "entree", etat: "signe" }],
-        // L'échéancier du bail : chaque terme propose son avis d'échéance, composé par FormulaireLoyers.
-        etat_loyers_bail: [{ appel_id: "appel-1", periode: "2026-09-01", date_echeance: "2026-09-05", montant_du: 850, montant_couvert: 0, statut: "attendu", prorata: false }],
+        // L'échéancier du bail : chaque terme restant à régler propose son avis d'échéance, composé par FormulaireLoyers.
+        // Phase 3 (C49) : le terme payé n'en propose pas (l'avis réclamerait une somme déjà réglée).
+        etat_loyers_bail: [
+          { appel_id: "appel-1", periode: "2026-09-01", date_echeance: "2026-09-05", montant_du: 850, montant_couvert: 0, statut: "attendu", prorata: false },
+          { appel_id: "appel-0", periode: "2026-08-01", date_echeance: "2026-08-05", montant_du: 850, montant_couvert: 850, statut: "paye", prorata: false },
+        ],
       };
       const html = await rendre((await PageBail({ params: Promise.resolve({ orgId: ORG, bailId: BAIL }) } as never)) as ReactElement);
       verifier(html, p, [`/parc/${BIEN}/lots/${LOT}`, `/baux/${BAIL}/edl/edl-1`]);
       // L'adresse de retour de l'avis d'échéance : celle que FormulaireLoyers compose avec la racine que la page lui
       // transmet (sans elle, son défaut « agence » renverrait le propriétaire direct sous /agence).
       expect(html).toContain(`data-document="avis_echeance" data-retour="${p.racine}/${ORG}/baux/${BAIL}"`);
+      expect(html.split('data-document="avis_echeance"').length - 1).toBe(1);
       // Les blocages du bail sont demandés sous la racine du profil.
       expect(banc.appelsAttendues).toEqual([expect.objectContaining({ racine: p.racine })]);
     });

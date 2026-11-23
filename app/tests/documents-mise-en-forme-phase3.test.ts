@@ -283,7 +283,10 @@ describe("courriers avec signature et lignes de total (C45, C51, C53)", () => {
 
 describe("congé du bailleur : un seul point après le texte saisi (C38)", () => {
   const assembler = async (options: Record<string, string>) => {
-    vi.mocked(chargerContexteBail).mockResolvedValue(contexte());
+    // Phase 3 (C31, C32) : le congé du bailleur se délivre sur un bail actif (le contexte d'essai par défaut est un brouillon).
+    const ctx = contexte();
+    ctx.bail.etat = "actif";
+    vi.mocked(chargerContexteBail).mockResolvedValue(ctx);
     const rpc = vi.fn(async () => ({ data: "2029-08-31", error: null }));
     const doc = await assemblerCongeBailleur({ rpc } as unknown as SupabaseClient, "org", "b1", options);
     if (!("document" in doc)) throw new Error(`congé non assemblé : ${JSON.stringify(doc)}`);

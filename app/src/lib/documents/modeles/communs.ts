@@ -334,6 +334,30 @@ export async function chargerDetenteursLot(
     .filter((p): p is PersonneDocument & { quote_part: number } => p !== null);
 }
 
+// Phase 3 (C82) : un document des parties communes (incident sans lot) n'a pas de lot dont lire les détenteurs ; ce sont ceux
+// des logements de l'immeuble, chacun une fois. `null` si une lecture échoue, comme `chargerDetenteursLot`.
+export async function chargerDetenteursBien(
+  supabase: SupabaseClient,
+  bienId: string
+): Promise<ContexteBail["bailleurs"] | null> {
+  const lots = await supabase.from("lots").select("id").eq("bien_id", bienId);
+  if (lots.error) return null;
+  const ids = ((lots.data ?? []) as { id: string }[]).map((l) => l.id);
+  if (!ids.length) return [];
+  const { data, error } = await supabase
+    .from("detentions")
+    .select(`quote_part, person:persons!detentions_person_id_fkey(${CHAMPS_PERSONNE_DOCUMENT})`)
+    .in("lot_id", ids)
+    .is("date_fin", null);
+  if (error) return null;
+  const parPersonne = new Map<string, PersonneDocument & { quote_part: number }>();
+  for (const d of (data ?? []) as { quote_part: unknown; person: UnOuPlusieurs<PersonneDocument> }[]) {
+    const p = premier(d.person);
+    if (p && !parPersonne.has(p.id)) parPersonne.set(p.id, { ...p, quote_part: Number(d.quote_part) });
+  }
+  return [...parPersonne.values()];
+}
+
 // Phase 3 (C41, C52, C70, C71) : l'interlocuteur vers lequel un document renvoie le locataire. Il n'y a de « gestionnaire »
 // que dans un espace d'agence ; ailleurs le bailleur gère lui-même, et c'est lui que le locataire contacte. Le modèle garde
 // son article (« votre gestionnaire », « avec le bailleur »).

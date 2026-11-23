@@ -191,6 +191,8 @@ describe("C41, C52, C70, C71 — l'interlocuteur du locataire : « gestionnaire 
     ["accuse_conge", "sont à organiser avec le bailleur.", "sont à organiser avec le gestionnaire."],
   ] as const;
   it.each(cas)("%s", async (code, proprietaire, agence) => {
+    // Phase 3 (C40) : l'accusé de réception se prépare pendant le préavis qui suit le congé du locataire.
+    if (code === "accuse_conge") ctx.bail.etat = "preavis";
     const p = texteDe(succes(await assemblerComplementBail(code, base(tables("proprietaire_direct")), "org", "b1")).document.html);
     expect(p).toContain(proprietaire);
     expect(p).not.toContain("gestionnaire");

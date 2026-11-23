@@ -156,9 +156,18 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
       }
     } else if (code === "accuse_conge" || code === "attestation_fin_bail") {
       if (code === "attestation_fin_bail" && ctx.bail.etat !== "termine") return { erreur: "L’attestation de fin de bail se génère après la clôture du contrat." };
+      // Phase 3 (C40) : l'accusé de réception répond au congé reçu du locataire et annonce les étapes de sortie « à organiser » :
+      // il se prépare pendant le préavis, avant la sortie. Sur un bail terminé, ces étapes étaient faites depuis longtemps.
+      if (code === "accuse_conge" && ctx.bail.etat === "termine") return { erreur: "Ce bail est terminé : la sortie du locataire est faite, l’accusé de réception du congé n’a plus lieu d’être." };
+      if (code === "accuse_conge" && ctx.bail.etat !== "preavis") return { erreur: "Aucun congé en cours n’est enregistré pour ce contrat." };
       const conges = await lireLignes(supabase.from("conges").select("date_premiere_presentation,date_effet,preavis_mois,par").eq("organization_id",orgId).eq("bail_id",bailId).is("annule_le",null).order("created_at",{ascending:false}).limit(1));
       if (!conges.length) return { erreur: "Aucun congé en cours n’est enregistré pour ce contrat." };
       const c = conges[0];
+      if (code === "accuse_conge") {
+        if (c.par !== "locataire") return { erreur: "Le congé enregistré a été donné par le bailleur : l’accusé de réception concerne un congé reçu du locataire." };
+        const edlSortie = await lireLignes(supabase.from("etats_des_lieux").select("id").eq("organization_id",orgId).eq("bail_id",bailId).eq("type","sortie").eq("etat","signe").limit(1));
+        if (edlSortie.length) return { erreur: "L’état des lieux de sortie est signé : la sortie du locataire est faite, l’accusé de réception du congé n’a plus lieu d’être." };
+      }
       contenu = `${section(code === "accuse_conge" ? "Congé reçu" : "Fin du contrat")}
         <p>Congé donné par ${c.par === "locataire" ? "le locataire" : "le bailleur"}, reçu le ${f.date(texte(c.date_premiere_presentation))}.
         Durée du préavis : ${f.champ(texte(c.preavis_mois),"durée du préavis")} mois ; date d’effet enregistrée : ${f.date(texte(c.date_effet))}.</p>
@@ -181,6 +190,11 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
       if (!pieces.length) contenu += "<p>Aucune demande de pièce enregistrée à cette date.</p>";
     } else if (code === "avenant_remplacement") {
       if (ctx.bail.type !== "colocation" || ctx.bail.chambre_id) return { erreur: "L’avenant de remplacement concerne un contrat commun. En contrat individuel, clôturez le sortant et créez le contrat du nouvel occupant." };
+      // Phase 3 (C19) : l'avenant remplace un colocataire dans un contrat commun signé et en cours ; sur un brouillon, le contrat
+      // n'a jamais été conclu (« les autres clauses du contrat commun restent inchangées », « la solidarité cesse » étaient faux).
+      if (ctx.bail.etat === "brouillon") return { erreur: "Le contrat commun est encore en préparation : modifiez les colocataires directement dans le brouillon avant sa signature, ou activez d’abord la location s’il est déjà signé." };
+      if (ctx.bail.etat === "termine") return { erreur: "Ce contrat commun est terminé : aucun remplacement de colocataire n’est possible." };
+      if (ctx.bail.etat !== "actif") return { erreur: "Un congé est enregistré pour ce contrat commun (préavis en cours) : le remplacement d’un colocataire se prépare tant que la location est en cours." };
       contenu = `${section("Parties et remplacement convenu")}
         <p>Colocataire sortant : ${opt("sortant","identité du colocataire sortant")} ; colocataire entrant : ${opt("entrant","identité, adresse et état civil de l’entrant")}${pointFinal(options.entrant)}</p>
         <p>Date d’effet convenue : ${f.date(options.date_effet || null,"date d’effet du remplacement")}.</p>

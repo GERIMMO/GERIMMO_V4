@@ -202,13 +202,13 @@ test("artisan : rendez-vous manqué consigné des deux côtés, puis relance d'u
       await p.reload();
       const geste = p.locator("[data-rdv-passe]");
       const duGerant = p.locator("[data-rdv-manque-gestionnaire]");
-      // Les onglets du dossier gardent l'onglet ouvert dans l'adresse (#historique, laissé par l'étape 2) : au démarrage
+      // Les rubriques du dossier gardent la rubrique ouverte dans l'adresse (#incident-historique, laissé par l'étape 2) : au démarrage
       // de la page, ils le rouvrent. Vérifier « Suivi » avant ce démarrage le faisait refermer juste après (constat du
       // 23/11, un échec sur un passage complet, réussi au second essai). On attend la fin du chargement, puis on
       // redemande l'onglet et le volet tant qu'ils ne sont pas ouverts, sans jamais refermer un volet ouvert.
       await p.waitForLoadState("networkidle");
       await expect(async () => {
-        if (!(await geste.isVisible())) await p.getByRole("tab", { name: "Suivi", exact: true }).click();
+        if (!(await geste.isVisible())) await p.getByRole("navigation", { name: "Rubriques de l’incident" }).getByRole("link", { name: "Suivi", exact: true }).click({ timeout: 3_000 });
         if (!(await geste.evaluate((d) => (d as HTMLDetailsElement).open))) await geste.locator("summary").click({ timeout: 3_000 });
         await expect(duGerant).toBeVisible({ timeout: 3_000 });
       }).toPass({ timeout: 30_000 });

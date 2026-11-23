@@ -115,7 +115,8 @@ test("pièces demandées, notice, cautionnement et congé : Gerimmo avertit et d
     await expect(rappelCaution).toContainText("Bailleur en société (SCI, autre personne morale) : demander une caution n’est pas permis dans tous les cas.");
     await expect(rappelCaution).toContainText("Gerimmo ne contrôle pas ce point.");
     await tientDansLEcran(page, rappelCaution);
-    await expect(page.locator("#inventaire:visible")).toContainText("Paul Garant");
+    // Le garant rattaché au bail est proposé, sous son nom puis son prénom (comme partout dans l'espace).
+    await expect(page.locator("#inventaire:visible")).toContainText("Garant Paul");
     await page.locator("#inventaire:visible").screenshot({ path: info.outputPath("prudences-cautionnement.png") });
 
     // ── 5. Le congé du bailleur : « à faire relire » pour la vente et la reprise.

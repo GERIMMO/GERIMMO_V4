@@ -73,6 +73,8 @@ test("pièces demandées, notice, cautionnement et congé : Gerimmo avertit et d
     await connecterVers(page, email, motDePasse, `/espace/${ORG}/personnes/${candidat}`);
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Candidat", { timeout: 30_000 });
     await page.getByText("Ajouter ou demander un justificatif", { exact: false }).first().click();
+    // Le volet s'ouvre sur « Déposer moi-même » ; le rappel accompagne la demande faite à la personne.
+    await page.getByRole("button", { name: /^Demander à la personne/ }).click();
     const rappelPieces = page.locator("[data-rappel-pieces-avant-bail]:visible");
     await expect(rappelPieces).toContainText("Avant la signature du bail, les pièces qu’un bailleur peut demander à un candidat locataire ou à sa caution sont encadrées par la réglementation.");
     await expect(rappelPieces).toContainText("Gerimmo ne contrôle pas ce que vous demandez.");
@@ -93,6 +95,7 @@ test("pièces demandées, notice, cautionnement et congé : Gerimmo avertit et d
     await page.goto(`/espace/${ORG}/personnes/${camille}`);
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Fictif", { timeout: 30_000 });
     await page.getByText("Ajouter ou demander un justificatif", { exact: false }).first().click();
+    await page.getByRole("button", { name: /^Demander à la personne/ }).click();
     await expect(page.locator('form:visible input[name="libelle"]')).toBeVisible();
     await expect(page.locator("[data-rappel-pieces-avant-bail]")).toHaveCount(0);
 

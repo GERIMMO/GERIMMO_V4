@@ -28,9 +28,12 @@ const avis = (periode: string): AvisEcheance => ({
 });
 const relance = (periode: string, niveau: RelanceLoyer["niveau"] = "relance_1"): RelanceLoyer => ({
   niveau, prenom: "Zoé", emetteur: "Claire Moreau", lot: "Appartement Jardin", periode, dateEcheance: periode, reste: 750, totalDu: 750, lien: "https://exemple.test/p",
+  // Lot 47 : une bailleresse qui gère elle-même — le courrier la nomme « votre bailleur ».
+  interlocuteur: "bailleur",
 });
 const caution = (periode: string): InformationCaution => ({
   emetteur: "Claire Moreau", locataire: "Zoé Martin", lot: "Appartement Jardin", periode, dateEcheance: periode, totalDu: 750,
+  interlocuteur: "bailleur",
 });
 
 /** Tous les textes que produisent les courriers pour une période. */

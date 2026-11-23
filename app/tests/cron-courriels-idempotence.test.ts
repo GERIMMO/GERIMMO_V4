@@ -38,6 +38,8 @@ const durable=vi.hoisted(()=>({rpc:async(n:string,p:Record<string,string>)=>{
 vi.mock("@/lib/supabase/service", () => ({
   clientDeService: () => ({
     rpc: (...a: unknown[]) => (String(a[0]).includes("courriel") ? durable.rpc(String(a[0]),a[1] as Record<string,string>) : ["verifier_arret_supervision", "relance_loyer_envoi_confirme"].includes(String(a[0])) ? Promise.resolve({ data: true, error: null }) : rpc(...a)),
+    // Lot 47 : la passe lit le type de chaque espace pour nommer l'interlocuteur du locataire (ici, des agences).
+    from: () => ({ select: () => ({ in: async (_colonne: string, ids: string[]) => ({ data: ids.map((id) => ({ id, type: "agence" })), error: null }) }) }),
   }),
 }));
 // Pas de marque d'agence à lire : l'envoi part avec l'expéditeur par défaut.

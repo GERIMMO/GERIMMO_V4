@@ -52,6 +52,7 @@ import { useBaseEspace } from "@/components/racine-espace-contexte";
 import { mentionEtage } from "@/lib/etage";
 import { RELANCES_SUSPENDUES_SOUS_PLAN } from "@/lib/paliers-reception-loyer";
 import { jourDuMois } from "@/lib/jour-du-mois";
+import { interlocuteurLocataire, type InterlocuteurLocataire } from "@/lib/interlocuteur-locataire";
 
 // LA FENÊTRE DU LOT — sur le gabarit remis par l'humain le 12/09.
 //
@@ -129,6 +130,7 @@ export function FenetreLotProvider({
   orgId,
   lotInitial = null,
   estProprietaire = false,
+  interlocuteur = interlocuteurLocataire(null),
   children,
 }: {
   orgId: string;
@@ -138,6 +140,11 @@ export function FenetreLotProvider({
    * honoraires, les mentions « hors mandat » ne lui disent rien.
    */
   estProprietaire?: boolean;
+  /**
+   * Lot 47 : vu par le locataire, à qui il s'adresse — « gestionnaire » dans un espace d'agence, « bailleur » chez un
+   * propriétaire (la page du locataire le passe ; sans lui, la règle commune donne « bailleur »).
+   */
+  interlocuteur?: InterlocuteurLocataire;
   children: ReactNode;
 }) {
   const [ouvert, setOuvert] = useState<{ id: string; libelle?: string } | null>(
@@ -154,6 +161,7 @@ export function FenetreLotProvider({
           lotId={ouvert.id}
           libelle={ouvert.libelle}
           estProprietaire={estProprietaire}
+          interlocuteur={interlocuteur}
           fermer={() => setOuvert(null)}
         />
       )}
@@ -195,12 +203,14 @@ function FenetreLot({
   lotId,
   libelle,
   estProprietaire,
+  interlocuteur,
   fermer,
 }: {
   orgId: string;
   lotId: string;
   libelle?: string;
   estProprietaire: boolean;
+  interlocuteur: InterlocuteurLocataire;
   fermer: () => void;
 }) {
   // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
@@ -326,7 +336,7 @@ function FenetreLot({
           </div>
 
           {onglet === "resume" && (
-            <OngletResume orgId={orgId} fiche={fiche} allerA={setOnglet} estProprietaire={estProprietaire} />
+            <OngletResume orgId={orgId} fiche={fiche} allerA={setOnglet} estProprietaire={estProprietaire} interlocuteur={interlocuteur} />
           )}
           {onglet === "documents" && <OngletDocuments orgId={orgId} fiche={fiche} fermer={fermer} />}
           {onglet === "compta" &&
@@ -725,11 +735,13 @@ function OngletResume({
   fiche,
   allerA,
   estProprietaire,
+  interlocuteur,
 }: {
   orgId: string;
   fiche: FicheLot;
   allerA: (o: Onglet) => void;
   estProprietaire: boolean;
+  interlocuteur: InterlocuteurLocataire;
 }) {
   // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
   const base = useBaseEspace(orgId);
@@ -773,13 +785,13 @@ function OngletResume({
         </Carte>}
 
         {locataire ? (
-          <Carte titre="Mon logement" badge="mon gestionnaire" ton="neutre">
+          <Carte titre="Mon logement" badge={`mon ${interlocuteur}`} ton="neutre">
             <Ligne libelle="Immeuble" valeur={fiche.bien_nom} />
             <Ligne libelle="Adresse" valeur={`${fiche.adresse}, ${fiche.code_postal} ${fiche.ville}`} />
             <p className="mt-3 text-sm text-muted-foreground">
-              Une question, une panne ? Votre gestionnaire répond depuis{" "}
+              Une question, une panne ? Votre {interlocuteur} répond depuis{" "}
               <Link href={`/locataire/${orgId}/contact`} className="lien-discret">
-                Mon gestionnaire
+                Mon {interlocuteur}
               </Link>
               .
             </p>

@@ -1,4 +1,5 @@
 import { lireIdentiteContact } from "./identite-contact";
+import { interlocuteurDeLIdentite } from "@/lib/identite-contact-locataire";
 import { RendezVousLocataireConfirme } from "@/components/rendez-vous-locataire-confirme";
 import { lireToutesLesPages } from "@/lib/lecture-complete";
 import type { MonReleveConsommation } from "@/lib/consommations";
@@ -18,7 +19,7 @@ import { CarteGestionnaire, type Gestionnaire } from "./cartes-laterales";
 import { CarteDepotGarantie, type RestitutionLocataire } from "./carte-depot-garantie";
 import { aEchoue, LectureImpossible, PanneLecture } from "./panne-lecture";
 import type { IncidentLocataire } from "./incidents-locataire";
-import { NOTE_SIGNALEMENT_FERME, signalementOuvert, type BailLocataire } from "./types";
+import { noteSignalementFerme, signalementOuvert, type BailLocataire } from "./types";
 import { mentionEtage } from "@/lib/etage";
 
 // Les cartes indicateurs se cliquent EN ENTIER (24/09), comme les tuiles
@@ -50,6 +51,8 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
   const { supabase, personne, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
 
   const identiteContact = await lireIdentiteContact(orgId);
+  // Lot 47 : « votre gestionnaire » seulement dans un espace d'agence ; chez un propriétaire, « votre bailleur ».
+  const qui = interlocuteurDeLIdentite(identiteContact);
   const avisCharges = await supabase.rpc("mes_avis_decompte",{p_org:orgId});
   const [
     { data: baux, error: eBaux },
@@ -219,7 +222,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
   const aFaire: { cle: string; titre: string; detail: string; href: string; action: string }[] = [];
   const lectureReleves = await lireToutesLesPages<MonReleveConsommation>((debut, fin) => supabase.rpc("mes_releves_consommation", { p_org: orgId }, { count: "exact" }).order("demande_id").range(debut, fin), r => r.demande_id);
   const relevesAttendus = (lectureReleves.lignes ?? []).filter((d: { peut_repondre: boolean }) => d.peut_repondre).length;
-  if (lectureReleves.echec || relevesAttendus > 0) aFaire.push({ cle: "releves", titre: lectureReleves.echec ? "Vérifier mes demandes de relevés" : `${relevesAttendus} relevé${relevesAttendus > 1 ? "s" : ""} à transmettre`, detail: lectureReleves.echec ? "Le suivi n’a pas pu être chargé." : "Recopiez l’index de votre compteur ; votre gestionnaire le recevra ici.", href: `/locataire/${orgId}/releves`, action: "Voir mes relevés" });
+  if (lectureReleves.echec || relevesAttendus > 0) aFaire.push({ cle: "releves", titre: lectureReleves.echec ? "Vérifier mes demandes de relevés" : `${relevesAttendus} relevé${relevesAttendus > 1 ? "s" : ""} à transmettre`, detail: lectureReleves.echec ? "Le suivi n’a pas pu être chargé." : `Recopiez l’index de votre compteur ; votre ${qui} le recevra ici.`, href: `/locataire/${orgId}/releves`, action: "Voir mes relevés" });
   if (eCreneaux) {
     // La lecture des rendez-vous a échoué. Ne rien dire ferait croire au
     // locataire qu'on n'attend rien de lui — et le dossier s'arrêterait là,
@@ -252,8 +255,8 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
       titre: `Loyer ${deElide(moisLong(prochaine.periode))} à régler`,
       detail:
         prochaine.statut === "partiel"
-          ? `Il reste ${eur(resteADevoir)} à régler par virement à votre gestionnaire.`
-          : `${eur(resteADevoir)} à régler par virement à votre gestionnaire.`,
+          ? `Il reste ${eur(resteADevoir)} à régler par virement à votre ${qui}.`
+          : `${eur(resteADevoir)} à régler par virement à votre ${qui}.`,
       href: `/locataire/${orgId}/loyers`,
       action: "Mes paiements",
     });
@@ -267,7 +270,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
         ? "Votre attestation d'assurance a expiré"
         : "Votre attestation d'assurance manque",
       detail: assuranceDateInconnue
-        ? "Votre attestation est déposée, mais sa date d’expiration n’est pas renseignée. Vérifiez-la avec votre gestionnaire."
+        ? `Votre attestation est déposée, mais sa date d’expiration n’est pas renseignée. Vérifiez-la avec votre ${qui}.`
         : "L'assurance habitation est obligatoire pendant toute la durée du bail — une photo lisible suffit.",
       href: assuranceDateInconnue ? `/locataire/${orgId}/contact` : `/locataire/${orgId}/documents#assurance`,
       action: assuranceDateInconnue ? "Contacter" : "Déposer",
@@ -295,7 +298,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
         : `${aContester.length} signalements sont mis à votre charge`,
       detail:
         seul?.imputation_justification ||
-        "Votre gestionnaire a tranché qui paie la réparation. Vous pouvez contester : c'est tracé et cela ne bloque rien.",
+        `Votre ${qui} a tranché qui paie la réparation. Vous pouvez contester : c'est tracé et cela ne bloque rien.`,
       href: `/locataire/${orgId}/demandes`,
       action: "Voir / contester",
     });
@@ -307,7 +310,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
         nbSignatures > 1
           ? `${nbSignatures} documents à signer`
           : "Un document à signer",
-      detail: "À télécharger, signer, puis redéposer — votre gestionnaire est prévenu.",
+      detail: `À télécharger, signer, puis redéposer — votre ${qui} est prévenu.`,
       href: `/locataire/${orgId}/documents`,
       action: "Ouvrir",
     });
@@ -319,7 +322,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
         nbPiecesDemandees > 1
           ? `${nbPiecesDemandees} pièces vous sont demandées`
           : "Une pièce vous est demandée",
-      detail: "Votre gestionnaire les attend pour compléter votre dossier.",
+      detail: `Votre ${qui} les attend pour compléter votre dossier.`,
       href: `/locataire/${orgId}/documents`,
       action: "Déposer",
     });
@@ -342,7 +345,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
         <p className="mt-1 text-sm text-muted-foreground">
           Vos prochaines actions, puis le suivi de votre logement et de vos paiements.
         </p>
-        <div className="mt-3 flex flex-wrap gap-2"><Link href={`/locataire/${orgId}/documents`} className={buttonVariants({ variant: "outline", size: "sm" })}>Mes documents</Link><Link href={`/locataire/${orgId}/contact`} className={buttonVariants({ variant: "outline", size: "sm" })}>Écrire à {identiteContact.agence ? "mon gestionnaire" : "mon bailleur"}</Link></div>
+        <div className="mt-3 flex flex-wrap gap-2"><Link href={`/locataire/${orgId}/documents`} className={buttonVariants({ variant: "outline", size: "sm" })}>Mes documents</Link><Link href={`/locataire/${orgId}/contact`} className={buttonVariants({ variant: "outline", size: "sm" })}>Écrire à mon {qui}</Link></div>
       </div>
       {!rendezVous.error && <RendezVousLocataireConfirme orgId={orgId} lignes={rendezVous.data ?? []}/>}
       {avisCharges.error ? <p role="alert" className="err !mb-0">Les avis de charges sont momentanément indisponibles.</p> :
@@ -362,7 +365,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
         eAnnonces,
         eDemandes,
         eSignatures
-      ) && <PanneLecture quoi="l'essentiel de votre logement" />}
+      ) && <PanneLecture quoi="l'essentiel de votre logement" interlocuteur={qui} />}
 
       {!eBaux && adhesionActive && (!bail || bail.etat === "brouillon") && !signalementOuvert(baux as BailLocataire[] | null) && <section className="loc-carte" aria-label="Situation de votre bail">
         <h2 className="titre-carte text-base font-medium">Votre bail n’est pas encore actif</h2>
@@ -454,7 +457,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
           </ul>
           {enRetard && (
             <p className="mt-3 text-sm text-muted-foreground">
-              Une difficulté de paiement ? Écrivez à votre gestionnaire : une
+              Une difficulté de paiement ? Écrivez à votre {qui} : une
               solution se trouve toujours plus tôt que tard.
             </p>
           )}
@@ -637,7 +640,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
                 </Link>
               )}
               {adhesionActive && !peutSignaler && (
-                <span className="text-xs text-muted-foreground">{NOTE_SIGNALEMENT_FERME}</span>
+                <span className="text-xs text-muted-foreground">{noteSignalementFerme(qui)}</span>
               )}
               <Link
                 href={`/locataire/${orgId}/demandes`}

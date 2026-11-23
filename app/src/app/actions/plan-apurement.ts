@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { verifierGerant, verifierLocataire } from "@/lib/ged-acces";
 import { estUuid } from "@/lib/identifiants";
 import { sansJargon } from "@/lib/erreurs";
+import { lireInterlocuteurLocataire } from "@/lib/interlocuteur-locataire-serveur";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { lireMontantFacultatif } from "@/lib/saisie-montant";
 import { genererDocument } from "@/app/actions/documents-generes";
@@ -96,5 +97,6 @@ export async function demanderPlanApurement(orgId: string, _etat: EtatPlanApurem
   revalidatePath(`/locataire/${orgId}/loyers`);
   revalidatePath(`/locataire/${orgId}/contact`);
   revalidatePath(`/agence/${orgId}/alertes`);
-  return { succes: "Demande transmise à votre gestionnaire. Vous serez informé de sa réponse dans votre messagerie." };
+  // Lot 47 : « votre gestionnaire » seulement dans un espace d'agence ; chez un propriétaire, « votre bailleur ».
+  return { succes: `Demande transmise à votre ${await lireInterlocuteurLocataire(supabase, orgId)}. Vous serez informé de sa réponse dans votre messagerie.` };
 }

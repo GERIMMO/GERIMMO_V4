@@ -5,6 +5,7 @@ import { createHash, randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { lireInterlocuteurLocataire } from "@/lib/interlocuteur-locataire-serveur";
 import { sansJargon } from "@/lib/erreurs";
 import { verifierGerant, verifierLocataire } from "@/lib/ged-acces";
 import { detecterMimeReel, EXTENSIONS } from "@/lib/file-type";
@@ -266,7 +267,7 @@ export async function declarerMonIncident(
     });
     if (erreurDisponibilites) {
       console.error("[incidents] Les disponibilités du locataire n’ont pas pu être enregistrées.");
-      avertissementDisponibilites = "Vos disponibilités n’ont pas pu être enregistrées : indiquez-les à votre gestionnaire par message.";
+      avertissementDisponibilites = `Vos disponibilités n’ont pas pu être enregistrées : indiquez-les à votre ${await lireInterlocuteurLocataire(supabase, orgId)} par message.`;
     }
   }
   const avertissement = [avertissementPhotos, avertissementDisponibilites].filter(Boolean).join(" ") || undefined;
@@ -323,12 +324,14 @@ export async function declarerMonIncident(
       : doublonsEcartes === 1
         ? " Une photo identique à une autre n’a été jointe qu’une fois."
         : ` ${doublonsEcartes} photos identiques à une autre n’ont été jointes qu’une fois.`;
+  // Lot 47 : « votre gestionnaire » seulement dans un espace d'agence ; chez un propriétaire, « votre bailleur ».
+  const qui = await lireInterlocuteurLocataire(supabase, orgId);
   return {
     incidentId,
     succes:
       (emailUrgenceParti
-        ? "Signalement envoyé — urgence : votre gestionnaire est prévenu par e-mail. Suivez-le depuis votre espace."
-        : "Signalement envoyé — votre gestionnaire le verra dans son espace à sa prochaine connexion. Suivez-le depuis votre espace.") +
+        ? `Signalement envoyé — urgence : votre ${qui} est prévenu par e-mail. Suivez-le depuis votre espace.`
+        : `Signalement envoyé — votre ${qui} le verra dans son espace à sa prochaine connexion. Suivez-le depuis votre espace.`) +
       noteDoublons,
     avertissement,
   };
@@ -348,7 +351,7 @@ export async function contesterImputation(
   const message = String(formData.get("message") ?? "").trim();
   if (!message) {
     return {
-      erreur: "Expliquez pourquoi vous contestez — votre message est transmis à votre gestionnaire.",
+      erreur: `Expliquez pourquoi vous contestez — votre message est transmis à votre ${await lireInterlocuteurLocataire(supabase, orgId)}.`,
       valeurs,
     };
   }
@@ -362,7 +365,7 @@ export async function contesterImputation(
 
   revalidatePath(`/locataire/${orgId}`);
   revalidatePath(`/locataire/${orgId}/demandes`);
-  return { succes: "Contestation transmise à votre gestionnaire. Elle ne suspend pas la réparation." };
+  return { succes: `Contestation transmise à votre ${await lireInterlocuteurLocataire(supabase, orgId)}. Elle ne suspend pas la réparation.` };
 }
 
 // Le problème persiste : le locataire déclarant rouvre son incident clos
@@ -389,7 +392,7 @@ export async function signalerProblemePersiste(
 
   revalidatePath(`/locataire/${orgId}`);
   revalidatePath(`/locataire/${orgId}/demandes`);
-  return { succes: "Signalement rouvert — votre gestionnaire le verra dans son espace." };
+  return { succes: `Signalement rouvert — votre ${await lireInterlocuteurLocataire(supabase, orgId)} le verra dans son espace.` };
 }
 
 // ============================================================

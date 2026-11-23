@@ -9,15 +9,19 @@ import { formaterDate } from "@/lib/ged";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { ChampFichier } from "@/components/champ-fichier";
 import { buttonVariants } from "@/components/ui/button";
+import type { InterlocuteurLocataire } from "@/lib/interlocuteur-locataire";
 
 // Une demande de signature : télécharger le document, le signer, déposer le
 // signé — la demande se solde toute seule et le gestionnaire est prévenu.
 export function DepotSignature({
   orgId,
   demande,
+  interlocuteur,
 }: {
   orgId: string;
   demande: { id: string; document_id: string; titre: string | null; demandee_le: string };
+  /** Lot 47 : « gestionnaire » dans un espace d'agence, « bailleur » chez un propriétaire. */
+  interlocuteur: InterlocuteurLocataire;
 }) {
   const [etat, action] = useActionState<EtatRetourSignature, FormData>(
     retournerDocumentSigne.bind(null, orgId, demande.id),
@@ -27,7 +31,7 @@ export function DepotSignature({
   if (etat.succes) {
     return (
       <div className="py-2.5 text-sm text-success-soft-foreground">
-        ✓ {demande.titre ?? "Document"} signé et déposé — votre gestionnaire est
+        ✓ {demande.titre ?? "Document"} signé et déposé — votre {interlocuteur} est
         prévenu.
       </div>
     );

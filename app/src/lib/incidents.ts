@@ -1,3 +1,5 @@
+import type { InterlocuteurLocataire } from "./interlocuteur-locataire";
+
 // Référentiel des incidents (Sprint 7, module 7 + registre A5) — une seule
 // source pour tous les écrans, sur le modèle de lib/baux.ts. La machine à
 // états est défendue en base (fonctions SECURITY DEFINER) ; ici on la décrit
@@ -70,16 +72,19 @@ export const COULEURS_ETAT_INCIDENT: Record<string, string> = {
 };
 
 // Le locataire lit son statut dans ses mots (maquette, traduction LIB_LOC) —
-// jamais le vocabulaire interne.
+// jamais le vocabulaire interne. Lot 47 : celui qui examine est nommé selon
+// l'espace (`interlocuteurLocataire`) : « votre gestionnaire » en agence,
+// « votre bailleur » chez un propriétaire, qui n'a pas de gestionnaire.
 export function libelleEtatLocataire(
   etat: string,
-  imputation: string | null
+  imputation: string | null,
+  interlocuteur: InterlocuteurLocataire
 ): string {
   switch (etat) {
     case "declare":
-      return "Reçu — votre gestionnaire l'examine";
+      return `Reçu — votre ${interlocuteur} l'examine`;
     case "rouvert":
-      return "Rouvert — votre gestionnaire le réexamine";
+      return `Rouvert — votre ${interlocuteur} le réexamine`;
     case "qualifie":
       return imputation === "proprietaire"
         ? "Pris en charge par le propriétaire"

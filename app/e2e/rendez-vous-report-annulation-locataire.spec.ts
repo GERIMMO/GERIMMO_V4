@@ -181,7 +181,9 @@ test("locataire : report demandé puis accepté, report refusé, puis annulation
     expect((await db.query("select count(*)::int n from alerts where organization_id=$1 and statut='ouverte'", [org])).rows[0].n).toBeGreaterThan(0);
 
     await l.reload();
-    await expect(carte).toContainText("L'artisan ne peut pas : votre gestionnaire va vous appeler", { timeout: 30_000 });
+    // Lot 47 : l'espace de ce parcours est celui d'un propriétaire qui gère lui-même (type proprietaire_direct) ; il n'a
+    // pas de gestionnaire, le locataire lit « votre bailleur ». L'ancien texte attendu disait « votre gestionnaire ».
+    await expect(carte).toContainText("L'artisan ne peut pas : votre bailleur va vous appeler", { timeout: 30_000 });
     await expect(carte).toContainText(`Sa réponse : « ${motifRefus} ».`);
     await expect(carte).toContainText("Votre rendez-vous actuel est maintenu en attendant.");
     await l.screenshot({ path: info.outputPath("locataire-report-refuse.png"), fullPage: true });
@@ -190,7 +192,7 @@ test("locataire : report demandé puis accepté, report refusé, puis annulation
     const annulerChoix = carte.getByRole("button", { name: "Annuler le rendez-vous", exact: true });
     await ouvrir(l, plusLa, annulerChoix);
     await expect(demanderReport).toHaveCount(0);
-    await expect(carte).toContainText("Ce rendez-vous a déjà fait l'objet de 2 demandes de report : pour le changer encore, appelez votre gestionnaire.");
+    await expect(carte).toContainText("Ce rendez-vous a déjà fait l'objet de 2 demandes de report : pour le changer encore, appelez votre bailleur.");
     await annulerChoix.click();
     await expect(carte).toContainText("L'annulation prend effet tout de suite");
     await carte.getByLabel("Motif", { exact: true }).selectOption("sante");
@@ -207,7 +209,7 @@ test("locataire : report demandé puis accepté, report refusé, puis annulation
     expect((await rdv()).statut).toBe("acceptee");
     await l.reload();
     await expect(carte).toContainText("Vous avez annulé le rendez-vous", { timeout: 30_000 });
-    await expect(carte).toContainText("L'artisan et votre gestionnaire sont prévenus.");
+    await expect(carte).toContainText("L'artisan et votre bailleur sont prévenus.");
     await l.screenshot({ path: info.outputPath("locataire-annule.png"), fullPage: true });
 
     // ── 5. L'artisan lit l'annulation et en prend acte.

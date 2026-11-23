@@ -10,13 +10,13 @@ vi.mock("@/app/actions/messages", () => ({ envoyerMessageLocataire: vi.fn() }));
 
 describe("commandes du locataire avant le chargement du navigateur", () => {
   it("attend que le formulaire de demande de plan puisse être ouvert avant de proposer la commande", () => {
-    const html = renderToStaticMarkup(createElement(PlanApurementLocataire, {orgId: "fictif", plan: null, demandeEnCours: false, detteEchue: 1100}));
+    const html = renderToStaticMarkup(createElement(PlanApurementLocataire, {orgId: "fictif", plan: null, demandeEnCours: false, detteEchue: 1100, interlocuteur: "bailleur"}));
     const bouton = html.match(/<button[^>]*>Demander un plan de paiement<\/button>/)?.[0];
     expect(bouton).toContain('disabled=""');
     expect(bouton).toContain(AIDE_BOUTON_EN_ATTENTE);
   });
   it("attend que les suggestions puissent effectivement remplir le brouillon", () => {
-    const html = renderToStaticMarkup(createElement(FilMessages, {orgId: "fictif", messages: [], agence: "Gestion fictive"}));
+    const html = renderToStaticMarkup(createElement(FilMessages, {orgId: "fictif", messages: [], agence: "Gestion fictive", interlocuteur: "gestionnaire"}));
     const boutons = [...html.matchAll(/<button([^>]*)>([^<]*)<\/button>/g)]
       .filter(([, , texte]) => SUGGESTIONS.includes(texte.replaceAll("&#x27;", "'")));
     expect(boutons).toHaveLength(3);

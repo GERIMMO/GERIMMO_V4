@@ -14,6 +14,8 @@ import { BORD_ETAT, tagLocataire } from "../pastille-locataire";
 import type { BailLocataire } from "../types";
 import { BoutonCopierIban } from "./bouton-copier-iban";
 import { PlanApurementLocataire, type MonPlanApurement } from "@/components/plan-apurement-locataire";
+import { lireIdentiteContact } from "../identite-contact";
+import { interlocuteurDeLIdentite } from "@/lib/identite-contact-locataire";
 
 export const metadata = { title: "Mes paiements" };
 
@@ -24,6 +26,8 @@ export default async function PagePaiementsLocataire(
 ) {
   const { orgId } = await props.params;
   const { supabase, organisation } = await verifierAccesEspaceLocataire(orgId);
+  // Lot 47 : « votre gestionnaire » seulement dans un espace d'agence ; chez un propriétaire, « votre bailleur ».
+  const qui = interlocuteurDeLIdentite(await lireIdentiteContact(orgId));
 
   const [
     { data: echeancier, error: eEcheancier },
@@ -162,7 +166,7 @@ export default async function PagePaiementsLocataire(
       </div>
 
       {aEchoue(eEcheancier, eBaux, eRestitution, eRetenues, eRelances) && (
-        <PanneLecture quoi="vos paiements" />
+        <PanneLecture quoi="vos paiements" interlocuteur={qui} />
       )}
 
       {/* Sous le titre de l'écran (20/11) : ce bloc et son titre passaient
@@ -200,13 +204,13 @@ export default async function PagePaiementsLocataire(
                   {prochaine.prorata ? " (au prorata des jours occupés)" : ""} — à régler par
                   virement à{" "}
                   {ibanBrut ? (
-                    "votre gestionnaire, coordonnées ci-dessous"
+                    `votre ${qui}, coordonnées ci-dessous`
                   ) : (
                     <Link
                       href={`/locataire/${orgId}/contact`}
                       className="font-medium text-[var(--bleu)] underline underline-offset-2"
                     >
-                      votre gestionnaire
+                      votre {qui}
                     </Link>
                   )}
                   .
@@ -273,7 +277,7 @@ export default async function PagePaiementsLocataire(
               <p className="text-[13px] text-muted-foreground">
                 {forfait
                   ? `Forfait de ${eur(Number(bail.charges ?? 0))} par mois : il couvre les charges sans régularisation — aucun décompte annuel à attendre.`
-                  : `Provision de ${eur(Number(bail.charges ?? 0))} par mois : une fois par an, votre gestionnaire la compare aux charges réelles. Le décompte de régularisation arrive dans Mes documents — vous ne payez que ce qui a été réellement dépensé.`}
+                  : `Provision de ${eur(Number(bail.charges ?? 0))} par mois : une fois par an, votre ${qui} la compare aux charges réelles. Le décompte de régularisation arrive dans Mes documents — vous ne payez que ce qui a été réellement dépensé.`}
               </p>
             </div>
           )}
@@ -417,7 +421,7 @@ export default async function PagePaiementsLocataire(
             ))}
           </ul>
           <p className="mt-2.5 text-xs text-muted-foreground">
-            Une difficulté de paiement ? Écrivez à votre gestionnaire : une
+            Une difficulté de paiement ? Écrivez à votre {qui} : une
             solution se trouve toujours plus tôt que tard.
           </p>
         </div>
@@ -426,6 +430,7 @@ export default async function PagePaiementsLocataire(
       {/* Plan d'apurement (02/11) : le plan en cours, ou la demande quand des loyers sont en retard */}
       <PlanApurementLocataire
         orgId={orgId}
+        interlocuteur={qui}
         plan={planApurement}
         demandeEnCours={demandePlan === true}
         detteEchue={soldeEchu}
@@ -525,7 +530,7 @@ export default async function PagePaiementsLocataire(
                 normale du logement est déduite des retenues (décote de
                 vétusté) : elle ne peut pas vous être facturée. Un désaccord ?{" "}
                 <Link href={`/locataire/${orgId}/contact`} className="lien-discret">
-                  Écrivez à votre gestionnaire
+                  Écrivez à votre {qui}
                 </Link>
                 .
               </p>

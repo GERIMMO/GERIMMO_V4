@@ -103,22 +103,28 @@ describe("catégories d'incident", () => {
 
 describe("libellés locataire (traduction maquette)", () => {
   it("parle au locataire dans ses mots, jamais en vocabulaire interne", () => {
-    expect(libelleEtatLocataire("declare", null)).toBe("Reçu — votre gestionnaire l'examine");
-    expect(libelleEtatLocataire("rouvert", "locataire")).toBe(
+    expect(libelleEtatLocataire("declare", null, "gestionnaire")).toBe("Reçu — votre gestionnaire l'examine");
+    expect(libelleEtatLocataire("rouvert", "locataire", "gestionnaire")).toBe(
       "Rouvert — votre gestionnaire le réexamine"
     );
-    expect(libelleEtatLocataire("clos", null)).toBe("Clos");
+    expect(libelleEtatLocataire("clos", null, "gestionnaire")).toBe("Clos");
+  });
+
+  // Lot 47 : « votre gestionnaire » seulement dans un espace d'agence ; chez un propriétaire, c'est le bailleur qui examine.
+  it("chez un propriétaire qui gère lui-même, le bailleur examine", () => {
+    expect(libelleEtatLocataire("declare", null, "bailleur")).toBe("Reçu — votre bailleur l'examine");
+    expect(libelleEtatLocataire("rouvert", "locataire", "bailleur")).toBe("Rouvert — votre bailleur le réexamine");
   });
 
   it("distingue l'imputation une fois l'incident qualifié", () => {
-    expect(libelleEtatLocataire("qualifie", "proprietaire")).toBe(
+    expect(libelleEtatLocataire("qualifie", "proprietaire", "bailleur")).toBe(
       "Pris en charge par le propriétaire"
     );
-    expect(libelleEtatLocataire("qualifie", "locataire")).toBe("À votre charge");
+    expect(libelleEtatLocataire("qualifie", "locataire", "bailleur")).toBe("À votre charge");
     // La dégradation fautive reste à la charge du locataire
-    expect(libelleEtatLocataire("qualifie", "degradation_fautive")).toBe("À votre charge");
+    expect(libelleEtatLocataire("qualifie", "degradation_fautive", "bailleur")).toBe("À votre charge");
     // Qualifié sans imputation : jamais « à votre charge » par défaut (audit 06/09)
-    expect(libelleEtatLocataire("qualifie", null)).toBe("En cours d'examen");
+    expect(libelleEtatLocataire("qualifie", null, "bailleur")).toBe("En cours d'examen");
   });
 });
 

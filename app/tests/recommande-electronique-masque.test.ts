@@ -107,7 +107,7 @@ describe("côté propriétaire : la relance arrivée au recommandé", () => {
 
 describe("côté locataire : réception de mes documents", () => {
   const rendre = (props: { recommandes: boolean; recommandesProposes?: boolean; retraitSeulement?: boolean }) =>
-    renderToStaticMarkup(createElement(ConsentementsDocuments, { orgId: "org", quittances: false, email: "locataire@test.local", ...props }));
+    renderToStaticMarkup(createElement(ConsentementsDocuments, { orgId: "org", quittances: false, email: "locataire@test.local", interlocuteur: "bailleur", ...props }));
   const blocRecommandes = (html: string) => html.split("Recommandés électroniques")[1] ?? "";
 
   it("service non relié, aucun accord : l'accord n'est pas demandé ; les quittances restent proposées", () => {

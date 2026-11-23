@@ -1,3 +1,4 @@
+import type { InterlocuteurLocataire } from "@/lib/interlocuteur-locataire";
 // Ligne du RPC mon_bail_locataire (v4 — migration espace_locataire_v10)
 export type BailLocataire = {
   bail_id: string;
@@ -29,6 +30,10 @@ export function signalementOuvert(baux: { etat: string }[] | null | undefined): 
   return (baux ?? []).some((b) => b.etat === "actif" || b.etat === "preavis");
 }
 
-/** Ce qui se lit à la place du bouton tant que le bail n'est pas actif. */
-export const NOTE_SIGNALEMENT_FERME =
-  "Le signalement s'ouvrira dès que votre bail sera actif, c'est-à-dire une fois le contrat signé déposé par votre gestionnaire.";
+/**
+ * Ce qui se lit à la place du bouton tant que le bail n'est pas actif. Lot 47 : le contrat signé est déposé par le
+ * gestionnaire dans un espace d'agence, par le bailleur chez un propriétaire.
+ */
+export function noteSignalementFerme(interlocuteur: InterlocuteurLocataire): string {
+  return `Le signalement s'ouvrira dès que votre bail sera actif, c'est-à-dire une fois le contrat signé déposé par votre ${interlocuteur}.`;
+}

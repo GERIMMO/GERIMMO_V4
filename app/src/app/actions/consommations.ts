@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { verifierGerant, verifierLocataire } from "@/lib/ged-acces";
 import { aujourdhuiParis } from "@/lib/ged";
 import { sansJargon } from "@/lib/erreurs";
+import { lireInterlocuteurLocataire } from "@/lib/interlocuteur-locataire-serveur";
 import { estUuid } from "@/lib/identifiants";
 import { resoudreDepotsFormulaire } from "@/lib/depot-direct";
 import { deposerFichierGed } from "@/lib/ged-depot";
@@ -193,6 +194,7 @@ export async function transmettreReleve(orgId: string, demandeId: string, _etat:
     }
     const { error } = await supabase.rpc("soumettre_releve_consommation", { p_demande: demandeId, p_index: valeur, p_date: date, p_photo: photo });
     if (error) return { erreur: sansJargon(error.message) };
-    actualiser(orgId); return { succes: "Relevé transmis à votre gestionnaire." };
+    // Lot 47 : « votre gestionnaire » seulement dans un espace d'agence ; chez un propriétaire, « votre bailleur ».
+    actualiser(orgId); return { succes: `Relevé transmis à votre ${await lireInterlocuteurLocataire(supabase, orgId)}.` };
   } catch (e) { return { erreur: e instanceof Error ? sansJargon(e.message) : "Le relevé n’a pas pu être transmis." }; }
 }

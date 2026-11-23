@@ -16,6 +16,7 @@ import { adresseDuSite } from "@/lib/site";
 import { aujourdhuiParis } from "@/lib/ged";
 import { cleRelanceLoyer } from "@/lib/cles-idempotence-courriels";
 import { corpsRelanceLoyer, sujetRelanceLoyer, type RelanceLoyer } from "@/lib/relance-loyer-email";
+import { interlocuteurLocataire } from "@/lib/interlocuteur-locataire";
 import { verifierCourrierDuBail, detteDuBail, idRelanceReception, NOTE_RELANCE_TABLEAU, type RappelLoyer } from "@/lib/rappels-loyers";
 
 export type EtatReceptionLoyer = { erreur?: string; succes?: string; termine?: boolean; bilan?: BilanReception };
@@ -113,7 +114,7 @@ export async function envoyerRelanceReception(orgId: string, appelId: string, _e
   const { data: bail, error: erreurBail } = await supabase.from("baux").select("locataire_principal").eq("organization_id",orgId).eq("id",ligne.bail_id).maybeSingle();
   if (erreurBail || !bail?.locataire_principal) return { erreur: "Le destinataire n’a pas pu être vérifié. Aucun message envoyé." };
   const { data: personne, error: erreurPersonne } = await supabase.from("persons").select("email,prenom").eq("organization_id",orgId).eq("id",bail.locataire_principal).maybeSingle();
-  const { data: organisation, error: erreurOrganisation } = await supabase.from("organizations").select("name").eq("id",orgId).maybeSingle();
+  const { data: organisation, error: erreurOrganisation } = await supabase.from("organizations").select("name, type").eq("id",orgId).maybeSingle();
   if (erreurPersonne || erreurOrganisation || !personne?.email?.trim() || !organisation) return { erreur: "Vérifiez l’adresse e-mail du locataire et votre profil avant l’envoi." };
   // Même règle que les relances du bail : les colocataires encore engagés reçoivent aussi le courrier.
   const { data: parties, error: erreurParties } = await supabase.from("bail_personnes").select("person_id,date_solidarite_fin")
@@ -135,7 +136,9 @@ export async function envoyerRelanceReception(orgId: string, appelId: string, _e
   if (!site || !/^https?:\/\//.test(site)) return { erreur: "L’adresse du site doit être configurée avant d’envoyer une relance." };
   let envoyes = 0;const erreursEnvoi:string[]=[];
   for (const destinataire of destinataires.values()) {
-    const message: RelanceLoyer = { niveau, prenom: destinataire.prenom, emetteur: organisation.name, lot: ligne.lot_nom, periode: ligne.periode, dateEcheance: ligne.date_echeance, reste, totalDu, lien: `${site}/locataire/${orgId}/loyers` };
+    const message: RelanceLoyer = { niveau, prenom: destinataire.prenom, emetteur: organisation.name, lot: ligne.lot_nom, periode: ligne.periode, dateEcheance: ligne.date_echeance, reste, totalDu, lien: `${site}/locataire/${orgId}/loyers`,
+      // Lot 47 : « votre bailleur » chez un propriétaire, « votre gestionnaire » seulement dans un espace d'agence.
+      interlocuteur: interlocuteurLocataire(organisation.type) };
     const envoi = await envoyerEmail({ circuit:"app/actions/reception-loyer", repriseAutonome: false, organisation: { db: supabase, id: orgId }, to: destinataire.email,
       subject: sujetRelanceLoyer(message), html: corpsRelanceLoyer(message),
       cleIdempotence: cleRelanceLoyer({ bailId: ligne.bail_id, niveau, dateEcheance: ligne.date_echeance, destinataire: destinataire.email, role: "locataire", reste, totalDu }),

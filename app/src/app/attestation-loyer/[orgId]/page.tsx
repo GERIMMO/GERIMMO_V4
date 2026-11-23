@@ -12,6 +12,7 @@ import { eur, formaterDate, aujourdhuiParis } from "@/lib/ged";
 import { nomComplet } from "@/lib/roles-personnes";
 import { BoutonImprimer } from "@/components/bouton-imprimer";
 import { aEchoue, PanneLecture } from "@/app/locataire/[orgId]/panne-lecture";
+import { identiteContactLocataire, interlocuteurDeLIdentite } from "@/lib/identite-contact-locataire";
 import type { BailLocataire } from "@/app/locataire/[orgId]/types";
 
 // Le titre de l'onglet porte la marque de l'émetteur, jamais « Gerimmo »
@@ -93,7 +94,8 @@ export default async function PageAttestationLoyer(
   if (lectureKO) {
     // Ni attestation ni explication de refus : les deux seraient un mensonge
     // tant qu'on n'a pas pu lire l'échéancier.
-    contenu = <PanneLecture quoi="votre attestation de bon paiement" />;
+    // Lot 47 : « gestionnaire » seulement dans un espace d'agence, lu dans la même identité que l'émetteur.
+    contenu = <PanneLecture quoi="votre attestation de bon paiement" interlocuteur={interlocuteurDeLIdentite(identiteContactLocataire(eEmetteur ? null : emetteurBrut))} />;
   } else if (!bail || moisEchus.length === 0) {
     contenu = (
       <div className="vide-guide">

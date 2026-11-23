@@ -131,11 +131,14 @@ const COURRIERS: Record<MotifLien, Courrier> = {
       "Vous avez été ajouté comme agent à l’équipe d’une agence sur Gerimmo. Pour accéder à votre espace, créez votre mot de passe.",
     bouton: "Créer mon mot de passe",
   },
+  // Lot 47 : « votre gestionnaire » était faux pour le locataire d'un propriétaire qui gère lui-même. Ce courrier part
+  // du circuit des liens de connexion, qui ne lit pas le type de l'espace : il reprend la tournure de l'écran de choix
+  // des espaces (« votre bailleur, ou son gestionnaire »), vraie dans les deux cas.
   invitation_locataire: {
     sujet: "Votre invitation locataire Gerimmo",
     titre: "Vous êtes invité sur Gerimmo",
     texte:
-      "Votre gestionnaire vous propose un espace locataire sur Gerimmo. Après avoir sécurisé votre compte, vous pourrez accepter ou refuser cette invitation, valable 30 jours. Aucun accès à ce nouvel espace ne sera accordé avant votre acceptation.",
+      "Votre bailleur, ou son gestionnaire, vous propose un espace locataire sur Gerimmo. Après avoir sécurisé votre compte, vous pourrez accepter ou refuser cette invitation, valable 30 jours. Aucun accès à ce nouvel espace ne sera accordé avant votre acceptation.",
     bouton: "Créer mon mot de passe",
   },
   mot_de_passe_oublie: {
@@ -243,7 +246,7 @@ export function corpsRappelInvitationLocataire(lien: string, origine: string, ex
       ...invitation,
       sujet: SUJET_RAPPEL_INVITATION_LOCATAIRE,
       texte:
-        `Votre gestionnaire vous a proposé un espace locataire sur Gerimmo et attend votre réponse. Après avoir sécurisé votre compte, vous pourrez accepter ou refuser cette invitation, valable jusqu’au ${jourEnLettres(expireLe)}. Si vous la refusez, vous ne recevrez plus de rappel. Aucun accès à ce nouvel espace ne sera accordé avant votre acceptation.`,
+        `Votre bailleur, ou son gestionnaire, vous a proposé un espace locataire sur Gerimmo et attend votre réponse. Après avoir sécurisé votre compte, vous pourrez accepter ou refuser cette invitation, valable jusqu’au ${jourEnLettres(expireLe)}. Si vous la refusez, vous ne recevrez plus de rappel. Aucun accès à ce nouvel espace ne sera accordé avant votre acceptation.`,
     },
     lien,
     origine

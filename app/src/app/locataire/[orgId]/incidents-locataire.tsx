@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { NOTE_SIGNALEMENT_FERME } from "./types";
+import { noteSignalementFerme } from "./types";
+import type { InterlocuteurLocataire } from "@/lib/interlocuteur-locataire";
 import { useId, useState } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {
@@ -44,9 +45,10 @@ export type IncidentLocataire = {
   est_declarant: boolean;
 };
 
-// « Qui prend en charge », dans les mots du locataire (maquette)
-function priseEnCharge(i: IncidentLocataire): string | null {
-  if (!i.imputation) return i.etat === "clos" ? null : "Votre gestionnaire l'examine";
+// « Qui prend en charge », dans les mots du locataire (maquette). Lot 47 : « votre gestionnaire » seulement dans un
+// espace d'agence ; chez un propriétaire, « votre bailleur ».
+function priseEnCharge(i: IncidentLocataire, qui: InterlocuteurLocataire): string | null {
+  if (!i.imputation) return i.etat === "clos" ? null : `Votre ${qui} l'examine`;
   if (i.imputation === "proprietaire") return "Le propriétaire — vous n'avancez rien";
   return "Vous — réparation à votre charge";
 }
@@ -100,6 +102,7 @@ function CarteIncident({
   peutAgir,
   rendezVous,
   rappelPromis = false,
+  interlocuteur,
 }: {
   orgId: string;
   incident: IncidentLocataire;
@@ -113,6 +116,8 @@ function CarteIncident({
   rendezVous?: RendezVousLocataire;
   /** P1-08 : le rappel de la veille n'est promis que si le superviseur a ouvert cet envoi. */
   rappelPromis?: boolean;
+  /** Lot 47 : « gestionnaire » dans un espace d'agence, « bailleur » chez un propriétaire. */
+  interlocuteur: InterlocuteurLocataire;
 }) {
   const [ouvert, setOuvert] = useState<"contester" | "persiste" | null>(null);
   const [etatContestation, actionContestation] = useActionState<
@@ -124,7 +129,7 @@ function CarteIncident({
     FormData
   >(signalerProblemePersiste.bind(null, orgId, incident.id), {});
 
-  const charge = priseEnCharge(incident);
+  const charge = priseEnCharge(incident, interlocuteur);
   const suiviHistorique = suivi?.etape === "terminee" && ["rouvert", "qualifie"].includes(incident.etat);
   // Contestation et réouverture : réservées au titulaire du dossier — le
   // déclarant, ou le locataire du bail que le gérant a rattaché à l'incident
@@ -161,7 +166,7 @@ function CarteIncident({
   // la pastille suit son étape ; la prise en charge reste dans sa rangée.
   const etapePastille = suivi && !suiviHistorique && !["clos", "rouvert"].includes(incident.etat) ? etapeCourte(suivi.etape) : null;
   const textePastille =
-    etapePastille ?? libelleEtatLocataire(incident.etat, incident.imputation);
+    etapePastille ?? libelleEtatLocataire(incident.etat, incident.imputation, interlocuteur);
   // Ce que la pastille dit déjà, la rangée « Qui prend en charge » ne le
   // répète pas mot pour mot.
   const priseEnChargeAnnoncee =
@@ -224,11 +229,11 @@ function CarteIncident({
         ))}
 
       {incident.etat === "rouvert" && (
-        <p role="status">Votre demande est rouverte. Votre gestionnaire examine le problème persistant ; l’intervention précédente reste dans l’historique.</p>
+        <p role="status">Votre demande est rouverte. Votre {interlocuteur} examine le problème persistant ; l’intervention précédente reste dans l’historique.</p>
       )}
       {suiviHistorique && suivi && (
         <details className="border-t pt-2"><summary className="cursor-pointer">Consulter l’intervention précédente</summary>
-          <SuiviInterventionLocataire orgId={orgId} suivi={suivi} creneaux={[]} peutAgir={false} rappelPromis={rappelPromis} />
+          <SuiviInterventionLocataire orgId={orgId} suivi={suivi} creneaux={[]} peutAgir={false} rappelPromis={rappelPromis} interlocuteur={interlocuteur} />
         </details>
       )}
       {suivi && !suiviHistorique && incident.etat !== "rouvert" && (
@@ -239,6 +244,7 @@ function CarteIncident({
           peutAgir={peutAgir}
           rendezVous={rendezVous}
           rappelPromis={rappelPromis}
+          interlocuteur={interlocuteur}
         />
       )}
 
@@ -279,7 +285,7 @@ function CarteIncident({
           action={actionContestation}
           nomChamp="message"
           libelle="Motif de votre contestation"
-          placeholder="Expliquez pourquoi — votre message est transmis à votre gestionnaire."
+          placeholder={`Expliquez pourquoi — votre message est transmis à votre ${interlocuteur}.`}
           bouton="Envoyer"
           valeurInitiale={etatContestation.valeurs?.message}
         />
@@ -328,6 +334,7 @@ export function IncidentsLocataire({
   peutSignaler = true,
   lectureEnEchec = false,
   rappelPromis = false,
+  interlocuteur,
 }: {
   orgId: string;
   incidents: IncidentLocataire[];
@@ -345,6 +352,8 @@ export function IncidentsLocataire({
   lectureEnEchec?: boolean;
   /** P1-08 : vrai seulement si le superviseur a ouvert le rappel de rendez-vous. */
   rappelPromis?: boolean;
+  /** Lot 47 : « gestionnaire » dans un espace d'agence, « bailleur » chez un propriétaire. */
+  interlocuteur: InterlocuteurLocataire;
 }) {
   if (lectureEnEchec) {
     return (
@@ -369,7 +378,7 @@ export function IncidentsLocataire({
             </Link>
           </span>
         ) : (
-          <p className="explication">{NOTE_SIGNALEMENT_FERME}</p>
+          <p className="explication">{noteSignalementFerme(interlocuteur)}</p>
         )}
       </div>
     );
@@ -395,6 +404,7 @@ export function IncidentsLocataire({
             rendezVous={rendezVous.find((r) => r.intervention_id === suivi?.intervention_id)}
             peutAgir={peutAgir}
             rappelPromis={rappelPromis}
+            interlocuteur={interlocuteur}
           />
         );
       })}

@@ -234,6 +234,8 @@ describe("relance automatique", () => {
       niveau: "relance_1",
       prenom: "Claire",
       emetteur: "Agence",
+      // Lot 47 : l'interlocuteur nommé dépend du type de l'espace ; ce courrier est celui d'une agence.
+      interlocuteur: "gestionnaire",
       lot: "Lot 1",
       periode: "2026-07-01",
       dateEcheance: "2026-07-05",
@@ -303,6 +305,8 @@ vi.mock("@/lib/supabase/service", () => ({
       if (nom === "relance_loyer_consigner") envois.notes.push(String(args.p_note));
       return { data: "id", error: null };
     },
+    // Lot 47 : la passe lit le type de chaque espace pour nommer l'interlocuteur du locataire (ici, des agences).
+    from: () => ({ select: () => ({ in: async (_colonne: string, ids: string[]) => ({ data: ids.map((id) => ({ id, type: "agence" })), error: null }) }) }),
   }),
 }));
 

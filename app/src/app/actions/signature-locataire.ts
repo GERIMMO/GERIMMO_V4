@@ -3,6 +3,7 @@ import { resoudreDepotsFormulaire, limiteFichierDepose } from "@/lib/depot-direc
 
 
 import { sansJargon } from "@/lib/erreurs";
+import { lireInterlocuteurLocataire } from "@/lib/interlocuteur-locataire-serveur";
 import { createHash, randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -69,5 +70,6 @@ export async function retournerDocumentSigne(
 
   revalidatePath(`/locataire/${orgId}/documents`);
   revalidatePath(`/locataire/${orgId}`);
-  return { succes: "Document signé déposé. Merci — votre gestionnaire est notifié." };
+  // Lot 47 : « votre gestionnaire » seulement dans un espace d'agence ; chez un propriétaire, « votre bailleur ».
+  return { succes: `Document signé déposé. Merci — votre ${await lireInterlocuteurLocataire(supabase, orgId)} est notifié.` };
 }

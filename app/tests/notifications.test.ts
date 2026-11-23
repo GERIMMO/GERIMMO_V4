@@ -76,10 +76,10 @@ describe("chaque message nomme le geste et le lien", () => {
   const cas: { nom: string; m: { sujet: string; html: string }; geste: RegExp }[] = [
     { nom: "devis demandé", m: messageDevisDemande({ emetteur: AGENCE, categorie: "plomberie_canalisation", ville: "Lyon", numero: "INC-001", lien: LIEN }), geste: /Répondre/ },
     { nom: "mission confiée", m: messageMissionConfiee({ emetteur: AGENCE, categorie: "plomberie_canalisation", adresse: "9 rue X, 69001 Lyon", numero: "INC-001", lien: LIEN }), geste: /Accepter ou refuser/ },
-    { nom: "rendez-vous fixé (artisan)", m: messageRendezVousFixe({ destinataire: "artisan", emetteur: AGENCE, categorie: "plomberie_canalisation", debut: "2026-07-06T07:00:00Z", fin: "2026-07-06T09:00:00Z", adresse: "9 rue X", artisan: "Plomberie Durand", lien: LIEN }), geste: /Voir le rendez-vous/ },
+    { nom: "rendez-vous fixé (artisan)", m: messageRendezVousFixe({ destinataire: "artisan", emetteur: AGENCE, categorie: "plomberie_canalisation", debut: "2026-07-06T07:00:00Z", fin: "2026-07-06T09:00:00Z", adresse: "9 rue X", artisan: "Plomberie Durand", lien: LIEN, interlocuteur: "gestionnaire" }), geste: /Voir le rendez-vous/ },
     { nom: "mission annulée", m: messageMissionAnnulee({ emetteur: AGENCE, categorie: "plomberie_canalisation", numero: "INC-001", motif: "Réglé par le syndic", lien: LIEN }), geste: /Voir le dossier/ },
     { nom: "créneaux à choisir", m: messageCreneauxAChoisir({ emetteur: AGENCE, prenom: "Marc", categorie: "plomberie_canalisation", artisan: "Plomberie Durand", nbCreneaux: 3, lien: LIEN }), geste: /Choisir un créneau/ },
-    { nom: "réponse du gestionnaire", m: messageReponseGestionnaire({ emetteur: AGENCE, prenom: "Marc", lien: LIEN }), geste: /Lire la réponse/ },
+    { nom: "réponse du gestionnaire", m: messageReponseGestionnaire({ emetteur: AGENCE, prenom: "Marc", lien: LIEN, interlocuteur: "gestionnaire" }), geste: /Lire la réponse/ },
     { nom: "pièce demandée", m: messagePieceDemandee({ emetteur: AGENCE, prenom: "Marc", libelle: "RIB", relance: false, lien: LIEN }), geste: /Déposer la pièce/ },
     { nom: "signature demandée", m: messageSignatureDemandee({ emetteur: AGENCE, prenom: "Marc", titreDocument: "Bail — 9 rue X", lien: LIEN }), geste: /Voir le document/ },
     { nom: "incident urgent", m: messageIncidentUrgent({ emetteur: AGENCE, numero: "INC-001", categorie: "plomberie_canalisation", lot: "Lot 3", piece: "Cuisine", description: "Fuite sous l'évier", lien: LIEN }), geste: /Ouvrir le dossier/ },
@@ -108,10 +108,10 @@ describe("chaque message nomme le geste et le lien", () => {
 describe("marque blanche et discrétion", () => {
   const versLeLocataire = [
     messageCreneauxAChoisir({ emetteur: AGENCE, prenom: "Marc", categorie: "plomberie_canalisation", artisan: "Plomberie Durand", nbCreneaux: 1, lien: LIEN }),
-    messageReponseGestionnaire({ emetteur: AGENCE, prenom: "Marc", lien: LIEN }),
+    messageReponseGestionnaire({ emetteur: AGENCE, prenom: "Marc", lien: LIEN, interlocuteur: "gestionnaire" }),
     messagePieceDemandee({ emetteur: AGENCE, prenom: "Marc", libelle: "RIB", relance: true, lien: LIEN }),
     messageSignatureDemandee({ emetteur: AGENCE, prenom: "Marc", titreDocument: "Bail", lien: LIEN }),
-    messageRendezVousFixe({ destinataire: "locataire", emetteur: AGENCE, prenom: "Marc", categorie: "plomberie_canalisation", debut: "2026-07-06T07:00:00Z", fin: null, adresse: null, artisan: "Plomberie Durand", lien: LIEN }),
+    messageRendezVousFixe({ destinataire: "locataire", emetteur: AGENCE, prenom: "Marc", categorie: "plomberie_canalisation", debut: "2026-07-06T07:00:00Z", fin: null, adresse: null, artisan: "Plomberie Durand", lien: LIEN, interlocuteur: "gestionnaire" }),
     messageRappelGeste({ type: "creneau_non_choisi", emetteur: AGENCE, prenom: "Marc", categorie: "plomberie_canalisation", lien: LIEN }),
     messageRappelGeste({ type: "piece_demandee", emetteur: AGENCE, prenom: "Marc", libelle: "RIB", lien: LIEN }),
   ];
@@ -125,13 +125,14 @@ describe("marque blanche et discrétion", () => {
   });
 
   it("la réponse du gestionnaire n'embarque pas le texte : il se lit dans l'espace", () => {
-    const m = messageReponseGestionnaire({ emetteur: AGENCE, prenom: "Marc", lien: LIEN });
+    const m = messageReponseGestionnaire({ emetteur: AGENCE, prenom: "Marc", lien: LIEN, interlocuteur: "gestionnaire" });
     expect(m.html).toMatch(/dans votre espace/);
     expect(m.sujet).toBe(`${AGENCE} vous a répondu`);
   });
 
   it("le rendez-vous se dit à l'heure de Paris, à l'artisan comme au locataire", () => {
-    const base = { emetteur: AGENCE, categorie: "plomberie_canalisation", debut: "2026-07-06T07:00:00Z", fin: "2026-07-06T09:00:00Z", adresse: "9 rue X", artisan: "Plomberie Durand", lien: LIEN };
+    // Lot 47 : AGENCE est un espace d'agence — l'interlocuteur nommé au locataire y est le gestionnaire.
+    const base = { emetteur: AGENCE, categorie: "plomberie_canalisation", debut: "2026-07-06T07:00:00Z", fin: "2026-07-06T09:00:00Z", adresse: "9 rue X", artisan: "Plomberie Durand", lien: LIEN, interlocuteur: "gestionnaire" as const };
     const a = messageRendezVousFixe({ ...base, destinataire: "artisan" });
     const l = messageRendezVousFixe({ ...base, destinataire: "locataire", prenom: "Marc" });
     expect(a.sujet).toBe("Rendez-vous fixé — lundi 6 juillet de 09 h 00 à 11 h 00");

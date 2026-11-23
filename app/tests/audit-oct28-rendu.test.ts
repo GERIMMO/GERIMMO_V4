@@ -52,7 +52,7 @@ const demande = (statut: DemandeRdvArtisan['statut']): DemandeRdvArtisan => ({de
 beforeEach(() => { b.agenda={lignes:[],erreur:false}; b.reglements={lignes:[],erreur:false}; b.demandes={lignes:[],erreur:false}; vi.clearAllMocks(); });
 test('PROD-01 : le rendu inactif ne propose ni contester ni rouvrir', () => {
  const commun={categorie:'plomberie_canalisation',est_declarant:true,imputation_contestee_le:null,declare_le:'2026-10-01',nb_photos:0};
- const html=renderToStaticMarkup(createElement(IncidentsLocataire,{ orgId:'org',peutAgir:false,peutSignaler:false,incidents:[{...commun,id:'ouvert',etat:'qualifie',imputation:'locataire'},{...commun,id:'clos',etat:'clos',imputation:'proprietaire'}] as IncidentLocataire[] }));
+ const html=renderToStaticMarkup(createElement(IncidentsLocataire,{ orgId:'org',peutAgir:false,peutSignaler:false,interlocuteur:'bailleur',incidents:[{...commun,id:'ouvert',etat:'qualifie',imputation:'locataire'},{...commun,id:'clos',etat:'clos',imputation:'proprietaire'}] as IncidentLocataire[] }));
  expect(html).not.toContain('Contester qui paie'); expect(html).not.toContain('Le problème persiste');
 });
 test('PROD-03 : une panne agenda propose de réessayer, sans faux 404', async () => {
@@ -89,7 +89,7 @@ test('PROD-06 : accueil présente le report demandé sur mission planifiée', as
 
 test.each([true, false])('PROD-01 : droits du titulaire actif=%s', actif => {
  const incident={id:'i',categorie:'plomberie_canalisation',est_declarant:actif,etat:'qualifie',imputation:'locataire',imputation_contestee_le:null,declare_le:'2026-10-01',nb_photos:0};
- const html=renderToStaticMarkup(createElement(IncidentsLocataire,{orgId:'org',peutAgir:true,peutSignaler:true,incidents:[incident] as IncidentLocataire[]}));
+ const html=renderToStaticMarkup(createElement(IncidentsLocataire,{orgId:'org',peutAgir:true,peutSignaler:true,interlocuteur:'bailleur',incidents:[incident] as IncidentLocataire[]}));
  expect(html.includes('Contester qui paie')).toBe(actif);
 });
 test('PROD-03 : une lecture réussie sans dossier reste un 404', async () => {

@@ -9,6 +9,8 @@ import { ConsultationDocument } from "../consultation-document";
 import { CarteConge } from "./carte-conge";
 import { aEchoue, LectureImpossible, PanneLecture } from "../panne-lecture";
 import type { BailLocataire } from "../types";
+import { lireIdentiteContact } from "../identite-contact";
+import { interlocuteurDeLIdentite } from "@/lib/identite-contact-locataire";
 import { mentionEtage } from "@/lib/etage";
 
 export const metadata = { title: "Mon logement" };
@@ -20,6 +22,8 @@ export default async function PageLogementLocataire(
 ) {
   const { orgId } = await props.params;
   const { supabase } = await verifierAccesEspaceLocataire(orgId);
+  // Lot 47 : « votre gestionnaire » seulement dans un espace d'agence ; chez un propriétaire, « votre bailleur ».
+  const qui = interlocuteurDeLIdentite(await lireIdentiteContact(orgId));
 
   const [
     { data: baux, error: eBaux },
@@ -80,7 +84,7 @@ export default async function PageLogementLocataire(
   const depotRecu = Number(depot?.encaisse ?? 0);
 
   return (
-    <FenetreLotProvider orgId={orgId}>
+    <FenetreLotProvider orgId={orgId} interlocuteur={qui}>
     <div className="loc-logement space-y-4">
       {/* L'en-tête porte sa mention, comme ses pages sœurs (24/09) : la carte
           était vide à droite du titre. */}
@@ -100,7 +104,7 @@ export default async function PageLogementLocataire(
       </div>
 
       {aEchoue(eDepot, eInfos, eIntentions, eEdl) && (
-        <PanneLecture quoi="le détail de votre logement" />
+        <PanneLecture quoi="le détail de votre logement" interlocuteur={qui} />
       )}
 
       <div className="loc-carte">
@@ -154,7 +158,7 @@ export default async function PageLogementLocataire(
             <span>Préavis si vous partez</span>
             <span className="text-right">
               {zoneInconnue
-                ? "1 mois si le logement est en zone tendue, 3 mois sinon (zone en cours de vérification par votre gestionnaire)"
+                ? `1 mois si le logement est en zone tendue, 3 mois sinon (zone en cours de vérification par votre ${qui})`
                 : <>
                     {preavisMois} mois
                     {preavisMois === 1 ? (bailMeuble ? " (logement meublé)" : " (zone tendue : secteur où les logements à louer manquent, la loi y réduit le préavis)") : ""}
@@ -295,7 +299,7 @@ export default async function PageLogementLocataire(
                           ? // Une date passée ne s'annonce pas comme à venir
                             // (27/09) : « prévu le 25/09 » un 27/09.
                             e.date_edl.slice(0, 10) < aujourdhuiParis()
-                            ? ` — prévu le ${formaterDate(e.date_edl)} (date dépassée : voyez-la avec votre gestionnaire)`
+                            ? ` — prévu le ${formaterDate(e.date_edl)} (date dépassée : voyez-la avec votre ${qui})`
                             : ` — prévu le ${formaterDate(e.date_edl)}`
                           : ""}
                       </span>
@@ -306,7 +310,7 @@ export default async function PageLogementLocataire(
             </div>
             <p className="mt-3 text-[13px] text-muted-foreground">
               L&apos;état des lieux se signe sur place, le jour du rendez-vous avec
-              votre gestionnaire — vous en gardez un exemplaire.
+              votre {qui} — vous en gardez un exemplaire.
             </p>
           </div>
         );
@@ -322,6 +326,7 @@ export default async function PageLogementLocataire(
             (i) => !i.traitee_le
           )?.created_at ?? null
         }
+        interlocuteur={qui}
       />
     </div>
     </FenetreLotProvider>

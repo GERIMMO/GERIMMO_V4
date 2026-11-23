@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BORD_ETAT, BOUTON_URGENCE } from "./pastille-locataire";
+import type { InterlocuteurLocataire } from "@/lib/interlocuteur-locataire";
 
 // Les réflexes d'urgence de la maquette v10. Ils ne vivaient que sur la page
 // « Mes demandes » ; depuis la revue du 11/09, l'entrée de menu et la carte
@@ -18,9 +19,10 @@ import { BORD_ETAT, BOUTON_URGENCE } from "./pastille-locataire";
 //  - « votre gestionnaire est prévenu immédiatement » était faux pour un
 //    signalement ordinaire : l'e-mail ne part que pour une urgence déclarée
 //    comme telle (« Est-ce urgent ? » → oui).
-export function ReflexesUrgence({ hrefSignalement, surFormulaire = false }: { hrefSignalement?: string; surFormulaire?: boolean } = {}) {
+// Lot 47 : `interlocuteur` — « gestionnaire » dans un espace d'agence, « bailleur » chez un propriétaire.
+export function ReflexesUrgence({ hrefSignalement, surFormulaire = false, interlocuteur }: { hrefSignalement?: string; surFormulaire?: boolean; interlocuteur: InterlocuteurLocataire }) {
   const suite =
-    " — répondez « oui » à « Est-ce urgent ? » : votre gestionnaire est alors prévenu par e-mail.";
+    ` — répondez « oui » à « Est-ce urgent ? » : votre ${interlocuteur} est alors prévenu par e-mail.`;
   return (
     <div id="consignes-urgence" className={`loc-carte scroll-mt-24 ${BORD_ETAT.urgence}`}>
       <h2 className="titre-carte text-base font-medium">En cas d&apos;urgence</h2>
@@ -60,7 +62,7 @@ export function ReflexesUrgence({ hrefSignalement, surFormulaire = false }: { hr
             {suite}
           </>
         ) : (
-          surFormulaire ? `Puis signalez-le ici${suite}` : "Prévenez ensuite votre gestionnaire pour organiser le suivi."
+          surFormulaire ? `Puis signalez-le ici${suite}` : `Prévenez ensuite votre ${interlocuteur} pour organiser le suivi.`
         )}
       </p>
     </div>

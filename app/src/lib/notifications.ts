@@ -55,6 +55,7 @@ import { echapperMarque, emailValide, nomMarque } from "./marque-organisation";
 import { chargerMarque } from "./marque-organisation-serveur";
 import { creneauEnToutesLettres, heureDuRendezVous, jourDuRendezVous } from "./rappel-email";
 import { libelleMotifRdv, phraseRappel } from "./rendez-vous-locataire";
+import { interlocuteurLocataire, type InterlocuteurLocataire } from "./interlocuteur-locataire";
 import { lireEnvoisProposes } from "./envois-suspendus";
 import { adresseDuSite } from "./site";
 import { clientDeService } from "./supabase/service";
@@ -195,6 +196,8 @@ export function messageRendezVousFixe(p: {
   adresse: string | null;
   artisan: string;
   lien: string | null;
+  /** Lot 47 : qui le locataire prévient s'il ne peut pas être là (« gestionnaire » seulement en agence). */
+  interlocuteur: InterlocuteurLocataire;
 }): Message {
   const quand = `${jourDuRendezVous(p.debut)} ${creneauEnToutesLettres(p.debut, p.fin)}`;
   const cat = categorieLisible(p.categorie);
@@ -204,7 +207,7 @@ export function messageRendezVousFixe(p: {
   ];
   const pourLocataire = [
     `Le rendez-vous pour « ${cat} » est fixé au ${quand}. L'intervenant sera ${p.artisan}.`,
-    "Merci de permettre l'accès au logement sur ce créneau. Si vous ne pouvez pas être présent, prévenez votre gestionnaire au plus tôt.",
+    `Merci de permettre l'accès au logement sur ce créneau. Si vous ne pouvez pas être présent, prévenez votre ${p.interlocuteur} au plus tôt.`,
   ];
   return {
     sujet: `Rendez-vous fixé — ${quand}`,
@@ -435,6 +438,8 @@ export function messageReponseReportRdv(p: {
   lien: string | null;
   /** P1-08 : le rappel de la veille n'est promis que si le superviseur a ouvert cet envoi (fermé par défaut). */
   rappelPromis?: boolean;
+  /** Lot 47 : qui appelle le locataire après un refus (« gestionnaire » seulement en agence). */
+  interlocuteur: InterlocuteurLocataire;
 }): Message {
   const cat = categorieLisible(p.categorie);
   if (p.reponse.type === "acceptee") {
@@ -462,7 +467,7 @@ export function messageReponseReportRdv(p: {
       emetteur: p.emetteur,
       lignes: [
         `Aucune de vos disponibilités ne convient à l'artisan pour « ${cat} »${p.reponse.motif ? ` : « ${extrait(p.reponse.motif, 300)} »` : ""}.`,
-        `Votre rendez-vous du ${ancien} est maintenu en attendant. Votre gestionnaire va vous appeler pour trouver une solution.`,
+        `Votre rendez-vous du ${ancien} est maintenu en attendant. Votre ${p.interlocuteur} va vous appeler pour trouver une solution.`,
       ],
       action: { libelle: "Voir ma demande", lien: p.lien },
     }),
@@ -529,6 +534,8 @@ export function messageReponseGestionnaire(p: {
   emetteur: string;
   prenom?: string | null;
   lien: string | null;
+  /** Lot 47 : qui a répondu — le gestionnaire dans un espace d'agence, le bailleur ailleurs. */
+  interlocuteur: InterlocuteurLocataire;
 }): Message {
   return {
     sujet: `${p.emetteur} vous a répondu`,
@@ -538,7 +545,7 @@ export function messageReponseGestionnaire(p: {
       emetteur: p.emetteur,
       // Le texte de la réponse reste dans l'espace : un e-mail se transfère,
       // se lit sur un écran partagé, s'archive chez un tiers.
-      lignes: ["Votre gestionnaire a répondu à votre message. Lisez sa réponse dans votre espace, et poursuivez l'échange au même endroit si besoin."],
+      lignes: [`Votre ${p.interlocuteur} a répondu à votre message. Lisez sa réponse dans votre espace, et poursuivez l'échange au même endroit si besoin.`],
       action: { libelle: "Lire la réponse", lien: p.lien },
     }),
   };
@@ -875,6 +882,17 @@ async function emetteur(db: SupabaseClient, orgId: string): Promise<string> {
 }
 
 /**
+ * Lot 47 : l'interlocuteur que le courrier nomme au locataire, selon le type de l'espace (« votre gestionnaire »
+ * seulement dans un espace d'agence, « votre bailleur » ailleurs). Lu avec le client fourni (gérant ou service), comme
+ * le nom de l'émetteur ; une lecture en échec donne « bailleur » (règle `interlocuteurLocataire`) — un courrier ne
+ * s'arrête pas pour cela.
+ */
+async function interlocuteurDuLocataire(db: SupabaseClient, orgId: string): Promise<InterlocuteurLocataire> {
+  const { data, error } = await db.from("organizations").select("type").eq("id", orgId).maybeSingle();
+  return interlocuteurLocataire(error ? null : (data as { type?: string | null } | null)?.type);
+}
+
+/**
  * L'envoi lui-même. Tout est absorbé : pas d'adresse, refus du service,
  * exception — consigné ; seul un arrêt de supervision remonte à la mission.
  */
@@ -1177,8 +1195,8 @@ export async function notifierRendezVousFixe(db: SupabaseClient, orgId: string, 
     if (!iv?.debut_prevu) return rien;
     const [inc, artisan, nom] = await Promise.all([lireIncident(db, orgId, iv.incident_id), lireArtisan(db, iv.artisan_id), emetteur(db, orgId)]);
     if (!inc || !artisan) return rien;
-    const [lieu, locataire] = await Promise.all([lireLieu(db, inc.lot_id), lireLocataire(db, orgId, inc)]);
-    const base = { emetteur: nom, categorie: inc.categorie, debut: iv.debut_prevu, fin: iv.fin_prevue, adresse: lieu.adresse, artisan: artisan.raison_sociale };
+    const [lieu, locataire, interlocuteur] = await Promise.all([lireLieu(db, inc.lot_id), lireLocataire(db, orgId, inc), interlocuteurDuLocataire(db, orgId)]);
+    const base = { emetteur: nom, categorie: inc.categorie, debut: iv.debut_prevu, fin: iv.fin_prevue, adresse: lieu.adresse, artisan: artisan.raison_sociale, interlocuteur };
     const [a, l] = await Promise.all([
       expedier(db, {
         orgId, to: artisan.email, role: "artisan", evenement: "rendez_vous_fixe", objet: iv.id,
@@ -1243,13 +1261,13 @@ export async function notifierCreneauxAChoisir(db: SupabaseClient, orgId: string
 /** Réponse du gestionnaire (`repondre_message_personne`) → le locataire. */
 export async function notifierReponseGestionnaire(db: SupabaseClient, orgId: string, personId: string): Promise<ResultatNotification> {
   try {
-    const [personne, nom] = await Promise.all([lirePersonne(db, orgId, personId), emetteur(db, orgId)]);
+    const [personne, nom, interlocuteur] = await Promise.all([lirePersonne(db, orgId, personId), emetteur(db, orgId), interlocuteurDuLocataire(db, orgId)]);
     if (!personne) return { envoyee: false, motif: "introuvable" };
     const {data: dernier} = await db.from("messages").select("id").eq("organization_id",orgId).eq("person_id",personId).eq("auteur","gerant").is("lu_le",null).order("created_at",{ascending:false}).limit(1).maybeSingle();
     if (!dernier) return {envoyee:false,motif:"introuvable"};
     return expedier(db, {
       orgId, to: personne.email, role: "locataire", evenement: "reponse_gestionnaire", objet: dernier.id,
-      message: messageReponseGestionnaire({ emetteur: nom, prenom: personne.prenom, lien: lien(`/locataire/${orgId}/contact`) }),
+      message: messageReponseGestionnaire({ emetteur: nom, prenom: personne.prenom, lien: lien(`/locataire/${orgId}/contact`), interlocuteur }),
     });
   } catch (e) {
     console.error("[notifications] reponse_gestionnaire :", e instanceof Error ? e.message : e);
@@ -1593,7 +1611,7 @@ export async function notifierReponseReportRdv(db: SupabaseClient, orgId: string
     if (!d || d.type !== "report" || (d.statut !== "acceptee" && d.statut !== "refusee")) return { envoyee: false, motif: "introuvable" };
     const iv = await lireIntervention(db, orgId, d.intervention_id);
     if (!iv) return { envoyee: false, motif: "introuvable" };
-    const [inc, nom] = await Promise.all([lireIncident(db, orgId, iv.incident_id), emetteur(db, orgId)]);
+    const [inc, nom, interlocuteur] = await Promise.all([lireIncident(db, orgId, iv.incident_id), emetteur(db, orgId), interlocuteurDuLocataire(db, orgId)]);
     if (!inc) return { envoyee: false, motif: "introuvable" };
     const locataire = await lireLocataire(db, orgId, inc);
     let reponse: { type: "acceptee"; debut: string; fin: string | null } | { type: "refusee"; motif: string | null };
@@ -1611,6 +1629,7 @@ export async function notifierReponseReportRdv(db: SupabaseClient, orgId: string
         emetteur: nom, prenom: locataire?.prenom, categorie: inc.categorie, reponse, rdvDebut: d.rdv_debut, rdvFin: d.rdv_fin,
         lien: lien(`/locataire/${orgId}/demandes`),
         rappelPromis: d.statut === "acceptee" ? (await lireEnvoisProposes(db)).rappel_rendez_vous : false,
+        interlocuteur,
       }),
     });
   } catch (e) {

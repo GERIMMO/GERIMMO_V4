@@ -16,7 +16,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const rpc = vi.fn();
 const envois = vi.hoisted(() => [] as Record<string, unknown>[]);
-vi.mock("@/lib/supabase/service", () => ({ clientDeService: () => ({ rpc: (...a: unknown[]) => rpc(...a) }) }));
+vi.mock("@/lib/supabase/service", () => ({ clientDeService: () => ({
+    rpc: (...a: unknown[]) => rpc(...a),
+    // Lot 47 : la passe des relances lit le type de chaque espace (ici, un propriétaire qui gère lui-même).
+    from: () => ({ select: () => ({ in: async (_colonne: string, ids: string[]) => ({ data: ids.map((id) => ({ id, type: "proprietaire_direct" })), error: null }) }) }),
+  }) }));
 vi.mock("@/lib/email", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/email")>()),
   envoyerEmail: async (p: Record<string, unknown>) => { envois.push(p); return { id: `fictif-${envois.length}` }; },

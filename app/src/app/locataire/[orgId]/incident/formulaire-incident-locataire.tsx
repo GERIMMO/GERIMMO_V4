@@ -9,6 +9,7 @@ import { declarationDuBrouillon, validerBrouillonIncident, type BrouillonInciden
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { declarerMonIncident, type EtatIncidentAction } from "@/app/actions/incidents";
+import type { InterlocuteurLocataire } from "@/lib/interlocuteur-locataire";
 import { compresserChampFichiers } from "@/lib/compresser-image";
 import { categorieIncident, CATEGORIES_INCIDENT, PIECES_INCIDENT } from "@/lib/incidents";
 import {
@@ -35,7 +36,8 @@ const classeSelect =
 // le champ suivant de 160 px ; il devient un panneau à fond ardoise, et il ne
 // paraît qu'une fois la catégorie choisie — avant, une ligne d'aide sous le
 // sélecteur suffit.
-function EncartQuiPaiera({ slug, plat = false }: { slug: string; plat?: boolean }) {
+// Lot 47 : `interlocuteur` — « gestionnaire » dans un espace d'agence, « bailleur » chez un propriétaire.
+function EncartQuiPaiera({ slug, plat = false, interlocuteur }: { slug: string; plat?: boolean; interlocuteur: InterlocuteurLocataire }) {
   const categorie = categorieIncident(slug);
 
   if (!categorie) {
@@ -80,13 +82,13 @@ function EncartQuiPaiera({ slug, plat = false }: { slug: string; plat?: boolean 
             {chargeLocataire ? (
               <p className="text-muted-foreground">
                 Le propriétaire peut refuser de prendre en charge financièrement
-                l&apos;incident. Votre gestionnaire peut missionner un artisan pour
+                l&apos;incident. Votre {interlocuteur} peut missionner un artisan pour
                 vous ; l&apos;intervention vous est alors refacturée après votre
                 accord sur le devis.
               </p>
             ) : (
               <p className="text-muted-foreground">
-                Vous n&apos;avancez rien : votre gestionnaire missionne
+                Vous n&apos;avancez rien : votre {interlocuteur} missionne
                 l&apos;artisan après examen de votre demande.
               </p>
             )}
@@ -97,17 +99,17 @@ function EncartQuiPaiera({ slug, plat = false }: { slug: string; plat?: boolean 
               {/* .loc-tag.bleu a le fond ardoise : sur le panneau plat, la
                   pastille se fondrait dans le fond — on la remet sur blanc. */}
               <span className={`loc-tag bleu${plat ? " !bg-[var(--carte)]" : ""}`}>
-                À examiner par votre gestionnaire
+                À examiner par votre {interlocuteur}
               </span>
             </p>
             <p className="text-muted-foreground">
-              La cause ne se déduit pas de la catégorie : votre gestionnaire tranche
+              La cause ne se déduit pas de la catégorie : votre {interlocuteur} tranche
               et vous êtes informé immédiatement.
             </p>
           </>
         )}
         <p className="text-xs text-muted-foreground">
-          Repère indicatif — la décision finale revient à votre gestionnaire.
+          Repère indicatif — la décision finale revient à votre {interlocuteur}.
         </p>
       </div>
     </div>
@@ -117,11 +119,11 @@ function EncartQuiPaiera({ slug, plat = false }: { slug: string; plat?: boolean 
 // La photo est le PREMIER champ, avant la description (RM-19.2.2). La
 // catégorie est pilotée : elle alimente l'encart « Qui paiera la réparation »
 // (retour de recette 24/08, alignement maquette pLocDeclarer).
-export function FormulaireIncidentLocataire({ orgId, compteId }: { orgId: string; compteId: string }) {
+export function FormulaireIncidentLocataire({ orgId, compteId, interlocuteur }: { orgId: string; compteId: string; interlocuteur: InterlocuteurLocataire }) {
   const cle = cleCopieFichiers("incident", compteId, orgId);
-  return <RepriseLocale cle={cle} valider={validerBrouillonIncident}>{copie => <SaisieIncident orgId={orgId} cleLocale={cle} copie={copie} />}</RepriseLocale>;
+  return <RepriseLocale cle={cle} valider={validerBrouillonIncident}>{copie => <SaisieIncident orgId={orgId} cleLocale={cle} copie={copie} interlocuteur={interlocuteur} />}</RepriseLocale>;
 }
-function SaisieIncident({ orgId, cleLocale, copie }: { orgId: string; cleLocale: string; copie: CopieFichiers<BrouillonIncident> | null }) {
+function SaisieIncident({ orgId, cleLocale, copie, interlocuteur }: { orgId: string; cleLocale: string; copie: CopieFichiers<BrouillonIncident> | null; interlocuteur: InterlocuteurLocataire }) {
   const { enregistrer, differer, statut } = useCopieFichiers(cleLocale, copie);
   const [saisie, setSaisie] = useState<BrouillonIncident>(() => copie?.donnees ?? {
     commande: crypto.randomUUID(), categorie: "", piece: "", photos: [], description: "", anciennete: "", urgence: "normale", envoye: false, bilan: {},
@@ -315,7 +317,7 @@ function SaisieIncident({ orgId, cleLocale, copie }: { orgId: string; cleLocale:
               catégorie choisie (24/09). */}
           {categorieIncident(categorie) && (
             <div className="min-[861px]:hidden">
-              <EncartQuiPaiera slug={categorie} plat />
+              <EncartQuiPaiera slug={categorie} plat interlocuteur={interlocuteur} />
             </div>
           )}
 
@@ -377,7 +379,7 @@ function SaisieIncident({ orgId, cleLocale, copie }: { orgId: string; cleLocale:
               value={saisie.disponibilites ?? ""} onChange={e => setSaisie(s => ({ ...s, disponibilites: e.target.value }))}
             />
             <p id="disponibilites-aide" className="text-xs text-muted-foreground">
-              Transmises à votre gestionnaire pour préparer le rendez-vous. Cela ne réserve aucun créneau.
+              Transmises à votre {interlocuteur} pour préparer le rendez-vous. Cela ne réserve aucun créneau.
             </p>
           </div>
 
@@ -413,7 +415,7 @@ function SaisieIncident({ orgId, cleLocale, copie }: { orgId: string; cleLocale:
       </div>
 
       <div className="max-[860px]:hidden">
-        <EncartQuiPaiera slug={categorie} />
+        <EncartQuiPaiera slug={categorie} interlocuteur={interlocuteur} />
       </div>
     </div>
   );

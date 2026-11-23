@@ -8,6 +8,8 @@ import { aEchoue, PanneLecture } from "../panne-lecture";
 import { BORD_ETAT } from "../pastille-locataire";
 import type { CreneauPropose, SuiviIntervention } from "./suivi-intervention";
 import { signalementOuvert } from "../types";
+import { lireIdentiteContact } from "../identite-contact";
+import { interlocuteurDeLIdentite } from "@/lib/identite-contact-locataire";
 import { lireEnvoisProposes } from "@/lib/envois-suspendus";
 import { instantRdv, type RendezVousLocataire } from "@/lib/rendez-vous-locataire";
 import { etiquetteNouveauxMessages, lireEchangesNonLus } from "@/lib/echanges-intervention";
@@ -33,6 +35,8 @@ export default async function PageDemandesLocataire(
 ) {
   const { orgId } = await props.params;
   const { supabase, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
+  // Lot 47 : « votre gestionnaire » seulement dans un espace d'agence ; chez un propriétaire, « votre bailleur ».
+  const interlocuteur = interlocuteurDeLIdentite(await lireIdentiteContact(orgId));
 
   const [
     { data: incidentsBruts, error: eIncidents },
@@ -126,11 +130,11 @@ export default async function PageDemandesLocataire(
       </div>
 
       {!eRendezVous && <RendezVousLocataireConfirme orgId={orgId} lignes={rendezVous} selection={typeof selection === "string" ? selection : undefined}/>}
-      {aEchoue(eIncidents) && <PanneLecture quoi="vos demandes" />}
+      {aEchoue(eIncidents) && <PanneLecture quoi="vos demandes" interlocuteur={interlocuteur} />}
       {/* Le suivi tombé ne doit pas faire croire qu'il ne se passe rien : sans
           lui, la carte n'affiche que l'état de l'incident, muet sur l'artisan. */}
       {!aEchoue(eIncidents) && aEchoue(eSuivis, eCreneaux, eRendezVous) && (
-        <PanneLecture quoi="l'avancement de vos demandes" />
+        <PanneLecture quoi="l'avancement de vos demandes" interlocuteur={interlocuteur} />
       )}
 
       {/* Le seul geste attendu passe en premier, et la carte entière mène à
@@ -182,6 +186,7 @@ export default async function PageDemandesLocataire(
         peutSignaler={peutSignaler}
         lectureEnEchec={aEchoue(eIncidents)}
         rappelPromis={rappelPromis}
+        interlocuteur={interlocuteur}
       />
       {!eSuivis && [...new Set(suivis.flatMap(s=>s.intervention_id?[s.intervention_id]:[]))].map(id=><EchangesIntervention key={id} intervention={id} />)}
     </div>

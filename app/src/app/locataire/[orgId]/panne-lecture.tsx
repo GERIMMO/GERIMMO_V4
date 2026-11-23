@@ -1,3 +1,5 @@
+import type { InterlocuteurLocataire } from "@/lib/interlocuteur-locataire";
+
 // Une lecture qui échoue ne doit JAMAIS ressembler à un espace vide.
 //
 // Relevé du 11/09 : partout dans le produit, le champ `error` des lectures
@@ -19,14 +21,15 @@ export function aEchoue(...erreurs: unknown[]): boolean {
 /**
  * Bandeau de tête de page.
  * @param quoi groupe nominal au singulier ou au pluriel : « vos documents ».
+ * @param interlocuteur lot 47 : « gestionnaire » dans un espace d'agence, « bailleur » chez un propriétaire.
  */
-export function PanneLecture({ quoi }: { quoi: string }) {
+export function PanneLecture({ quoi, interlocuteur }: { quoi: string; interlocuteur: InterlocuteurLocataire }) {
   return (
     <div className="err !mb-0" role="alert">
       <b className="font-semibold">Impossible d&apos;afficher {quoi}.</b> Ce
       n&apos;est pas que vous n&apos;avez rien : la connexion à votre espace a
-      échoué. Rechargez la page dans un instant — si cela dure, prévenez votre
-      gestionnaire.
+      échoué. Rechargez la page dans un instant — si cela dure, prévenez votre{" "}
+      {interlocuteur}.
     </div>
   );
 }

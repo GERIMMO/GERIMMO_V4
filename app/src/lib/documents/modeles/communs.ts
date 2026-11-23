@@ -380,10 +380,9 @@ export async function chargerDetenteursBien(
 
 // Phase 3 (C41, C52, C70, C71) : l'interlocuteur vers lequel un document renvoie le locataire. Il n'y a de « gestionnaire »
 // que dans un espace d'agence ; ailleurs le bailleur gère lui-même, et c'est lui que le locataire contacte. Le modèle garde
-// son article (« votre gestionnaire », « avec le bailleur »).
-export function interlocuteurLocataire(typeOrganisation: string | null | undefined): "gestionnaire" | "bailleur" {
-  return typeOrganisation === "agence" ? "gestionnaire" : "bailleur";
-}
+// son article (« votre gestionnaire », « avec le bailleur »). Lot 47 : la règle vit dans un module pur, partagé avec les
+// e-mails et les écrans du locataire (composants client compris) ; les modèles la reprennent d'ici, sans changement.
+export { interlocuteurLocataire } from "@/lib/interlocuteur-locataire";
 
 // Phase 3 (C16, C24) : le cadre où signe le bailleur d'un document du bail. « ou son mandataire » seulement dans un espace
 // d'agence ; un propriétaire qui gère lui-même n'a pas de mandataire.

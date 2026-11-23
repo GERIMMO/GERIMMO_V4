@@ -1,4 +1,5 @@
 import { lireIdentiteContact } from "../identite-contact";
+import { interlocuteurDeLIdentite } from "@/lib/identite-contact-locataire";
 import { AssistantPrive } from "@/components/assistant-prive";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
@@ -56,7 +57,7 @@ export default async function PageContactLocataire(
       </div>
 
       {aEchoue(eGestionnaire, eFil) && (
-        <PanneLecture quoi="votre fil de messages" />
+        <PanneLecture quoi="votre fil de messages" interlocuteur={interlocuteurDeLIdentite(identiteContact)} />
       )}
 
       <div className="loc-grille">
@@ -66,6 +67,7 @@ export default async function PageContactLocataire(
           agence={identiteContact.nom ?? (identiteContact.agence ? "votre gestionnaire" : "votre bailleur")}
           lectureSeule={!adhesionActive}
           lectureEnEchec={aEchoue(eFil)}
+          interlocuteur={interlocuteurDeLIdentite(identiteContact)}
         />
         <div className="space-y-4">
           {g && (

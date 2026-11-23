@@ -7,6 +7,7 @@ import { envoyerMessageLocataire, type EtatMessage } from "@/app/actions/message
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Label } from "@/components/ui/label";
 import { LectureImpossible } from "../panne-lecture";
+import type { InterlocuteurLocataire } from "@/lib/interlocuteur-locataire";
 
 export type MessageFil = {
   id: string;
@@ -32,10 +33,13 @@ export function FilMessages({
   agence,
   lectureSeule = false,
   lectureEnEchec = false,
+  interlocuteur,
 }: {
   orgId: string;
   messages: MessageFil[];
   agence: string;
+  /** Lot 47 : « gestionnaire » dans un espace d'agence, « bailleur » chez un propriétaire. */
+  interlocuteur: InterlocuteurLocataire;
   // Bail terminé : l'historique reste lisible, l'envoi est fermé
   lectureSeule?: boolean;
   // La lecture du fil a échoué : un fil vide dirait qu'on ne s'est jamais écrit
@@ -98,8 +102,8 @@ export function FilMessages({
       {lectureSeule ? (
         <p className="mt-4 text-xs text-muted-foreground">
           Votre bail est terminé : le fil reste consultable, mais l&apos;envoi de
-          nouveaux messages est fermé. Besoin de joindre votre ancien
-          gestionnaire ? Ses coordonnées figurent sur cette page, dans la carte
+          nouveaux messages est fermé. Besoin de joindre votre ancien{" "}
+          {interlocuteur} ? Ses coordonnées figurent sur cette page, dans la carte
           «&nbsp;{agence}&nbsp;».
         </p>
       ) : (

@@ -45,7 +45,8 @@ test("signalement du locataire avec ses disponibilités : enregistrées, lues pa
     const champ = page.getByLabel("Vos disponibilités pour une intervention (facultatif)", { exact: true });
     await expect(champ).toBeVisible();
     await expect(champ).toHaveAttribute("maxlength", "300");
-    await expect(page.locator("#disponibilites-aide")).toHaveText("Transmises à votre gestionnaire pour préparer le rendez-vous. Cela ne réserve aucun créneau.");
+    // Lot 47 : espace du propriétaire direct de démonstration, sans gestionnaire — le texte nomme le bailleur.
+    await expect(page.locator("#disponibilites-aide")).toHaveText("Transmises à votre bailleur pour préparer le rendez-vous. Cela ne réserve aucun créneau.");
     await champ.fill(DISPONIBILITES);
     expect(await debordementHorizontal(page)).toBeLessThanOrEqual(1);
     await champ.scrollIntoViewIfNeeded();

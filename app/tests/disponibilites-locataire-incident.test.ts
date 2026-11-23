@@ -32,10 +32,13 @@ import { DISPONIBILITES_LOCATAIRE_MAX } from "@/lib/incidents";
 
 const COMMANDE = "11111111-1111-4111-8111-111111111111";
 let echecDisponibilites = false;
+// Lot 47 : le type de l'espace, lu dans `organisations_portail` pour nommer l'interlocuteur du locataire.
+let typeEspace = "agence";
 
 beforeEach(() => {
   vi.clearAllMocks();
   echecDisponibilites = false;
+  typeEspace = "agence";
   banc.rpc.mockImplementation(async (nom: string) => {
     if (nom === "declarer_mon_incident_reprise") return { data: { incident_id: "incident-test", rejoue: false }, error: null };
     if (nom === "indiquer_mes_disponibilites_incident" && echecDisponibilites) return { data: null, error: { message: "Signalement introuvable" } };
@@ -43,7 +46,10 @@ beforeEach(() => {
   });
   const chaine = { eq: vi.fn(), then: (resolve: (r: unknown) => unknown) => Promise.resolve({ data: [], error: null }).then(resolve) };
   chaine.eq.mockReturnValue(chaine);
-  banc.documents.mockReturnValue({ select: () => chaine });
+  banc.documents.mockImplementation((table: string) =>
+    table === "organisations_portail"
+      ? { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { type: typeEspace }, error: null }) }) }) }
+      : { select: () => chaine });
 });
 
 function declaration(disponibilites?: string) {
@@ -91,6 +97,16 @@ describe("signalement du locataire : ses disponibilités", () => {
     expect(r.incidentId).toBe("incident-test");
     expect(r.succes).toContain("Signalement envoyé");
     expect(r.avertissement).toBe("Vos disponibilités n’ont pas pu être enregistrées : indiquez-les à votre gestionnaire par message.");
+  });
+
+  // Lot 47 : chez un propriétaire qui gère lui-même, le locataire écrit à son bailleur, pas à un gestionnaire.
+  it("chez un propriétaire, l'avertissement et le succès nomment le bailleur", async () => {
+    echecDisponibilites = true;
+    typeEspace = "proprietaire_direct";
+    const r = await declarerMonIncident("org-test", {}, declaration("Samedi matin"));
+    expect(r.avertissement).toBe("Vos disponibilités n’ont pas pu être enregistrées : indiquez-les à votre bailleur par message.");
+    expect(r.succes).toContain("Signalement envoyé — votre bailleur le verra dans son espace à sa prochaine connexion.");
+    expect(`${r.succes} ${r.avertissement}`).not.toContain("gestionnaire");
   });
 });
 

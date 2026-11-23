@@ -46,8 +46,9 @@ const suivi = (partiel: Partial<SuiviIntervention> = {}): SuiviIntervention => (
   terminee_le: null, creneaux_a_choisir: 0, mes_creneaux_en_attente: 0, creneaux_refuses: 0, arbitrage: false,
   travaux_realises: null, nouvelle_intervention_necessaire: false, photos_apres: [], deja_notee: false, ...partiel,
 });
+// Lot 47 : l'écran reçoit l'interlocuteur du locataire (ici un propriétaire qui gère lui-même : « bailleur »).
 const ecran = (props: Record<string, unknown>) =>
-  texteDe(renderToStaticMarkup(createElement(SuiviInterventionLocataire, { orgId: "org", suivi: suivi(), creneaux: [], peutAgir: true, ...props } as never)));
+  texteDe(renderToStaticMarkup(createElement(SuiviInterventionLocataire, { orgId: "org", suivi: suivi(), creneaux: [], peutAgir: true, interlocuteur: "bailleur", ...props } as never)));
 
 describe("les phrases", () => {
   it("quatre phrases, deux par contexte ; fermé, aucune ne promet", () => {
@@ -87,10 +88,10 @@ describe("après un report accepté par l'artisan", () => {
   const accepte = rv({ demande_id: "d1", demande_type: "report", demande_statut: "acceptee", nouveau_debut: "2026-12-05T13:00:00Z", nouvelle_fin: "2026-12-05T17:00:00Z" });
 
   it("fermé ou non précisé : « notez bien la nouvelle date » ; ouvert : la promesse", () => {
-    for (const etat of [etatDemandeLocataire(accepte), etatDemandeLocataire(accepte, {}), etatDemandeLocataire(accepte, { rappelPromis: false })]) {
+    for (const etat of [etatDemandeLocataire(accepte, { interlocuteur: "bailleur" }), etatDemandeLocataire(accepte, { rappelPromis: false, interlocuteur: "gestionnaire" })]) {
       expect(etat?.detail).toBe("Votre ancien rendez-vous est annulé. Notez bien la nouvelle date : aucun rappel ne vous sera envoyé.");
     }
-    expect(etatDemandeLocataire(accepte, { rappelPromis: true })?.detail).toBe("Votre ancien rendez-vous est annulé. Nous vous rappellerons le nouveau la veille.");
+    expect(etatDemandeLocataire(accepte, { rappelPromis: true, interlocuteur: "bailleur" })?.detail).toBe("Votre ancien rendez-vous est annulé. Nous vous rappellerons le nouveau la veille.");
   });
 
   it("l'écran du locataire transmet l'état jusqu'à cette phrase", () => {
@@ -104,7 +105,7 @@ describe("après un report accepté par l'artisan", () => {
   it("les autres réponses (refus, expiration, attente) ne parlent pas de rappel", () => {
     for (const demande_statut of ["en_attente", "refusee", "expiree"] as const) {
       for (const rappelPromis of [true, false]) {
-        const etat = etatDemandeLocataire(rv({ demande_id: "d1", demande_type: "report", demande_statut }), { rappelPromis });
+        const etat = etatDemandeLocataire(rv({ demande_id: "d1", demande_type: "report", demande_statut }), { rappelPromis, interlocuteur: "bailleur" });
         expect(`${etat?.titre} ${etat?.detail}`, demande_statut).not.toMatch(/rappel/i);
       }
     }
@@ -116,6 +117,7 @@ describe("l'e-mail « votre report est accepté »", () => {
     emetteur: "Jo Exemple", prenom: "Camille", categorie: "plomberie_canalisation",
     reponse: { type: "acceptee" as const, debut: "2026-12-05T13:00:00Z", fin: "2026-12-05T17:00:00Z" },
     rdvDebut: "2026-12-03T07:00:00Z", rdvFin: "2026-12-03T09:00:00Z", lien: "https://exemple.invalid/locataire/org/demandes",
+    interlocuteur: "bailleur" as const,
   };
 
   it("fermé ou non précisé : l'e-mail ne promet pas de rappel", () => {

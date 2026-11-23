@@ -14,6 +14,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 const banc = vi.hoisted(() => ({
   rpc: vi.fn(),
   notifierUrgence: vi.fn(),
+  // Lot 47 : le type de l'espace, lu dans `organisations_portail` pour nommer l'interlocuteur du locataire.
+  typeEspace: "agence" as string,
 }));
 
 vi.mock("@/lib/photos-incident-reprise", () => ({ joindrePhotosAvecReprise: async () => undefined }));
@@ -21,7 +23,13 @@ vi.mock("@/lib/photos-incident-reprise", () => ({ joindrePhotosAvecReprise: asyn
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: vi.fn(), notFound: vi.fn() }));
 vi.mock("@/lib/ged-acces", () => ({
-  verifierLocataire: async () => ({ user: { id: "loc" }, supabase: { rpc: banc.rpc } }),
+  verifierLocataire: async () => ({
+    user: { id: "loc" },
+    supabase: {
+      rpc: banc.rpc,
+      from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { type: banc.typeEspace }, error: null }) }) }) }),
+    },
+  }),
   verifierGerant: async () => ({ user: null, supabase: {} }),
 }));
 vi.mock("@/lib/notifications", () => ({
@@ -42,6 +50,7 @@ import { contesterImputation, declarerMonIncident } from "@/app/actions/incident
 
 beforeEach(() => {
   vi.clearAllMocks();
+  banc.typeEspace = "agence";
   banc.rpc.mockResolvedValue({ data: { incident_id: "incident-1", rejoue: false }, error: null });
 });
 
@@ -85,7 +94,7 @@ describe("« prévenu immédiatement » ne se dit plus quand ce n'est pas vrai",
   });
 
   it("la carte d'urgence ne promet plus « immédiatement », et dit comment prévenir", () => {
-    const html = renderToStaticMarkup(ReflexesUrgence({ hrefSignalement: "/x" }));
+    const html = renderToStaticMarkup(ReflexesUrgence({ hrefSignalement: "/x", interlocuteur: "gestionnaire" }));
     expect(html).not.toContain("immédiatement");
     expect(html).toContain("Est-ce urgent ?");
   });
@@ -93,7 +102,7 @@ describe("« prévenu immédiatement » ne se dit plus quand ce n'est pas vrai",
 
 describe("numéros d'urgence : des cibles de 44 px", () => {
   it("le gaz et le 112 sont des boutons d'appel min-h-11", () => {
-    const html = renderToStaticMarkup(ReflexesUrgence());
+    const html = renderToStaticMarkup(ReflexesUrgence({ interlocuteur: "bailleur" }));
     for (const tel of ["tel:0800473333", "tel:112"]) {
       const lien = html.match(new RegExp(`<a[^>]*href="${tel}"[^>]*>`))?.[0] ?? "";
       expect(lien).toContain("min-h-11");
@@ -109,6 +118,17 @@ describe("vocabulaire du locataire : « gestionnaire », pas « agence »", () =
     const r = await contesterImputation("org", "inc", {}, f);
     expect(r.succes).toContain("votre gestionnaire");
     expect(r.succes).not.toContain("agence");
+  });
+
+  // Lot 47 : chez un propriétaire qui gère lui-même, il n'y a pas de gestionnaire ; le locataire écrit à son bailleur.
+  it("chez un propriétaire, la contestation est transmise au bailleur", async () => {
+    banc.typeEspace = "proprietaire_direct";
+    banc.rpc.mockResolvedValue({ data: null, error: null });
+    const f = new FormData();
+    f.set("message", "Ce n'est pas de mon fait.");
+    const r = await contesterImputation("org", "inc", {}, f);
+    expect(r.succes).toBe("Contestation transmise à votre bailleur. Elle ne suspend pas la réparation.");
+    expect(r.succes).not.toContain("gestionnaire");
   });
 
   it("les idées de message ne poussent plus à envoyer l'assurance par message", () => {

@@ -13,6 +13,8 @@
  *    reconnaissent le résumé par la même règle (estResumeNoticeJoint).
  *  - T16 : un contrat préparé avant les modèles actuels (version g8) imprime les travaux saisis même pour une première location ;
  *    la vue en lecture seule ne peut pas savoir lequel a été signé : dans ce seul cas, elle montre la saisie et renvoie au contrat.
+ *  - T14 : le départage par date comparait les chaînes avec localeCompare ; une date sans fraction (la base omet une fraction
+ *    nulle) passait pour plus récente qu'une date de la même seconde avec fraction. Comparaison par instant, comme la base.
  * Chaque cas échouait avant le correctif.
  */
 import { createHash } from "node:crypto";
@@ -20,8 +22,12 @@ import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { prerender } from "react-dom/static";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { Client } from "pg";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { contexte } from "./fixtures/contexte-document";
+import { verifierBaseDeTest } from "./garde-base";
+
+const URL_BASE = process.env.SUPABASE_DB_URL;
 
 type Ligne = Record<string, unknown>;
 const banc = vi.hoisted(() => ({ tables: {} as Record<string, Ligne[]>, assembler: vi.fn() }));
@@ -95,7 +101,7 @@ import { FormulaireComplementsBail, type ComplementsBailDefauts } from "@/app/ag
 import { lireRecapitulatifPiecesBail } from "@/lib/recapitulatif-pieces-bail";
 import { annexesSignatureBail, type AnnexeSignature, type CircuitBail } from "@/lib/signature-bail";
 import { controlerEnvoi, nomsFichiersPiecesJointes } from "@/lib/signature-envoi";
-import { estResumeNoticeJoint, resumeNoticeRetenu, TITRE_GED_RESUME_NOTICE } from "@/lib/documents-bail";
+import { estResumeNoticeJoint, plusRecentDAbord, resumeNoticeRetenu, TITRE_GED_RESUME_NOTICE } from "@/lib/documents-bail";
 import { ajouterPagesSignature } from "@/lib/signature-bail";
 import { construireBailNu } from "@/lib/documents/modeles/bail-nu";
 import { construireBailMeuble } from "@/lib/documents/modeles/bail-meuble";
@@ -182,6 +188,50 @@ describe("T14 (C01) — la fiche du bail, le récapitulatif et la signature reti
     expect(resumeNoticeRetenu([p("b", "2026-11-01T00:00:00+00:00"), p("a", "2026-11-01T00:00:00+00:00")])?.id).toBe("b");
     expect(resumeNoticeRetenu([p("x", "2026-10-01T00:00:00+00:00"), p("y", "2026-11-01T00:00:00+00:00", JOUR)])?.id).toBe("x");
     expect(resumeNoticeRetenu([])).toBeUndefined();
+  });
+
+  // Reprise du lot 45 (T14) : la base omet une fraction de seconde nulle (« …10:00:00+00:00 », vérifié avec to_json). Le tri
+  // par localeCompare (classement ICU, « . » avant « + ») prenait cet instant pour plus récent que « …10:00:00.5+00:00 ».
+  it("dans la même seconde, une date sans fraction reste la plus ancienne : les trois écrans retiennent le nouveau résumé", async () => {
+    // La base simulée trie ces chaînes dans l'ordre des octets, qui est l'ordre des instants pour un même décalage (+00:00).
+    const r = await troisEcrans(dossier([
+      document("ancien", ANCIEN_TITRE, "2026-11-20T10:00:00+00:00"),
+      document("nouveau", TITRE_GED_RESUME_NOTICE, "2026-11-20T10:00:00.5+00:00"),
+    ]));
+    expect(r.fiche).toEqual({ statut: "Résumé disponible", ouvre: "nouveau" });
+    expect(r.recap).toMatchObject({ statut: "pret" });
+    expect(r.signature).toEqual({ resume: ["nouveau"], manquants: [] });
+  });
+
+  it("les dates se comparent par instant, à la microseconde, quel que soit le décalage écrit", () => {
+    const p = (id: string, created_at: string) => ({ id, titre: TITRE_GED_RESUME_NOTICE, type: "courrier", purged_at: null, created_at });
+    expect(resumeNoticeRetenu([p("b", "2026-11-20T10:00:00.000001+00:00"), p("a", "2026-11-20T10:00:00+00:00")])?.id).toBe("b");
+    expect(resumeNoticeRetenu([p("b", "2026-11-20T10:00:00.12345+00:00"), p("a", "2026-11-20T10:00:00.123451+00:00")])?.id).toBe("a");
+    // 11:00 à Paris (+01:00) est 10:00 UTC : même instant, l'identifiant départage ; 10:30 à Paris précède 10:00 UTC.
+    expect(resumeNoticeRetenu([p("a", "2026-11-20T11:00:00+01:00"), p("b", "2026-11-20T10:00:00Z")])?.id).toBe("b");
+    expect(resumeNoticeRetenu([p("a", "2026-11-20T10:30:00+01:00"), p("b", "2026-11-20T10:00:00+00:00")])?.id).toBe("b");
+  });
+
+  it.skipIf(!URL_BASE)("même ordre que la base : created_at puis id, décroissants, sur les dates telles que la base les écrit", async () => {
+    verifierBaseDeTest(URL_BASE);
+    const db = new Client({ connectionString: URL_BASE });
+    await db.connect();
+    try {
+      // Aucune table : des valeurs littérales, triées par Postgres comme le fait la signature (annexesSignatureBail).
+      const r = await db.query<{ id: string; created_at: string }>(`
+        select id::text, to_json(t)#>>'{}' as created_at from (values
+          ('00000000-0000-4000-8000-00000000000a'::uuid, '2026-11-20 10:00:00+00'::timestamptz),
+          ('00000000-0000-4000-8000-00000000000b'::uuid, '2026-11-20 10:00:00.5+00'::timestamptz),
+          ('00000000-0000-4000-8000-00000000000c'::uuid, '2026-11-20 10:00:00.000001+00'::timestamptz),
+          ('f0000000-0000-4000-8000-000000000000'::uuid, '2026-11-20 10:00:00+00'::timestamptz),
+          ('10000000-0000-4000-8000-000000000000'::uuid, '2026-11-20 10:00:00.5+00'::timestamptz),
+          ('00000000-0000-4000-8000-00000000000d'::uuid, '2026-11-20 09:59:59.999999+00'::timestamptz)
+        ) v(id, t) order by t desc, id desc`);
+      expect(r.rows.map((l) => l.created_at)).toContain("2026-11-20T10:00:00+00:00");
+      expect([...r.rows].reverse().sort(plusRecentDAbord).map((l) => l.id)).toEqual(r.rows.map((l) => l.id));
+    } finally {
+      await db.end();
+    }
   });
 });
 

@@ -110,8 +110,23 @@ export function classerPiecesBail<T extends PieceBail>(pieces: T[], diagnosticId
 // des pièces ; la signature électronique lit le même en base (annexesSignatureBail, même tri). Sans ce tri, la fiche prenait le
 // premier lien lu, souvent l'ancien résumé : « Résumé à actualiser » et l'ancien PDF, quand les deux autres écrans retenaient
 // le nouveau.
-export const plusRecentDAbord = (a: { id: string; created_at: string }, b: { id: string; created_at: string }) =>
-  b.created_at.localeCompare(a.created_at) || b.id.localeCompare(a.id);
+// Reprise du lot 45 (T14) : la base trie created_at par instant, à la microseconde, et omet une fraction nulle
+// (« 2026-11-20T10:00:00+00:00 »). localeCompare (classement ICU) range « . » avant « + » : il prenait cet instant pour plus
+// récent que « 2026-11-20T10:00:00.5+00:00 », et la fiche et le récapitulatif retenaient alors un autre résumé que la signature.
+// Les dates se comparent donc par instant ; l'identifiant (uuid en minuscules) dans l'ordre des octets, comme `order("id")`.
+const INSTANT_BASE = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})(?:\.(\d{1,9}))?(Z|[+-]\d{2}(?::?\d{2})?)$/;
+function microsecondesBase(instant: string): number | null {
+  const m = INSTANT_BASE.exec(instant);
+  if (!m) return null;
+  const decalage = m[4] === "Z" ? "Z" : `${m[4].slice(0, 3)}:${m[4].slice(3).replace(":", "") || "00"}`;
+  const secondes = Date.parse(`${m[1]}T${m[2]}${decalage}`);
+  return Number.isNaN(secondes) ? null : secondes * 1000 + Number((m[3] ?? "").padEnd(6, "0").slice(0, 6));
+}
+const ordreOctets = (x: string, y: string) => (x < y ? -1 : x > y ? 1 : 0);
+export const plusRecentDAbord = (a: { id: string; created_at: string }, b: { id: string; created_at: string }) => {
+  const ia = microsecondesBase(a.created_at), ib = microsecondesBase(b.created_at);
+  return (ia !== null && ib !== null ? Math.sign(ib - ia) : ordreOctets(b.created_at, a.created_at)) || ordreOctets(b.id, a.id);
+};
 export function resumeNoticeRetenu<T extends PieceBail & { created_at: string }>(pieces: T[]): T | undefined {
   return classerPiecesBail([...pieces].sort(plusRecentDAbord), [], null).notices[0];
 }

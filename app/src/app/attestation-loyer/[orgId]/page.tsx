@@ -12,7 +12,8 @@ import { eur, formaterDate, aujourdhuiParis } from "@/lib/ged";
 import { nomComplet } from "@/lib/roles-personnes";
 import { BoutonImprimer } from "@/components/bouton-imprimer";
 import { aEchoue, PanneLecture } from "@/app/locataire/[orgId]/panne-lecture";
-import { identiteContactLocataire, interlocuteurDeLIdentite } from "@/lib/identite-contact-locataire";
+import { interlocuteurDeLIdentite } from "@/lib/identite-contact-locataire";
+import { completerIdentiteContact } from "@/lib/interlocuteur-locataire-serveur";
 import type { BailLocataire } from "@/app/locataire/[orgId]/types";
 
 // Le titre de l'onglet porte la marque de l'émetteur, jamais « Gerimmo »
@@ -69,8 +70,9 @@ export default async function PageAttestationLoyer(
   const emetteur = emetteurBrut ? emetteurAttestation(emetteurBrut as EmetteurAttestationBrut) : null;
   // Lot 47 : « gestionnaire » seulement dans un espace d'agence, lu dans la même identité que l'émetteur (et que le
   // titre « Mon gestionnaire » / « Mon bailleur » de l'espace). La panne le suivait déjà ; les deux refus disaient
-  // « mon gestionnaire » dans tous les espaces.
-  const interlocuteur = interlocuteurDeLIdentite(identiteContactLocataire(eEmetteur ? null : emetteurBrut));
+  // « mon gestionnaire » dans tous les espaces. Reprise : sans émetteur lisible, le type de l'espace complète
+  // l'identité, comme pour ce titre (`completerIdentiteContact`).
+  const interlocuteur = interlocuteurDeLIdentite(await completerIdentiteContact(supabase, orgId, eEmetteur ? null : emetteurBrut));
 
   const aujourdhui = aujourdhuiParis();
   // « de juillet 2026 à septembre 2026 » — avec l'élision devant voyelle

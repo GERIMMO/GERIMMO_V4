@@ -4,6 +4,8 @@
 // le lit dans « Mes demandes » : la date, qui est dit absent, et quoi faire s'il n'est pas d'accord. Il ne lit jamais
 // la précision libre de celui qui a consigné (`mes_rdv_manques_locataire` ne la rend pas).
 
+import { auteurCoteEspace, type InterlocuteurLocataire } from "./interlocuteur-locataire";
+
 export type RendezVousManqueLocataire = {
   incident_id: string;
   intervention_id: string;
@@ -33,11 +35,21 @@ export function rendezVousManquesAffiches(lignes: RendezVousManqueLocataire[], s
   });
 }
 
-/** La phrase lue par le locataire : qui est dit absent, par qui, et la suite. */
-export function phraseRendezVousManque(m: Pick<RendezVousManqueLocataire, "absent" | "consigne_role">): string {
+/**
+ * La phrase lue par le locataire : qui est dit absent, par qui, et la suite.
+ *
+ * Lot 47 (reprise) : `consigne_role = 'gestionnaire'` désigne celui qui gère l'espace. Dans un espace d'agence, c'est le
+ * gestionnaire, et le locataire lisait pourtant « Votre propriétaire » : l'auteur suit l'interlocuteur de l'espace
+ * (`auteurCoteEspace`). Chez un propriétaire qui gère lui-même, le texte d'avant reste.
+ */
+export function phraseRendezVousManque(
+  m: Pick<RendezVousManqueLocataire, "absent" | "consigne_role">,
+  interlocuteur: InterlocuteurLocataire,
+): string {
+  const espace = auteurCoteEspace(interlocuteur);
   if (m.absent === "artisan") {
-    return "Votre propriétaire a consigné que l’artisan ne s’est pas présenté. Un nouveau rendez-vous va être convenu.";
+    return `${espace} a consigné que l’artisan ne s’est pas présenté. Un nouveau rendez-vous va être convenu.`;
   }
-  const qui = m.consigne_role === "artisan" ? "L’artisan a indiqué" : "Votre propriétaire a consigné";
+  const qui = m.consigne_role === "artisan" ? "L’artisan a indiqué" : `${espace} a consigné`;
   return `${qui} que vous étiez absent. Un nouveau rendez-vous va être convenu. Si vous étiez présent, écrivez-le dans la discussion de l’intervention, plus bas dans cette page.`;
 }

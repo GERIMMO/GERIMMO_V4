@@ -10,6 +10,7 @@ import type { CreneauPropose, SuiviIntervention } from "./suivi-intervention";
 import { signalementOuvert } from "../types";
 import { lireIdentiteContact } from "../identite-contact";
 import { interlocuteurDeLIdentite } from "@/lib/identite-contact-locataire";
+import { auteurCoteEspace } from "@/lib/interlocuteur-locataire";
 import { lireEnvoisProposes } from "@/lib/envois-suspendus";
 import { instantRdv, type RendezVousLocataire } from "@/lib/rendez-vous-locataire";
 import { etiquetteNouveauxMessages, lireEchangesNonLus } from "@/lib/echanges-intervention";
@@ -161,7 +162,8 @@ export default async function PageDemandesLocataire(
         <a href={`#discussion-${messagesALire[0].intervention_id}`} data-nouveaux-messages className={`loc-carte block ${BORD_ETAT.attention}`}>
           <h2 className="titre-carte text-base font-medium">{etiquetteNouveauxMessages(nombreALire)} sur votre intervention</h2>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            Votre propriétaire ou l&apos;artisan vous a écrit dans la discussion de l&apos;intervention.
+            {/* Lot 47 (reprise) : dans un espace d'agence, c'est le gestionnaire qui écrit dans la discussion. */}
+            {auteurCoteEspace(interlocuteur)} ou l&apos;artisan vous a écrit dans la discussion de l&apos;intervention.
           </p>
           <span className="btn-secondaire mt-3">Lire la discussion{"\u00a0"}→</span>
         </a>
@@ -170,7 +172,7 @@ export default async function PageDemandesLocataire(
       {rdvManques.map((m) => (
         <a key={m.intervention_id} href={`#demande-${m.incident_id}`} data-rdv-manque={m.absent} className={`loc-carte block ${BORD_ETAT.attention}`}>
           <h2 className="titre-carte text-base font-medium">Rendez-vous manqué {instantRdv(m.rdv_debut)}</h2>
-          <p className="mt-1.5 text-sm text-muted-foreground">{phraseRendezVousManque(m)}</p>
+          <p className="mt-1.5 text-sm text-muted-foreground">{phraseRendezVousManque(m, interlocuteur)}</p>
         </a>
       ))}
 

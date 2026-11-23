@@ -20,11 +20,24 @@ export function interlocuteurMajuscule(interlocuteur: InterlocuteurLocataire): s
 /**
  * Lot 47 : quelques refus écrits en base, pour le locataire, disent « votre gestionnaire » quel que soit l'espace
  * (demander_report_rdv, annuler_rdv_locataire, mon_conge_locataire). Les réécrire demanderait de remplacer ces fonctions
- * par migration ; l'action qui les affiche les rend ici dans les mots de l'espace. Seule la tournure « votre
- * gestionnaire » change, et seulement hors agence : le reste du message est celui de la base.
+ * par migration ; l'action qui les affiche les rend ici dans les mots de l'espace. Seules les tournures « votre
+ * gestionnaire » et (reprise) « dans cette agence » changent, et seulement hors agence : le reste du message est celui
+ * de la base. « Aucune fiche rattachée à votre compte dans cette agence » vient de deposer_ma_piece,
+ * mon_conge_locataire, deposer_mon_attestation, retourner_document_signe et declarer_mon_incident.
  */
 export function messageDeLaBasePourLocataire(message: string, interlocuteur: InterlocuteurLocataire): string {
-  return interlocuteur === "gestionnaire" ? message : message.replace(/\b([Vv])otre gestionnaire\b/g, "$1otre bailleur");
+  return interlocuteur === "gestionnaire"
+    ? message
+    : message.replace(/\b([Vv])otre gestionnaire\b/g, "$1otre bailleur").replace(/\bdans cette agence\b/g, "dans cet espace");
+}
+
+/**
+ * Lot 47 (reprise) : qui, côté espace, écrit au locataire ou consigne pour lui (discussion d'une intervention, rendez-vous
+ * manqué). Ces textes disaient « Votre propriétaire » dans tous les espaces ; dans un espace d'agence, c'est le
+ * gestionnaire qui écrit et qui consigne. Chez un propriétaire qui gère lui-même, le texte d'avant reste : il y est vrai.
+ */
+export function auteurCoteEspace(interlocuteur: InterlocuteurLocataire): string {
+  return interlocuteur === "gestionnaire" ? "Votre gestionnaire" : "Votre propriétaire";
 }
 
 /**

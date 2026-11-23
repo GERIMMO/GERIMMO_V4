@@ -61,12 +61,24 @@ describe("ce que lit le locataire", () => {
   });
 
   it("la phrase dit qui est dit absent, par qui, et quoi faire en cas de désaccord", () => {
-    expect(phraseRendezVousManque({ absent: "locataire", consigne_role: "artisan" }))
+    // Chez un propriétaire qui gère lui-même (interlocuteur « bailleur ») : le texte d'avant, vrai.
+    expect(phraseRendezVousManque({ absent: "locataire", consigne_role: "artisan" }, "bailleur"))
       .toBe("L’artisan a indiqué que vous étiez absent. Un nouveau rendez-vous va être convenu. Si vous étiez présent, écrivez-le dans la discussion de l’intervention, plus bas dans cette page.");
-    expect(phraseRendezVousManque({ absent: "locataire", consigne_role: "gestionnaire" }))
+    expect(phraseRendezVousManque({ absent: "locataire", consigne_role: "gestionnaire" }, "bailleur"))
       .toBe("Votre propriétaire a consigné que vous étiez absent. Un nouveau rendez-vous va être convenu. Si vous étiez présent, écrivez-le dans la discussion de l’intervention, plus bas dans cette page.");
-    expect(phraseRendezVousManque({ absent: "artisan", consigne_role: "gestionnaire" }))
+    expect(phraseRendezVousManque({ absent: "artisan", consigne_role: "gestionnaire" }, "bailleur"))
       .toBe("Votre propriétaire a consigné que l’artisan ne s’est pas présenté. Un nouveau rendez-vous va être convenu.");
+  });
+
+  // Phase 3, lot 47 (reprise) : dans un espace d'agence, c'est le gestionnaire qui consigne ; le locataire lisait
+  // « Votre propriétaire a consigné… ». L'artisan, lui, reste « L'artisan a indiqué ».
+  it("dans un espace d'agence, « Votre gestionnaire a consigné »", () => {
+    expect(phraseRendezVousManque({ absent: "artisan", consigne_role: "gestionnaire" }, "gestionnaire"))
+      .toBe("Votre gestionnaire a consigné que l’artisan ne s’est pas présenté. Un nouveau rendez-vous va être convenu.");
+    expect(phraseRendezVousManque({ absent: "locataire", consigne_role: "gestionnaire" }, "gestionnaire"))
+      .toBe("Votre gestionnaire a consigné que vous étiez absent. Un nouveau rendez-vous va être convenu. Si vous étiez présent, écrivez-le dans la discussion de l’intervention, plus bas dans cette page.");
+    expect(phraseRendezVousManque({ absent: "locataire", consigne_role: "artisan" }, "gestionnaire"))
+      .toMatch(/^L’artisan a indiqué que vous étiez absent\./);
   });
 
   it("sa page lit la fonction qui ne rend jamais la précision libre, et mène à la demande concernée", () => {

@@ -735,6 +735,8 @@ export function messageRappelGeste(p: {
   categorie?: string | null;
   libelle?: string | null;
   lien: string | null;
+  /** Lot 47 (reprise) : à qui le locataire signale un index manquant (relevé attendu). Inconnu : « le propriétaire ». */
+  interlocuteur?: InterlocuteurLocataire;
 }): Message {
   const cat = p.categorie ? categorieLisible(p.categorie) : "votre dossier";
   const delai = DELAIS_RAPPEL[p.type];
@@ -776,9 +778,11 @@ export function messageRappelGeste(p: {
         lien: p.lien,
       });
     case "releve_attendu":
+      // Lot 47 (reprise) : « prévenez le propriétaire » partait aussi au locataire d'une agence, où c'est le gestionnaire
+      // qu'il prévient. Chez un propriétaire qui gère lui-même, le texte d'avant reste : il y est vrai.
       return { sujet: `Rappel — relevé de compteur attendu — ${p.emetteur}`, html: gabaritNotification({
         titre: "Votre relevé est attendu", emetteur: p.emetteur,
-        lignes: [`Le relevé « ${p.libelle ?? "Compteur"} » manque pour vérifier les charges.`, "Indiquez l’index et sa date réelle dans votre espace. Si vous n’avez pas l’index demandé, prévenez le propriétaire ; ne l’estimez pas."],
+        lignes: [`Le relevé « ${p.libelle ?? "Compteur"} » manque pour vérifier les charges.`, `Indiquez l’index et sa date réelle dans votre espace. Si vous n’avez pas l’index demandé, prévenez ${p.interlocuteur === "gestionnaire" ? "votre gestionnaire" : "le propriétaire"} ; ne l’estimez pas.`],
         action: {libelle:"Transmettre mon relevé",lien:p.lien},
       }) };
     case "devis_non_chiffre":
@@ -1839,6 +1843,12 @@ export async function envoyerRappelsGestes(service: SupabaseClient, maintenant: 
   // 3. Envoi, organisation par organisation (écriture ouverte vérifiée une fois).
   const ecritureOuverte = new Map<string, boolean>();
   const noms = new Map<string, string | null>();
+  // L'interlocuteur du locataire, lu une fois par espace et seulement quand un texte en dépend.
+  const interlocuteurs = new Map<string, InterlocuteurLocataire>();
+  const interlocuteurDe = async (orgId: string): Promise<InterlocuteurLocataire> => {
+    if (!interlocuteurs.has(orgId)) interlocuteurs.set(orgId, await interlocuteurDuLocataire(service, orgId));
+    return interlocuteurs.get(orgId)!;
+  };
   for (const [n, c] of dus.entries()) {
     if (horloge() >= echeanceMs) { bilan.restants = dus.length - n; break; }
     if (!ecritureOuverte.has(c.orgId)) {
@@ -1851,9 +1861,11 @@ export async function envoyerRappelsGestes(service: SupabaseClient, maintenant: 
     // Lot 47 : sans marque lisible, le rappel au locataire signe selon le type de l'espace ; celui de l'artisan garde
     // son repli.
     const nom = noms.get(c.orgId) ?? (ROLE_RAPPEL[c.type] === "locataire"
-      ? signatureLocataire(null, await interlocuteurDuLocataire(service, c.orgId))
+      ? signatureLocataire(null, await interlocuteurDe(c.orgId))
       : "Votre gestionnaire");
-    const resultat = await envoyerUnRappel(service, c, nom, avantEffet, { echeanceMs, horloge });
+    // Lot 47 (reprise) : le rappel de relevé nomme à qui signaler un index manquant, selon le type de l'espace.
+    const interlocuteur = c.type === "releve_attendu" ? await interlocuteurDe(c.orgId) : undefined;
+    const resultat = await envoyerUnRappel(service, c, nom, avantEffet, { echeanceMs, horloge }, interlocuteur);
     if (resultat.motif === "delai_depasse") { bilan.restants = dus.length - n; break; }
     if (!resultat.envoyee) {
       if (resultat.motif === "sans_adresse") bilan.sans_adresse += 1;
@@ -1873,7 +1885,7 @@ export async function envoyerRappelsGestes(service: SupabaseClient, maintenant: 
   return bilan;
 }
 
-async function envoyerUnRappel(service: SupabaseClient, c: Candidat, nom: string, avantEffet?: () => Promise<void>, budget: BudgetRappels = {}): Promise<ResultatNotification> {
+async function envoyerUnRappel(service: SupabaseClient, c: Candidat, nom: string, avantEffet?: () => Promise<void>, budget: BudgetRappels = {}, interlocuteur?: InterlocuteurLocataire): Promise<ResultatNotification> {
   const role = ROLE_RAPPEL[c.type];
   try {
     let to: string | null | undefined;
@@ -1916,7 +1928,7 @@ async function envoyerUnRappel(service: SupabaseClient, c: Candidat, nom: string
       ...budget,
       avantEffet, orgId: c.orgId, to, role, evenement: `rappel_${c.type}`, objet: c.objetId,
       cleIdempotence: cleRappelGeste(c.cle),
-      message: messageRappelGeste({ type: c.type, emetteur: nom, prenom, categorie, libelle: c.libelle, lien: lien(c.lienChemin) }),
+      message: messageRappelGeste({ type: c.type, emetteur: nom, prenom, categorie, libelle: c.libelle, lien: lien(c.lienChemin), interlocuteur }),
     });
   } catch (e) {
     if (e instanceof ArretSupervision) throw e;

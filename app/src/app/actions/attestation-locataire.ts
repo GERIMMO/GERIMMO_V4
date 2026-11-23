@@ -4,6 +4,7 @@ import { resoudreDepotsFormulaire, limiteFichierDepose } from "@/lib/depot-direc
 
 import { sansJargon } from "@/lib/erreurs";
 import { lireInterlocuteurLocataire } from "@/lib/interlocuteur-locataire-serveur";
+import { messageDeLaBasePourLocataire } from "@/lib/interlocuteur-locataire";
 import { createHash, randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -114,7 +115,8 @@ export async function deposerMonAttestation(
         valeurs,
       };
     }
-    return { erreur: sansJargon(erreurRpc.message), valeurs };
+    // Lot 47 (reprise) : le refus de la base (« … dans cette agence ») est rendu dans les mots de l'espace.
+    return { erreur: messageDeLaBasePourLocataire(sansJargon(erreurRpc.message), await lireInterlocuteurLocataire(supabase, orgId)), valeurs };
   }
 
   revalidatePath(`/locataire/${orgId}`);

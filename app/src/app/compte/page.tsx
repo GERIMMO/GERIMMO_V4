@@ -18,6 +18,7 @@ import {
   interlocuteurDeLIdentite,
   type IdentiteContactLocataire,
 } from "@/lib/identite-contact-locataire";
+import { lireIdentiteContactLocataire } from "@/lib/interlocuteur-locataire-serveur";
 
 // LA MARQUE DU LOCATAIRE (25/09, D04). Cet écran est hors de tout espace, et
 // il affichait le logo GERIMMO — au locataire d'une agence en marque blanche,
@@ -62,11 +63,13 @@ const lireEspaceLocataire = cache(async function lireEspaceLocataire(): Promise<
 });
 
 // Lot 47 : à qui un compte de LOCATAIRE s'adresse depuis cet écran, hors de tout espace. « Votre gestionnaire » était
-// faux pour le locataire d'un propriétaire qui gère lui-même. Un seul espace : son interlocuteur, lu comme le titre
-// « Mon gestionnaire » / « Mon bailleur » de l'espace (attestation_emetteur_locataire, lecture déjà ouverte au
-// locataire ; illisible, « bailleur ») — « gestionnaire » seulement dans un espace d'agence. Plusieurs espaces : on ne
-// choisit pas, `identite` est nulle. Un compte qui n'est pas que locataire (propriétaire, agence), ou dont les adhésions
-// ne se lisent pas : `null`, il garde le texte d'avant.
+// faux pour le locataire d'un propriétaire qui gère lui-même. Une seule adhésion de locataire : son interlocuteur, lu
+// comme le titre « Mon gestionnaire » / « Mon bailleur » de l'espace (même lecture, `lireIdentiteContactLocataire`) —
+// « gestionnaire » seulement dans un espace d'agence. Plusieurs : on ne choisit pas, `identite` est nulle. Un compte
+// sans adhésion de locataire (propriétaire, agence) : `null`, il garde le texte d'avant.
+// Reprise : un compte qui est AUSSI locataire (propriétaire de son propre espace, par exemple) retombait sur « votre
+// gestionnaire », comme un compte dont les adhésions ne se lisent pas ; son adhésion de locataire décide désormais, et
+// une lecture en échec prend la tournure vraie dans tous les espaces (`identite` nulle).
 const lireContactCompteLocataire = cache(async function lireContactCompteLocataire(): Promise<{
   identite: IdentiteContactLocataire | null;
 } | null> {
@@ -80,13 +83,11 @@ const lireContactCompteLocataire = cache(async function lireContactCompteLocatai
     .select("role, organization_id")
     .eq("account_id", user.id)
     .eq("status", "active");
-  const adhesions = (data ?? []) as { role: string; organization_id: string }[];
-  if (error || adhesions.length === 0 || adhesions.some((a) => a.role !== "locataire")) return null;
-  if (adhesions.length > 1) return { identite: null };
-  const { data: brut, error: eIdentite } = await supabase.rpc("attestation_emetteur_locataire", {
-    p_org: adhesions[0].organization_id,
-  });
-  return { identite: identiteContactLocataire(eIdentite ? null : brut) };
+  if (error) return { identite: null };
+  const locataire = ((data ?? []) as { role: string; organization_id: string }[]).filter((a) => a.role === "locataire");
+  if (locataire.length === 0) return null;
+  if (locataire.length > 1) return { identite: null };
+  return { identite: await lireIdentiteContactLocataire(supabase, locataire[0].organization_id) };
 });
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -133,8 +134,8 @@ export default async function PageCompte() {
   const estArtisan = ((ficheArtisan ?? []) as unknown[]).length > 0;
   const espaceLocataire = await lireEspaceLocataire();
   const contactLocataire = await lireContactCompteLocataire();
-  // « votre gestionnaire » / « votre bailleur » pour un seul espace ; pour plusieurs, la tournure de l'écran des espaces
-  // (« votre bailleur ou son gestionnaire »), vraie dans les deux cas.
+  // « votre gestionnaire » / « votre bailleur » pour une seule adhésion de locataire ; pour plusieurs, ou des adhésions
+  // illisibles, la tournure de l'écran des espaces (« votre bailleur ou son gestionnaire »), vraie dans les deux cas.
   const quiLocataire = contactLocataire
     ? contactLocataire.identite
       ? `votre ${interlocuteurDeLIdentite(contactLocataire.identite)}`

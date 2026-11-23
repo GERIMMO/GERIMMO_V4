@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { lireInterlocuteurLocataire } from "@/lib/interlocuteur-locataire-serveur";
+import { messageDeLaBasePourLocataire } from "@/lib/interlocuteur-locataire";
 import { sansJargon } from "@/lib/erreurs";
 import { verifierGerant, verifierLocataire } from "@/lib/ged-acces";
 import { detecterMimeReel, EXTENSIONS } from "@/lib/file-type";
@@ -252,7 +253,8 @@ export async function declarerMonIncident(
     p_anciennete: champs.anciennete || null,
     p_urgence: champs.urgence,
   });
-  if (error) return { erreur: sansJargon(error.message), valeurs };
+  // Lot 47 (reprise) : le refus de la base (« … dans cette agence ») est rendu dans les mots de l'espace.
+  if (error) return { erreur: messageDeLaBasePourLocataire(sansJargon(error.message), await lireInterlocuteurLocataire(supabase, orgId)), valeurs };
 
   if (!declaration?.incident_id) return { erreur: "Résultat de l’envoi indisponible. Réessayez cette même tentative.", valeurs };
   const incidentId = String(declaration.incident_id);

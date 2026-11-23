@@ -4,6 +4,7 @@ import { resoudreDepotsFormulaire, limiteFichierDepose } from "@/lib/depot-direc
 
 import { sansJargon } from "@/lib/erreurs";
 import { lireInterlocuteurLocataire } from "@/lib/interlocuteur-locataire-serveur";
+import { messageDeLaBasePourLocataire } from "@/lib/interlocuteur-locataire";
 import { createHash, randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -179,7 +180,8 @@ export async function deposerMaPiece(
     p_taille: fichier.size,
     p_empreinte: empreinte,
   });
-  if (error) return { erreur: sansJargon(error.message) };
+  // Lot 47 (reprise) : le refus de la base (« … dans cette agence ») est rendu dans les mots de l'espace.
+  if (error) return { erreur: messageDeLaBasePourLocataire(sansJargon(error.message), await lireInterlocuteurLocataire(supabase, orgId)) };
 
   revalidatePath(`/locataire/${orgId}/documents`);
   revalidatePath(`/locataire/${orgId}`);

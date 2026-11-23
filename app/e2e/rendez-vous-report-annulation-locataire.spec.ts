@@ -85,8 +85,8 @@ test("locataire : report demandé puis accepté, report refusé, puis annulation
     artisanId = (await db.query("select a.id from artisans a join auth.users u on u.id=a.account_id where u.email='artisan.alpha@example.com'")).rows[0].id;
     await systeme(async () => {
       for (const [id, adresse, meta] of [[compte, email, '{"prenom":"Propriétaire","nom":"Essai report"}'], [cptLocataire, emailLocataire, '{"prenom":"Camille","nom":"Essai report"}']] as const) {
-        await db.query(`insert into auth.users(instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,confirmation_token,recovery_token,email_change,email_change_token_new,email_change_token_current,phone_change,phone_change_token,reauthentication_token)
-          values('00000000-0000-0000-0000-000000000000',$1,'authenticated','authenticated',$2,extensions.crypt($3,extensions.gen_salt('bf')),now(),'{"provider":"email","providers":["email"]}',$4::jsonb,now(),now(),'','','','','','','','')`, [id, adresse, motDePasse, meta]);
+        await db.query(`insert into auth.users(instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,confirmation_token,recovery_token,email_change,email_change_token_new,email_change_token_current)
+          values('00000000-0000-0000-0000-000000000000',$1,'authenticated','authenticated',$2,extensions.crypt($3,extensions.gen_salt('bf')),now(),'{"provider":"email","providers":["email"]}',$4::jsonb,now(),now(),'','','','','')`, [id, adresse, motDePasse, meta]);
       }
       await db.query("insert into organizations(id,name,type,status,address_line1,postal_code,city,email_contact) values($1,$2,'proprietaire_direct','active','1 rue des Essais','75012','Paris',$3)", [org, nom, email]);
       await db.query("insert into memberships(account_id,organization_id,role) values($1,$2,'proprietaire_direct'),($3,$2,'locataire')", [compte, org, cptLocataire]);

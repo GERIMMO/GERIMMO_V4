@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { avecEcheanceReglementaire, classerPiecesBail, type DiagnosticBail, type PieceBail } from "@/lib/documents-bail";
+import { avecEcheanceReglementaire, classerPiecesBail, resumeNoticeAActualiser, type DiagnosticBail, type PieceBail } from "@/lib/documents-bail";
 import { preparerDiagnosticsBail } from "@/lib/exigences-diagnostics-bail";
 import { TYPES_DIAGNOSTIC } from "@/lib/parc";
 import { jourAParis, jourValide } from "@/lib/presentation-document";
@@ -122,7 +122,10 @@ export async function lireRecapitulatifPiecesBail(
   const notice = classerPiecesBail(documentsBail, [], bail.reglement_copropriete).notices[0];
   const liensIncomplets = liens.erreur || fichiers.erreur || liens.lignes.some(l => !parId.has(l.document_id));
   // Phase 3 (C01) : la pièce que Gerimmo prépare est un résumé ; la notice officielle reste à remettre à part.
-  ajouter("notice", "Résumé de la notice d’information", "signature", liensIncomplets ? INDISPONIBLE : fichier(notice?.id ?? null, true), `${baseBail}#annexes-attendues`);
+  // Reprise du lot 40 (C01) : un résumé rangé avec l'ancien texte est à actualiser (la préparation de la signature le refuse).
+  const etatNotice = liensIncomplets ? INDISPONIBLE : fichier(notice?.id ?? null, true);
+  ajouter("notice", "Résumé de la notice d’information", "signature", etatNotice.statut === "pret" && resumeNoticeAActualiser(notice)
+    ? { statut: "a_completer", detail: "Actualisez le résumé : celui qui est rangé a été établi avec un ancien texte." } : etatNotice, `${baseBail}#annexes-attendues`);
   ajouter("reglement", "Règlement de copropriété", "signature", bienIndisponible ? INDISPONIBLE
     : bien!.copropriete === false ? { statut: "non_concerne", detail: "Le bâtiment est déclaré hors copropriété." }
       : bien!.copropriete === null ? { statut: "a_verifier", detail: "Précisez si le bâtiment est en copropriété." }

@@ -27,7 +27,10 @@ import { assemblerNotice, AVERTISSEMENT_RESUME_NOTICE } from "@/lib/documents/mo
 import { assemblerAvenant } from "@/lib/documents/modeles/avenant";
 import { construireBailNu } from "@/lib/documents/modeles/bail-nu";
 import { construireBailMeuble } from "@/lib/documents/modeles/bail-meuble";
-import { classerPiecesBail, TITRES_GED_RESUME_NOTICE } from "@/lib/documents-bail";
+import { classerPiecesBail, resumeNoticeAActualiser, TITRE_GED_RESUME_NOTICE, TITRES_GED_RESUME_NOTICE } from "@/lib/documents-bail";
+import { ajouterPagesSignature, annexesSignatureBail, empreinteSignatureBail, type AnnexeSignature } from "@/lib/signature-bail";
+import { rubriquesRecapBail } from "@/lib/presentation-recapitulatif-bail";
+import { CATALOGUE_DOCUMENTS } from "@/lib/documents/catalogue";
 import { OPTIONS_CATALOGUE } from "@/lib/documents/catalogue-options";
 import { Fusion } from "@/lib/documents/gabarit";
 import type { Assemblage } from "@/lib/documents/modeles";
@@ -119,15 +122,19 @@ describe("C04, C07 — inventaires : observation et pièce facultatives, colonne
     expect(r.document.html).toMatch(/<td>—<\/td><td><span class="v">Canapé-lit<\/span><\/td>/);
     expect(r.document.html).toMatch(/<td>Neuf<\/td><td>—<\/td><\/tr>|<td><span class="v">Neuf<\/span><\/td><td>—<\/td><\/tr>/);
   });
-  it("inventaire de sortie : état et observation « à l'entrée », constat de sortie sous son propre titre", async () => {
+  // Reprise du lot 40 : ce test affirmait « État à l'entrée » et « Observation à l'entrée ». C'était faux : les lignes de
+  // l'inventaire restent modifiables pendant toute la location, sans date ni historique ; une ligne modifiée à la sortie
+  // s'imprimait « à l'entrée ». Le tableau dit maintenant l'inventaire tel qu'il est inscrit au dossier.
+  it("inventaire de sortie : l'inventaire « inscrit », jamais daté « à l'entrée », puis le constat de sortie sous son propre titre", async () => {
     ctx.lot.meuble = true;
     ctx.bail.etat = "preavis";
     const r = succes(await assemblerComplementBail("inventaire_sortie", base({ inventaire_lignes: lignes }), "org", "b1", { date_constat: "2026-12-10", constat: "Canapé taché" }));
     const texte = texteDe(r.document.html);
-    expect(r.document.html).toContain("<th>État à l’entrée</th>");
-    expect(r.document.html).toContain("<th>Observation à l’entrée</th>");
-    expect(texte).toContain("Mobilier inventorié à l’entrée");
-    expect(texte).not.toMatch(/État de référence|Mobilier de référence et constat de sortie/);
+    expect(r.document.html).toContain("<th>État inscrit</th>");
+    expect(r.document.html).toContain("<th>Observation inscrite</th>");
+    expect(texte).toContain("Mobilier inscrit à l’inventaire du contrat");
+    expect(texte).toContain("Ce tableau reprend l’inventaire tel qu’il est inscrit au dossier à la date d’établissement de ce document. Il ne constate pas l’état du mobilier à la sortie, qui suit.");
+    expect(texte).not.toMatch(/à l’entrée|État de référence|Mobilier de référence et constat de sortie/);
     expect(texte).toMatch(/Constat de sortie\s*Constat contradictoire du mobilier à la sortie : Canapé taché\./);
   });
   it("inventaire d'entrée : colonnes inchangées", async () => {
@@ -154,9 +161,19 @@ describe("C05 — bordereau : échéance et diagnostiqueur vides ne bloquent plu
     expect(texte.match(/non renseigné/g)).toHaveLength(2);
     expect(texte).toContain("05/05/2027");
   });
+  it("reprise : un DPE, un ERP ou un gaz sans échéance (validité fixée, date obligatoire à la saisie) bloque le bordereau", async () => {
+    for (const type of ["dpe", "erp", "gaz", "electricite"]) {
+      const r = succes(await assemblerComplementBail("bordereau_ddt", base({
+        diagnostics: [{ type, date_realisation: "2024-03-12", date_expiration: null, diagnostiqueur: "Diag", document_id: "d1", classe_dpe: "D" }],
+      }), "org", "b1"));
+      expect(r.document.manquants, type).toEqual(["Validité"]);
+      expect(texteDe(r.document.html), type).not.toContain("sans date de fin indiquée au rapport");
+    }
+  });
+  // Reprise du lot 40 : l'échéance du DPE est renseignée ici — vide, elle est désormais elle aussi à renseigner (cas ci-dessus).
   it("une date de réalisation absente reste à renseigner", async () => {
     const r = succes(await assemblerComplementBail("bordereau_ddt", base({
-      diagnostics: [{ type: "dpe", date_realisation: null, date_expiration: null, diagnostiqueur: "Diag", document_id: "d1" }],
+      diagnostics: [{ type: "dpe", date_realisation: null, date_expiration: "2034-03-12", diagnostiqueur: "Diag", document_id: "d1" }],
     }), "org", "b1"));
     expect(r.document.manquants).toEqual(["Réalisé le"]);
   });
@@ -198,6 +215,16 @@ describe("C08, C12, C13, C20, C29 — clauses du bail", () => {
       expect(source(f)).toContain("data-travaux-premiere-location");
       expect(source(f)).toContain("Ce que vous saisissez ici n’y figure pas.");
     }
+  });
+  it("C08 (reprise) : le récapitulatif avant signature dit « Sans objet — première location », sans les travaux ni leur montant", () => {
+    const lignes = (bail: Parameters<typeof rubriquesRecapBail>[0]["bail"]) => rubriquesRecapBail({ bail, lot: { meuble: false }, bien: {}, personnes: [], liens: { lot: "#lot", bien: "#bien" } })
+      .find((r) => r.id === "clauses")!.lignes.filter((l) => l.champ.startsWith("bail.travaux_recents"));
+    expect(lignes({ precedente_location: "premiere", travaux_recents: "Remise en peinture complète du logement", travaux_recents_montant: 2400 }))
+      .toEqual([expect.objectContaining({ champ: "bail.travaux_recents", libelle: "Travaux récents", valeur: "Sans objet — première location" })]);
+    expect(lignes({ precedente_location: "recente", travaux_recents: "Remise en peinture", travaux_recents_montant: 2400 }).map((l) => l.valeur))
+      .toEqual(["Remise en peinture", expect.stringMatching(/^2\s400,00\s€$/)]);
+    const ecran = source("src/app/agence/[orgId]/baux/[bailId]/formulaire-complements-bail.tsx");
+    expect(ecran).toContain('{situation === "premiere" ? "Sans objet pour une première location" : "Obligatoire si travaux renseignés"}');
   });
   it("C13, C29 : sans travaux, « Néant. » seul — plus de « montant : — »", () => {
     for (const doc of [construireBailNu(contexte(), { dpeClasse: "D", f: new Fusion() }), construireBailMeuble(contexte(), { dpeClasse: "D", inventaire: [], f: new Fusion() })]) {
@@ -261,21 +288,34 @@ describe("C30 — contrat individuel : le plafond de la colocation n'est plus un
 
 describe("C18, C23 — avenant au bail : une référence par avenant, date portée à la signature", () => {
   const options = { objet: "Ajout d'un emplacement de parking", modifications: "Le bail porte aussi sur le parking n° 4." };
-  it("la référence combine le bail, la date et l'heure de génération (Paris)", () => {
-    expect(referenceAvenant("2dfb98cb-1111", new Date("2026-11-23T13:32:00Z"))).toBe("AVT-2DFB98CB-20261123-1432");
-    expect(referenceAvenant("2dfb98cb-1111", new Date("2026-11-23T23:05:00Z"))).toBe("AVT-2DFB98CB-20261124-0005");
-    expect(referenceAvenant("2dfb98cb-1111", new Date("2026-11-23T13:32:00Z"))).not.toBe(referenceAvenant("2dfb98cb-1111", new Date("2026-12-02T09:10:00Z")));
+  // Reprise du lot 40 : ces tests affirmaient une référence tirée de la date et de l'heure de génération. Elle changeait à
+  // chaque minute ; or les pages de signature l'impriment et l'empreinte du circuit la lit : un avenant préparé pour la
+  // signature électronique ne correspondait plus à lui-même au moment de l'envoi. La référence se tire maintenant du contenu.
+  it("la référence combine le bail et le contenu de l'avenant : la même pour le même avenant, une autre pour un autre", () => {
+    const ref = referenceAvenant("2dfb98cb-1111", options);
+    expect(ref).toMatch(/^AVT-2DFB98CB-[0-9A-F]{8}$/);
+    expect(referenceAvenant("2dfb98cb-1111", { modifications: "Le bail porte aussi sur le parking n° 4.\r\n", objet: "  Ajout d'un emplacement de parking " })).toBe(ref);
+    expect(referenceAvenant("2dfb98cb-1111", { ...options, objet: "Ajout d'une cave" })).not.toBe(ref);
+    expect(referenceAvenant("478ff191-2222", options).startsWith("AVT-478FF191-")).toBe(true);
   });
-  it("deux avenants du même bail générés à des moments différents ont des références différentes", async () => {
+  it("le même avenant, assemblé à deux moments, garde sa référence et l'empreinte de son dossier de signature", async () => {
     vi.useFakeTimers();
     try {
       vi.setSystemTime(new Date("2026-11-23T13:32:00Z"));
       const premier = succes(await assemblerAvenant(base(), "org", "b1", options)).document;
       vi.setSystemTime(new Date("2026-12-02T09:10:00Z"));
       const second = succes(await assemblerAvenant(base(), "org", "b1", options)).document;
-      expect(premier.reference).toBe("AVT-B1-20261123-1432");
-      expect(second.reference).toBe("AVT-B1-20261202-1010");
-      expect(premier.piedHtml).toContain("Réf. AVT-B1-20261123-1432");
+      const autre = succes(await assemblerAvenant(base(), "org", "b1", { ...options, objet: "Ajout d'une cave" })).document;
+      expect(premier.reference).toBe(referenceAvenant("b1", options));
+      expect(second.reference).toBe(premier.reference);
+      expect(autre.reference).not.toBe(premier.reference);
+      expect(premier.piedHtml).toContain(`Réf. ${premier.reference}`);
+      // Les pages de signature impriment la référence : l'empreinte du circuit (préparation, puis envoi) ne bouge plus.
+      const signataires = [{ personId: "p1", qualite: "Locataire" as const, nom: "Leblanc", prenom: "Julie", email: "julie@exemple.fr", telephone: "+33600000000" }];
+      const a = ajouterPagesSignature(premier, signataires, [], "Avenant au bail");
+      const b = ajouterPagesSignature(second, signataires, [], "Avenant au bail");
+      expect(a.html).toContain(`Référence : ${premier.reference}`);
+      expect(empreinteSignatureBail(a.html, signataires)).toBe(empreinteSignatureBail(b.html, signataires));
     } finally {
       vi.useRealTimers();
     }
@@ -328,8 +368,14 @@ describe("C21 à C25 — avenant de remplacement en colocation", () => {
       expect(texte).not.toContain("Fait à Lyon, le 23/11/2026");
       expect(texte).toContain("Modification du contrat commun de location");
       expect(texte).not.toContain("Dossier de location");
-      expect(texte).toContain("Avenant n° AVT-B1-20261123-1432");
-      expect(r.document.reference).toBe("AVT-B1-20261123-1432");
+      // Reprise du lot 40 (C18) : la référence se tire du contenu du remplacement, et non plus de l'heure de génération.
+      const reference = referenceAvenant("b1", { sortant: "p1", entrant: options.entrant, date_effet: options.date_effet, depot: options.depot });
+      expect(reference).toMatch(/^AVT-B1-[0-9A-F]{8}$/);
+      expect(texte).toContain(`Avenant n° ${reference}`);
+      expect(r.document.reference).toBe(reference);
+      vi.setSystemTime(new Date("2026-12-02T09:10:00Z"));
+      expect(succes(await assemblerComplementBail("avenant_remplacement", base(), "org", "b1", options)).document.reference).toBe(reference);
+      expect(succes(await assemblerComplementBail("avenant_remplacement", base(), "org", "b1", { ...options, sortant: "p2" })).document.reference).not.toBe(reference);
       expect(texte).not.toMatch(/Dossier n°|AVENANT-REMPLACEMENT/);
       expect(r.document.html).toContain('<div class="etiquette">Locataires</div>');
       expect(texte).toMatch(/Contrat\s*Réf\. BAIL-B1 — prise d’effet le 01\/09\/2025/);
@@ -346,5 +392,95 @@ describe("C24 (autres documents du bail) — plusieurs locataires au pluriel", (
     const r = succes(await assemblerComplementBail("inventaire_entree", base({ inventaire_lignes: [{ piece: "Séjour", designation: "Table", quantite: 1, etat: "bon", observation: null }] }), "org", "b1", { date_constat: "2026-09-01" }));
     expect(r.document.html).toContain('<div class="etiquette">Locataires</div>');
     expect(cadres(r.document.html)).toEqual(["Le bailleur", "Les locataires"]);
+  });
+});
+
+describe("reprise du lot 40 — C23 et S08 : les inventaires ne se datent plus du jour de leur génération", () => {
+  const lignes = [{ piece: "Séjour", designation: "Table", quantite: 1, etat: "bon", observation: null }];
+  it.each(["inventaire_entree", "inventaire_sortie"] as const)("%s : « Fait à …, le » se complète à la signature, au-dessus des cadres", async (code) => {
+    ctx.lot.meuble = true;
+    if (code === "inventaire_sortie") ctx.bail.etat = "preavis";
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-11-23T13:32:00Z"));
+      const r = succes(await assemblerComplementBail(code, base({ inventaire_lignes: lignes }), "org", "b1", { date_constat: "2027-03-31", constat: "Table rayée" }));
+      const texte = texteDe(r.document.html);
+      expect(texte).toContain("Date du constat : 31/03/2027.");
+      expect(texte).toContain("Fait à Lyon, le date effective à compléter lors de la signature.");
+      expect(texte).not.toContain("23/11/2026.");
+      expect(cadres(r.document.html)).toEqual(["Le bailleur", "Le locataire"]);
+      expect(r.document.manquants).toEqual([]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+  it("S08 : un inventaire d'entrée daté après la fin du contrat est refusé ; un inventaire de sortie avant sa prise d'effet aussi", async () => {
+    ctx.lot.meuble = true;
+    ctx.bail.etat = "preavis";
+    ctx.bail.date_debut = "2025-09-01";
+    ctx.bail.date_fin = "2026-12-10";
+    expect(await assemblerComplementBail("inventaire_entree", base({ inventaire_lignes: lignes }), "org", "b1", { date_constat: "2027-03-31" }))
+      .toEqual({ erreur: "La date du constat (31/03/2027) tombe après la fin du contrat (10/12/2026) : l’inventaire d’entrée se fait à l’entrée dans les lieux. Vérifiez la date du constat." });
+    expect(await assemblerComplementBail("inventaire_sortie", base({ inventaire_lignes: lignes }), "org", "b1", { date_constat: "2025-08-31", constat: "Rien à signaler" }))
+      .toEqual({ erreur: "La date du constat (31/08/2025) précède la prise d’effet du contrat (01/09/2025) : l’inventaire de sortie se fait au départ du locataire. Vérifiez la date du constat." });
+    // Possibles : clés remises avant l'entrée, départ effectif après la date de fin. La date saisie s'imprime telle quelle.
+    expect(texteDe(succes(await assemblerComplementBail("inventaire_entree", base({ inventaire_lignes: lignes }), "org", "b1", { date_constat: "2025-08-30" })).document.html)).toContain("Date du constat : 30/08/2025.");
+    expect(texteDe(succes(await assemblerComplementBail("inventaire_sortie", base({ inventaire_lignes: lignes }), "org", "b1", { date_constat: "2026-12-20", constat: "Rien à signaler" })).document.html)).toContain("Date du constat : 20/12/2026.");
+  });
+});
+
+describe("reprise du lot 40 — C01 : le résumé n'est ni la notice annexée au contrat, ni joint sous son ancien texte", () => {
+  type Table = { data: unknown; error: null };
+  /** Base simulée de `annexesSignatureBail` : chaque table rend ses lignes, `single` la première. */
+  const baseAnnexes = (documents: Record<string, unknown>[]) => {
+    const tables: Record<string, unknown[]> = {
+      baux: [{ reglement_copropriete: null }],
+      diagnostics: [{ id: "g1", type: "erp", date_realisation: "2026-11-05", date_expiration: "2027-05-05", document_id: "erp", lot_id: "l1" }],
+      document_liens: documents.map((d) => ({ document_id: d.id })),
+      documents,
+    };
+    return { from: (table: string) => {
+      const reponse: Table = { data: tables[table] ?? [], error: null };
+      const q: Record<string, unknown> = { then: (ok: (x: Table) => unknown) => Promise.resolve(reponse).then(ok), single: async () => ({ data: (tables[table] ?? [])[0] ?? null, error: null }) };
+      for (const op of ["select", "eq", "is", "in", "or", "order", "limit"]) q[op] = () => q;
+      return q;
+    } } as unknown as SupabaseClient;
+  };
+  const fichier = (id: string, titre: string) => ({ id, titre, type: "courrier", storage_path: `org/${id}.pdf`, empreinte: `e-${id}`, mime_type: "application/pdf", purged_at: null, created_at: "2026-11-01" });
+  const ctxAnnexes = () => { const c = contexte(); c.lot = { ...c.lot, id: "l1" }; c.bien = { ...c.bien, copropriete: false }; return c; };
+
+  it("un résumé rangé sous l'ancien titre (ancien texte) est à actualiser avant une nouvelle préparation ; il reste lu", async () => {
+    const ancien = await annexesSignatureBail(baseAnnexes([fichier("n", "Notice d'information (annexe au bail)"), fichier("erp", "ERP")]), "org", "b1", ctxAnnexes());
+    expect(ancien.manquants).toContain("Actualisez le résumé de la notice d’information à l’étape Documents : celui qui est rangé a été établi avec un ancien texte, qui se disait à tort annexé au contrat et reçu par le locataire.");
+    // Toujours joint : l'empreinte d'un circuit préparé avec lui se recalcule à l'identique à l'activation (qui ne lit pas les consignes).
+    expect(ancien.annexes.map((a) => a.id)).toContain("n");
+    const nouveau = await annexesSignatureBail(baseAnnexes([fichier("n", TITRE_GED_RESUME_NOTICE), fichier("erp", "ERP")]), "org", "b1", ctxAnnexes());
+    expect(nouveau.manquants).toEqual([]);
+    expect(resumeNoticeAActualiser({ titre: "Notice d'information (annexe au bail)" })).toBe(true);
+    expect(resumeNoticeAActualiser({ titre: TITRE_GED_RESUME_NOTICE })).toBe(false);
+    expect(resumeNoticeAActualiser(undefined)).toBe(false);
+  });
+
+  it("le dossier de signature liste le résumé à part : document d'information, pas une annexe du contrat", () => {
+    const doc = { html: "<html><body><p>Contrat</p></body></html>", reference: "BAIL-B1" } as Parameters<typeof ajouterPagesSignature>[0];
+    const erp: AnnexeSignature = { id: "erp", titre: "ERP — état des risques", storage_path: "x", empreinte: "aaa" };
+    const resume: AnnexeSignature = { id: "n", titre: TITRE_GED_RESUME_NOTICE, storage_path: "y", empreinte: "bbb" };
+    const html = ajouterPagesSignature(doc, [], [erp, resume]).html;
+    const annexes = html.slice(html.indexOf("Annexes remises avec le contrat"), html.indexOf("Document d’information joint"));
+    expect(annexes).toContain("ERP — état des risques");
+    expect(annexes).not.toContain(TITRE_GED_RESUME_NOTICE);
+    expect(texteDe(html)).toContain(`Document d’information jointCe résumé, établi par Gerimmo, accompagne le document dans le même dossier de signature. Il n’est pas une annexe du contrat et ne remplace pas la notice d’information officielle, que le bailleur remet au locataire avec le contrat.${TITRE_GED_RESUME_NOTICE}SHA-256 : bbb`);
+    // Un dossier préparé avant (ancien titre) garde sa page octet pour octet : son empreinte se recalcule à l'identique.
+    const ancien: AnnexeSignature = { ...resume, titre: "Notice d'information (annexe au bail)" };
+    expect(ajouterPagesSignature(doc, [], [erp, ancien]).html).toBe(doc.html.replace("</body>", `<section style="break-before:page"><h1>Annexes remises avec le contrat</h1><p>Ces pièces accompagnent le document dans le même dossier de signature. Leur empreinte identifie exactement la version remise.</p><div style="break-inside:avoid;margin:14pt 0"><strong>ERP — état des risques</strong><p style="font:8px monospace;overflow-wrap:anywhere">SHA-256 : aaa</p></div><div style="break-inside:avoid;margin:14pt 0"><strong>Notice d'information (annexe au bail)</strong><p style="font:8px monospace;overflow-wrap:anywhere">SHA-256 : bbb</p></div></section></body>`));
+  });
+
+  it("la fiche du bail dit « Résumé à actualiser » pour l'ancien texte ; l'aperçu et le catalogue nomment le résumé", () => {
+    const fiche = source("src/app/agence/[orgId]/baux/[bailId]/documents-parcours-bail.tsx");
+    expect(fiche).toContain('noticeAActualiser ? "Résumé à actualiser" : "Résumé disponible"');
+    expect(fiche).toContain('titre="Résumé de la notice d’information"');
+    expect(fiche).not.toContain('titre="Notice d’information"');
+    expect(CATALOGUE_DOCUMENTS.find((d) => d.code === "notice")?.nom).toBe("Résumé de la notice d’information");
+    expect(source("src/lib/recapitulatif-pieces-bail.ts")).toContain("Actualisez le résumé : celui qui est rangé a été établi avec un ancien texte.");
   });
 });

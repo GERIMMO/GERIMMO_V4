@@ -267,6 +267,9 @@ const MISSION_OCTOBRE = [
   // 23/11, phase 3 de la mission palier 1 (lot 42, C77) : la première mensualité d'une régularisation étalée tombe au moins un
   // mois après l'émission.
   "20261123150000_regularisation_premiere_mensualite.sql",
+  // 23/11, phase 3 de la mission palier 1 (reprise du lot 40, C30) : le refus d'activer un contrat individuel sans plafond nomme
+  // le « loyer maximal applicable au logement entier », comme l'écran et le contrat.
+  "20261123170000_contrat_individuel_message_plafond.sql",
 
 
 ];

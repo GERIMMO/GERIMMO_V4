@@ -87,6 +87,9 @@ export function statutPieceDiagnostic(d: DiagnosticBail, aujourd: string) {
 // rangés sous l'ancien titre (« … (annexe au bail) ») restent reconnus : fiche du bail, récapitulatif, signature électronique.
 export const TITRE_GED_RESUME_NOTICE = "Résumé de la notice d'information";
 export const TITRES_GED_RESUME_NOTICE = [TITRE_GED_RESUME_NOTICE, "Notice d'information (annexe au bail)"];
+// Reprise du lot 40 (C01) : un résumé rangé sous l'ancien titre a l'ancien texte (« annexée au contrat », « partie intégrante »,
+// « le locataire reconnaît avoir reçu ») : il est reconnu, mais à actualiser avant toute nouvelle préparation de signature.
+export const resumeNoticeAActualiser = (piece: { titre: string | null } | null | undefined) => Boolean(piece && piece.titre !== TITRE_GED_RESUME_NOTICE);
 
 export type PieceBail = { id: string; titre: string | null; type: string; purged_at: string | null };
 export function classerPiecesBail(pieces: PieceBail[], diagnosticIds: string[], reglementId: string | null) {

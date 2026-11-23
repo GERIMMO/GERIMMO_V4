@@ -30,7 +30,9 @@ function fixture() {
       { organization_id: ORG, lot_id: LOT, bail_id: BAIL, nature: "assurance_locataire", document_id: "locataire" },
     ],
     inventaire_lignes: [], bail_personnes: [], etats_des_lieux: [], bail_signature_circuits: [],
-    documents: [fichier("notice", { type: "courrier", titre: "Notice d'information (annexe au bail)" }), fichier("reglement"), fichier("dpe"), fichier("erp"), fichier("pno"), fichier("locataire")],
+    // Phase 3, reprise du lot 40 (C01) : le résumé tel que Gerimmo le range aujourd'hui. Sous l'ancien titre (« Notice
+    // d'information (annexe au bail) »), il porte l'ancien texte et n'est plus « prêt » : voir le test qui le dit à actualiser.
+    documents: [fichier("notice", { type: "courrier", titre: "Résumé de la notice d'information" }), fichier("reglement"), fichier("dpe"), fichier("erp"), fichier("pno"), fichier("locataire")],
   };
   const echecs = new Set<string>();
   const appels: { table: string; champs: string; filtres: Filtres }[] = [];
@@ -93,6 +95,10 @@ describe("Récapitulatif des pièces du bail", () => {
     expect(piece(await f.lire(), "reglement").statut).toBe("a_verifier");
     f.donnees.documents.push(fichier("reglement", { mime_type: "image/png" }));
     expect(piece(await f.lire(), "reglement").detail).toContain("PDF");
+  });
+  it("reprise du lot 40 (C01) : un résumé rangé sous l'ancien titre (ancien texte) est à actualiser, pas prêt", async () => {
+    const f = fixture(); f.donnees.documents.find(d => d.id === "notice")!.titre = "Notice d'information (annexe au bail)";
+    expect(piece(await f.lire(), "notice")).toMatchObject({ statut: "a_completer", detail: "Actualisez le résumé : celui qui est rangé a été établi avec un ancien texte." });
   });
   it("réutilise la notice exacte la plus récente sans assimiler une pièce quelconque à une notice", async () => {
     const f = fixture(); f.donnees.documents.find(d => d.id === "notice")!.titre = "Une notice personnelle";

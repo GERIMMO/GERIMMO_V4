@@ -112,8 +112,9 @@ export async function assemblerAvenant(
       f,
       titreDocument: "Avenant au bail",
       nomPied: "Avenant au bail",
-      // Phase 3 (C18) : une référence propre à cet avenant (date et heure de génération), plus celle du seul bail.
-      reference: referenceAvenant(ctx.bail.id),
+      // Phase 3 (C18) : une référence propre à cet avenant, plus celle du seul bail. Reprise du lot 40 : tirée de son objet
+      // et de ses modifications (et non plus de l'heure de génération), elle reste la même dans le PDF préparé pour la signature.
+      reference: referenceAvenant(ctx.bail.id, { objet: objetBrut, modifications: modificationsBrutes }),
       corps,
     }),
     titreGed: objetTronque ? `Avenant — ${objetTronque}` : "Avenant au bail",

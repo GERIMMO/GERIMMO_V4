@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { premier } from "@/lib/postgrest";
 import { aujourdhuiParis } from "@/lib/ged";
-import { classerPiecesBail, echeanceReglementaire, type DiagnosticBail, type PieceBail } from "@/lib/documents-bail";
+import { classerPiecesBail, echeanceReglementaire, resumeNoticeAActualiser, type DiagnosticBail, type PieceBail } from "@/lib/documents-bail";
 import { FileCheck2, BookOpen, Building2, Paperclip, ShieldCheck, KeyRound } from "lucide-react";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { FormulaireReglementCopropriete } from "./formulaires-bail";
@@ -52,6 +52,9 @@ export async function DocumentsParcoursBail({ orgId, bailId, lotId, bienId, anne
   const documents = [...new Map(tous.filter((d): d is DocumentConnu => Boolean(d && !d.purged_at)).map(d => [d.id, d])).values()].sort((a, b) => b.created_at.localeCompare(a.created_at));
   const { notices } = classerPiecesBail(documentsBail, [], reglementId);
   const notice = notices[0];
+  // Reprise du lot 40 (C01) : un résumé rangé avec l'ancien texte n'est pas « disponible » : il est à actualiser.
+  const noticeAActualiser = resumeNoticeAActualiser(notice);
+  const tonNotice = docsBail.error ? undefined : notice && !noticeAActualiser ? "ok" : "attention";
   const dejaAffiches = new Set([...notices.map(d => d.id), ...diagnostics.map(d => d.document_id), ...identifiees.map(d => d.document_id), reglementId]);
   const autres = documents.filter(d => !dejaAffiches.has(d.id));
   const luReglement = reglement.data as unknown as DocumentConnu | null;
@@ -99,10 +102,11 @@ export async function DocumentsParcoursBail({ orgId, bailId, lotId, bienId, anne
     <section className={styles.section} aria-labelledby="annexes-attendues">
       <header className={styles.entete}><BookOpen size={20} aria-hidden="true"/><h3 id="annexes-attendues">À remettre avec le bail</h3></header>
       <div className={styles.annexes}>
-        <article className={styles.carte} data-ton={docsBail.error ? undefined : notice ? "ok" : "attention"}>
-          <div className={styles.carteEntete}><h4>Notice d’information</h4><span className={styles.etat} data-ton={docsBail.error ? undefined : notice ? "ok" : "attention"}>{docsBail.error ? "Indisponible" : notice ? "Résumé disponible" : "Résumé à générer"}</span></div>
+        <article className={styles.carte} data-ton={tonNotice}>
+          <div className={styles.carteEntete}><h4>Notice d’information</h4><span className={styles.etat} data-ton={tonNotice}>{docsBail.error ? "Indisponible" : !notice ? "Résumé à générer" : noticeAActualiser ? "Résumé à actualiser" : "Résumé disponible"}</span></div>
           <p className={styles.obligation}>Obligatoire · Avec le bail</p><p>Les droits et obligations du propriétaire et du locataire.</p><p data-notice-resume><strong>Gerimmo en prépare un résumé, pas le texte officiel.</strong> Ce résumé ne remplace pas la notice d’information officielle : remettez aussi au locataire son texte complet, que vous trouverez sur le site officiel de l’administration (service-public.fr). Gerimmo ne le joint pas à votre place.</p>
-          {!docsBail.error && <div className={styles.actions}>{notice && <ApercuPieceBail fichier={fichier(notice.id)} titre="Notice d’information" mime="application/pdf"/>}<BoutonGenererDocument orgId={orgId} code="notice" cibleId={bailId} cheminRetour={`${base}/baux/${bailId}`} libelle={notice ? "Actualiser le résumé" : "Générer le résumé"}/></div>}
+          {noticeAActualiser && <p data-notice-a-actualiser>Le résumé rangé a été établi avec un ancien texte, qui se disait à tort annexé au contrat et reçu par le locataire : actualisez-le avant de préparer la signature.</p>}
+          {!docsBail.error && <div className={styles.actions}>{notice && <ApercuPieceBail fichier={fichier(notice.id)} titre="Résumé de la notice d’information" mime="application/pdf"/>}<BoutonGenererDocument orgId={orgId} code="notice" cibleId={bailId} cheminRetour={`${base}/baux/${bailId}`} libelle={notice ? "Actualiser le résumé" : "Générer le résumé"}/></div>}
         </article>
         <article id="reglement-copro" className={styles.carte} data-ton={erreurReglement ? undefined : fichierReglement ? "ok" : copropriete !== false ? "attention" : undefined}>
           <div className={styles.carteEntete}><h4>Extraits du règlement de copropriété</h4><span className={styles.etat} data-ton={erreurReglement ? undefined : fichierReglement ? "ok" : copropriete !== false ? "attention" : undefined}>{erreurReglement ? "Indisponible" : fichierReglement ? "Déposé" : copropriete === false ? "Non concerné" : copropriete === true ? reglementsDisponibles.length ? "À rattacher" : "À joindre" : "À préciser"}</span></div>

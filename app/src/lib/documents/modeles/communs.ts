@@ -2,6 +2,7 @@
 // le bailleur (les détenteurs du lot), le locataire et le logement — les
 // mêmes cartouches reviennent d'une épreuve à l'autre.
 
+import { createHash } from "node:crypto";
 import type { MentionsContrat } from "@/lib/mentions-contrat";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
@@ -422,17 +423,21 @@ export function referenceCourte(prefixe: string, id: string): string {
   return `${prefixe}-${id.slice(0, 8).toUpperCase()}`;
 }
 
-// Phase 3 (C18, C24) : la référence d'un avenant le distingue des autres avenants du même bail — « AVT », l'identifiant
-// court du bail, puis la date et l'heure (Paris) de sa génération : « AVT-2DFB98CB-20261123-1432 ». Tirée du seul bail,
-// elle était la même pour tous ses avenants. L'empreinte de la signature électronique ne la lit pas : le pied de page
-// n'est pas dans le corps du document.
-export function referenceAvenant(bailId: string, instant: Date = new Date()): string {
-  const parties = Object.fromEntries(
-    new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
-      .formatToParts(instant)
-      .map((p) => [p.type, p.value])
+// Phase 3 (C18, C24) : la référence d'un avenant le distingue des autres avenants du même bail. Tirée du seul bail, elle était
+// la même pour tous ses avenants.
+// Reprise du lot 40 : elle se tire du bail ET du contenu de l'avenant (`contenu` : objet et modifications, ou parties, date
+// d'effet et accord du remplacement), et non plus de l'heure de génération : « AVT-2DFB98CB-3F9A1C07 ». Le même avenant garde donc
+// la même référence d'une génération à l'autre — copie rangée en GED, PDF préparé pour la signature électronique, PDF relu
+// avant l'envoi —, deux avenants différents du même bail en ont deux. L'heure changeait la référence à chaque minute ; or
+// les pages de signature l'impriment (« Référence : … ») et l'empreinte du circuit la lit : un avenant préparé ne
+// correspondait plus à lui-même au moment de l'envoi.
+export function referenceAvenant(bailId: string, contenu: Record<string, string | null | undefined>): string {
+  const canonique = JSON.stringify(
+    Object.keys(contenu)
+      .sort()
+      .map((cle) => [cle, (contenu[cle] ?? "").replace(/\r\n?/g, "\n").trim()])
   );
-  return `${referenceCourte("AVT", bailId)}-${parties.year}${parties.month}${parties.day}-${parties.hour}${parties.minute}`;
+  return `${referenceCourte("AVT", bailId)}-${createHash("sha256").update(canonique).digest("hex").slice(0, 8).toUpperCase()}`;
 }
 
 // La signature préenregistrée de l'organisation, en data-URI prête à

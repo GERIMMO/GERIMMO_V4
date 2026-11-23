@@ -41,6 +41,7 @@ export function rubriquesRecapBail({ bail, lot, bien, personnes, liens, erreurLo
   const informations = (nature: "logement" | "batiment", prefixe: "lot" | "bien") => logement[nature]
     .filter(l => l.etat !== "facultatif" || l.valeur !== null)
     .map(l => ({ champ: `${prefixe}.${l.champ}`, libelle: l.libelle, valeur: l.valeur, href: liens[prefixe], facultatif: l.etat === "facultatif", aCorriger: l.etat === "a_corriger" }));
+  const premiereLocation = bail.precedente_location === "premiere";
   const clauses = [
     ligne("encadrement_loyer", "Loyers de référence applicables", ouiNon(bail.encadrement_loyer)),
     // Sans montant, le contrat imprime « Complément de loyer : néant » (mentions-location.ts) : rien à vérifier (CB-07).
@@ -49,8 +50,12 @@ export function rubriquesRecapBail({ bail, lot, bien, personnes, liens, erreurLo
     ligne("clause_resolutoire_assurance", "Résiliation pour défaut d’assurance", ouiNon(bail.clause_resolutoire_assurance)),
     ligne("clause_resolutoire_troubles", "Résiliation pour troubles jugés", ouiNon(bail.clause_resolutoire_troubles)),
     ...(bail.servitude_residence_principale === true ? [ligne("clause_resolutoire_servitude", "Résiliation pour non-respect de la servitude", ouiNon(bail.clause_resolutoire_servitude))] : []),
-    ...([ ["duree_reduite_evenement", "Motif de durée réduite"], ["travaux_recents", "Travaux récents"], ["travaux_locataire", "Travaux du locataire"], ["clauses_particulieres", "Clauses particulières"] ] as const).filter(([cle]) => !absent(bail[cle])).map(([cle, libelle]) => texte(cle, libelle)),
-    ...(!absent(bail.travaux_recents_montant) ? [montant("travaux_recents_montant", "Montant des travaux")] : []),
+    // Phase 3, reprise du lot 40 (C08) : pour une première location, le contrat imprime « Sans objet — première location » à
+    // la rubrique des travaux faits depuis le dernier contrat (travauxDepuisDernierContrat) ; le récapitulatif dit de même,
+    // sans le texte ni le montant saisis, que le contrat n'imprime pas.
+    ...([ ["duree_reduite_evenement", "Motif de durée réduite"], ["travaux_recents", "Travaux récents"], ["travaux_locataire", "Travaux du locataire"], ["clauses_particulieres", "Clauses particulières"] ] as const).filter(([cle]) => !absent(bail[cle]))
+      .map(([cle, libelle]) => cle === "travaux_recents" && premiereLocation ? ligne(cle, libelle, "Sans objet — première location", true) : texte(cle, libelle)),
+    ...(!premiereLocation && !absent(bail.travaux_recents_montant) ? [montant("travaux_recents_montant", "Montant des travaux")] : []),
   ];
   return [
     { id: "bail", titre: "Le contrat", href: "#etape-bail-1", lignes: [

@@ -308,7 +308,7 @@ export function faitA(f: Fusion, ville: string | null | undefined, dateIso: stri
   return `<p class="fait-a">Fait à ${f.champ(ville, "commune")}, le ${f.date(dateIso)}${suite}</p>`;
 }
 
-// « Fait à …, le » d'un acte que les parties datent en le signant (avenants) : la date reste à compléter, comme dans les
+// « Fait à …, le » d'un acte que les parties datent en le signant (avenants, inventaires du mobilier) : la date reste à compléter, comme dans les
 // baux, au lieu du jour de génération imprimé au-dessus de cadres vides (phase 3, C23). Ce n'est pas une donnée manquante.
 export function faitALaSignature(f: Fusion, ville: string | null | undefined, suite = "."): string {
   return `<p class="fait-a">Fait à ${f.champ(ville, "commune")}, le <span class="fusion">date effective à compléter lors de la signature</span>${suite}</p>`;

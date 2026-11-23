@@ -8,7 +8,7 @@ import { refusDocumentIncomplet } from "@/lib/documents/completude";
 import { configurationZohoSign } from "@/lib/zoho-sign";
 import { prestataireSignature, type ConfigurationSignature, type PrestataireSignature } from "@/lib/signature-prestataire";
 import { aujourdhuiParis } from "@/lib/ged";
-import { echeanceReglementaire, TITRES_GED_RESUME_NOTICE } from "@/lib/documents-bail";
+import { echeanceReglementaire, TITRE_GED_RESUME_NOTICE, TITRES_GED_RESUME_NOTICE } from "@/lib/documents-bail";
 import { marquerDocumentEssai, signatureEnEssai } from "@/lib/signature-essai";
 import type { ModeleSignature } from "./politique-signature";
 import { MENTION_PAGE_SIGNATURE_GARANT, mentionCadreCautionBail } from "./textes-signature-actes";
@@ -60,6 +60,11 @@ export async function annexesSignatureBail(db:SupabaseClient,org:string,bail:str
   const notice = notices.data?.[0];
   const manquants:string[]=[];
   if (!notice) manquants.push("Générez le résumé de la notice d’information à l’étape Documents. Il ne remplace pas la notice officielle, à remettre aussi au locataire.");
+  // Reprise du lot 40 (C01) : un résumé rangé sous l'ancien titre a l'ancien texte, qui se disait annexé au contrat, « partie
+  // intégrante », et faisait reconnaître sa réception au locataire. Il reste lu (l'empreinte d'un circuit déjà préparé avec
+  // lui se recalcule à l'identique à l'activation, qui ne lit pas ces consignes), mais une NOUVELLE préparation et l'envoi
+  // exigent de le régénérer.
+  else if (notice.titre !== TITRE_GED_RESUME_NOTICE) manquants.push("Actualisez le résumé de la notice d’information à l’étape Documents : celui qui est rangé a été établi avec un ancien texte, qui se disait à tort annexé au contrat et reçu par le locataire.");
   if (ctx.bien.copropriete && !contrat.data?.reglement_copropriete) manquants.push("Joignez les extraits du règlement de copropriété à l’étape Documents.");
   const ids=new Set<string>(); if(notice)ids.add(notice.id); if(contrat.data?.reglement_copropriete)ids.add(contrat.data.reglement_copropriete);
   const types=new Set<string>();
@@ -144,7 +149,15 @@ export function ajouterPagesSignature(doc: DocumentAssemble, parties: Signataire
     ${caution && p.qualite === "Garant" ? `<div style="font-size:8.5pt;line-height:1.25;overflow-wrap:anywhere"><strong>Mention personnelle de la caution</strong><p>Sur téléphone, copiez ce paragraphe depuis votre e-mail d’invitation avant d’ouvrir la saisie Zoho, puis collez-le vous-même dans le champ « Mention personnelle ». Il est aussi reproduit ci-dessous.</p><p>${echapper(p.mentionCaution ?? "Mention à préparer à nouveau avant tout envoi.")}</p></div>` : ''}
     <div style="${caution && p.qualite === "Garant" ? "position:absolute;top:656pt" : "margin-top:32pt;min-height:100pt"}"><span style="color:#fff;font:12px Arial;white-space:nowrap">{{s${i + 1}|signature|190|80}}</span></div>
   </section>`).join("");
-  const inventaire = annexes.length ? `<section style="break-before:page"><h1>Annexes remises avec le contrat</h1><p>Ces pièces accompagnent le document dans le même dossier de signature. Leur empreinte identifie exactement la version remise.</p>${annexes.map(a=>`<div style="break-inside:avoid;margin:14pt 0"><strong>${echapper(a.titre)}</strong><p style="font:8px monospace;overflow-wrap:anywhere">SHA-256 : ${echapper(a.empreinte)}</p></div>`).join("")}</section>` : "";
+  const piece = (a: AnnexeSignature) => `<div style="break-inside:avoid;margin:14pt 0"><strong>${echapper(a.titre)}</strong><p style="font:8px monospace;overflow-wrap:anywhere">SHA-256 : ${echapper(a.empreinte)}</p></div>`;
+  // Reprise du lot 40 (C01) : le résumé de la notice établi par Gerimmo n'est pas présenté comme une annexe du contrat, que
+  // le bail réserve à la notice officielle : il est listé à part, dit pour ce qu'il est. Un dossier préparé avant (résumé
+  // rangé sous l'ancien titre, ou aucun résumé) garde sa page octet pour octet : son empreinte se recalcule à l'identique.
+  const resumes = annexes.filter(a => a.titre === TITRE_GED_RESUME_NOTICE);
+  const pieces = annexes.filter(a => a.titre !== TITRE_GED_RESUME_NOTICE);
+  const inventaire = !annexes.length ? "" : !resumes.length
+    ? `<section style="break-before:page"><h1>Annexes remises avec le contrat</h1><p>Ces pièces accompagnent le document dans le même dossier de signature. Leur empreinte identifie exactement la version remise.</p>${annexes.map(piece).join("")}</section>`
+    : `<section style="break-before:page">${pieces.length ? `<h1>Annexes remises avec le contrat</h1><p>Ces pièces accompagnent le document dans le même dossier de signature. Leur empreinte identifie exactement la version remise.</p>${pieces.map(piece).join("")}` : ""}<h1>Document d’information joint</h1><p>Ce résumé, établi par Gerimmo, accompagne le document dans le même dossier de signature. Il n’est pas une annexe du contrat et ne remplace pas la notice d’information officielle, que le bailleur remet au locataire avec le contrat.</p>${resumes.map(piece).join("")}</section>`;
   return { ...doc, html: doc.html.replace("</body>", `${inventaire}${pages}</body>`) };
 }
 

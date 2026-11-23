@@ -91,7 +91,9 @@ describe("Catalogue — documents issus des dossiers",()=>{
   });
   it.each(CODES_COMPLEMENTS_BAIL)("assemble %s avec sa source métier",async code=>{
     if(code.startsWith("inventaire")) ctx.lot.meuble=true;
-    if(code==="inventaire_sortie") ctx.bail.etat="preavis";
+    // Phase 3, reprise du lot 40 (S08) : la date du constat commune à ce test (01/04/2026) précède la prise d'effet du bail de la
+    // fixture (01/09/2026) ; un inventaire de sortie antérieur à l'entrée est désormais refusé : le bail commence ici avant.
+    if(code==="inventaire_sortie"){ctx.bail.etat="preavis";ctx.bail.date_debut="2025-09-01";}
     if(code==="attestation_fin_bail") ctx.bail.etat="termine";
     if(code==="avenant_remplacement") ctx.bail.type="colocation";
     // Phase 3 (C40) : l'accusé de réception se prépare pendant le préavis, avant l'état des lieux de sortie.
@@ -251,7 +253,9 @@ it.skipIf(!process.env.GERIMMO_CATALOGUE_PDF_DIR || !process.env.GERIMMO_CHROME)
   for(const code of CODES_COMPLEMENTS_BAIL){
     ctx=contexte();ctx.bail.etat="actif";
     if(code.startsWith("inventaire")) ctx.lot.meuble=true;
-    if(code==="inventaire_sortie") ctx.bail.etat="preavis";
+    // Phase 3, reprise du lot 40 (S08) : la date du constat commune à ce test (01/04/2026) précède la prise d'effet du bail de la
+    // fixture (01/09/2026) ; un inventaire de sortie antérieur à l'entrée est désormais refusé : le bail commence ici avant.
+    if(code==="inventaire_sortie"){ctx.bail.etat="preavis";ctx.bail.date_debut="2025-09-01";}
     if(code==="attestation_fin_bail") ctx.bail.etat="termine";
     if(code==="avenant_remplacement") ctx.bail.type="colocation";
     const t=fixtureCourrier(code);

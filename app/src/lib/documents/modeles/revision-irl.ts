@@ -74,6 +74,8 @@ export type ApplicationRevision = {
   nonComplete: { du: string; au: string; loyer: number; termes: string[] } | null;
   /** Le premier terme révisé commence avant la date d'effet : jours facturés au loyer révisé avant l'effet. */
   avantEffet: { du: string; au: string } | null;
+  /** Loyer révisé égal à l'ancien, au centime (indice inchangé, ou variation effacée à l'arrondi) : aucun terme ne change. */
+  inchange?: true;
 };
 
 const centimes = (v: number | string | null | undefined) => Math.round(Number(v ?? NaN) * 100);
@@ -104,6 +106,9 @@ export function applicationRevision(
   appels: AppelRevision[],
   dateFinBail?: string | null
 ): ApplicationRevision | null {
+  // Lot 39 (reprise, C54) : un loyer révisé égal à l'ancien ne permet pas de distinguer un terme révisé d'un terme d'avant ; le
+  // terme du mois de l'effet, émis à l'ancien loyer, était pris pour « révisé pour le mois entier, avant la date d'effet ».
+  if (centimes(nouveauLoyer) === centimes(ancienLoyer)) return { premierTerme: null, nonComplete: null, avantEffet: null, inchange: true };
   const moisEffet = `${dateEffet.slice(0, 7)}-01`;
   const suivants = appels
     .filter((a) => a.periode.slice(0, 10) >= moisEffet)
@@ -133,12 +138,13 @@ export function applicationRevision(
 }
 
 /** La phrase qui dit ce que font les appels du bail (C54) ; vide si l'application n'a pas été lue. */
-function phraseApplication(application: ApplicationRevision | null | undefined, dateFinBail: string | null | undefined): string {
+function phraseApplication(application: ApplicationRevision | null | undefined, dateFinBail: string | null | undefined, nouveauLoyer: number): string {
   if (application === undefined) return "";
   if (application === null) {
     return `<p>Le loyer révisé s'applique aux termes appelés après l'enregistrement de la révision ; un terme déjà appelé
       n'est pas modifié.</p>`;
   }
+  if (application.inchange) return `<p>Le loyer révisé est égal au loyer avant révision : la révision ne modifie le montant d'aucun terme.</p>`;
   const phrases: string[] = [];
   const { premierTerme, nonComplete, avantEffet } = application;
   if (premierTerme) {
@@ -154,7 +160,12 @@ function phraseApplication(application: ApplicationRevision | null | undefined, 
     const termes = nonComplete.termes.length === 1
       ? `Le terme ${deElide(premier)}, appelé avant l'enregistrement de cette révision, reste`
       : `Les termes ${deElide(premier)} à ${dernier}, appelés avant l'enregistrement de cette révision, restent`;
-    phrases.push(`${termes} au loyer de ${eur(nonComplete.loyer)} : aucun complément n'est appelé pour la période du
+    // Lot 39 (reprise, C54) : en cas de baisse, « aucun complément n'est appelé » taisait que le terme resté à l'ancien loyer
+    // est plus élevé que le loyer révisé ; le document le dit, et qu'aucune déduction n'est faite sur la période.
+    phrases.push(centimes(nouveauLoyer) < centimes(nonComplete.loyer)
+      ? `${termes} au loyer de ${eur(nonComplete.loyer)}, supérieur au loyer révisé : aucune déduction n'est appliquée pour la
+        période du ${formaterDateFr(nonComplete.du)} au ${formaterDateFr(nonComplete.au)}.`
+      : `${termes} au loyer de ${eur(nonComplete.loyer)} : aucun complément n'est appelé pour la période du
       ${formaterDateFr(nonComplete.du)} au ${formaterDateFr(nonComplete.au)}.`);
   }
   return `<p>${phrases.join(" ")}</p>`;
@@ -207,7 +218,7 @@ export function construireRevisionIrl(d: DonneesRevisionIrl) {
     <p>Conformément à la clause de révision du bail, le loyer est révisé chaque année selon la
     variation de l'indice de référence des loyers publié par l'INSEE.</p>
     ${phraseEffet}
-    ${phraseApplication(d.application, d.dateFinBail)}
+    ${phraseApplication(d.application, d.dateFinBail, d.nouveauLoyer)}
     ${section("Nouveau montant")}
     ${tableau(
       [{ libelle: "Nature" }, { libelle: "Montant", droite: true }],

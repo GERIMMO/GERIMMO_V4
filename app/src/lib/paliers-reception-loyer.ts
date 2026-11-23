@@ -28,6 +28,9 @@ function pointDuTerme(ligne: TermeSuivi, jour: string, maintenant?: number): Poi
   const dernier = ligne.derniere_relance;
   const regles = ligne.relances_automatiques;
   if (ligne.recommande_transmis || dernier?.niveau === "mise_en_demeure") return null;
+  // Phase 3, lot 39 (reprise, C65) : pendant un plan d'apurement en cours, les relances sont suspendues (en base pour les
+  // automatiques, au clic pour les courriers) : aucun palier de relance n'est proposé ni annoncé pour ce terme.
+  if (ligne.plan_apurement_en_cours) return null;
   if (!regles || ligne.historique_relances_disponible === false || !Number.isInteger(regles.premierDelai) ||
       !Number.isInteger(regles.secondDelai) || regles.premierDelai < 1 || regles.secondDelai <= regles.premierDelai) {
     return { etape: "inconnu", date: echeance, aConfirmer: !confirme };

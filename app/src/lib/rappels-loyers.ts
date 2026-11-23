@@ -23,6 +23,8 @@ export type RappelLoyer = {
   /** Dette du bail, calculée sur toutes ses lignes (ligne présentée = la plus ancienne). */
   dette_bail?: DetteBail;
   relances_automatiques?: { active: boolean; premierDelai: number; secondDelai: number } | null;
+  /** Un plan d'apurement en cours (actif, ou en défaut avant sa caducité) suspend les relances de ce bail. */
+  plan_apurement_en_cours?: boolean;
 };
 
 export type DetteBail = {
@@ -144,27 +146,55 @@ async function lireTermesRecommandes(supabase: SupabaseClient, orgId: string, li
   return { transmis, incomplets };
 }
 
-/** Même lecture de l’historique pour le résumé et pour chaque ligne du tableau. */
-export async function enrichirRappelsLoyers<T extends TermeSuivi>(supabase: SupabaseClient, orgId: string, lignes: T[], jour: string) {
+/** États d'un plan d'apurement qui suspendent les relances : ceux de plan_apurement_suspend_relances (migration 20261102224000). */
+export const ETATS_PLAN_SUSPENDANT_RELANCES = ["actif", "en_defaut"];
+
+/**
+ * Phase 3, lot 39 (reprise, C65) : les baux de la liste qui ont un plan d'apurement en cours. La base suspend alors les
+ * relances automatiques ; le suivi du tableau de bord ne doit plus proposer de palier ni de courrier pour ces baux.
+ * Un seul plan vivant par bail (index plans_apurement_vivant) : un groupe de 50 baux rend au plus 50 lignes.
+ */
+export async function lirePlansApurementEnCours(supabase: SupabaseClient, orgId: string, baux: string[]) {
+  const enCours = new Set<string>();
+  const liste = [...new Set(baux)];
+  for (let i = 0; i < liste.length; i += 50) {
+    const { data, error } = await supabase.from("plans_apurement").select("bail_id")
+      .eq("organization_id", orgId).in("bail_id", liste.slice(i, i + 50)).in("etat", ETATS_PLAN_SUSPENDANT_RELANCES);
+    if (error) return { enCours, error };
+    for (const plan of (data ?? []) as { bail_id: string }[]) enCours.add(plan.bail_id);
+  }
+  return { enCours, error: null };
+}
+
+/**
+ * Même lecture de l’historique pour le résumé et pour chaque ligne du tableau. `plansEnCours` : les baux sous plan, quand
+ * l'appelant vient de les lire (sinon, lus ici). Plans illisibles : le palier n'est pas affirmé (« Suivi à vérifier »).
+ */
+export async function enrichirRappelsLoyers<T extends TermeSuivi>(supabase: SupabaseClient, orgId: string, lignes: T[], jour: string,
+  plansEnCours?: Set<string>) {
   if (!lignes.length) return [];
-  const [reglages, historiques, courriers] = await Promise.all([
+  const [reglages, historiques, courriers, plans] = await Promise.all([
     supabase.from("organizations").select("relances_envoi_auto,relance_1_jours,relance_2_jours").eq("id", orgId).maybeSingle(),
     Promise.all(lignes.map(ligne => lireDerniereRelanceReception(supabase, orgId, ligne))),
     lireTermesRecommandes(supabase, orgId, lignes),
+    plansEnCours ? { enCours: plansEnCours, error: null } : lirePlansApurementEnCours(supabase, orgId, lignes.map(l => l.bail_id)),
   ]);
   const o = reglages.error ? null : reglages.data;
   const suivi = o ? { active: o.relances_envoi_auto === true, premierDelai: o.relance_1_jours, secondDelai: o.relance_2_jours } : null;
   const maintenant = Date.now();
   return lignes.map((ligne, i) => {
     const h = historiques[i];
-    const complete = { ...ligne, relances_automatiques: suivi, derniere_relance: h.data, historique: h.historique, historique_relances_disponible: !h.error && !courriers.incomplets.has(ligne.bail_id),
-      recommande_transmis: courriers.transmis.has(ligne.bail_id + ":" + ligne.appel_id) };
+    const complete = { ...ligne, relances_automatiques: suivi, derniere_relance: h.data, historique: h.historique,
+      historique_relances_disponible: !h.error && !courriers.incomplets.has(ligne.bail_id) && !plans.error,
+      recommande_transmis: courriers.transmis.has(ligne.bail_id + ":" + ligne.appel_id),
+      plan_apurement_en_cours: plans.enCours.has(ligne.bail_id) };
     return { ...complete, point: pointReception(complete, jour, maintenant) };
   });
 }
 
+// Phase 3, lot 39 (reprise, C65) : « tant qu'il n'est ni caduc ni annulé » oubliait le plan soldé, qui ne suspend plus rien.
 export const PLAN_APUREMENT_EN_COURS =
-  "Un plan d’apurement est en cours sur ce bail : les relances sont suspendues tant qu’il n’est ni caduc ni annulé. Consultez-le dans les loyers du bail.";
+  "Un plan d’apurement est en cours sur ce bail : les relances sont suspendues jusqu’à sa fin (dette soldée, plan caduc ou annulé). Consultez-le dans les loyers du bail.";
 
 /** Relit les envois et les délais pour le terme qui ouvre réellement la procédure du bail. */
 export async function verifierCourrierDuBail(db: SupabaseClient, orgId: string, bailId: string,
@@ -176,12 +206,13 @@ export async function verifierCourrierDuBail(db: SupabaseClient, orgId: string, 
   // automatiques en base (plan_apurement_suspend_relances, migration 20261102224000 : mêmes états) comme les courriers préparés
   // ici, que le protocole signé annonce suspendus. Le suivi les proposait encore. Lecture impossible : on ne prépare rien.
   const plans = await db.from("plans_apurement").select("id").eq("organization_id", orgId).eq("bail_id", bailId)
-    .in("etat", ["actif", "en_defaut"]).limit(1);
+    .in("etat", ETATS_PLAN_SUSPENDANT_RELANCES).limit(1);
   if (plans.error) return { erreur: "Impossible de vérifier le plan d’apurement de ce bail. Réessayez avant de préparer ce courrier." };
   if ((plans.data ?? []).length) return { erreur: PLAN_APUREMENT_EN_COURS };
+  // Aucun plan en cours, lu à l'instant : le suivi ne le relit pas.
   const [ligne] = await enrichirRappelsLoyers(db, orgId, [{ appel_id: terme.appel_id, bail_id: bailId,
     date_echeance: String(terme.date_echeance), montant_du: Number(terme.montant_du), montant_couvert: Number(terme.montant_couvert),
-    non_recu_signale_le: null }], jour);
+    non_recu_signale_le: null }], jour, new Set());
   if (ligne.point?.etape === "inconnu") return { erreur: "Impossible de vérifier le suivi des relances. Réessayez avant de préparer ce courrier." };
   if (courrierDisponible(ligne, jour) !== niveau) {
     if (ligne.recommande_transmis || ligne.derniere_relance?.niveau === "mise_en_demeure") return { erreur: "Un recommandé a déjà été enregistré pour cette échéance." };

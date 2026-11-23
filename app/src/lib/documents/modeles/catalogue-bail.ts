@@ -133,7 +133,13 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
           : await lireLignes(supabase.from("plans_apurement").select(champsPlan).eq("organization_id", orgId).eq("bail_id", bailId).in("etat", ["propose","actif","en_defaut"]).order("created_at", { ascending: false }).limit(1));
         if (options.plan_id && (!lu || texte(lu.bail_id) !== bailId)) return { erreur: "Ce plan d’apurement n’appartient pas à ce bail." };
         if (lu) {
+          // Phase 3, lot 39 (reprise, C65) : un protocole ne se prépare que sur un plan vivant (proposé, actif ou en défaut), comme
+          // la recherche sans plan_id et comme le rattachement en base (« Ce plan est clos »). Sur un plan caduc ou soldé, il
+          // annonçait encore la suspension des relances, qui ne s'applique plus.
           if (texte(lu.etat) === "annule") return { erreur: "Ce plan d’apurement est annulé." };
+          if (texte(lu.etat) === "caduc") return { erreur: "Ce plan d’apurement est caduc : un protocole ne se prépare plus sur ce plan." };
+          if (texte(lu.etat) === "solde") return { erreur: "Ce plan d’apurement est soldé : un protocole ne se prépare plus sur ce plan." };
+          if (!["propose", "actif", "en_defaut"].includes(texte(lu.etat))) return { erreur: "Ce plan d’apurement n’est plus en cours." };
           const tranches = await lireLignes(supabase.from("plan_apurement_tranches").select("rang,echeance,montant").eq("organization_id", orgId).eq("plan_id", texte(lu.id)).order("rang"));
           plan = { date_arrete: texte(lu.date_arrete), dette_initiale: montant(lu.dette_initiale), acompte: montant(lu.acompte), conditions: lu.conditions ? texte(lu.conditions) : null,
             tolerance_jours: montant(lu.tolerance_jours), seuil_caducite: montant(lu.seuil_caducite),
@@ -181,13 +187,15 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
           const n = plan.tranches.length, tolerance = plan.tolerance_jours, seuil = plan.seuil_caducite;
           const pluriel = (k: number, mot: string) => `${k} ${mot}${k > 1 ? "s" : ""}`;
           const conditions = (plan.conditions ?? options.conditions)?.trim() || null;
+          // Lot 39 (reprise, C65) : la suspension dure tant que le plan est actif ou en défaut (plan_apurement_suspend_relances) ;
+          // « tant qu'il n'est ni caduc ni annulé » oubliait le plan soldé, qui ne suspend plus rien.
           contenu += `${section("Échéancier convenu")}
             <p>Dette arrêtée au ${f.date(plan.date_arrete)} : ${eur(plan.dette_initiale)}.${plan.acompte > 0 ? ` Acompte versé ou à verser à la signature : ${eur(plan.acompte)}.` : ""}
             Reste à étaler : ${eur(plan.dette_initiale - plan.acompte)}, en ${pluriel(n, "mensualité")}.</p>
             ${lignesTableau(f,plan.tranches,[["Date","date","date"],["Montant","montant","montant"]])}
             <p>Les mensualités d’apurement s’ajoutent au loyer et aux charges courants. Une mensualité est tenue pour réglée dès que la dette échue du bail, loyers courants compris, ne dépasse plus ce qui reste à étaler après elle : les règlements reçus depuis le ${f.date(plan.date_arrete)} sont pris en compte. Toute adaptation de l’accord est convenue par écrit entre les parties.</p>
             <p>Une mensualité qui n’est pas réglée ${tolerance > 0 ? `${pluriel(tolerance, "jour")} après son échéance` : "à son échéance"} est constatée comme manquée. À ${pluriel(seuil, "mensualité")} manquée${seuil > 1 ? "s" : ""} et non rattrapée${seuil > 1 ? "s" : ""}, l’accord devient caduc et les sommes restantes sont immédiatement exigibles.</p>
-            <p>Les relances de loyer sont suspendues dès l’activation du plan, après l’accord du locataire, tant qu’il n’est ni caduc ni annulé. Le bailleur ne renonce à aucun droit, ni à la clause résolutoire du bail.</p>
+            <p>Les relances de loyer sont suspendues dès l’activation du plan, après l’accord du locataire, et jusqu’à sa fin : dette soldée, plan devenu caduc ou annulé. Après cette fin, toute somme impayée peut de nouveau être relancée. Le bailleur ne renonce à aucun droit, ni à la clause résolutoire du bail.</p>
             <p>Conditions particulières de suivi : ${ouNeant(conditions)}${conditions ? pointFinal(conditions) : ""}</p>`;
         }
         signatures = true;

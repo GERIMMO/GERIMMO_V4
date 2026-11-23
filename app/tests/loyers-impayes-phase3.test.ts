@@ -14,6 +14,8 @@
  *  - C57, C59 : le rappel d'assurance titré « Attestation d'assurance », et le logement réduit à l'adresse de l'immeuble.
  * Chaque cas ci-dessous échouait avant le correctif.
  */
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { contexte, personne } from "./fixtures/contexte-document";
@@ -28,7 +30,15 @@ vi.mock("@/lib/rappels-loyers", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   verifierCourrierDuBail: vi.fn(async () => ({ precedente: "2026-10-12" })),
 }));
+// Le suivi du tableau de bord (lot 39, reprise) se rend sans serveur : navigation, actions et bouton de document simulés.
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }), unstable_rethrow: vi.fn() }));
+vi.mock("@/app/actions/reception-loyer", () => ({ declarerReceptionLoyer: vi.fn(), envoyerRelanceReception: vi.fn() }));
+vi.mock("@/components/bouton-generer-document", () => ({
+  BoutonGenererDocument: ({ code, libelle }: { code: string; libelle: string }) => createElement("button", { "data-modele": code }, libelle),
+}));
 import { chargerContexteBail, LIBELLE_COORDONNEES_BANCAIRES, type ContexteBail } from "@/lib/documents/modeles/communs";
+import { courrierDisponible, pointReception } from "@/lib/paliers-reception-loyer";
+import { RappelsLoyersInteractifs } from "@/components/rappels-loyers-interactifs";
 import { assemblerComplementBail, LIBELLE_PLAN_A_ENREGISTRER } from "@/lib/documents/modeles/catalogue-bail";
 import { assemblerProrata } from "@/lib/documents/modeles/prorata";
 import { applicationRevision, assemblerRevisionIrl } from "@/lib/documents/modeles/revision-irl";
@@ -149,6 +159,29 @@ describe("C54 — révision : à partir de quel terme le loyer révisé est appe
     const texte = texteDe(succes(await assembler([])).document.html);
     expect(texte).toContain("Le loyer révisé s'applique aux termes appelés après l'enregistrement de la révision ; un terme déjà appelé n'est pas modifié.");
     expect(texte).not.toContain("à compter du terme");
+  });
+  it("lot 39 (reprise) — loyer révisé égal à l'ancien : aucun terme n'est dit « révisé », ni facturé avant l'effet", async () => {
+    const appel = (periode: string, base: number) => ({ periode, loyer_hc: base, base_loyer_hc: base });
+    expect(applicationRevision("2026-10-15", 700, 700, [appel("2026-10-01", 700), appel("2026-11-01", 700)])).toEqual({
+      premierTerme: null, nonComplete: null, avantEffet: null, inchange: true,
+    });
+    // Variation effacée à l'arrondi : même montant au centime.
+    expect(applicationRevision("2026-10-15", 700, 700.001, [appel("2026-10-01", 700)])?.inchange).toBe(true);
+    const r = succes(await assemblerRevisionIrl(base({ revisions_loyer: [{ ...revision, nouveau_loyer: 700, irl_nouveau: 100 }],
+      appels_loyer: [appel("2026-10-01", 700), appel("2026-11-01", 700)] }).db, "org", "r1"));
+    const texte = texteDe(r.document.html);
+    expect(texte).toContain("Le loyer révisé est égal au loyer avant révision : la révision ne modifie le montant d'aucun terme.");
+    expect(texte).not.toContain("avant la date d'effet");
+    expect(texte).not.toContain("à compter du terme");
+    expect(texte).toContain("Loyer hors charges révisé 700,00 €");
+  });
+  it("lot 39 (reprise) — baisse : le terme resté à l'ancien loyer est dit plus élevé, sans déduction", async () => {
+    const r = succes(await assemblerRevisionIrl(base({ revisions_loyer: [{ ...revision, nouveau_loyer: 690, irl_nouveau: 98.57 }],
+      appels_loyer: [{ periode: "2026-10-01", loyer_hc: 700, base_loyer_hc: 700 }, { periode: "2026-11-01", loyer_hc: 690, base_loyer_hc: 690 }] }).db, "org", "r1"));
+    const texte = texteDe(r.document.html);
+    expect(texte).toContain("Le loyer révisé est appelé à compter du terme de novembre 2026.");
+    expect(texte).toContain("Le terme d’octobre 2026, appelé avant l'enregistrement de cette révision, reste au loyer de 700,00 €, supérieur au loyer révisé : aucune déduction n'est appliquée pour la période du 15/10/2026 au 31/10/2026.");
+    expect(texte).not.toContain("aucun complément");
   });
   it("appels illisibles : le document n'est pas produit", async () => {
     const r = await assemblerRevisionIrl(base({ revisions_loyer: [revision] }, ["appels_loyer"]).db, "org", "r1");
@@ -286,7 +319,10 @@ describe("C65, C66, C74 — protocole d'apurement : ce que fait le plan enregist
     expect(texte).toContain("31/03/2027 188,34 €");
     expect(texte).toContain("31/08/2027 188,33 €");
     expect(texte).toContain("Une mensualité qui n’est pas réglée 5 jours après son échéance est constatée comme manquée. À 2 mensualités manquées et non rattrapées, l’accord devient caduc et les sommes restantes sont immédiatement exigibles.");
-    expect(texte).toContain("Les relances de loyer sont suspendues dès l’activation du plan, après l’accord du locataire, tant qu’il n’est ni caduc ni annulé.");
+    // Lot 39 (reprise) : « tant qu'il n'est ni caduc ni annulé » oubliait le plan soldé, qui ne suspend plus rien (la base ne
+    // suspend que pendant un plan actif ou en défaut) : la phrase dit la fin de la suspension, soldé compris.
+    expect(texte).toContain("Les relances de loyer sont suspendues dès l’activation du plan, après l’accord du locataire, et jusqu’à sa fin : dette soldée, plan devenu caduc ou annulé. Après cette fin, toute somme impayée peut de nouveau être relancée.");
+    expect(texte).not.toContain("tant qu’il n’est ni caduc ni annulé");
     expect(texte).toContain("les règlements reçus depuis le 20/11/2025 sont pris en compte");
     expect(texte).toContain("Conditions particulières de suivi : Néant.");
     // C66 : plus de caducité à la première mensualité manquée ; C74 : plus de déduction « avant signature » d'un échéancier ferme.
@@ -303,6 +339,11 @@ describe("C65, C66, C74 — protocole d'apurement : ce que fait le plan enregist
   it("le plan désigné doit être celui du bail, et vivant", async () => {
     expect(await protocole([plan({ bail_id: "autre" })], { plan_id: "p1" })).toHaveProperty("erreur", "Ce plan d’apurement n’appartient pas à ce bail.");
     expect(await protocole([plan({ etat: "annule" })], { plan_id: "p1" })).toHaveProperty("erreur", "Ce plan d’apurement est annulé.");
+    // Lot 39 (reprise) : un plan caduc ou soldé n'est plus vivant — son protocole annonçait encore la suspension des relances.
+    expect(await protocole([plan({ etat: "caduc" })], { plan_id: "p1" })).toHaveProperty("erreur", "Ce plan d’apurement est caduc : un protocole ne se prépare plus sur ce plan.");
+    expect(await protocole([plan({ etat: "solde" })], { plan_id: "p1" })).toHaveProperty("erreur", "Ce plan d’apurement est soldé : un protocole ne se prépare plus sur ce plan.");
+    expect(await protocole([plan({ etat: "inconnu" })], { plan_id: "p1" })).toHaveProperty("erreur", "Ce plan d’apurement n’est plus en cours.");
+    for (const etat of ["propose", "actif", "en_defaut"]) expect(succes(await protocole([plan({ etat })], { plan_id: "p1" })).document.manquants).toEqual([]);
   });
   it("le plan en cours se cherche dans l'espace et sur ce bail, parmi les plans vivants", async () => {
     const { db, appels } = base(tablesImpayes({ plans_apurement: [plan()], plan_apurement_tranches: tranches }));
@@ -330,6 +371,64 @@ describe("C65 — suivi des courriers : aucune relance préparée pendant un pla
     const reel = await vi.importActual<typeof RappelsLoyers>("@/lib/rappels-loyers");
     const r = await reel.verifierCourrierDuBail(base({}, ["plans_apurement"]).db, "org", "b1", termes, "2026-11-23", "recommande");
     expect(r.erreur).toContain("plan d’apurement");
+  });
+});
+
+describe("C65 (reprise) — le suivi du tableau de bord ne propose plus de relance pendant un plan d'apurement en cours", () => {
+  // Deux baux impayés depuis le 05/10/2026, non-réception confirmée le 22/11 ; le bail b1 est sous plan actif.
+  const jour = "2026-11-23";
+  const ligne = (bail: string): RappelsLoyers.RappelLoyer => ({ appel_id: "appel-" + bail, bail_id: bail, lot_nom: "Lot " + bail, locataire: "Fictif Hugo",
+    periode: "2026-10-01", date_echeance: "2026-10-05", montant_du: 980, montant_couvert: 0, non_recu_signale_le: "2026-11-22T09:00:00Z" });
+  const tables = (plans: Ligne[]) => ({ organizations: [{ relances_envoi_auto: true, relance_1_jours: 5, relance_2_jours: 15 }], relances: [], recommandes_ar24: [], plans_apurement: plans });
+  const reel = () => vi.importActual<typeof RappelsLoyers>("@/lib/rappels-loyers");
+  const rendre = (dus: RappelsLoyers.RappelLoyer[]) => renderToStaticMarkup(createElement(RappelsLoyersInteractifs, {
+    orgId: "org", aujourdHui: jour, dus, prochaine: null, totalEcheancesDues: dus.length, lectureSeule: false,
+    envoiRelanceDisponible: false, relanceAutomatiqueOuverte: true, dansFenetre: false }));
+
+  it("le suivi lit les plans en cours de l'espace, pour les baux affichés, dans les états qui suspendent les relances", async () => {
+    const { db, appels } = base(tables([{ bail_id: "b1" }]));
+    const [b1, b2] = await (await reel()).enrichirRappelsLoyers(db, "org", [ligne("b1"), ligne("b2")], jour);
+    expect(b1.plan_apurement_en_cours).toBe(true);
+    expect(b2.plan_apurement_en_cours).toBe(false);
+    const lecture = appels.find((a) => a.table === "plans_apurement")!;
+    expect(lecture.ops).toContainEqual(["eq", "organization_id", "org"]);
+    expect(lecture.ops).toContainEqual(["in", "bail_id", ["b1", "b2"]]);
+    expect(lecture.ops).toContainEqual(["in", "etat", ["actif", "en_defaut"]]);
+    // Sous plan : ni palier, ni courrier. Sans plan : la première relance, comme avant.
+    expect(b1.point).toBeNull();
+    expect(courrierDisponible(b1, jour)).toBeNull();
+    expect(b2.point).toMatchObject({ etape: "relance_1" });
+    expect(courrierDisponible(b2, jour)).toBe("relance_1");
+  });
+  it("l'écran n'annonce ni « Relance 1 », ni la relance automatique, ni le PDF de relance pour le bail sous plan", async () => {
+    const [b1, b2] = await (await reel()).enrichirRappelsLoyers(base(tables([{ bail_id: "b1" }])).db, "org", [ligne("b1"), ligne("b2")], jour);
+    const sousPlan = rendre([b1]);
+    expect(sousPlan).toContain("Plan d’apurement en cours : les relances sont suspendues jusqu’à sa fin (dette soldée, plan caduc ou annulé).");
+    expect(sousPlan).toContain('href="/espace/org/baux/b1#plan-apurement"');
+    for (const absent of ["Relance 1", "Recommandé", "Préparer la première relance en PDF", "data-modele", "Confirmation enregistrée pour la relance automatique.", "vous pouvez préparer le PDF", "Prochain point"]) {
+      expect(sousPlan).not.toContain(absent);
+    }
+    // Les réponses sur la réception restent proposées : le loyer courant compte pour le respect du plan.
+    expect(sousPlan).toContain("J’ai reçu le loyer");
+    // Le bail sans plan garde son suivi (témoin : la même ligne, sans plan, montrait tout cela).
+    const sansPlan = rendre([b2]);
+    expect(sansPlan).toContain("Relance 1");
+    expect(sansPlan).toContain("Confirmation enregistrée pour la relance automatique.");
+    expect(sansPlan).toContain('data-modele="relance_simple"');
+  });
+  it("sous plan, une nouvelle mensualité due demande encore sa confirmation, sans palier de relance", () => {
+    const l = { ...ligne("b1"), plan_apurement_en_cours: true, derniere_echeance_due: "2026-11-05", non_recu_signale_le: null,
+      relances_automatiques: { active: true, premierDelai: 5, secondDelai: 15 }, historique_relances_disponible: true };
+    expect(pointReception(l, jour)).toEqual({ etape: "echeance", date: "2026-11-05", aConfirmer: true });
+    expect(courrierDisponible(l, jour)).toBeNull();
+  });
+  it("plans illisibles : aucun palier n'est affirmé (« Suivi à vérifier »), aucun courrier proposé", async () => {
+    const [b2] = await (await reel()).enrichirRappelsLoyers(base(tables([]), ["plans_apurement"]).db, "org", [ligne("b2")], jour);
+    expect(b2.point).toMatchObject({ etape: "inconnu" });
+    expect(courrierDisponible(b2, jour)).toBeNull();
+  });
+  it("le refus au clic dit la même fin de suspension, plan soldé compris", async () => {
+    expect((await reel()).PLAN_APUREMENT_EN_COURS).toContain("jusqu’à sa fin (dette soldée, plan caduc ou annulé)");
   });
 });
 

@@ -83,7 +83,7 @@ export function RappelsLoyersInteractifs({ orgId, aujourdHui, dus, totalEcheance
             bilan={retours[ligne.appel_id]?.session === session ? retours[ligne.appel_id].bilan : undefined}
             solde={!attentes.has(ligne.appel_id)} onSucces={memoriser} />
         ))}</ul>
-        {date === aujourdHui && !lectureSeule && lignes.some(ligne => attentes.has(ligne.appel_id)) && <p className={styles.noteJour}>La première relance sera disponible au délai prévu dans vos paramètres.</p>}
+        {date === aujourdHui && !lectureSeule && lignes.some(ligne => attentes.has(ligne.appel_id) && !ligne.plan_apurement_en_cours) && <p className={styles.noteJour}>La première relance sera disponible au délai prévu dans vos paramètres.</p>}
       </div>
     ))}
     {nombre > visibles.length && <p className={styles.precision}>Pour chaque bail, confirmez d’abord le mois le plus ancien.</p>}
@@ -182,7 +182,7 @@ function ReceptionLoyer({ orgId, ligne, aujourdHui, lectureSeule, envoiRelanceDi
       </div>}
       {choix && <form data-saisie-confirmee onSubmit={soumettre} className={styles.formulaire} aria-label={`Confirmer le loyer de ${ligne.lot_nom}`}>
         <input type="hidden" name="reponse" value={choix} /><input type="hidden" name="cle_envoi" value={cle} /><input type="hidden" name="reste_attendu" value={reste.toFixed(2)} />
-        {choix === "non_recu" ? <p>{point?.etape === "recommande" ? "Votre réponse confirme le solde impayé. Le recommandé ne partira que si vous choisissez de l’envoyer." : !envoiRelanceDisponible && !relanceAutomatiqueOuverte ? "Votre réponse enregistre l’impayé. Vous pourrez préparer la relance en PDF. L’envoi de relances par e-mail est suspendu." : suivi?.active ? "Cette réponse autorise la relance automatique si son délai est atteint. Vous serez à nouveau interrogé au prochain palier." : "Votre réponse est enregistrée sans envoyer de courrier. Gerimmo vous redemandera de vérifier votre compte au prochain palier."}</p> : <>
+        {choix === "non_recu" ? <p>{ligne.plan_apurement_en_cours ? "Votre réponse enregistre l’impayé, sans relance : un plan d’apurement est en cours sur ce bail. Son suivi figure dans le bail." : point?.etape === "recommande" ? "Votre réponse confirme le solde impayé. Le recommandé ne partira que si vous choisissez de l’envoyer." : !envoiRelanceDisponible && !relanceAutomatiqueOuverte ? "Votre réponse enregistre l’impayé. Vous pourrez préparer la relance en PDF. L’envoi de relances par e-mail est suspendu." : suivi?.active ? "Cette réponse autorise la relance automatique si son délai est atteint. Vous serez à nouveau interrogé au prochain palier." : "Votre réponse est enregistrée sans envoyer de courrier. Gerimmo vous redemandera de vérifier votre compte au prochain palier."}</p> : <>
           <p>{choix === "partiel" ? "Indiquez la somme reçue. La confirmation envoie le reçu partiel par e-mail si le locataire a donné son accord." : "En confirmant, vous déclenchez l’envoi de la quittance par e-mail si le locataire a donné son accord."}</p>
           <div className={styles.champs}>
             <label htmlFor={`${uid}-montant`}>Montant reçu (€)<input id={`${uid}-montant`} name="montant" type="text" inputMode="decimal" required readOnly={choix === "recu"} value={choix === "recu" ? reste.toFixed(2).replace(".", ",") : montantSaisi} onChange={event => setMontantSaisi(event.target.value)} /></label>
@@ -194,7 +194,14 @@ function ReceptionLoyer({ orgId, ligne, aujourdHui, lectureSeule, envoiRelanceDi
         <div className={styles.choix}><BoutonEnvoi type="submit" className="btn-or" disabled={enCours || !cle}>{enCours ? "Enregistrement…" : choix === "non_recu" ? "Confirmer : pas encore reçu" : choix === "partiel" ? "Confirmer et envoyer le reçu" : "Confirmer et envoyer la quittance"}</BoutonEnvoi><button type="button" className="btn-secondaire" disabled={enCours} onClick={() => setChoix(null)}>Annuler</button></div>
       </form>}
     </>}
-    {!solde && dateEcheance < aujourdHui && <div className={styles.suivi}>
+    {/* Phase 3, lot 39 (reprise, C65) : sous un plan d'apurement en cours, ni palier ni courrier proposé — la base suspend les
+        relances automatiques et refuse les courriers ; l'écran le dit au lieu d'annoncer la relance suivante. */}
+    {!solde && dateEcheance < aujourdHui && ligne.plan_apurement_en_cours && <div className={styles.suivi}>
+      <div><h4><Mail size={17}/> Suivi des relances</h4>
+        <p className={styles.point}>Plan d’apurement en cours : les relances sont suspendues jusqu’à sa fin (dette soldée, plan caduc ou annulé).</p></div>
+      <div className={styles.suite}><Link className={styles.lienSuivi} href={`/espace/${orgId}/baux/${ligne.bail_id}#plan-apurement`}>Suivre le plan d’apurement dans le bail</Link></div>
+    </div>}
+    {!solde && dateEcheance < aujourdHui && !ligne.plan_apurement_en_cours && <div className={styles.suivi}>
       <div><h4><Mail size={17}/> Suivi des relances</h4>
         <ol className={styles.frise}>{(["relance_1","relance_2","mise_en_demeure"] as const).map((niveau, index) => {
           const envoi = (ligne.historique ?? [ligne.derniere_relance]).find(r => r?.niveau === niveau);

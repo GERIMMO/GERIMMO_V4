@@ -8,7 +8,8 @@
  *    décompte des retenues « incomplet » ;
  *  - C42 : le bordereau de remise des clés était daté du jour de génération, pas du jour de la remise ;
  *  - S20 : une clé sans référence (facultative à la saisie) rendait le bordereau impossible ;
- *  - S21 : un état des lieux enregistré ou signé dans Gerimmo après coup portait « Fait à …, le » du jour d'enregistrement.
+ *  - S21 : un état des lieux enregistré ou signé dans Gerimmo après coup portait « Fait à …, le » du jour d'enregistrement ;
+ *  - S20 (reprise, même cause) : un compteur sans numéro (facultatif à la saisie) rendait l'état des lieux impossible une fois signé.
  * Chaque cas échouait avant le correctif.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -160,5 +161,38 @@ describe("S21 — « Fait à …, le » d'un état des lieux : la date du consta
   it("sans date de constat, la date de signature sert encore", () => {
     const texte = texteDe(construireEdl(donnees({ dateEdl: null, signeLe: "2026-10-08T09:30:00+00:00" })).html);
     expect(texte).toContain("Fait à Lyon, le 08/10/2026");
+  });
+});
+
+// Reprise du lot 41 (même cause que S20, relevée par la revue) : le numéro d'un compteur est facultatif à la saisie
+// (ajouterCompteur : vide → null ; champ sans « required »), et ne peut plus être complété une fois l'état des lieux signé
+// (ajout et retrait refusés, enregistrer_annexes_edl ne touche que l'index). L'exiger rendait le PDF d'un état des lieux
+// signé impossible pour toujours. Comme la référence d'une clé, il s'imprime « — ».
+describe("S20 (reprise) — état des lieux : numéro de compteur facultatif", () => {
+  const donnees = (sur: Partial<DonneesEdl>): DonneesEdl => ({
+    type: "entree", reference: "EDL-1", dateEdl: "2023-09-01", dateEdlEntree: "2023-09-01", signeLe: "2023-09-01T08:30:00+00:00",
+    personnesPresentes: "Les parties", detecteurFumeePresent: true, detecteurFumeeEtat: "bon", attestationAssuranceFournie: true,
+    adresseRestitutionDepot: "5 rue Neuve, 69003 Lyon", observations: "Néant",
+    lignes: [{ categorie: "piece", piece: "Séjour", libelle: "Murs", etat: "bon", commentaire: null }],
+    compteurs: [], cles: [{ libelle: "Porte d'entrée", nombre: 2, reference: null }], comparatif: [],
+    bailleurNom: "Moreau Claire", locatairesNoms: "Martin Paul", logementAdresse: "1 rue", referenceBail: "BAIL-1",
+    exp: { nom: "Moreau Claire", adresse: "3 rue du Domicile, 69001 Lyon", email: "contact@example.invalid", telephone: null, ville: "Lyon" },
+    typeOrganisation: "proprietaire_direct", f: new Fusion(), ...sur,
+  });
+
+  it.each(["entree", "sortie"] as const)("%s : un compteur sans numéro s'imprime « — » et ne rend pas l'état des lieux incomplet", (type) => {
+    const doc = construireEdl(donnees({
+      type,
+      compteurs: [{ type: "Électricité", numero: null, releve: 100 }, { type: "Eau froide", numero: "EF-12", releve: "42.5" }],
+    }));
+    expect(doc.manquants).toEqual([]);
+    const lignes = lignesDe(doc.html);
+    expect(lignes).toContain("Électricité|—|100");
+    expect(lignes).toContain("Eau froide|EF-12|42,5");
+  });
+
+  it("l'index relevé, lui, reste exigé : c'est le relevé que les parties constatent", () => {
+    const doc = construireEdl(donnees({ compteurs: [{ type: "Gaz", numero: null, releve: null }] }));
+    expect(doc.manquants).toEqual(["index"]);
   });
 });

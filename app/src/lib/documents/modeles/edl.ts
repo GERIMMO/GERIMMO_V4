@@ -196,7 +196,10 @@ export function construireEdl(d: DonneesEdl) {
             [{ libelle: "Fluide" }, { libelle: "Numéro de compteur" }, { libelle: "Index relevé", droite: true }],
             d.compteurs.map((c) => [
               echapper(c.type),
-              c.numero ? echapper(c.numero) : f.champ(null, "numéro de compteur"),
+              // Reprise du lot 41 (même cause que S20) : le numéro est facultatif à la saisie et ne se complète plus une fois
+              // l'état des lieux signé (seul l'index se modifie, et seulement avant la signature). Exigé ici, il rendait le PDF
+              // d'un état des lieux signé impossible pour toujours ; comme la référence d'une clé, il s'imprime « — ».
+              c.numero ? echapper(c.numero) : "—",
               c.releve !== null && c.releve !== ""
                 ? echapper(nombreFr(c.releve))
                 : f.champ(null, "index"),

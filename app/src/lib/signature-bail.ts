@@ -54,8 +54,10 @@ export async function annexesSignatureBail(db:SupabaseClient,org:string,bail:str
   const idsLies = [...new Set((liens.data??[]).map(l=>l.document_id))];
   // Phase 3 (C01) : la pièce jointe ici est le RÉSUMÉ de la notice établi par Gerimmo (nouveau titre « Résumé de la notice
   // d'information », ou l'ancien pour un résumé déjà rangé). Le libellé le dit ; le texte officiel n'est pas joint (JURISTE).
+  // Lot 45 (T14) : le plus récent, à égalité de date le plus grand identifiant : le même que la fiche du bail et le
+  // récapitulatif des pièces (resumeNoticeRetenu, documents-bail.ts).
   const notices = idsLies.length ? await db.from("documents").select(champs).eq("organization_id",org)
-    .eq("type","courrier").in("titre",TITRES_GED_RESUME_NOTICE).in("id",idsLies).is("purged_at",null).order("created_at",{ascending:false}).limit(1) : {data:[],error:null};
+    .eq("type","courrier").in("titre",TITRES_GED_RESUME_NOTICE).in("id",idsLies).is("purged_at",null).order("created_at",{ascending:false}).order("id",{ascending:false}).limit(1) : {data:[],error:null};
   if(notices.error)throw new Error("Le résumé de la notice joint au bail ne peut pas être vérifié.");
   const notice = notices.data?.[0];
   const manquants:string[]=[];

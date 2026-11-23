@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { avecEcheanceReglementaire, classerPiecesBail, resumeNoticeAActualiser, type DiagnosticBail, type PieceBail } from "@/lib/documents-bail";
+import { avecEcheanceReglementaire, resumeNoticeAActualiser, resumeNoticeRetenu, type DiagnosticBail, type PieceBail } from "@/lib/documents-bail";
 import { preparerDiagnosticsBail } from "@/lib/exigences-diagnostics-bail";
 import { TYPES_DIAGNOSTIC } from "@/lib/parc";
 import { jourAParis, jourValide } from "@/lib/presentation-document";
@@ -117,9 +117,8 @@ export async function lireRecapitulatifPiecesBail(
     if (etat === INDISPONIBLE) lectureIndisponible = true;
     pieces.push({ id, titre, moment, ...etat, href });
   };
-  const documentsBail = liens.lignes.map(l => parId.get(l.document_id)).filter((d): d is Fichier => Boolean(d))
-    .sort((a, b) => b.created_at.localeCompare(a.created_at) || b.id.localeCompare(a.id));
-  const notice = classerPiecesBail(documentsBail, [], bail.reglement_copropriete).notices[0];
+  // Lot 45 (T14) : le même résumé que la fiche du bail et la signature (le plus récent, resumeNoticeRetenu).
+  const notice = resumeNoticeRetenu(liens.lignes.map(l => parId.get(l.document_id)).filter((d): d is Fichier => Boolean(d)));
   const liensIncomplets = liens.erreur || fichiers.erreur || liens.lignes.some(l => !parId.has(l.document_id));
   // Phase 3 (C01) : la pièce que Gerimmo prépare est un résumé ; la notice officielle reste à remettre à part.
   // Reprise du lot 40 (C01) : un résumé rangé avec l'ancien texte est à actualiser (la préparation de la signature le refuse).

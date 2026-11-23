@@ -80,6 +80,11 @@ export type DonneesEdl = {
   photos?: PhotosEdl;
   compteurs: { type: string; numero: string | null; releve: number | string | null }[];
   cles: { libelle: string; nombre: number | null; reference: string | null }[];
+  /**
+   * L'état des lieux est signé (etat « signe ») : ses compteurs et ses clés sont figés (enregistrer_annexes_edl et le
+   * déclencheur refusent toute modification). Absent : avant la signature.
+   */
+  fige?: boolean;
   /** Tel que `comparatif_edl` le rend : la pièce et la catégorie distinguent les « Murs » du séjour de ceux de la chambre (C33). */
   comparatif: { piece: string | null; categorie?: string | null; libelle: string; etat_entree: string | null; etat_sortie: string | null; ecart: boolean }[];
   bailleurNom: string;
@@ -191,6 +196,9 @@ export function construireEdl(d: DonneesEdl) {
 
     ${section("Relevés de compteurs")}
     ${
+      // Phase 3, lot 45 (T17, décision prudente) : l'index relevé (facultatif à la saisie) et le nombre de clés restent exigés
+      // AVANT la signature (« À renseigner », vers la saisie). Une fois l'état des lieux signé, plus rien ne se complète : le PDF
+      // n'est plus bloqué pour toujours, il dit ce qui est enregistré, « non relevé » ou « non compté ».
       d.compteurs.length
         ? tableau(
             [{ libelle: "Fluide" }, { libelle: "Numéro de compteur" }, { libelle: "Index relevé", droite: true }],
@@ -202,10 +210,10 @@ export function construireEdl(d: DonneesEdl) {
               c.numero ? echapper(c.numero) : "—",
               c.releve !== null && c.releve !== ""
                 ? echapper(nombreFr(c.releve))
-                : f.champ(null, "index"),
+                : d.fige ? "non relevé" : f.champ(null, "index"),
             ])
           )
-        : `<p>${f.champ(null, "relevés de compteurs")}</p>`
+        : `<p>${d.fige ? "Relevés de compteurs : non relevés." : f.champ(null, "relevés de compteurs")}</p>`
     }
 
     ${section(entree ? "Clés et moyens d'accès remis" : "Clés et moyens d'accès restitués")}
@@ -220,11 +228,12 @@ export function construireEdl(d: DonneesEdl) {
               // signent ce document, et « 0 » y attesterait qu'aucune clé n'a
               // été rendue — le fait même qui fonde une retenue de serrurerie.
               // Même traitement que l'index de compteur : pointillés, et la
-              // ligne remonte dans la liste des champs restés à remplir.
-              c.nombre === null ? f.champ(null, "nombre rendu") : String(c.nombre),
+              // ligne remonte dans la liste des champs restés à remplir —
+              // avant la signature seulement (lot 45, T17 : « non compté » après).
+              c.nombre !== null ? String(c.nombre) : d.fige ? "non compté" : f.champ(null, "nombre rendu"),
             ])
           )
-        : `<p>${f.champ(null, "clés et moyens d'accès")}</p>`
+        : `<p>${d.fige ? "Clés et moyens d'accès : non comptés." : f.champ(null, "clés et moyens d'accès")}</p>`
     }
 
     ${
@@ -400,6 +409,7 @@ export async function assemblerEdl(
     lignes: (lignes ?? []) as LigneEdl[],
     compteurs: (compteurs ?? []) as DonneesEdl["compteurs"],
     cles: (cles ?? []) as DonneesEdl["cles"],
+    fige: edl.etat === "signe",
     comparatif: ((comparatifRes.data ?? []) as DonneesEdl["comparatif"]),
     bailleurNom: nomsBailleurs(f, ctx.bailleurs),
     locatairesNoms: nomsLocataires(f, ctx.locataires),

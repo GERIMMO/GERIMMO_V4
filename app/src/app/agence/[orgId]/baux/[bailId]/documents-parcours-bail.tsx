@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { premier } from "@/lib/postgrest";
 import { aujourdhuiParis } from "@/lib/ged";
-import { classerPiecesBail, echeanceReglementaire, resumeNoticeAActualiser, type DiagnosticBail, type PieceBail } from "@/lib/documents-bail";
+import { classerPiecesBail, echeanceReglementaire, resumeNoticeAActualiser, resumeNoticeRetenu, type DiagnosticBail, type PieceBail } from "@/lib/documents-bail";
 import { FileCheck2, BookOpen, Building2, Paperclip, ShieldCheck, KeyRound } from "lucide-react";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { FormulaireReglementCopropriete } from "./formulaires-bail";
@@ -51,7 +51,9 @@ export async function DocumentsParcoursBail({ orgId, bailId, lotId, bienId, anne
   const tous = [...documentsBail, ...(docsLot.data ?? []).map(d => premier(d.document)), ...identifiees.map(d => premier(d.document))] as (DocumentConnu | null)[];
   const documents = [...new Map(tous.filter((d): d is DocumentConnu => Boolean(d && !d.purged_at)).map(d => [d.id, d])).values()].sort((a, b) => b.created_at.localeCompare(a.created_at));
   const { notices } = classerPiecesBail(documentsBail, [], reglementId);
-  const notice = notices[0];
+  // Lot 45 (T14) : les liens du bail sont lus sans ordre ; le résumé retenu est le plus récent, comme au récapitulatif et à la
+  // signature (un résumé actualisé ne laisse pas la carte sur l'ancien).
+  const notice = resumeNoticeRetenu(documentsBail);
   // Reprise du lot 40 (C01) : un résumé rangé avec l'ancien texte n'est pas « disponible » : il est à actualiser.
   const noticeAActualiser = resumeNoticeAActualiser(notice);
   const tonNotice = docsBail.error ? undefined : notice && !noticeAActualiser ? "ok" : "attention";

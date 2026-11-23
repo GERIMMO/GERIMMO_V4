@@ -92,10 +92,21 @@ export const TITRES_GED_RESUME_NOTICE = [TITRE_GED_RESUME_NOTICE, "Notice d'info
 export const resumeNoticeAActualiser = (piece: { titre: string | null } | null | undefined) => Boolean(piece && piece.titre !== TITRE_GED_RESUME_NOTICE);
 
 export type PieceBail = { id: string; titre: string | null; type: string; purged_at: string | null };
-export function classerPiecesBail(pieces: PieceBail[], diagnosticIds: string[], reglementId: string | null) {
+export function classerPiecesBail<T extends PieceBail>(pieces: T[], diagnosticIds: string[], reglementId: string | null) {
   const uniques = [...new Map(pieces.filter(p => !p.purged_at).map(p => [p.id, p])).values()];
   const notices = uniques.filter(p => p.type === "courrier" && TITRES_GED_RESUME_NOTICE.includes(p.titre ?? ""));
   const exclus = new Set([...diagnosticIds, ...notices.map(p => p.id), reglementId]);
   const autres = uniques.filter(p => !exclus.has(p.id) && !["bail", "etat_des_lieux", "diagnostic", "reglement_copropriete"].includes(p.type));
   return { notices, autres };
+}
+
+// Phase 3, lot 45 (T14) : actualiser le résumé range un NOUVEAU document lié au bail ; l'ancien y reste lié. Le résumé retenu
+// est le plus récent (date de création décroissante, puis identifiant décroissant) sur la fiche du bail comme au récapitulatif
+// des pièces ; la signature électronique lit le même en base (annexesSignatureBail, même tri). Sans ce tri, la fiche prenait le
+// premier lien lu, souvent l'ancien résumé : « Résumé à actualiser » et l'ancien PDF, quand les deux autres écrans retenaient
+// le nouveau.
+export const plusRecentDAbord = (a: { id: string; created_at: string }, b: { id: string; created_at: string }) =>
+  b.created_at.localeCompare(a.created_at) || b.id.localeCompare(a.id);
+export function resumeNoticeRetenu<T extends PieceBail & { created_at: string }>(pieces: T[]): T | undefined {
+  return classerPiecesBail([...pieces].sort(plusRecentDAbord), [], null).notices[0];
 }

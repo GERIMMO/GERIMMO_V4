@@ -6,6 +6,7 @@ import { champsManquantsBail } from "@/lib/reperes-bail";
 import { cibleChampBail } from "@/lib/documents/champs-bail-parcours";
 import { dureeBailNuAnnees } from "@/lib/qualite-bailleur";
 import { jourDuMois } from "@/lib/jour-du-mois";
+import { travauxSelonContrat } from "@/lib/travaux-dernier-contrat";
 
 export type LigneRecapBail = { champ: string; libelle: string; valeur: string | null; href: string; facultatif?: boolean; aCorriger?: boolean };
 export type RubriqueRecapBail = { id: string; titre: string; href: string; lignes: LigneRecapBail[]; erreur?: string };
@@ -55,8 +56,9 @@ export function rubriquesRecapBail({ bail, lot, bien, personnes, liens, erreurLo
     // la rubrique des travaux faits depuis le dernier contrat (travauxDepuisDernierContrat) ; le récapitulatif dit de même,
     // sans le texte ni le montant saisis, que le contrat n'imprime pas.
     ...([ ["duree_reduite_evenement", "Motif de durée réduite"], ["travaux_recents", "Travaux récents"], ["travaux_locataire", "Travaux du locataire"], ["clauses_particulieres", "Clauses particulières"] ] as const).filter(([cle]) => !absent(bail[cle]))
-      .map(([cle, libelle]) => cle === "travaux_recents" && premiereLocation ? ligne(cle, libelle, "Sans objet — première location", true) : texte(cle, libelle)),
-    ...(!premiereLocation && !absent(bail.travaux_recents_montant) ? [montant("travaux_recents_montant", "Montant des travaux")] : []),
+      .map(([cle, libelle]) => cle === "travaux_recents" && premiereLocation ? ligne(cle, libelle, travauxSelonContrat(bail).travaux, true) : texte(cle, libelle)),
+    // Lot 45 (T16) : un montant saisi sans travaux ne s'affiche pas : le contrat imprime « Néant. » seul.
+    ...(travauxSelonContrat(bail).avecMontant && !absent(bail.travaux_recents_montant) ? [montant("travaux_recents_montant", "Montant des travaux")] : []),
   ];
   return [
     { id: "bail", titre: "Le contrat", href: "#etape-bail-1", lignes: [

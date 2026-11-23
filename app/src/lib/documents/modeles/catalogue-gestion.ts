@@ -264,9 +264,12 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       dateDocument = texte(edl.date_edl) || aujourdhui;
       // Phase 3 (S20) : la référence d'une clé est facultative à la saisie, et l'état des lieux l'imprime « — » quand elle manque ;
       // le bordereau fait de même (elle ne peut plus être complétée une fois l'état des lieux signé).
+      // Phase 3, lot 45 (T17, décision prudente) : le nombre de clés reste exigé tant que l'état des lieux n'est pas signé ; signé,
+      // il est figé (rien ne se complète plus) : un nombre non saisi s'imprime « non compté », comme dans l'état des lieux.
+      const lignesCles = edl.etat === "signe" ? cles.map(c => texte(c.nombre) === "" ? { ...c, nombre: "non compté" } : c) : cles;
       contenu = `${section(edl.type === "sortie" ? "Clés restituées au bailleur" : "Clés remises au locataire")}
         <p>Date du constat : ${f.date(texte(edl.date_edl))}. État des lieux ${edl.etat === "signe" ? "signé" : "en préparation : remise à confirmer contradictoirement"}.</p>
-        ${lignesTableau(f,cles,[["Clé / accès","libelle","texte"],["Nombre","nombre","texte"],["Référence","reference","facultatif"]])}`;
+        ${lignesTableau(f,lignesCles,[["Clé / accès","libelle","texte"],["Nombre","nombre","texte"],["Référence","reference","facultatif"]])}`;
       signatures = true;
     } else if (["ordre_intervention","comparatif_devis","compte_rendu_intervention","recap_incident"].includes(code)) {
       const intervention = ["ordre_intervention","compte_rendu_intervention"].includes(code) ? await unique("incident_interventions",cibleId) : null;

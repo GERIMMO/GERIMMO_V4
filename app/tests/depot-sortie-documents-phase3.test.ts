@@ -10,6 +10,8 @@
  *  - S20 : une clé sans référence (facultative à la saisie) rendait le bordereau impossible ;
  *  - S21 : un état des lieux enregistré ou signé dans Gerimmo après coup portait « Fait à …, le » du jour d'enregistrement ;
  *  - S20 (reprise, même cause) : un compteur sans numéro (facultatif à la saisie) rendait l'état des lieux impossible une fois signé.
+ *  - S20, lot 45 (T17, même cause) : l'index relevé et le nombre de clés, facultatifs à la saisie et figés à la signature, restaient
+ *    exigés : un état des lieux SIGNÉ sans eux ne pouvait jamais donner de PDF (ni son bordereau des clés).
  * Chaque cas échouait avant le correctif.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -24,7 +26,7 @@ vi.mock("@/lib/documents/modeles/communs", async (importOriginal) => ({
 import { chargerContexteBail, type ContexteBail } from "@/lib/documents/modeles/communs";
 import { assemblerComplementBail } from "@/lib/documents/modeles/catalogue-bail";
 import { assemblerComplementGestion } from "@/lib/documents/modeles/catalogue-gestion";
-import { construireEdl, type DonneesEdl } from "@/lib/documents/modeles/edl";
+import { assemblerEdl, construireEdl, type DonneesEdl } from "@/lib/documents/modeles/edl";
 import { Fusion } from "@/lib/documents/gabarit";
 import type { Assemblage } from "@/lib/documents/modeles";
 
@@ -131,9 +133,19 @@ describe("C42, S20 — bordereau de remise des clés", () => {
     expect(lignesDe(doc.html)).toContain("Boîte aux lettres|1|—");
   });
 
-  it("un nombre de clés non compté reste exigé (comme dans l'état des lieux)", async () => {
-    const doc = succes(await assemblerComplementGestion("restitution_cles", base(tables([{ libelle: "Cave", nombre: null, reference: "Cave n° 4" }])), "org", "edl1")).document;
+  // Lot 45 (T17) : ce cas figeait le blocage sur un état des lieux SIGNÉ (etat « signe » ci-dessus), dont les clés ne se
+  // complètent plus : le bordereau ne pouvait jamais être établi. Décision prudente : exigé avant la signature seulement.
+  it("un nombre de clés non compté reste exigé tant que l'état des lieux n'est pas signé (comme dans l'état des lieux)", async () => {
+    const doc = succes(await assemblerComplementGestion("restitution_cles", base(tables([{ libelle: "Cave", nombre: null, reference: "Cave n° 4" }], { etat: "brouillon" })), "org", "edl1")).document;
     expect(doc.manquants).toEqual(["Nombre"]);
+  });
+
+  it("T17 : état des lieux signé (figé), un nombre non saisi s'imprime « non compté » et ne bloque plus le bordereau", async () => {
+    const doc = succes(await assemblerComplementGestion("restitution_cles", base(tables([{ libelle: "Cave", nombre: null, reference: "Cave n° 4" }, { libelle: "Porte d'entrée", nombre: 0, reference: null }])), "org", "edl1")).document;
+    expect(doc.manquants).toEqual([]);
+    expect(lignesDe(doc.html)).toContain("Cave|non compté|Cave n° 4");
+    // Un nombre saisi, même 0, s'imprime tel quel : « non compté » ne remplace que l'absence de saisie.
+    expect(lignesDe(doc.html)).toContain("Porte d'entrée|0|—");
   });
 });
 
@@ -191,8 +203,69 @@ describe("S20 (reprise) — état des lieux : numéro de compteur facultatif", (
     expect(lignes).toContain("Eau froide|EF-12|42,5");
   });
 
-  it("l'index relevé, lui, reste exigé : c'est le relevé que les parties constatent", () => {
-    const doc = construireEdl(donnees({ compteurs: [{ type: "Gaz", numero: null, releve: null }] }));
+  // Lot 45 (T17) : ce cas affirmait le blocage pour un état des lieux SIGNÉ (donnees() porte signeLe) : c'était l'impasse
+  // relevée par la contre-relecture (S20). L'index reste exigé AVANT la signature ; signé, il ne se complète plus (voir
+  // « T17 » ci-dessous) et s'imprime « non relevé ».
+  it("l'index relevé, lui, reste exigé avant la signature : c'est le relevé que les parties constatent", () => {
+    const doc = construireEdl(donnees({ signeLe: null, compteurs: [{ type: "Gaz", numero: null, releve: null }] }));
     expect(doc.manquants).toEqual(["index"]);
+  });
+});
+
+// Lot 45 (T17, décision prudente et réversible) : l'index relevé et le nombre de clés sont facultatifs à la saisie (ajouterCompteur,
+// lireDecimalFacultatif ; aucun champ « required »), figés une fois l'état des lieux signé (enregistrer_annexes_edl et le
+// déclencheur refusent), et signer_edl ne les contrôle pas. Exigés par le PDF, ils rendaient un état des lieux signé sans eux
+// impossible à imprimer, pour toujours. Avant la signature : toujours exigés (« À renseigner »). Après : « non relevé »,
+// « non compté ». Aucune règle de signature n'est ajoutée.
+describe("T17 — état des lieux signé : index et nombre de clés non saisis n'empêchent plus le PDF", () => {
+  const donnees = (sur: Partial<DonneesEdl>): DonneesEdl => ({
+    type: "entree", reference: "EDL-1", dateEdl: "2023-09-01", signeLe: "2023-09-01T08:30:00+00:00",
+    personnesPresentes: "Les parties", detecteurFumeePresent: true, detecteurFumeeEtat: "bon", attestationAssuranceFournie: true,
+    adresseRestitutionDepot: "5 rue Neuve, 69003 Lyon", observations: "Néant",
+    lignes: [{ categorie: "piece", piece: "Séjour", libelle: "Murs", etat: "bon", commentaire: null }],
+    compteurs: [{ type: "Gaz", numero: "G-1", releve: null }, { type: "Eau froide", numero: "EF-12", releve: "42.5" }],
+    cles: [{ libelle: "Porte d'entrée", nombre: null, reference: "Clé n° 4521" }, { libelle: "Cave", nombre: 1, reference: null }], comparatif: [],
+    bailleurNom: "Moreau Claire", locatairesNoms: "Martin Paul", logementAdresse: "1 rue", referenceBail: "BAIL-1",
+    exp: { nom: "Moreau Claire", adresse: "3 rue du Domicile, 69001 Lyon", email: "contact@example.invalid", telephone: null, ville: "Lyon" },
+    typeOrganisation: "proprietaire_direct", f: new Fusion(), ...sur,
+  });
+
+  it.each(["entree", "sortie"] as const)("%s, avant la signature : l'index et le nombre de clés restent « À renseigner »", (type) => {
+    const doc = construireEdl(donnees({ type, signeLe: null }));
+    expect(doc.manquants).toEqual(["index", "nombre rendu"]);
+    expect(texteDe(doc.html)).not.toMatch(/non relevé|non compté/);
+  });
+
+  it.each(["entree", "sortie"] as const)("%s, signé (figé) : « non relevé » et « non compté », le PDF n'est plus bloqué", (type) => {
+    const doc = construireEdl(donnees({ type, fige: true }));
+    expect(doc.manquants).toEqual([]);
+    const lignes = lignesDe(doc.html);
+    expect(lignes).toContain("Gaz|G-1|non relevé");
+    expect(lignes).toContain("Eau froide|EF-12|42,5");
+    expect(lignes).toContain("Porte d'entrée|Clé n° 4521|non compté");
+    expect(lignes).toContain("Cave|—|1");
+  });
+
+  it("signé sans aucun compteur ni aucune clé enregistrés : la rubrique le dit au lieu de bloquer ; avant la signature, elle reste exigée", () => {
+    const fige = construireEdl(donnees({ fige: true, compteurs: [], cles: [] }));
+    expect(fige.manquants).toEqual([]);
+    expect(texteDe(fige.html)).toContain("Relevés de compteurs : non relevés.");
+    expect(texteDe(fige.html)).toContain("Clés et moyens d'accès : non comptés.");
+    expect(construireEdl(donnees({ signeLe: null, compteurs: [], cles: [] })).manquants).toEqual(["relevés de compteurs", "clés et moyens d'accès"]);
+  });
+
+  it("l'assemblage lit l'état de l'état des lieux : figé seulement s'il est signé", async () => {
+    const tables = (etat: string) => ({
+      organizations: [organisation],
+      etats_des_lieux: [{ id: "edl1", bail_id: "b1", type: "entree", etat, date_edl: "2023-09-01", signe_le: etat === "signe" ? "2023-09-01T08:30:00+00:00" : null,
+        personnes_presentes: "Les parties", detecteur_fumee_present: true, detecteur_fumee_etat: "bon", attestation_assurance_fournie: true, adresse_restitution_depot: null, observations: "Néant" }],
+      edl_lignes: [{ categorie: "piece", piece: "Séjour", libelle: "Murs", etat: "bon", commentaire: null, photo_document_id: null }],
+      edl_compteurs: [{ type: "Gaz", numero: "G-1", releve: null }],
+      edl_cles: [{ libelle: "Porte d'entrée", nombre: null, reference: null }],
+    });
+    expect(succes(await assemblerEdl(base(tables("brouillon")), "org", "edl1")).document.manquants).toEqual(["index", "nombre rendu"]);
+    const signe = succes(await assemblerEdl(base(tables("signe")), "org", "edl1")).document;
+    expect(signe.manquants).toEqual([]);
+    expect(lignesDe(signe.html)).toContain("Gaz|G-1|non relevé");
   });
 });

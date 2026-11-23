@@ -108,7 +108,9 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
       contenu = `${section(sortie ? "Mobilier inscrit à l’inventaire du contrat" : "Mobilier mis à disposition")}
         ${lignesTableau(f,lignes,[["Pièce","piece","facultatif"],["Désignation","designation","texte"],["Quantité","quantite","texte"],[sortie ? "État inscrit" : "État","etat","texte"],[sortie ? "Observation inscrite" : "Observation","observation","facultatif"]])}
         ${sortie ? `<p>Ce tableau reprend l’inventaire tel qu’il est inscrit au dossier à la date d’établissement de ce document. Il ne constate pas l’état du mobilier à la sortie, qui suit.</p>${section("Constat de sortie")}<p>Constat contradictoire du mobilier à la sortie : ${opt("constat","état et quantité du mobilier à la sortie")}${pointFinal(options.constat)}</p>` : ""}
-        <p>Inventaire annexé au contrat, établi contradictoirement à la remise des clés. Date du constat : ${f.date(options.date_constat || null,"date du constat mobilier")}.</p>`;
+        <p>${/* Phase 3, lot 43 (T04, C07) : la sortie reprenait la phrase de l'entrée (« annexé au contrat, établi à la remise des
+          clés »). Le constat de sortie se fait à la restitution des clés ; l'entrée garde sa phrase. */
+          sortie ? "Constat de sortie établi contradictoirement lors de la restitution des clés." : "Inventaire annexé au contrat, établi contradictoirement à la remise des clés."} Date du constat : ${f.date(options.date_constat || null,"date du constat mobilier")}.</p>`;
       if (!lignes.length) f.champ(null,"mobilier du contrat à inventorier");
       signatures = true;
       // Reprise du lot 40 (C23, S08) : l'inventaire est un acte que les parties signent au constat ; il n'est plus daté du jour
@@ -215,6 +217,9 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
             <p>Conditions particulières de suivi : ${ouNeant(conditions)}${conditions ? pointFinal(conditions) : ""}</p>`;
         }
         signatures = true;
+        // Phase 3, lot 43 (T07, reste du lot 40) : le protocole est un accord que les parties signent (circuit de signature
+        // électronique) ; comme les inventaires, il n'est plus daté du jour de sa génération au-dessus de cadres vides.
+        dateALaSignature = true;
       }
     } else if (code === "accuse_conge" || code === "attestation_fin_bail") {
       if (code === "attestation_fin_bail" && ctx.bail.etat !== "termine") return { erreur: "L’attestation de fin de bail se génère après la clôture du contrat." };
@@ -297,6 +302,8 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
         <p>Conditions d’accès, assurances et remise en état : ${opt("conditions","conditions convenues pour l’exécution et la remise en état")}${pointFinal(options.conditions)}</p>
         <p>L’autorisation porte uniquement sur les travaux décrits. Les autorisations administratives ou de copropriété éventuellement nécessaires doivent être obtenues avant leur réalisation. Tout changement de périmètre fait l’objet d’un accord écrit.</p>`;
       signatures = true;
+      // Phase 3, lot 43 (T07) : accord signé par les parties ; la date se porte à la signature, comme pour les inventaires.
+      dateALaSignature = true;
     }
     const signatureEmetteur = modeSignatureDocument(code)==="enregistree" ? blocSignatureEmetteur(exp.nom, await signatureOrganisation(supabase,orgId)) : null;
     const reference = avenant?.reference ?? referenceCourte(code.toUpperCase().replaceAll("_","-"), bailId);

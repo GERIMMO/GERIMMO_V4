@@ -70,7 +70,9 @@ export function filtrerCibles<T>(q:T, modele:EntreeCatalogue):T {
   return r as unknown as T;
 }
 export async function chargerCiblesCatalogue(db:SupabaseClient,orgId:string,modele:EntreeCatalogue,page=0,bailId?:string):Promise<{choix:ChoixDossier[];suite:boolean}> {
-  if (modele.cible==="organisation") return {choix:[{id:orgId,libelle:"Organisation entière"}],suite:false};
+  // Phase 3, lot 43 (T08) : le seul modèle de l'espace entier est le journal de clôture mensuelle. La liste proposait
+  // « Organisation entière », mot de repli que le PDF n'imprime plus (C83) ; elle dit ce que le journal reprend.
+  if (modele.cible==="organisation") return {choix:[{id:orgId,libelle:"Toutes les écritures de l’espace"}],suite:false};
   let q=db.from(TABLES_CATALOGUE[modele.cible]).select(colonnesCibles(modele,"*")).eq("organization_id",orgId);
   q=filtrerCibles(q,modele);
   if(bailId && ["bail","appel","quittance","depot","revision","edl","regularisation"].includes(modele.cible)) q=q.eq(modele.cible==="bail"?"id":"bail_id",bailId);

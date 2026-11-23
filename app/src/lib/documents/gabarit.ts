@@ -14,6 +14,7 @@
 import { createHash } from "node:crypto";
 import { CSS_POLICES } from "./polices";
 import { domaineDuSite } from "@/lib/site";
+import { jourDuMois } from "@/lib/jour-du-mois";
 
 export const VERSION_MODELES = "2026.11-g8";
 
@@ -143,12 +144,9 @@ export function pointFinal(saisie: string | null | undefined): string {
   return /[.!?…]$/.test((saisie ?? "").trim()) ? "" : ".";
 }
 
-// Le jour du mois d'une échéance tel qu'il s'écrit : « le 1er », puis « le 2 », « le 15 »… (phase 3 : S10).
-export function jourDuMois(jour: number | string | null | undefined): string | null {
-  const texte = jour === null || jour === undefined ? "" : String(jour).trim();
-  if (texte === "") return null;
-  return Number(texte) === 1 ? "1er" : texte;
-}
+// Le jour du mois d'une échéance tel qu'il s'écrit : « le 1er », puis « le 2 », « le 15 »… (phase 3 : S10). La règle vit dans
+// lib/jour-du-mois.ts (module sans dépendance, partagé avec les écrans depuis le lot 43) ; elle reste exportée ici.
+export { jourDuMois };
 
 // La typographie d'un contrat. Un bail préparé pour la signature avant la version g8 se relit, pour recalculer
 // l'empreinte de son circuit (`typographieArchivee`, ou `presentationArchivee` pour un bail d'avant #331 ; voir

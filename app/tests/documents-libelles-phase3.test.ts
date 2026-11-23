@@ -288,6 +288,12 @@ describe("S34, S46 — liste de choix des dossiers", () => {
     const edl = await chargerCiblesCatalogue(base({ etats_des_lieux: [{ id: "edl", bail_id: "b", etat: "signe", date_edl: "2026-10-07", type: "sortie" }], baux: [{ id: "b", lot_id: "lot", locataire_principal: "p" }], lots: [{ id: "lot", nom: "T2" }], persons: [{ id: "p", nom: "Fictif", prenom: "Martin" }] }), "org", modele("edl_sortie"));
     expect(edl.choix[0].libelle).toBe("T2 · Fictif Martin · 07/10/2026 · Signé · réf. edl");
   });
+  // Lot 43 (T08) : la liste proposait « Organisation entière » pour le journal de clôture, le mot de repli que le PDF
+  // n'imprime plus (C83).
+  it("journal de clôture mensuelle : « Toutes les écritures de l’espace », plus « Organisation entière »", async () => {
+    const cibles = await chargerCiblesCatalogue(base({}), "org", modele("cloture_mensuelle"));
+    expect(cibles).toEqual({ choix: [{ id: "org", libelle: "Toutes les écritures de l’espace" }], suite: false });
+  });
   it("une régularisation porte son exercice", async () => {
     const db = base({
       regularisations_charges: [{ id: "reg2024-000", bail_id: "b", annee: 2024, date_emission: "2026-11-23", note: null }, { id: "reg2025-000", bail_id: "b", annee: 2025, date_emission: "2026-11-23", note: null }],
@@ -420,6 +426,22 @@ describe("Reprise C92 — documents de mandat : nature, famille de dépense et �
     expect(lignes).toContain("10/10/2026|Dépôt de garantie|Dépôt reçu|Recette|700,00 €");
     expect(lignes).toContain("12/10/2026|Taxe foncière|Taxe foncière|Dépense|310,00 €");
     expect(texteDe(html)).not.toMatch(/depot_garantie|taxe_fonciere|\bloyer\b/);
+  });
+
+  // Phase 3, lot 43 (T03) : la colonne « Fin » et la date du versement s'imprimaient au format de la base (« 2026-12-31 »,
+  // « date : 2026-11-05 »), à côté d'un « Début » en date française.
+  it("documents de mandat : la fin d'une ligne et la date du versement en date française, « En cours » sans fin", async () => {
+    const t = agence();
+    t.mandat_lignes = [...t.mandat_lignes, { mandat_id: "mandat-0000", lot_id: "lot", date_debut: "2026-01-01", date_fin: "2026-12-31", taux_honoraires: 7 }];
+    const releve = succes(await assemblerComplementGestion("recap_fiscal_agence", base(t), "org", "mandat-0000", { annee: "2026" })).document.html;
+    expect(lignesDe(releve)).toContain("T2|01/01/2026|31/12/2026|7");
+    expect(lignesDe(releve)).toContain("T2|01/01/2026|En cours|7");
+    expect(texteDe(releve)).not.toContain("2026-12-31");
+    t.rapports_gestion = [{ id: "rapport-0000", mandat_id: "mandat-0000", mois: "2026-10-01", statut: "envoye", net: 0, versement_montant: 650, versement_date: "2026-11-05", commentaire: null }];
+    t.ecritures = [];
+    const bordereau = texteDe(succes(await assemblerComplementGestion("bordereau_versement", base(t), "org", "rapport-0000")).document.html);
+    expect(bordereau).toContain("Versement : 650,00 € ; date : 05/11/2026.");
+    expect(bordereau).not.toContain("2026-11-05");
   });
 
   it("rapport de gestion : la famille de dépense et l'état d'un incident ouvert comme à l'écran", async () => {

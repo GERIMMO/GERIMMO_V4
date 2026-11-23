@@ -429,6 +429,34 @@ describe("reprise du lot 40 — C23 et S08 : les inventaires ne se datent plus d
   });
 });
 
+describe("lot 43 — T04 (C07) et T07 : phrase de la sortie, accord de travaux daté à la signature", () => {
+  const lignes = [{ piece: "Séjour", designation: "Table", quantite: 1, etat: "bon", observation: null }];
+  it("inventaire de sortie : constat établi à la restitution des clés ; l'entrée garde sa phrase", async () => {
+    ctx.lot.meuble = true;
+    const entree = texteDe(succes(await assemblerComplementBail("inventaire_entree", base({ inventaire_lignes: lignes }), "org", "b1", { date_constat: "2026-09-01" })).document.html);
+    expect(entree).toContain("Inventaire annexé au contrat, établi contradictoirement à la remise des clés. Date du constat : 01/09/2026.");
+    ctx.bail.etat = "preavis";
+    const sortie = texteDe(succes(await assemblerComplementBail("inventaire_sortie", base({ inventaire_lignes: lignes }), "org", "b1", { date_constat: "2027-03-31", constat: "Table rayée" })).document.html);
+    expect(sortie).toContain("Constat de sortie établi contradictoirement lors de la restitution des clés. Date du constat : 31/03/2027.");
+    expect(sortie).not.toContain("remise des clés");
+    expect(sortie).not.toContain("Inventaire annexé au contrat");
+  });
+  it("autorisation de travaux : « Fait à …, le » se complète à la signature, au-dessus des cadres", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-11-23T13:32:00Z"));
+      const r = succes(await assemblerComplementBail("autorisation_travaux", base(), "org", "b1", { travaux: "Peinture du séjour", intervenant: "Peinture Fictive", periode: "Décembre 2026", prise_en_charge: "Le locataire, plafond 500 €", conditions: "Remise en état" }));
+      const texte = texteDe(r.document.html);
+      expect(texte).toContain("Fait à Lyon, le date effective à compléter lors de la signature.");
+      expect(texte).not.toContain("23/11/2026.");
+      expect(cadres(r.document.html)).toEqual(["Le bailleur", "Le locataire"]);
+      expect(r.document.manquants).toEqual([]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
 describe("reprise du lot 40 — C01 : le résumé n'est ni la notice annexée au contrat, ni joint sous son ancien texte", () => {
   type Table = { data: unknown; error: null };
   /** Base simulée de `annexesSignatureBail` : chaque table rend ses lignes, `single` la première. */

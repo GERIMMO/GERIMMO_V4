@@ -5,6 +5,7 @@ import { informationsLogementBail } from "@/lib/logement-bail-complements";
 import { champsManquantsBail } from "@/lib/reperes-bail";
 import { cibleChampBail } from "@/lib/documents/champs-bail-parcours";
 import { dureeBailNuAnnees } from "@/lib/qualite-bailleur";
+import { jourDuMois } from "@/lib/jour-du-mois";
 
 export type LigneRecapBail = { champ: string; libelle: string; valeur: string | null; href: string; facultatif?: boolean; aCorriger?: boolean };
 export type RubriqueRecapBail = { id: string; titre: string; href: string; lignes: LigneRecapBail[]; erreur?: string };
@@ -77,7 +78,7 @@ export function rubriquesRecapBail({ bail, lot, bien, personnes, liens, erreurLo
       montant("loyer_hc", "Loyer hors charges"), montant("charges", "Charges"),
       { ...ligne("loyer_hc", "Total mensuel", montantRecapBail(bail.loyer_hc) !== null && montantRecapBail(bail.charges) !== null ? eur(Number(bail.loyer_hc) + Number(bail.charges)) : null), champ: "total_calcule", facultatif: true },
       montant("depot_garantie", "Dépôt de garantie"), choix("charges_mode", "Mode de charges", { forfait: "Forfait", provision: "Provision avec régularisation" }),
-      ligne("jour_echeance", "Échéance mensuelle", absent(bail.jour_echeance) ? null : `Le ${bail.jour_echeance} de chaque mois`),
+      ligne("jour_echeance", "Échéance mensuelle", absent(bail.jour_echeance) ? null : `Le ${jourDuMois(String(bail.jour_echeance))} de chaque mois`),
       choix("paiement_echeance", "Paiement", { echoir: "À échoir", echu: "À terme échu" }), texte("lieu_paiement", "Lieu de paiement"),
       ligne("revision_irl", "Révision annuelle", ouiNon(bail.revision_irl)),
       ...(bail.revision_irl === true ? [texte("irl_trimestre", "Trimestre IRL"), texte("irl_valeur", "Indice IRL")] : []),

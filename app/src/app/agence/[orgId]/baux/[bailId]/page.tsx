@@ -81,6 +81,7 @@ import { CarteConservationBail } from "./carte-conservation-bail";
 import { EchecLecture, PageEchecLecture } from "../../parc/echec-lecture";
 import { exigerUuids } from "@/lib/identifiants";
 import { baseEspace, racineEspace } from "@/lib/racine-espace";
+import { jourDuMois } from "@/lib/jour-du-mois";
 
 export const metadata = { title: "Bail — Gerimmo" };
 
@@ -1190,7 +1191,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         <div><dt><Wallet size={17} aria-hidden="true" /> Loyer mensuel</dt><dd>{bail.loyer_hc == null || bail.charges == null ? "À compléter" : eur(Number(bail.loyer_hc) + Number(bail.charges))}</dd><dd className={styles.precision}>{bail.loyer_hc == null ? "Loyer à définir" : `${eur(Number(bail.loyer_hc))} hors charges`}{bail.charges != null && ` + ${eur(Number(bail.charges))} de charges`}</dd></div>
         <div><dt><CalendarDays size={17} aria-hidden="true" /> Dates du bail</dt><dd>{bail.date_debut ? formaterDate(bail.date_debut) : "Date d’entrée absente du dossier"}</dd><dd className={styles.precision}>{situationDatesBail(bail)}</dd></div>
         <div><dt><ShieldCheck size={17} aria-hidden="true" /> Dépôt de garantie</dt><dd>{bail.depot_garantie == null ? "Montant contractuel non indiqué" : eur(Number(bail.depot_garantie))}</dd><dd className={styles.precision}>{bail.depot_garantie == null ? "À retrouver dans votre contrat" : "Montant prévu au contrat · versements dans Suivi"}</dd></div>
-        <div><dt><CalendarDays size={17} aria-hidden="true" /> Échéance du loyer</dt><dd>{bail.jour_echeance == null ? "Jour de paiement à confirmer" : `Le ${bail.jour_echeance} du mois`}</dd><dd className={styles.precision}>{bail.charges_mode === "forfait" ? "Charges au forfait" : bail.charges_mode === "provision" ? "Provisions sur charges" : "Conditions du contrat"}</dd></div>
+        <div><dt><CalendarDays size={17} aria-hidden="true" /> Échéance du loyer</dt><dd>{bail.jour_echeance == null ? "Jour de paiement à confirmer" : `Le ${jourDuMois(bail.jour_echeance)} du mois`}</dd><dd className={styles.precision}>{bail.charges_mode === "forfait" ? "Charges au forfait" : bail.charges_mode === "provision" ? "Provisions sur charges" : "Conditions du contrat"}</dd></div>
       </dl>}
       {signeNonActif && <div className="rounded-[var(--rayon-carte)] border border-success/20 bg-success-soft p-4 text-sm"><strong>Le bail est signé. La location n’est pas encore activée.</strong><p className="mt-1">Le contrat signé est archivé ; l’activation reste une action séparée.</p><Link className="inline-flex min-h-11 items-center underline" href={`${base}/documents/${documentSigne}/fichier`}>Consulter le bail signé →</Link></div>}
       {suiviSignature.erreur && <p role="status" className="text-sm">Le suivi des signatures est indisponible. Réessayez pour connaître l’état du contrat.</p>}

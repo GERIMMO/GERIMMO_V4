@@ -330,6 +330,22 @@ describe("C65, C66, C74 — protocole d'apurement : ce que fait le plan enregist
     expect(texte).not.toContain("à déduire avant signature");
     expect(texte).not.toContain("Le bailleur suspend ses relances tant que");
   });
+  // Phase 3, lot 43 (T07, reste du lot 40) : le protocole est signé par les parties ; il portait « Fait à Lyon, le <jour de
+  // génération> » au-dessus de cadres vides. La date se complète à la signature, comme pour les inventaires. Les courriers
+  // (relance, mise en demeure) restent datés du jour de leur émission.
+  it("le protocole se date à la signature ; la relance garde la date de son émission", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-11-23T13:32:00Z"));
+      const texte = texteDe(succes(await protocole([plan()])).document.html);
+      expect(texte).toContain("Fait à Lyon, le date effective à compléter lors de la signature.");
+      expect(texte).not.toContain("le 23/11/2026.");
+      const relance = texteDe(succes(await assemblerComplementBail("relance_simple", base(tablesImpayes()).db, "org", "b1")).document.html);
+      expect(relance).toContain("Fait à Lyon, le 23/11/2026.");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
   it("tolérance nulle, seuil d'une mensualité, acompte et conditions du plan", async () => {
     const texte = texteDe(succes(await protocole([plan({ tolerance_jours: 0, seuil_caducite: 1, acompte: 130, conditions: "Point mensuel par téléphone." })])).document.html);
     expect(texte).toContain("Une mensualité qui n’est pas réglée à son échéance est constatée comme manquée. À 1 mensualité manquée et non rattrapée, l’accord devient caduc");

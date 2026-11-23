@@ -62,9 +62,11 @@ export function delaiDecompteRespecte(etalement: unknown, envoi: string, emissio
 // (« le 26/11/2026 de 9 h à 11 h ») ; `f.date` n'en gardait que le jour (« 26/11/2026 au 26/11/2026 »). Un jour seul
 // (AAAA-MM-JJ, sans heure) s'imprime sans heure. Espaces insécables dans l'heure : « 11 h » ne se coupe pas en fin de ligne.
 const HEURE_PARIS = new Intl.DateTimeFormat("fr-FR", { hour: "numeric", minute: "2-digit", hourCycle: "h23", timeZone: "Europe/Paris" });
+// Phase 3, lot 43 (T01) : l'heure « 09 » perd son zéro par une lecture de texte, pas par Number() (garde
+// lecture-saisies-sans-number : aucune valeur `.value` n'est convertie par Number, même une partie de date d'Intl).
 function heureParis(instant: string): string {
   const parties = HEURE_PARIS.formatToParts(new Date(instant));
-  const h = Number(parties.find(p => p.type === "hour")?.value), m = parties.find(p => p.type === "minute")?.value ?? "00";
+  const h = (parties.find(p => p.type === "hour")?.value ?? "0").replace(/^0(?=\d)/, ""), m = parties.find(p => p.type === "minute")?.value ?? "00";
   return m === "00" ? `${h}\u00a0h` : `${h}\u00a0h\u00a0${m}`;
 }
 export function creneauParis(debut: string, fin?: string | null): string {
@@ -379,15 +381,20 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
         // Reprise du lot 42 (C89) : « à fixer » et « pas encore déposé » annoncent un rendez-vous et un compte rendu à venir. Ils ne
         // s'impriment que pour une mission qui peut encore en avoir : rendez-vous à fixer tant que la mission n'est ni commencée
         // ni terminée, compte rendu attendu tant qu'elle n'est ni annulée ni refusée. Sinon « — ».
+        // Phase 3, lot 43 (T02) : le compte rendu ne se dépose que sur une mission « en cours » (deposer_compte_rendu), qui passe
+        // alors à « terminée » dans le même appel. « Pas encore déposé » ne vaut donc que pour une mission qui peut encore être
+        // démarrée ou qui l'est (proposée, acceptée, planifiée, en cours). Une mission terminée sans compte rendu (donnée reprise)
+        // ne l'aura jamais : « non déposé ». Annulée ou refusée : « — », comme avant (aucun compte rendu n'était attendu).
         const lignesMissions = missions.map(m => {
           const cr = comptesRendus.find(c=>texte(c.intervention_id)===texte(m.id));
           const statut = texte(m.statut), close = ["annulee","refusee"].includes(statut);
+          const depotPossible = ["proposee","acceptee","planifiee","en_cours"].includes(statut);
           return [nomArtisan(m.artisan_id), f.date(texte(m.confiee_le),"date de la mission"),
             texte(m.debut_prevu) ? creneauParis(texte(m.debut_prevu), texte(m.fin_prevue)||null).replace(/^le /,"")
               : ["proposee","acceptee","planifiee"].includes(statut) ? "à fixer" : "—",
             texte(m.terminee_le) ? formaterDateFr(texte(m.terminee_le)) : "—",
             facultatif(libelleDe(STATUTS_INTERVENTION_DOCUMENT,m.statut)),
-            cr ? (cr.montant_final_cents == null ? "non déclaré" : eur(montant(cr.montant_final_cents)/100)) : close ? "—" : "pas encore déposé"];
+            cr ? (cr.montant_final_cents == null ? "non déclaré" : eur(montant(cr.montant_final_cents)/100)) : close ? "—" : depotPossible ? "pas encore déposé" : "non déposé"];
         });
         contenu += `${section("Suivi des travaux")}<p>${phraseDevis}</p>${lignesMissions.length
           ? tableau([{libelle:"Entreprise"},{libelle:"Confiée le"},{libelle:"Rendez-vous"},{libelle:"Terminée le"},{libelle:"État"},{libelle:"Compte rendu",droite:true}],lignesMissions)
@@ -460,13 +467,15 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       const lignes = await lireLignes(lire("mandat_lignes").eq("mandat_id",mandat.id).order("date_debut"));
       const lots = lignes.length ? await lireLignes(lire("lots").in("id",[...new Set(lignes.map(l=>texte(l.lot_id)))])) : [];
       const noms = new Map(lots.map(l=>[l.id,l.nom]));
+      // Phase 3, lot 43 (T03) : la fin d'une ligne de mandat et la date du versement s'imprimaient au format de la base
+      // (« 2026-12-31 », « date : 2026-11-05 ») à côté d'un « Début » en date française. Elles s'impriment comme lui.
       contenu = `${section("Mandat et périmètre")}<p>Mandat ${referenceCourte("MANDAT",texte(mandat.id))} ; état : ${f.champ(libelleDe(ETATS_MANDAT,mandat.etat),"état du mandat")}.</p>
-        ${lignesTableau(f,lignes.map(l=>({...l,lot:noms.get(l.lot_id),fin:l.date_fin||"En cours"})),[["Lot","lot","texte"],["Début","date_debut","date"],["Fin","fin","texte"],["Honoraires (%)","taux_honoraires","texte"]])}`;
+        ${lignesTableau(f,lignes.map(l=>({...l,lot:noms.get(l.lot_id),fin:texte(l.date_fin) ? formaterDateFr(texte(l.date_fin)) : "En cours"})),[["Lot","lot","texte"],["Début","date_debut","date"],["Fin","fin","texte"],["Honoraires (%)","taux_honoraires","texte"]])}`;
       if (rapport) {
         if (code === "bordereau_versement" && (rapport.versement_montant == null || !rapport.versement_date)) throw new RefusDocument("Enregistrez le versement du rapport avant d’émettre son bordereau.");
         contenu += `${section(code === "rapport_gestion" ? "Situation mensuelle" : "Versement enregistré")}
           <p>Mois : ${moisEnToutesLettres(texte(rapport.mois))} ; état du rapport : ${rapport.statut === "envoye" ? "Validé" : "À valider"} ; net enregistré : ${f.montant(rapport.net as number)}.</p>
-          <p>Versement : ${rapport.versement_montant == null ? "non enregistré" : eur(montant(rapport.versement_montant))} ; date : ${facultatif(texte(rapport.versement_date))}.</p>
+          <p>Versement : ${rapport.versement_montant == null ? "non enregistré" : eur(montant(rapport.versement_montant))} ; date : ${facultatif(texte(rapport.versement_date) ? formaterDateFr(texte(rapport.versement_date)) : null)}.</p>
           <p>${facultatif(texte(rapport.commentaire))}</p>`;
         if (code === "rapport_gestion") {
           const finDate = new Date(`${texte(rapport.mois).slice(0,10)}T12:00:00Z`); finDate.setUTCMonth(finDate.getUTCMonth()+1);

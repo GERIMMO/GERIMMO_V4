@@ -49,6 +49,7 @@ import { regrouperDocumentsLot } from "@/lib/documents-lot";
 import { CATEGORIES_INCIDENT } from "@/lib/incidents";
 import { useBaseEspace } from "@/components/racine-espace-contexte";
 import { mentionEtage } from "@/lib/etage";
+import { jourDuMois } from "@/lib/jour-du-mois";
 
 // LA FENÊTRE DU LOT — sur le gabarit remis par l'humain le 12/09.
 //
@@ -819,7 +820,7 @@ function OngletResume({
             <Ligne libelle="Charges" valeur={fiche.charges !== null ? eur(fiche.charges) : "Non renseignées"} />
             <Ligne libelle="Total mensuel" valeur={loyer === null ? "À compléter" : eur(loyer)} />
             <Ligne libelle="Dépôt de garantie" valeur={fiche.depot_garantie !== null ? eur(fiche.depot_garantie) : null} />
-            <Ligne libelle="Échéance" valeur={fiche.jour_echeance ? `Le ${fiche.jour_echeance} du mois` : null} />
+            <Ligne libelle="Échéance" valeur={fiche.jour_echeance ? `Le ${jourDuMois(fiche.jour_echeance)} du mois` : null} />
             {impaye > 0 && <p className="mt-2 text-sm text-destructive">{eur(impaye)} restant dû</p>}
             <Link href={locataire ? `/locataire/${orgId}/logement#bail` : `${base}/baux/${fiche.bail_id}`} className="lien-discret mt-3 inline-flex min-h-11 items-center">Ouvrir le bail →</Link>
           </> : <>

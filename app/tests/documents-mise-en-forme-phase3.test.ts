@@ -68,6 +68,11 @@ describe("étage du logement (C09, C26, C63, C84)", () => {
     ["combles", "combles"],
     ["Entresol, porte 2", "Entresol, porte 2"],
     ["R+1", "R+1"],
+    // Lot 43 (T05) : deux niveaux saisis ensemble (duplex). Attente précédente (non figée) : « 1er étage et 2e ».
+    ["1er et 2e", "1er et 2e étages"],
+    ["2e et 3e, porte A", "2e et 3e étages, porte A"],
+    ["premier et deuxième", "premier et deuxième étages"],
+    ["Duplex 2e et 3e", "Duplex 2e et 3e"],
   ])("« %s » s'imprime « %s »", (saisie, attendu) => {
     expect(mentionEtage(saisie)).toBe(attendu);
   });
@@ -109,6 +114,19 @@ describe("étage du logement (C09, C26, C63, C84)", () => {
     expect(adresseLogement({ ...studio, etage: "2e, porte droite" }, ctx.bien)).toBe("12 rue des Lilas, 69003 Lyon, Studio meublé — 1er étage, 2e étage, porte droite");
     // Un nom sans étage ne retire rien.
     expect(adresseLogement({ ...studio, nom: "Studio meublé n° 12", etage: "3, porte 12" }, ctx.bien)).toBe("12 rue des Lilas, 69003 Lyon, Studio meublé n° 12, étage 3, porte 12");
+  });
+
+  // Lot 43 (T05) : dans « Lot 5 étage 2 », le 5 est le numéro du lot ; le niveau nommé est 2. L'adresse imprimait
+  // « Lot 5 étage 2, étage 2 ».
+  it("un numéro de lot devant « étage » n'est pas pris pour le niveau", () => {
+    const ctx = contexte();
+    const lot = { ...ctx.lot, nom: "Lot 5 étage 2", etage: "2" };
+    expect(mentionEtage("2", "Lot 5 étage 2")).toBeNull();
+    expect(adresseLogement(lot, ctx.bien)).toBe("12 rue des Lilas, 69003 Lyon, Lot 5 étage 2");
+    expect(adresseLogement({ ...lot, etage: "2, porte B" }, ctx.bien)).toBe("12 rue des Lilas, 69003 Lyon, Lot 5 étage 2, porte B");
+    // Un autre niveau que celui du nom reste imprimé ; un nom qui ne dit l'étage que par un nombre nu reste reconnu.
+    expect(adresseLogement({ ...lot, etage: "5" }, ctx.bien)).toBe("12 rue des Lilas, 69003 Lyon, Lot 5 étage 2, étage 5");
+    expect(mentionEtage("4", "T3 4 étage")).toBeNull();
   });
 
   // Reprise du lot 35 : les écrans recopiaient l'ancienne règle (« étage 2e étage, porte gauche » à l'écran, « 2e étage,
@@ -168,6 +186,16 @@ describe("jour d'échéance (S10)", () => {
     expect(jourDuMois(2)).toBe("2");
     expect(jourDuMois(15)).toBe("15");
     expect(jourDuMois(null)).toBeNull();
+  });
+
+  // Lot 43 (T06) : les écrans écrivaient « Le 1 de chaque mois », « Le 1 du mois ». Ils passent par la même règle que les
+  // contrats (lib/jour-du-mois.ts, que le gabarit réexporte).
+  it("les écrans écrivent le jour d'échéance avec la même règle", () => {
+    for (const fichier of ["src/lib/presentation-recapitulatif-bail.ts", "src/components/fenetre-lot.tsx", "src/app/agence/[orgId]/baux/[bailId]/page.tsx"]) {
+      const source = readFileSync(join(process.cwd(), fichier), "utf8");
+      expect(source, fichier).not.toMatch(/`Le \$\{[\w.]*jour_echeance\}/);
+      expect(source, fichier).toContain("jourDuMois(");
+    }
   });
 });
 

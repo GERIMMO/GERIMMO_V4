@@ -344,13 +344,23 @@ describe("C89 — le récapitulatif d'incident : signalement, urgence et suivi",
       expect(texteDe(html)).not.toMatch(/à fixer|pas encore déposé/);
     }
   });
-  it("mission acceptée sans rendez-vous : « à fixer » ; mission terminée sans compte rendu : « pas encore déposé »", async () => {
+  // Phase 3, lot 43 (T02) : ce test figeait « pas encore déposé » pour une mission TERMINÉE sans compte rendu. C'était faux :
+  // deposer_compte_rendu exige une mission « en_cours » et la passe à « terminee » en insérant le compte rendu ; une mission
+  // terminée sans compte rendu (donnée reprise) ne pourra plus en recevoir. Elle s'imprime désormais « non déposé ».
+  it("mission acceptée sans rendez-vous : « à fixer », compte rendu « pas encore déposé » ; mission terminée sans compte rendu : « non déposé »", async () => {
     const t = incidents();
     t.incident_interventions.push({ ...o, id: "acceptee-0000", incident_id: "incC", devis_id: "devisC-0000", artisan_id: "art2", nature_travaux: "entretien_courant", statut: "acceptee", confiee_le: "2026-11-22T12:30:00+00:00", debut_prevu: null, fin_prevue: null, terminee_le: null });
     expect(lignesDe(succes(await assemblerComplementGestion("recap_incident", baseSimulee(t).client, "org", "incC")).document.html)).toContain("Dépannage Essai|22/11/2026|à fixer|—|Acceptée|pas encore déposé");
     const u = incidents();
     u.intervention_comptes_rendus = [];
-    expect(lignesDe(succes(await assemblerComplementGestion("recap_incident", baseSimulee(u).client, "org", "incA")).document.html)).toContain("Plomberie Fictive|17/10/2026|21/10/2026 de 9 h à 11 h|21/10/2026|Terminée|pas encore déposé");
+    const html = succes(await assemblerComplementGestion("recap_incident", baseSimulee(u).client, "org", "incA")).document.html;
+    expect(lignesDe(html)).toContain("Plomberie Fictive|17/10/2026|21/10/2026 de 9 h à 11 h|21/10/2026|Terminée|non déposé");
+    expect(texteDe(html)).not.toContain("pas encore déposé");
+  });
+  it("mission en cours sans compte rendu : « pas encore déposé » (le dépôt reste possible)", async () => {
+    const t = incidents();
+    t.incident_interventions.push({ ...o, id: "encours-0000", incident_id: "incC", devis_id: "devisC-0000", artisan_id: "art2", nature_travaux: "entretien_courant", statut: "en_cours", confiee_le: "2026-11-22T12:30:00+00:00", debut_prevu: null, fin_prevue: null, terminee_le: null });
+    expect(lignesDe(succes(await assemblerComplementGestion("recap_incident", baseSimulee(t).client, "org", "incC")).document.html)).toContain("Dépannage Essai|22/11/2026|—|—|En cours|pas encore déposé");
   });
   it("le suivi n'est imprimé que par le récapitulatif", async () => {
     expect(texteDe(succes(await ordre()).document.html)).not.toContain("Signalé le");

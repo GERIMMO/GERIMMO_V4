@@ -304,9 +304,12 @@ export async function assemblerBailNu(
     return { erreur: "Choisissez le modèle correspondant au bail : nu, meublé ou colocation." };
   }
   if (ctx.bail.etat !== "brouillon") return { erreur: "Le contrat initial se prépare sur un brouillon. Pour un bail déjà engagé, utilisez un avenant." };
-  if (!ctx.bail.locataire_principal) {
-    return { erreur: "Renseignez d'abord le locataire principal du bail." };
-  }
+  // Phase 3, lot 46 (reprise, T21) : sans locataire principal, le contrat est INCOMPLET, plus refusé. Le catalogue proposait le
+  // brouillon puis répondait « Renseignez d'abord le locataire principal du bail », sans lien ; « nom et prénom(s) » (le libellé
+  // du contrôle du brouillon et du bloc du locataire) rejoint la liste « À renseigner », qui mène à la fiche du bail. Le PDF reste
+  // bloqué tant qu'il manque (refusDocumentIncomplet) : aucun contrat n'est produit sans son locataire.
+  const f = new Fusion();
+  if (!ctx.bail.locataire_principal) f.champ(null, "nom et prénom(s)");
 
   const { data: dpe, error: erreurDpe } = await supabase
     .from("diagnostics")
@@ -319,7 +322,6 @@ export async function assemblerBailNu(
     .maybeSingle();
 
   if (erreurDpe) return { erreur: "Le diagnostic du logement n’a pas pu être chargé. Réessayez avant de générer le contrat." };
-  const f = new Fusion();
   const document = construireBailNu(ctx, { presentationAncienne: format[presentationArchivee], typographieArchivee: format[typographieArchivee], dpeClasse: dpe?.classe_dpe ?? null, f });
 
   return {

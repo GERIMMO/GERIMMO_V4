@@ -356,9 +356,12 @@ export async function assemblerBailMeuble(
     return { erreur: "Ce modèle couvre le bail meublé — pour un logement nu, utilisez le modèle bail nu." };
   }
   if (ctx.bail.etat !== "brouillon") return { erreur: "Le contrat initial se prépare sur un brouillon. Pour un bail déjà engagé, utilisez un avenant." };
-  if (!ctx.bail.locataire_principal) {
-    return { erreur: "Renseignez d'abord le locataire principal du bail." };
-  }
+  // Phase 3, lot 46 (reprise, T21) : sans locataire principal, le contrat est INCOMPLET, plus refusé. Le catalogue proposait le
+  // brouillon puis répondait « Renseignez d'abord le locataire principal du bail », sans lien ; « nom et prénom(s) » (le libellé
+  // du contrôle du brouillon et du bloc du locataire) rejoint la liste « À renseigner », qui mène à la fiche du bail. Le PDF reste
+  // bloqué tant qu'il manque (refusDocumentIncomplet) : aucun contrat n'est produit sans son locataire.
+  const f = new Fusion();
+  if (!ctx.bail.locataire_principal) f.champ(null, "nom et prénom(s)");
 
   const [{ data: dpe, error: erreurDpe }, { data: lignesInventaire, error: erreurInventaire }] = await Promise.all([
     supabase
@@ -378,7 +381,6 @@ export async function assemblerBailMeuble(
   ]);
 
   if (erreurDpe || erreurInventaire) return { erreur: "Le diagnostic ou l’inventaire n’a pas pu être chargé. Réessayez avant de générer le contrat." };
-  const f = new Fusion();
   const document = construireBailMeuble(ctx, {
     presentationAncienne: format[presentationArchivee],
     typographieArchivee: format[typographieArchivee],
@@ -391,6 +393,9 @@ export async function assemblerBailMeuble(
     document,
     titreGed: `Bail meublé — ${nomPersonne(ctx.locataires[0]) ?? ctx.lot.nom}`,
     nomFichier: `bail-meuble-${referenceCourte("BAIL", ctx.bail.id).toLowerCase()}`,
-    liens: [{ entite: "bail", entiteId: ctx.bail.id }, ...liensLocataires(ctx)],
+    // Phase 3, lot 46 (reprise, T19) : le lot, comme le bail nu, la colocation et le contrat individuel. Sans lui, « domicile ou
+    // siège social » et « ou dénomination » (lot sans détenteur) menaient à la fiche du bail au lieu de la détention du lot, et
+    // le contrat meublé n'était pas rangé avec les documents du lot.
+    liens: [{ entite: "bail", entiteId: ctx.bail.id }, { entite: "lot", entiteId: ctx.lot.id }, ...liensLocataires(ctx)],
   };
 }

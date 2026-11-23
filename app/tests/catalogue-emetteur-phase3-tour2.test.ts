@@ -28,7 +28,7 @@ vi.mock("@/lib/rappels-loyers", async (importOriginal) => ({
 import { verifierCourrierDuBail } from "@/lib/rappels-loyers";
 import { CATALOGUE_DOCUMENTS } from "@/lib/documents/catalogue";
 import { chargerCiblesCatalogue, verifierCibleCatalogue } from "@/lib/documents/catalogue-cibles";
-import { RefusDocument, REFUS_AUCUNE_DETTE, REFUS_PLAN_SANS_TRANCHE, REFUS_SOLDE_DANS_DECOMPTE, REFUS_INVENTAIRE_NON_MEUBLE } from "@/lib/documents/modeles/catalogue-bail";
+import { RefusDocument, REFUS_CLES_EDL_SIGNE, REFUS_AUCUNE_DETTE, REFUS_PLAN_SANS_TRANCHE, REFUS_SOLDE_DANS_DECOMPTE, REFUS_INVENTAIRE_NON_MEUBLE } from "@/lib/documents/modeles/catalogue-bail";
 import { assemblerRappelAssurance } from "@/lib/documents/modeles/rappel-assurance";
 import { assemblerComplementGestion } from "@/lib/documents/modeles/catalogue-gestion";
 import { expediteur } from "@/lib/documents/modeles/communs";
@@ -195,17 +195,22 @@ describe("T19 — « À renseigner » suit l'en-tête effectivement imprimé", (
     const detention = { href: "/espace/org/lots/l1?vers=detention", ecran: "fiche du lot" };
     expect(lienPourManquant("domicile ou siège social", "org", liens, "bail_nu", "/espace", doc.emetteur)).toEqual(detention);
     expect(lienPourManquant("nom et prénom(s), ou dénomination", "org", liens, "bail_nu", "/espace", doc.emetteur)).toEqual(detention);
+    // Reprise du lot 46 : ces liens (avec le lot) sont ceux que les quatre assembleurs rendent ; celui du bail meublé n'avait pas
+    // le lot (vérifié sur l'assembleur réel dans catalogue-emetteur-phase3-reprise.test.ts).
     for (const modele of ["bail_meuble", "bail_colocation", "bail_individuel"]) {
       expect(lienPourManquant("domicile ou siège social", "org", liens, modele, "/espace", "espace")).toEqual(detention);
     }
     // L'acte de cautionnement n'a pas de lien vers le lot : repli sur la fiche du bail, comme « ou dénomination ».
     expect(lienPourManquant("domicile ou siège social", "org", [liens[0]], "cautionnement", "/espace", "espace")?.href).toBe("/espace/org/baux/b1");
     // Inchangé : avec des détenteurs, leur fiche ; un document qui n'imprime l'adresse qu'en en-tête, le profil de l'espace ;
-    // la commune (« Fait à ») suit toujours l'en-tête ; en agence, le profil.
+    // la commune (« Fait à ») suit toujours l'en-tête. Reprise du lot 46 : en agence, « domicile ou siège social » d'un contrat
+    // est celui du bailleur au corps (l'adresse manquante de l'agence est signalée « adresse du mandataire ») : la fiche du
+    // propriétaire, dans Personnes, plus le profil de l'agence (attente d'avant, qui figeait une impasse).
     expect(lienPourManquant("domicile ou siège social", "org", liens, "bail_nu", "/espace", "detenteurs")?.href).toBe("/espace/org/personnes");
     expect(lienPourManquant("domicile ou siège social", "org", liens, "quittance", "/espace", "espace")?.href).toBe("/espace/org/profil");
     expect(lienPourManquant("commune", "org", liens, "bail_nu", "/espace", "espace")?.href).toBe("/espace/org/profil");
-    expect(lienPourManquant("domicile ou siège social", "org", liens, "bail_nu", "/agence", "espace")?.href).toBe("/agence/org/profil");
+    expect(lienPourManquant("domicile ou siège social", "org", liens, "bail_nu", "/agence", "espace")?.href).toBe("/agence/org/personnes");
+    expect(lienPourManquant("adresse du mandataire", "org", liens, "bail_nu", "/agence", "espace")?.href).toBe("/agence/org/profil");
   });
   // Second passage du lot 46 : la quittance délivrée (page /quittance, celle que lit le locataire) imprime les bailleurs avec
   // l'adresse et la commune du PROFIL DE L'ESPACE (quittance_document). Sa liste « à renseigner » envoyait, faute d'origine
@@ -359,12 +364,16 @@ describe("T21 — le catalogue ne propose plus ce que l'assembleur refuse pour l
   // l'état du dossier : le bordereau de remise des clés d'un état des lieux sans clé (« Aucune clé n'a été enregistrée… ») et le
   // bordereau de versement d'un rapport dont le versement n'est pas enregistré (« Enregistrez le versement du rapport… »).
   it("bordereau de remise des clés : un état des lieux qui a des clés ; bordereau de versement : un versement enregistré", async () => {
-    const edl = (id: string, cles: Ligne[]) => ({ id, organization_id: "org", bail_id: "b", type: "sortie", etat: "signe", date_edl: "2026-11-02", edl_cles: cles });
-    const tables = { baux: [bail("b", "termine")], etats_des_lieux: [edl("avec-cles", [{ id: "k1" }]), edl("sans-cle", [])] };
-    expect(await ids("restitution_cles", tables)).toEqual(["avec-cles"]);
+    // Reprise du lot 46 : seul l'état des lieux SIGNÉ sans clé est écarté (figé) ; celui en préparation reste proposé, son
+    // bordereau est incomplet (« À renseigner »). Le « !inner » d'avant écartait les deux ; un identifiant forcé recevait le
+    // message générique au lieu du motif de l'assembleur.
+    const edl = (id: string, cles: Ligne[], etat = "signe") => ({ id, organization_id: "org", bail_id: "b", type: "sortie", etat, date_edl: "2026-11-02", edl_cles: cles });
+    const tables = { baux: [bail("b", "termine")], etats_des_lieux: [edl("avec-cles", [{ id: "k1" }]), edl("sans-cle", []), edl("brouillon-sans-cle", [], "brouillon")] };
+    expect(await ids("restitution_cles", tables)).toEqual(["avec-cles", "brouillon-sans-cle"]);
     const { db, appels } = base({ ...commun, ...tables });
-    await expect(verifierCibleCatalogue(db, "org", modele("restitution_cles"), "sans-cle")).rejects.toBeInstanceOf(RefusDocument);
-    expect(appels.at(-1)!.ops).toContainEqual(["select", "id,edl_cles!edl_cles_edl_id_fkey!inner(id)"]);
+    await expect(verifierCibleCatalogue(db, "org", modele("restitution_cles"), "sans-cle")).rejects.toThrow(REFUS_CLES_EDL_SIGNE);
+    expect(appels.at(-1)!.ops).toContainEqual(["select", "id,etat,edl_cles!edl_cles_edl_id_fkey(id)"]);
+    await expect(verifierCibleCatalogue(db, "org", modele("restitution_cles"), "brouillon-sans-cle")).resolves.toBeUndefined();
     const rapport = (id: string, versement_montant: number | null, versement_date: string | null) => ({ id, organization_id: "org", mandat_id: "m", mois: "2026-10-01", statut: "envoye", versement_montant, versement_date });
     const rapports_gestion = [rapport("verse", 1250, "2026-11-05"), rapport("sans-date", 1250, null), rapport("non-verse", null, null)];
     expect(await ids("bordereau_versement", { rapports_gestion })).toEqual(["verse"]);

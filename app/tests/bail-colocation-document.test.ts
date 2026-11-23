@@ -82,11 +82,22 @@ describe("contrat commun de colocation", () => {
     expect(await assemblerBailColocation(c.supabase, "org", "autre")).toEqual({ erreur: "Bail introuvable." });
     expect(c.tables).toEqual([]);
   });
-  it("refuse un principal absent ou une personne dupliquée comme second signataire", async () => {
-    const c = colocation(); c.bail.locataire_principal = null; mocks.charger.mockResolvedValue(c);
-    expect(await assemblerBailColocation(client().supabase, "org", "b1")).toHaveProperty("erreur", expect.stringContaining("principal"));
+  // Phase 3, lot 46 (reprise, T21) : un principal ou un second colocataire manquant est une donnée à compléter ; le contrat est
+  // désormais INCOMPLET (« nom et prénom(s) », « nom du colocataire 2 », les libellés du contrôle du brouillon) au lieu d'un refus
+  // sans lien. Le PDF reste bloqué. Ce test attendait le refus ; il attend la liste « À renseigner ». Un principal désigné mais
+  // illisible reste refusé.
+  it("principal absent ou personne dupliquée comme second signataire : contrat incomplet, jamais produit", async () => {
+    const c = colocation(); c.bail.locataire_principal = null; c.locataires = [personne({ id: "p2", nom: "Martin", prenom: "Léo" })]; mocks.charger.mockResolvedValue(c);
+    const sansPrincipal = await assemblerBailColocation(client().supabase, "org", "b1");
+    if ("erreur" in sansPrincipal) throw new Error(sansPrincipal.erreur);
+    expect(sansPrincipal.document.manquants).toEqual(expect.arrayContaining(["nom et prénom(s)", "nom du colocataire 2"]));
     c.bail.locataire_principal = "p1"; c.locataires = [personne(), personne()];
-    expect(await assemblerBailColocation(client().supabase, "org", "b1")).toHaveProperty("erreur", expect.stringContaining("au moins un colocataire"));
+    const doublon = await assemblerBailColocation(client().supabase, "org", "b1");
+    if ("erreur" in doublon) throw new Error(doublon.erreur);
+    expect(doublon.document.manquants).toContain("nom du colocataire 2");
+    expect(doublon.document.manquants).not.toContain("nom et prénom(s)");
+    c.bail.locataire_principal = "illisible"; c.locataires = [personne({ id: "p2", nom: "Martin", prenom: "Léo" })];
+    expect(await assemblerBailColocation(client().supabase, "org", "b1")).toEqual({ erreur: "Le locataire principal ne peut pas être vérifié. Réessayez." });
   });
   it.each(["diagnostics", "inventaire_lignes"])("distingue une panne de lecture d'une annexe absente : %s", async erreur => {
     mocks.charger.mockResolvedValue(colocation(true));

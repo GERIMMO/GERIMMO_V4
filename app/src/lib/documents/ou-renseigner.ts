@@ -12,6 +12,8 @@ import type { EmetteurEnTete } from "@/lib/documents/gabarit";
 // départage.
 
 export type LienManquant = { href: string; ecran: string };
+/** Phase 3, lot 46 (reprise, T21) : la demande d'attestation d'assurance d'une attestation rattachée à aucune personne. */
+export const MANQUE_LOCATAIRE_ATTESTATION = "locataire concerné, à rattacher à l’attestation dans Documents";
 type Liens = { entite: "bail" | "personne" | "lot" | "mandat"; entiteId: string }[];
 type Cible = "organisation" | "personne" | "lot" | "bail" | "complements" | "plan";
 
@@ -62,6 +64,10 @@ const REGLES: Regle[] = [
       "domicile du bailleur",
       "clauses librement convenues",
       "référence du bail",
+      // Phase 3, lot 46 (reprise, T21) : le second colocataire d'un contrat commun et les clés d'un état des lieux en
+      // préparation (bordereau de remise) se complètent depuis la fiche du bail (carte Colocation, état des lieux).
+      "nom du colocataire",
+      "à enregistrer dans l’état des lieux",
     ],
     cible: "bail",
   },
@@ -122,6 +128,7 @@ const MODELES_EN_TETE_ESPACE = new Set(["comparatif_devis", "recap_incident", "r
 // « ou dénomination ») ; l'en-tête devient alors le sien.
 const MODELES_BAILLEUR_AU_CORPS = new Set(["bail_nu", "bail_meuble", "bail_colocation", "bail_individuel", "cautionnement"]);
 const DETENTION: Regle = { motifs: [], cible: "lot", section: "detention" };
+const MODELES_CONTRAT = new Set(["bail_nu", "bail_meuble", "bail_colocation", "bail_individuel"]);
 
 export function lienPourManquant(
   libelle: string,
@@ -193,6 +200,19 @@ export function lienPourManquant(
   if (racine === RACINE_PROPRIETAIRE && emetteur === "espace" && MODELES_BAILLEUR_AU_CORPS.has(modele ?? "") && l === "domicile ou siège social") {
     return vers("lot", DETENTION);
   }
+  // Reprise du lot 46 (T19) : dans un espace d'agence, l'en-tête est toujours celui de l'agence, et son adresse manquante est
+  // AUSSI signalée au corps, sous « adresse du mandataire » (profil). « Domicile ou siège social » y désigne donc le bailleur du
+  // corps, c'est-à-dire le propriétaire mandant (détenteur du lot) : il menait au profil de l'agence, déjà complet, et le PDF
+  // restait bloqué. Sa fiche est dans Personnes ; un lot sans détenteur signale en outre « ou dénomination » (détention).
+  if (racine !== RACINE_PROPRIETAIRE && MODELES_BAILLEUR_AU_CORPS.has(modele ?? "") && l === "domicile ou siège social") {
+    return { href: `${base}/personnes`, ecran: "fiche du propriétaire, dans Personnes" };
+  }
+  // Reprise du lot 46 (T21) : un contrat sans locataire principal est incomplet (« nom et prénom(s) », libellé du bloc du
+  // locataire) ; il se désigne sur la fiche du bail.
+  if (MODELES_CONTRAT.has(modele ?? "") && l === "nom et prénom(s)") return vers("bail");
+  // Reprise du lot 46 (T21) : une attestation d'assurance sans personne se rattache depuis Documents (« Rattacher à une autre
+  // fiche » de la pièce).
+  if (modele === "rappel_assurance" && libelle === MANQUE_LOCATAIRE_ATTESTATION) return { href: `${base}/documents`, ecran: "Documents" };
   if (racine === RACINE_PROPRIETAIRE && enTeteDesDetenteurs && (l === "domicile ou siège social" || l === "commune")) {
     return { href: `${base}/personnes`, ecran: "fiche du propriétaire, dans Personnes" };
   }

@@ -7,6 +7,7 @@ import { Fusion, assemblerPage, blocSignatureEmetteur, cartouches, enTete, faitA
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { adresseLogement, chargerDetenteursLot, expediteur, nomPersonne, referenceCourte, signatureOrganisation } from "./communs";
 import type { Assemblage } from "./index";
+import { MANQUE_LOCATAIRE_ATTESTATION } from "../ou-renseigner";
 
 export type DonneesRappelAssurance = {
   reference: string;
@@ -92,7 +93,7 @@ export async function assemblerRappelAssurance(
   if (!organisation) return { erreur: "Organisation introuvable." };
 
   // document_liens est polymorphe (pas de FK vers persons) : deux temps
-  const { data: lien } = await supabase
+  const { data: lien, error: erreurLien } = await supabase
     .from("document_liens")
     .select("entite_id")
     .eq("document_id", documentId)
@@ -102,7 +103,13 @@ export async function assemblerRappelAssurance(
   const { data: personne } = lien
     ? await supabase.from("persons").select(CHAMPS_PERSONNE).eq("id", lien.entite_id).maybeSingle()
     : { data: null };
-  if (!personne) return { erreur: "L'attestation n'est rattachée à aucune personne." };
+  // Phase 3, lot 46 (reprise, T21) : une attestation rattachée à aucune personne rend la demande INCOMPLÈTE (« À renseigner » :
+  // le locataire, à rattacher à l'attestation dans Documents), plus refusée. Le catalogue la proposait (type et purge seulement)
+  // puis répondait « L'attestation n'est rattachée à aucune personne », sans dire où la rattacher. Sans personne, aucun bail
+  // n'est cherché : l'en-tête est celui de l'espace et le logement manque aussi, comme pour un locataire sans bail en cours.
+  // Une personne rattachée mais illisible n'est pas une donnée à compléter : refus, qui dit ce qui est.
+  if (erreurLien) return { erreur: "Les rattachements de l'attestation ne peuvent pas être lus. Réessayez." };
+  if (lien && !personne) return { erreur: "La fiche de la personne rattachée à l'attestation ne peut pas être lue. Réessayez." };
 
   // Le logement : le bail vivant de cette personne, qu'elle en soit locataire principal ou colocataire. Reprise du lot 37 (C56) :
   // seul le locataire principal était cherché ; pour un colocataire, le rappel perdait son logement et ses bailleurs, et
@@ -111,10 +118,10 @@ export async function assemblerRappelAssurance(
     "id, locataire_principal, chambre:lot_chambres!baux_chambre_meme_lot_fk(nom), lot:lots!baux_lot_meme_org_fk(id, nom, etage, bien:biens!lots_bien_id_fkey(address_line1, postal_code, city))";
   const BAIL_ILLISIBLE = "Le bail de cette personne ne peut pas être vérifié. Réessayez.";
   const bauxVivants = () => supabase.from("baux").select(CHAMPS_BAIL).eq("organization_id", orgId).in("etat", ["actif", "preavis"]);
-  const principal = await bauxVivants().eq("locataire_principal", personne.id).limit(1).maybeSingle();
+  const principal = personne ? await bauxVivants().eq("locataire_principal", personne.id).limit(1).maybeSingle() : { data: null, error: null };
   if (principal.error) return { erreur: BAIL_ILLISIBLE };
   let bail = principal.data;
-  if (!bail) {
+  if (!bail && personne) {
     // Phase 3, lot 46 (T18, C56) : un colocataire PARTI (date de départ passée, après un avenant de remplacement par exemple)
     // n'est plus locataire du bail, comme sur sa fiche (date_depart vide ou à venir, jour de Paris). Il recevait une demande
     // émise par la bailleresse, avec le logement et la référence du bail ; il retombe sur l'en-tête de l'espace, sans logement.
@@ -148,7 +155,7 @@ export async function assemblerRappelAssurance(
   // C58 : « votre espace locataire Gerimmo » seulement si le locataire en a un, ouvert (compte rattaché et accès actif, comme
   // la fiche de la personne le lit). Sinon, ou si l'accès ne peut pas être vérifié, le courrier ne donne que l'adresse de dépôt.
   let espaceLocataire = false;
-  if (personne.account_id) {
+  if (personne?.account_id) {
     const { data: acces, error: erreurAcces } = await supabase.rpc("statut_acces_locataire", { p_org: orgId, p_person_id: personne.id });
     const statut = acces as { role?: string; status?: string } | null;
     espaceLocataire = !erreurAcces && statut?.role === "locataire" && statut.status === "active";
@@ -160,7 +167,7 @@ export async function assemblerRappelAssurance(
     reference: referenceCourte("ASSU", doc.id),
     echeance: doc.expire_le,
     expiree: Boolean(doc.expire_le && doc.expire_le < aujourdHui),
-    locataireNom: f.champ(nomPersonne(personne), "nom et prénom(s) du ou des locataires"),
+    locataireNom: personne ? f.champ(nomPersonne(personne), "nom et prénom(s) du ou des locataires") : f.champ(null, MANQUE_LOCATAIRE_ATTESTATION),
     logementAdresse: lot && bien ? adresseLogement({ nom: chambre ? `${lot.nom} · ${chambre.nom}` : lot.nom, etage: lot.etage }, bien) : null,
     referenceBail: bail ? referenceCourte("BAIL", bail.id) : null,
     canalReponse: organisation.email_contact,
@@ -173,10 +180,10 @@ export async function assemblerRappelAssurance(
   return {
     document,
     // Phase 3 (C64) : deux demandes classées le même jour se distinguent par le locataire concerné (« Nom Prénom »).
-    titreGed: `Demande d'attestation d'assurance — ${nomPersonne(personne)}`,
+    titreGed: `Demande d'attestation d'assurance — ${personne ? nomPersonne(personne) : "locataire à rattacher"}`,
     nomFichier: `rappel-assurance-${aujourdHui}`,
     liens: [
-      { entite: "personne", entiteId: personne.id },
+      ...(personne ? [{ entite: "personne" as const, entiteId: personne.id }] : []),
       ...(bail ? [{ entite: "bail" as const, entiteId: bail.id }] : []),
     ],
   };

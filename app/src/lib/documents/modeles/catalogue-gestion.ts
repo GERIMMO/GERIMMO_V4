@@ -7,7 +7,7 @@ import { ETATS_MANDAT } from "@/lib/baux";
 import { NATURES_TRAVAUX, STATUTS_DEVIS, STATUTS_INTERVENTION_DOCUMENT } from "@/app/agence/[orgId]/artisans/referentiel";
 import { descriptionDevisLisible } from "@/lib/devis-structure";
 import { CATALOGUE_DOCUMENTS } from "../catalogue";
-import { lireLignes, lignesTableau, RefusDocument, texte, montant, anneeDocument, MESSAGE_CHARGEMENT_IMPOSSIBLE, type LigneDocument } from "./catalogue-bail";
+import { lireLignes, lignesTableau, RefusDocument, texte, montant, anneeDocument, MESSAGE_CHARGEMENT_IMPOSSIBLE, REFUS_CLES_EDL_SIGNE, MANQUE_CLES_EDL, type LigneDocument } from "./catalogue-bail";
 import { chargerContexteBail, chargerDetenteursBien, chargerDetenteursLot, expediteur, libelleSignataireBailleur, nomsLocataires, adresseLogement, referenceCourte } from "./communs";
 import { LIBELLE_DEPENSES_EXCLUES, LIBELLE_RECETTES_EXCLUES, phrasePerimetreFiscal, phrasePiecesAQualifier, recapitulatifFiscal, type ComposantesFiscales, type EcritureFiscale, type ExerciceFiscalLot, type QualificationFiscale, type RecapitulatifFiscal } from "@/lib/fiscal";
 import type { Assemblage, LienDocument } from "./index";
@@ -265,9 +265,10 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       // Phase 3, reprise du lot 45 (T17) : un état des lieux signé est figé (enregistrer_annexes_edl et le déclencheur refusent tout
       // ajout de clé) ; « Renseignez les clés » y était une consigne impossible à suivre. Le refus dit ce qui est. Option prudente :
       // le bordereau, dont les clés sont tout le contenu, n'est pas établi vide (l'état des lieux imprime « non comptés »).
-      if (!cles.length) throw new RefusDocument(edl.etat === "signe"
-        ? "Aucune clé n’a été enregistrée dans cet état des lieux avant sa signature. Un état des lieux signé ne se modifie plus : le bordereau, qui reprend ses clés, ne peut pas être préparé."
-        : "Renseignez les clés dans l’état des lieux avant de préparer le bordereau.");
+      // Phase 3, lot 46 (reprise, T21) : en préparation, les clés se saisissent encore dans l'état des lieux : c'est une donnée à
+      // compléter, et le bordereau est INCOMPLET (« À renseigner », vers la fiche du bail et son état des lieux), plus refusé
+      // (« Renseignez les clés… », sans lien). Le catalogue ne propose plus l'état des lieux signé sans clé (motifsDeRefus).
+      if (!cles.length && edl.etat === "signe") throw new RefusDocument(REFUS_CLES_EDL_SIGNE);
       // Phase 3 (C42) : le bordereau est daté de la remise des clés, c'est-à-dire de l'état des lieux, pas du jour de génération
       // (une remise du 01/09/2023 portait « Fait à Lyon, le 23/11/2026 », après le départ du locataire).
       dateDocument = texte(edl.date_edl) || aujourdhui;
@@ -278,7 +279,7 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       const lignesCles = edl.etat === "signe" ? cles.map(c => texte(c.nombre) === "" ? { ...c, nombre: "non compté" } : c) : cles;
       contenu = `${section(edl.type === "sortie" ? "Clés restituées au bailleur" : "Clés remises au locataire")}
         <p>Date du constat : ${f.date(texte(edl.date_edl))}. État des lieux ${edl.etat === "signe" ? "signé" : "en préparation : remise à confirmer contradictoirement"}.</p>
-        ${lignesTableau(f,lignesCles,[["Clé / accès","libelle","texte"],["Nombre","nombre","texte"],["Référence","reference","facultatif"]])}`;
+        ${lignesCles.length ? lignesTableau(f,lignesCles,[["Clé / accès","libelle","texte"],["Nombre","nombre","texte"],["Référence","reference","facultatif"]]) : `<p>${f.champ(null,MANQUE_CLES_EDL)}</p>`}`;
       signatures = true;
     } else if (["ordre_intervention","comparatif_devis","compte_rendu_intervention","recap_incident"].includes(code)) {
       const intervention = ["ordre_intervention","compte_rendu_intervention"].includes(code) ? await unique("incident_interventions",cibleId) : null;

@@ -200,6 +200,11 @@ export function assemblerQuittanceDelivree(d: DonneesQuittanceDocument): Documen
       // Phase 3, lot 46 (second passage, T19) : l'adresse et la commune imprimées viennent du profil de l'espace
       // (quittance_document : organisation), même quand les bailleurs émettent. La liste « à renseigner » de la page y mène ;
       // elle envoyait, par déduction du lien au bail, vers la fiche du propriétaire, que cette quittance ne lit pas.
+      // POINT OUVERT (reprise du lot 46, signalé, non tranché) : chez un propriétaire qui gère lui-même, cette page associe le
+      // NOM des bailleurs à l'ADRESSE de l'espace, alors que le PDF de la même quittance (modeles/quittance.ts, expediteur)
+      // imprime le nom ET l'adresse des détenteurs ; une SCI y paraît à l'adresse de l'espace. Aligner suppose que
+      // quittance_document (lisible par le locataire, et source de l'empreinte des courriels de quittance) rende l'adresse
+      // des bailleurs : migration et choix de données laissés au dirigeant (questions du lot 46) et au juriste.
       emetteur: "espace",
     },
     // La signature préenregistrée vit dans le stockage privé de

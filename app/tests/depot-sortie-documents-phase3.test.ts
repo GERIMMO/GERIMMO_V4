@@ -28,6 +28,7 @@ import { assemblerComplementBail } from "@/lib/documents/modeles/catalogue-bail"
 import { assemblerComplementGestion } from "@/lib/documents/modeles/catalogue-gestion";
 import { assemblerEdl, construireEdl, type DonneesEdl } from "@/lib/documents/modeles/edl";
 import { Fusion } from "@/lib/documents/gabarit";
+import { lienPourManquant } from "@/lib/documents/ou-renseigner";
 import type { Assemblage } from "@/lib/documents/modeles";
 
 type Ligne = Record<string, unknown>;
@@ -155,11 +156,15 @@ describe("C42, S20 — bordereau de remise des clés", () => {
   // Reprise du lot 45 (T17, contre-relecture) : sans aucune clé, un état des lieux SIGNÉ recevait « Renseignez les clés dans l'état
   // des lieux », consigne impossible (signé, il refuse tout ajout de clé). Le refus dit ce qui est ; avant la signature, la consigne
   // reste celle-ci, qui se suit.
+  // Reprise du lot 46 (T21) : avant la signature, les clés sont une donnée à compléter ; le bordereau est désormais INCOMPLET
+  // (« À renseigner », lien vers la fiche du bail), plus refusé par la consigne « Renseignez les clés… », qui n'avait pas de
+  // lien. L'ancienne attente de ce refus est remplacée ; le refus du signé, lui, est inchangé.
   it("T17 (reprise) : état des lieux signé sans aucune clé, le refus dit ce qui est au lieu d'une consigne impossible", async () => {
     const r = await assemblerComplementGestion("restitution_cles", base(tables([])), "org", "edl1");
     expect(r).toEqual({ erreur: "Aucune clé n’a été enregistrée dans cet état des lieux avant sa signature. Un état des lieux signé ne se modifie plus : le bordereau, qui reprend ses clés, ne peut pas être préparé." });
-    expect(await assemblerComplementGestion("restitution_cles", base(tables([], { etat: "brouillon" })), "org", "edl1"))
-      .toEqual({ erreur: "Renseignez les clés dans l’état des lieux avant de préparer le bordereau." });
+    const brouillon = succes(await assemblerComplementGestion("restitution_cles", base(tables([], { etat: "brouillon" })), "org", "edl1"));
+    expect(brouillon.document.manquants).toEqual(["clés et badges remis, à enregistrer dans l’état des lieux"]);
+    expect(lienPourManquant(brouillon.document.manquants[0], "org", brouillon.liens, "restitution_cles", "/espace", brouillon.document.emetteur)?.ecran).toBe("fiche du bail");
   });
 
   it("une lecture des clés en échec refuse le bordereau (jamais une liste vide prise pour « aucune clé »)", async () => {

@@ -13,6 +13,12 @@ import { echeanceReglementaire } from "@/lib/documents-bail";
 // Reprise du lot 38 (S09, C40) : la liste des dossiers du catalogue (catalogue-cibles) écarte les mêmes cas, avec le même motif.
 // Inventaires : un logement meublé (case « meublé » du lot) ou un bail de type meublé.
 export const REFUS_INVENTAIRE_NON_MEUBLE = "L’inventaire du mobilier concerne un logement meublé.";
+// Phase 3, reprise du lot 45 (T17) puis lot 46 (reprise, T21) : le bordereau de remise des clés d'un état des lieux SIGNÉ sans
+// clé ne peut pas être préparé (l'état des lieux est figé). Partagé par l'assembleur et la liste du catalogue, qui ne le propose
+// plus (motifsDeRefus).
+export const REFUS_CLES_EDL_SIGNE = "Aucune clé n’a été enregistrée dans cet état des lieux avant sa signature. Un état des lieux signé ne se modifie plus : le bordereau, qui reprend ses clés, ne peut pas être préparé.";
+// Lot 46 (reprise, T21) : les clés d'un état des lieux EN PRÉPARATION restent à saisir ; le bordereau est alors incomplet.
+export const MANQUE_CLES_EDL = "clés et badges remis, à enregistrer dans l’état des lieux";
 export const REFUS_ACCUSE_APRES_SORTIE = "L’état des lieux de sortie est signé : la sortie du locataire est faite, l’accusé de réception du congé n’a plus lieu d’être.";
 export const CODES_COMPLEMENTS_BAIL = ["bordereau_ddt", "inventaire_entree", "inventaire_sortie", "avenant_remplacement", "liste_dossier", "attestation_loyer", "attestation_caf", "relance_simple", "seconde_relance", "mise_en_demeure", "situation_dette", "protocole_apurement", "accuse_conge", "decompte_retenues", "attestation_fin_bail", "autorisation_travaux"] as const;
 export type LigneDocument = Record<string, unknown>;
@@ -267,8 +273,10 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
         <p>Les justificatifs déposés (devis, facture, constat comparé des états des lieux) sont tenus à la disposition du locataire sur demande. Les sommes ci-dessus sont propres à ce contrat.</p>`;
       if (retenues.some(l=>!l.justificatif_document)) f.champ(null,"justificatifs de retenues à déposer");
     } else if (code === "liste_dossier") {
-      if (!ctx.bail.locataire_principal) return { erreur: "Choisissez d’abord la personne du dossier." };
-      const pieces = await lireLignes(supabase.from("pieces_demandees").select("*").eq("organization_id",orgId).eq("person_id",ctx.bail.locataire_principal).order("demandee_le"));
+      // Phase 3, lot 46 (reprise, T21) : sans locataire principal, la liste est INCOMPLÈTE (« nom et prénom(s) du ou des
+      // locataires », qui mène à la fiche du bail), plus refusée (« Choisissez d’abord la personne du dossier », sans lien).
+      if (!ctx.bail.locataire_principal) f.champ(null,"nom et prénom(s) du ou des locataires");
+      const pieces = ctx.bail.locataire_principal ? await lireLignes(supabase.from("pieces_demandees").select("*").eq("organization_id",orgId).eq("person_id",ctx.bail.locataire_principal).order("demandee_le")) : [];
       for (const p of pieces) p.statut = p.satisfaite_le ? "Reçue" : p.document_id ? "Déposée, à vérifier" : "À fournir";
       // C17 : sans demande, plus de tableau vide (en-têtes sans ligne) : la phrase qui le dit vient sous le titre.
       contenu = `${section("Pièces demandées dans le dossier")}${pieces.length ? lignesTableau(f,pieces,[["Pièce","libelle","texte"],["Statut","statut","texte"]]) : "<p>Aucune demande de pièce enregistrée à cette date.</p>"}

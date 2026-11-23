@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { EntreeCatalogue } from "./catalogue";
-import { lireLignes, texte, montant, RefusDocument, REFUS_ACCUSE_APRES_SORTIE, REFUS_INVENTAIRE_NON_MEUBLE, CODES_RECOUVREMENT, REFUS_SOLDE_DANS_DECOMPTE, REFUS_AUCUNE_DETTE, REFUS_PLAN_SANS_TRANCHE, ETATS_PLAN_PROTOCOLE, termesEchus, resteCentimes, type LigneDocument } from "./modeles/catalogue-bail";
+import { lireLignes, texte, montant, RefusDocument, REFUS_ACCUSE_APRES_SORTIE, REFUS_CLES_EDL_SIGNE, REFUS_INVENTAIRE_NON_MEUBLE, CODES_RECOUVREMENT, REFUS_SOLDE_DANS_DECOMPTE, REFUS_AUCUNE_DETTE, REFUS_PLAN_SANS_TRANCHE, ETATS_PLAN_PROTOCOLE, termesEchus, resteCentimes, type LigneDocument } from "./modeles/catalogue-bail";
 import { REFUS_TERME_NON_DU, REFUS_TERME_SOLDE } from "./modeles/avis-echeance";
 import { verifierCourrierDuBail } from "@/lib/rappels-loyers";
 import { aujourdhuiParis } from "@/lib/ged";
@@ -34,11 +34,13 @@ const LIAISONS_CIBLES: Record<string, string> = {
   // aucun garant à proposer).
   cautionnement: "bail_personnes!bail_personnes_bail_meme_org_fk!inner(role)",
   // Lot 46, second passage (T21) : le bordereau de remise des clés reprend les clés de l'état des lieux, tout son contenu ;
-  // l'assembleur refuse un état des lieux qui n'en a aucune (signé, il ne se modifie plus). Il était proposé puis refusé.
-  restitution_cles: "edl_cles!edl_cles_edl_id_fkey!inner(id)",
+  // l'assembleur refuse un état des lieux SIGNÉ qui n'en a aucune (il ne se modifie plus). Reprise du lot 46 : les clés sont lues
+  // sans « !inner », qui écartait AUSSI l'état des lieux en préparation sans clé, où elles se saisissent encore (le bordereau est
+  // alors incomplet, avec « À renseigner ») ; l'exclusion du signé sans clé se fait après lecture (motifsDeRefus).
+  restitution_cles: "edl_cles!edl_cles_edl_id_fkey(id)",
 };
 // Les colonnes que motifsDeRefus relit pour un dossier forcé (la liste, elle, lit toutes les colonnes).
-const COLONNES_CONTROLE: Record<string, string> = { avis_echeance: "bail_id,periode", inventaire_entree: "type", inventaire_sortie: "type" };
+const COLONNES_CONTROLE: Record<string, string> = { avis_echeance: "bail_id,periode", inventaire_entree: "type", inventaire_sortie: "type", restitution_cles: "etat" };
 export function colonnesCibles(modele:EntreeCatalogue, colonnes:string):string {
   return [colonnes, colonnes==="*" ? "" : COLONNES_CONTROLE[modele.id], LIAISONS_CIBLES[modele.id]].filter(Boolean).join(",");
 }
@@ -163,6 +165,8 @@ export async function verifierCibleCatalogue(db:SupabaseClient,orgId:string,mode
 //   reçu sur un paiement partiel) ; un terme qui suit le mois de fin du bail n'est pas dû (etat_loyers_bail : « non_du »).
 // - C40, accusé de réception : l'état des lieux de sortie signé fait la sortie (le bail reste en préavis jusqu'à la clôture).
 // - S09, inventaires : un logement meublé, c'est-à-dire le lot coché « meublé » OU un bail de type meublé.
+// - Lot 46 (reprise, T21), bordereau de remise des clés : un état des lieux signé sans aucune clé (figé, rien ne se complète) ;
+//   un état des lieux en préparation sans clé reste proposé, et son bordereau est incomplet.
 // - Lot 46 (T21), courriers de recouvrement, relevé de situation et protocole : les contrôles de l'assembleur (catalogue-bail),
 //   dans son ordre et avec ses calculs : solde reporté au décompte de départ (restitution finalisée) ; puis, sauf pour le relevé
 //   de situation, une dette (solde des termes échus, ou dette arrêtée du plan vivant pour le protocole) et, pour le protocole, un
@@ -189,6 +193,12 @@ async function motifsDeRefus(db:SupabaseClient,orgId:string,modele:EntreeCatalog
   if(modele.id==="accuse_conge") {
     const sorties=await lireLignes(db.from("etats_des_lieux").select("bail_id").eq("organization_id",orgId).eq("type","sortie").eq("etat","signe").in("bail_id",ids));
     for(const e of sorties) motifs.set(texte(e.bail_id),REFUS_ACCUSE_APRES_SORTIE);
+  }
+  if(modele.id==="restitution_cles") {
+    for(const l of lignes) {
+      const cles=l.edl_cles;
+      if(l.etat==="signe" && !(Array.isArray(cles) && cles.length)) motifs.set(texte(l.id),REFUS_CLES_EDL_SIGNE);
+    }
   }
   if(modele.id==="inventaire_entree" || modele.id==="inventaire_sortie") {
     for(const l of lignes) {

@@ -3,7 +3,7 @@ type: process
 tags: [planification, creneaux, incident]
 status: in-progress
 created: 2026-07-21
-updated: 2026-11-22
+updated: 2026-11-23
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-10-rdv-et-planning]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Propositions de fonctions majeures — version candidate du 13 octobre 2026]]", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
 ---
 
@@ -183,3 +183,18 @@ base d'essai ; **rien n'est en production** tant que le dirigeant n'a pas valid�
   appliquée qu'à moitié.
 - **Rappel de rendez-vous (lot 15).** Voir l'encadré de la section « Le rappel de rendez-vous » : prêt, fermé, ouvert
   par le Super Admin.
+
+## État dans l'application au 23/11/2026 — la promesse du rappel et le report vérifié en navigateur (mission palier 1)
+En préproduction, **non publié** ([[Mission palier 1 — audit du 22 novembre 2026]], lot 34 et vérification finale).
+- **La promesse du rappel suit l'envoi (lot 34).** Sous un rendez-vous confirmé, après un report accepté et dans
+  l'e-mail qui l'annonce, le [[Locataire]] lisait « nous vous le rappellerons la veille », alors que ce rappel est
+  fermé tant que le [[Super Admin]] ne l'a pas ouvert. Ces trois textes regardent maintenant le réglage : fermé (la
+  livraison), « Notez bien cette date : aucun rappel ne vous sera envoyé. » ; ouvert, la promesse d'avant. Si le
+  réglage ne peut pas être lu, rien n'est promis. La phrase « l'écran du locataire promet de nouveau le rappel » plus
+  haut décrit l'état du 18/09.
+- **Report et annulation par le locataire, joués en navigateur.** Un parcours sur téléphone joue désormais : report
+  demandé puis accepté par l'[[Artisan]] (le rendez-vous est déplacé) ; second report refusé avec un motif (le
+  rendez-vous est maintenu, le locataire lit la réponse, le gestionnaire a une alerte) ; après deux reports, l'écran
+  dit pourquoi il n'en propose plus ; annulation confirmée en deux temps ; l'artisan « en prend acte ». Le point
+  « Non vérifié » de l'encadré D22-B ci-dessus est donc levé **sur le banc d'essai** ; la relance de l'artisan avant
+  l'échéance reste retenue (Q37).

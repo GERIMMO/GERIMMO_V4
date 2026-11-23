@@ -81,6 +81,41 @@ pas des règles de droit vérifiées. Ce parcours n'est pas présenté comme con
     la demande ? En attendant : l'indice est seulement proposé, avec sa source et sa date de lecture ; le bailleur le
     vérifie et peut le remplacer avant de valider.
 
+### Rappels affichés faute d'avoir pu relire les textes (lot 33 : P0-04, P0-07, P0-08, P0-09, P0-11)
+
+Gerimmo n'a pas pu ouvrir les textes officiels. Sur cinq écrans, il affiche maintenant un rappel au lieu d'une règle.
+Ces formulations sont des **prudences de Gerimmo** : elles ne citent aucun article et ne sont pas présentées comme
+conformes. Questions communes : (a) chacune est-elle exacte ? (b) suffit-elle, ou faut-il une règle qui bloque ?
+
+36. **Pièces demandées, avant tout bail signé** (points 11 et 13 de la partie 2, A9 de la partie 3). Rappel affiché :
+    « Avant la signature du bail, les pièces qu'un bailleur peut demander à un candidat locataire ou à sa caution sont
+    encadrées par la réglementation. Vérifiez la liste sur le site officiel de l'administration (service-public.fr)
+    avant d'envoyer une demande : Gerimmo ne contrôle pas ce que vous demandez. » Le bouton « RIB » n'est plus
+    proposé ; le libellé reste libre. Faut-il n'offrir que la liste officielle, en cases à cocher, tant qu'aucun bail
+    n'est signé ?
+37. **Notice d'information** (points 4 et 5). Le document porte en tête : « Ce document est un résumé établi par
+    Gerimmo. Il ne remplace pas la notice d'information officielle, dont le texte complet est fixé par arrêté : le
+    bailleur la remet au locataire avec le bail. » Tant que le texte officiel n'est pas dans Gerimmo : ce résumé
+    peut-il rester joint à la signature électronique du bail, ou faut-il le retirer ? La phrase « La présente notice
+    est remise au locataire et annexée au contrat » (inchangée, plus bas dans le document) doit-elle être réécrite ?
+38. **Congé pour vente ou pour reprise** (points 17 à 19). Rappel affiché : « À faire relire avant de notifier. Un
+    congé pour vente [ou : pour reprise] doit comporter des mentions précises et reproduire certains textes ; un congé
+    incomplet peut être annulé. Gerimmo n'a pas pu comparer ce modèle au texte officiel : il ne garantit pas qu'il
+    soit complet. Faites-le relire (ADIL, avocat, commissaire de justice) avant de l'envoyer. » La lettre de reprise
+    imprime désormais « demeurant [adresse du bénéficiaire] » et « Raisons de la reprise : … » ; Gerimmo ne la
+    génère pas tant que ces deux lignes, le nom du bénéficiaire et son lien avec le bailleur ne sont pas saisis
+    (choix de prudence de Gerimmo, pas une règle citée). Quels textes doivent être reproduits mot pour mot, et ces
+    quatre mentions sont-elles les bonnes et suffisent-elles ?
+39. **Caution demandée par un bailleur en société** (point 24). Rappel affiché sur tout acte de cautionnement :
+    « Bailleur en société (SCI, autre personne morale) : demander une caution n'est pas permis dans tous les cas.
+    Vérifiez votre situation (ADIL, juriste) avant de faire signer cet acte ; Gerimmo ne contrôle pas ce point. »
+    Dans quels cas précis Gerimmo doit-il refuser de préparer l'acte ?
+40. **Facture créée depuis Gerimmo par l'artisan** (partie 4, points 2 et 3). Aide affichée sous le numéro :
+    « Gerimmo ne numérote pas à votre place : il vérifie seulement que ce numéro n'est pas déjà utilisé ici. Reprenez
+    le numéro suivant de votre propre série de factures, et relisez les mentions de la facture avant de l'envoyer :
+    vous en restez responsable. » Cette répartition des responsabilités tient-elle, ou Gerimmo, qui produit la pièce,
+    doit-il numéroter et contrôler les mentions lui-même ?
+
 ---
 
 ## 2. États des lieux, vétusté, charges, pièces justificatives (annexe `audit-palier-1/b2-edl-charges-pieces.md`)

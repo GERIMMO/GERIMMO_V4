@@ -52,7 +52,7 @@ production est gelée jusqu'à sa validation écrite ; l'audit complet est dans 
 >   du wiki en tiennent lieu, dans le périmètre donné par le dirigeant.
 > - Les pages [[Planification d'intervention]] et [[Intervention et clôture]] sont en retard sur le code.
 
-## Phase 2 — corrections en autonomie (état au 23/11/2026, lot 32)
+## Phase 2 — corrections en autonomie (état au 23/11/2026, lot 34)
 
 Le détail, lot par lot (ce qui est fait, vérifié, non vérifié, retour arrière), est dans `JOURNAL.md` à la racine.
 Chaque lot est vérifié sur une base d'essai remise à neuf (migrations rejouées, tests, parcours navigateur) avant
@@ -92,6 +92,8 @@ d'être poussé sur la branche de préproduction ; rien n'est publié en product
 | 30 | P2-07 | Avant de solliciter un [[Artisan]], le [[Propriétaire bailleur]] lit un repère de prix sourcé pour le métier (trois métiers), avec « ni un tarif, ni un prix maximum, ni un engagement » ([[Devis]]) |
 | 31 | P2-08 (base) | Rien de visible : 46 droits d'écriture sans règle retirés sur 21 tables ; aucune table, fonction ni donnée supprimée |
 | 32 | P2-09 | Le plafond et l'abattement du micro-foncier cités par l'aide du récapitulatif fiscal ([[Fiscalité]]) ne sont plus écrits dans le code : le [[Super Admin]] les règle et date leur vérification ; le [[Propriétaire bailleur]] lit la date, ou qu'il n'y en a pas |
+| 33 | P0-04, P0-07, P0-08, P0-09, P0-11 | Faute d'avoir pu relire les textes, Gerimmo avertit au lieu d'affirmer : pièces demandées à un candidat (plus de « RIB » d'un clic, rappel), notice d'information dite « résumé », congé pour vente ou reprise « à faire relire » (et lettre de reprise refusée tant que le bénéficiaire, son lien, son adresse et les raisons manquent), caution d'un bailleur en société, numérotation des factures d'artisan ([[Dossier locataire]], [[Mentions obligatoires du bail]], [[Garantie]]) |
+| 34 | P1-08 (complément) | Le [[Locataire]] ne lit plus « nous vous le rappellerons la veille » tant que le rappel de rendez-vous est fermé : « Notez bien cette date : aucun rappel ne vous sera envoyé. » ([[Planification d'intervention]]) |
 
 **Règle métier posée au lot 11** (source : cahier Gerimmo V3, module 9, variante V5 — « l'agent la refuse, l'artisan
 la corrige ou la justifie ») : une intervention ne porte qu'**une facture en vigueur** ; une facture refusée reste au
@@ -103,7 +105,7 @@ Q24) : aucun e-mail automatique ne part tant que le Super Admin n'a pas ouvert l
 d'échéance et la relance d'un loyer, chaque espace doit en plus donner son accord ; même ouvert, un e-mail ne part que
 si la base confirme, juste avant, qu'il est toujours dû. Aucun e-mail réel n'a été envoyé pendant la vérification.
 
-**Règles posées aux lots 17 à 32** (prudences de l'agent ; aucune n'affirme une conformité) :
+**Règles posées aux lots 17 à 34** (prudences de l'agent ; aucune n'affirme une conformité) :
 
 - *Charges de copropriété (lot 19)* : Gerimmo ne classe plus aucun poste de lui-même. La suggestion tirée de
   l'intitulé s'affiche, le gestionnaire choisit, poste par poste ; un intitulé de travaux, de gardien ou de
@@ -144,6 +146,13 @@ si la base confirme, juste avant, qu'il est toujours dû. Aucun e-mail réel n'a
   n'y en a pas ; une valeur illisible n'est pas affichée ; seul le Super Admin en double vérification la règle, et
   chaque réglage est journalisé avec la valeur d'avant. Les deux valeurs livrées n'ont **pas** été contrôlées à la
   source par l'agent : elles sont livrées sans date de vérification (`QUESTIONS.md`, Q38). Aucun calcul ne s'en sert.
+- *Prudences sans texte (lot 33)* : quand un point de droit n'a pas pu être relu, l'écran avertit et dit ce que Gerimmo
+  ne vérifie pas ; il ne cite aucun article et ne bloque rien, **sauf** la lettre de reprise, qui n'est pas préparée
+  avec des blancs (choix de prudence de l'agent). Les questions sont posées au juriste (`JURISTE.md`, partie 1, points
+  36 à 40 ; `QUESTIONS.md`, Q39). La conservation des données (P1-15) n'est pas activée : elle supprime des données.
+- *Une promesse suit l'envoi (lot 34)* : un écran ou un e-mail ne promet un envoi automatique que si cet envoi est
+  ouvert ; fermé ou illisible, il dit le contraire. Un test parcourt tout le code à la recherche d'une promesse écrite
+  en dur.
 - *Un audit se réexécute* : l'audit du 22/11 est une lecture du code. Trois de ses points se sont révélés faux ou
   trop optimistes à l'exécution (le diagnostic remplacé, le réglage de la tâche de nuit des fermetures de compte, la
   relance d'un report de rendez-vous) ; ils sont rectifiés dans la section « Errata » de `AUDIT.md`, pas réécrits en

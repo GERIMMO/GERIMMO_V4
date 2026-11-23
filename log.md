@@ -8024,3 +8024,17 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
   contrôler à la source (sites officiels inaccessibles) ; la page le dit dans un avertissement, et la question est
   posée au dirigeant (`QUESTIONS.md`, Q38). Le tableau des régimes de la page, plus ancien, portait déjà
   l'avertissement « Sources non officielles — à reconfirmer ».
+
+## [2026-11-23] ingest | Mission palier 1, lots 33 et 34 : prudences sans texte, promesse du rappel (préproduction)
+
+- **Source** : le code de la branche de préproduction (lots 33 et 34) et leur passage de vérification ; aucune source
+  déposée dans `raw/`.
+- **Pages mises à jour** : [[Dossier locataire]], [[Garantie]], [[Mentions obligatoires du bail]] (sections « État dans
+  l'application au 23/11/2026 » et avertissements), [[Planification d'intervention]] (promesse du rappel, report joué en
+  navigateur), [[Mission palier 1 — audit du 22 novembre 2026]] (lignes 33 et 34, deux règles), `index.md`.
+- **Ce que le wiki n'affirme pas** : qu'un de ces écrans est conforme. Les textes (liste des pièces, notice officielle,
+  mentions du congé, cas d'interdiction de la caution, numérotation des factures) n'ont pas été relus ; chaque page le
+  dit dans un avertissement, et les questions sont dans `JURISTE.md` (partie 1, points 36 à 40).
+- **Correction de l'agent avant publication** : la première rédaction du lot 33 annonçait que la lettre de reprise
+  s'imprimerait avec des blancs ; c'était faux (elle est refusée). Corrigé dans l'écran avant d'être poussé ; la page
+  [[Mentions obligatoires du bail]] décrit le comportement vérifié.

@@ -3,8 +3,8 @@ type: concept
 tags: [dossier-locataire, pieces, assurance, garant, versioning]
 status: draft
 created: 2026-07-24
-updated: 2026-07-25
-sources: ["[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-a2-conservation-rgpd]]"]
+updated: 2026-11-23
+sources: ["[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-a2-conservation-rgpd]]", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
 ---
 
 # Dossier locataire
@@ -96,6 +96,20 @@ personne n'est plus « jamais supprimée » — identité et coordonnées sont
 caractère personnel (« Bail nº 1287, lot 47 »). Un contentieux gèle le cycle
 (RM-A2.7). Déclenchable manuellement sur demande RGPD du locataire (RM-0b.8.9).
 Voir [[RGPD]].
+
+## État dans l'application au 23/11/2026 — pièces demandées avant le bail (mission palier 1, lot 33)
+En préproduction, **non publié** ([[Mission palier 1 — audit du 22 novembre 2026]], point P0-04 ; détail dans
+`JOURNAL.md`).
+- Le gestionnaire peut **demander** une pièce à une personne depuis sa fiche (onglet « Demander à la personne » du
+  volet des justificatifs). Le bouton « RIB » n'y est plus proposé d'un clic, ni donné en exemple.
+- Tant que la personne n'a pas de bail signé (candidat), un rappel s'affiche : les pièces qu'un bailleur peut demander à
+  un candidat ou à sa caution sont encadrées par la réglementation ; vérifier la liste sur le site officiel de
+  l'administration ; Gerimmo ne contrôle pas ce qui est demandé. Le libellé de la pièce reste **libre**.
+
+> [!warning] Liste officielle des pièces non relue (23/11/2026)
+> L'agent n'a pas pu ouvrir le texte qui fixe la liste des pièces exigibles (sites officiels inaccessibles depuis son
+> environnement). Le rappel n'en cite aucune et ne bloque rien ; la question d'une liste fermée est posée au juriste
+> (`JURISTE.md`, partie 1, point 36). Rien ici n'est présenté comme conforme.
 
 ## Relations
 

@@ -3,8 +3,8 @@ type: business-rule
 tags: [bail, mentions-obligatoires, alur, dpe, identifiant-fiscal, modele-type]
 status: draft
 created: 2026-08-05
-updated: 2026-08-05
-sources: ["[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]"]
+updated: 2026-11-23
+sources: ["[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
 ---
 
 # Mentions obligatoires du bail
@@ -67,3 +67,20 @@ Source : [[2026-08-05-bailpdf-contrat-de-bail|BailPDF]].
 >   sous l'adresse) — reste à ajouter au modèle 1.16 et au [[Lot]].
 > - Le bloc « calendrier passoires » et l'affichage des dépenses théoriques d'énergie
 >   ne sont pas non plus mentionnés par le module 1 — même traitement.
+
+## État dans l'application au 23/11/2026 — notice d'information et congé du bailleur (mission palier 1, lot 33)
+En préproduction, **non publié** ([[Mission palier 1 — audit du 22 novembre 2026]], points P0-07 et P0-08).
+- **Notice d'information.** Le document que Gerimmo prépare est un **résumé** : il le dit en tête (« Ce document est un
+  résumé établi par Gerimmo. Il ne remplace pas la notice d'information officielle, dont le texte complet est fixé par
+  arrêté : le bailleur la remet au locataire avec le bail. »). L'écran du bail parle de « résumé » et demande de
+  remettre la notice officielle complète. Le texte officiel lui-même n'est pas dans Gerimmo.
+- **Congé pour vente ou pour reprise.** L'écran dit « À faire relire avant de notifier » : un congé incomplet peut être
+  annulé, et Gerimmo n'a pas pu comparer son modèle au texte officiel. La lettre de reprise imprime désormais
+  l'adresse du bénéficiaire et les raisons de la reprise ; Gerimmo ne la prépare pas tant que le nom du bénéficiaire,
+  son lien avec le bailleur, son adresse et les raisons ne sont pas saisis (choix de prudence de l'agent, pas une règle
+  citée). Le motif « légitime et sérieux » n'a pas ce rappel.
+
+> [!warning] Textes non relus (23/11/2026)
+> Ni la notice officielle, ni les textes à reproduire dans un congé n'ont pu être relus par l'agent. Les questions
+> (le résumé peut-il rester joint à la signature électronique ? quels textes reproduire mot pour mot ? les quatre
+> mentions de la reprise suffisent-elles ?) sont posées au juriste (`JURISTE.md`, partie 1, points 37 et 38).

@@ -3,8 +3,8 @@ type: concept
 tags: [garantie, caution, garant, visale, gli, caution-bancaire, bail]
 status: draft
 created: 2026-07-24
-updated: 2026-10-24
-sources: ["[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[Signature électronique]]", "log.md — entrées « decision » du 23/10/2026 (« Cautionnement et état des lieux signés dans Gerimmo ») et du 24/10/2026 (choix délégué n° 1), « deploy » du 24/10/2026 (PR #246)", "app/src/lib/textes-signature-actes.ts", "app/docs/signature-electronique-bail.md"]
+updated: 2026-11-23
+sources: ["[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[Signature électronique]]", "log.md — entrées « decision » du 23/10/2026 (« Cautionnement et état des lieux signés dans Gerimmo ») et du 24/10/2026 (choix délégué n° 1), « deploy » du 24/10/2026 (PR #246)", "app/src/lib/textes-signature-actes.ts", "app/docs/signature-electronique-bail.md", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
 ---
 
 # Garantie
@@ -104,6 +104,17 @@ bailleur reçoit notification de la résiliation. »
   vérification en ligne auprès d'Action Logement, pas de déclaration de sinistre GLI.
 - **Plusieurs garanties peuvent coexister** sur un même bail (RM-2.3.2).
 - **Visale peut se substituer au dépôt de garantie**, qui reste alors à zéro (RM-2.3.3).
+
+## État dans l'application au 23/11/2026 — bailleur en société (mission palier 1, lot 33)
+En préproduction, **non publié** ([[Mission palier 1 — audit du 22 novembre 2026]], point P0-09).
+- Sur la carte « Cautionnement » du bail, un rappel s'affiche : « Bailleur en société (SCI, autre personne morale) :
+  demander une caution n'est pas permis dans tous les cas. Vérifiez votre situation (ADIL, juriste) avant de faire
+  signer cet acte ; Gerimmo ne contrôle pas ce point. »
+- L'acte reste proposé : Gerimmo ne refuse pas de le préparer, faute d'avoir pu relire le texte qui fixe les cas.
+
+> [!warning] Cas où la caution est interdite : non tranché (23/11/2026)
+> L'agent n'a pas pu relire le texte. Dans quels cas précis Gerimmo doit-il refuser de préparer l'acte ? Question au
+> juriste (`JURISTE.md`, partie 1, point 39).
 
 ## Relations
 

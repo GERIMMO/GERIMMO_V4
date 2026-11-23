@@ -114,6 +114,14 @@ export function formaterDateFr(iso: string): string {
   return new Date(iso).toLocaleDateString("fr-FR", { ...options, timeZone: "Europe/Paris" });
 }
 
+// « septembre 2026 » pour un mois (AAAA-MM ou AAAA-MM-JJ). Né pour le rapport de gestion (catalogue-gestion), remonté ici en
+// phase 3 (lot 36) pour que le journal, les relances et les titres de classement écrivent le mois de la même façon.
+export function moisEnToutesLettres(mois: string): string {
+  const [a, m] = mois.slice(0, 7).split("-").map(Number);
+  if (!a || !m) return mois;
+  return new Date(Date.UTC(a, m - 1, 15)).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
+}
+
 export function eur(n: number): string {
   return `${n.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
 }

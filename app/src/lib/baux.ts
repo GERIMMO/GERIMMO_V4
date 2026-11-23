@@ -44,6 +44,11 @@ export const COULEURS_ETAT_EDL: Record<string, string> = {
   signe: "puce puce-loue",
   brouillon: "puce puce-prep",
 };
+// Les mots de la fiche du bail (« Signé », « En cours ») pour la liste de choix des documents (phase 3, S34).
+export const ETATS_EDL: Record<string, string> = {
+  signe: "Signé",
+  brouillon: "En cours",
+};
 
 // Statuts d'un appel de loyer (échéancier agence et espace locataire)
 export const STATUTS_APPEL_LOYER: Record<string, string> = {

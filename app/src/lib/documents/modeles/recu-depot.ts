@@ -26,6 +26,7 @@ import {
   liensLocataires,
 } from "./communs";
 import type { Assemblage } from "./index";
+import { libelleMode } from "./quittance";
 
 export type DonneesRecuDepot = {
   reference: string;
@@ -122,11 +123,14 @@ export async function assemblerRecuDepot(
   ]);
 
   const f = new Fusion();
+  // Phase 3 (lot 36) : le code du sélecteur « Payé par » (« virement », « cheque ») s'imprime avec le libellé de la quittance,
+  // initiale en capitale ; un moyen saisi en clair (« Virement bancaire ») reste tel quel.
+  const moyen = libelleMode(e.moyen);
   const document = construireRecuDepot({
     reference: referenceCourte("DEPOT", e.id),
     dateVersement: e.date_encaissement,
     montantVerse: Number(e.montant),
-    moyen: e.moyen,
+    moyen: moyen ? moyen.charAt(0).toLocaleUpperCase("fr-FR") + moyen.slice(1) : null,
     versant: e.versant_libelle ?? nomPersonne(versantPersonne),
     depotConvenu: ctx.bail.depot_garantie === null ? null : Number(ctx.bail.depot_garantie),
     totalEncaisse: (tous ?? []).reduce((s, x) => s + Number(x.montant), 0),

@@ -11,6 +11,7 @@ import {
   faitA,
   blocSignatureEmetteur,
   formaterDateFr,
+  moisEnToutesLettres,
   section,
   tableau,
   titre,
@@ -163,7 +164,8 @@ export async function assemblerProrata(
 
   return {
     document,
-    titreGed: `Décompte de prorata — ${appel.periode.slice(0, 7)}`,
+    // Phase 3 (C64) : le mois en toutes lettres, comme l'avis d'échéance et la quittance (« Décompte de prorata — octobre 2025 »).
+    titreGed: `Décompte de prorata — ${moisEnToutesLettres(appel.periode)}`,
     nomFichier: `prorata-${appel.periode.slice(0, 7)}`,
     liens: [
       { entite: "bail", entiteId: appel.bail_id },

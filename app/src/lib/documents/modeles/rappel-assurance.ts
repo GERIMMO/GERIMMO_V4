@@ -138,7 +138,8 @@ export async function assemblerRappelAssurance(
 
   return {
     document,
-    titreGed: "Demande d'attestation d'assurance",
+    // Phase 3 (C64) : deux demandes classées le même jour se distinguent par le locataire concerné (« Nom Prénom »).
+    titreGed: `Demande d'attestation d'assurance — ${nomPersonne(personne)}`,
     nomFichier: `rappel-assurance-${aujourdHui}`,
     liens: [
       { entite: "personne", entiteId: personne.id },

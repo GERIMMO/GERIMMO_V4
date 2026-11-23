@@ -1,7 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Fusion, assemblerPage, cadreSignature, blocSignatureEmetteur, cartouches, enTete, faitA, section, tableau, titre, eur, nombreFr, pointFinal } from "../gabarit";
 import { CATALOGUE_DOCUMENTS } from "../catalogue";
-import { signatureOrganisation, chargerContexteBail, expediteur, adresseLogement, nomsBailleurs, nomsLocataires, liensLocataires, referenceCourte } from "./communs";
+import { signatureOrganisation, chargerContexteBail, expediteur, adresseLogement, nomsBailleurs, nomsLocataires, liensLocataires, referenceCourte, libellePeriodeTerme } from "./communs";
+import { TYPES_DIAGNOSTIC } from "@/lib/parc";
+import { LIBELLE_ETAT_INVENTAIRE } from "@/lib/inventaire-meuble";
 import { modeSignatureDocument } from "@/lib/politique-signature";
 import type { Assemblage } from "./index";
 import { verifierCourrierDuBail } from "@/lib/rappels-loyers";
@@ -20,8 +22,9 @@ export async function lireLignes(requete: PromiseLike<{ data: unknown; error: un
   if (r.error) throw new RefusDocument(MESSAGE_CHARGEMENT_IMPOSSIBLE);
   return (Array.isArray(r.data) ? r.data : r.data ? [r.data] : []) as LigneDocument[];
 }
-export function lignesTableau(f: Fusion, lignes: LigneDocument[], colonnes: [string, string, "texte" | "date" | "montant"][]): string {
-  return tableau(colonnes.map(([libelle,, type]) => ({ libelle, droite: type === "montant" })), lignes.map(l => colonnes.map(([libelle, cle, type]) => type === "montant" ? f.montant(l[cle] as string | number | null, libelle) : type === "date" ? f.date(texte(l[cle]) || null, libelle) : f.champ(texte(l[cle]) || null, libelle))));
+// « lignes » : un texte de plusieurs lignes (description d'un devis) garde ses sauts de ligne, posés APRÈS l'échappement (phase 3, C78).
+export function lignesTableau(f: Fusion, lignes: LigneDocument[], colonnes: [string, string, "texte" | "lignes" | "date" | "montant"][]): string {
+  return tableau(colonnes.map(([libelle,, type]) => ({ libelle, droite: type === "montant" })), lignes.map(l => colonnes.map(([libelle, cle, type]) => type === "montant" ? f.montant(l[cle] as string | number | null, libelle) : type === "date" ? f.date(texte(l[cle]) || null, libelle) : type === "lignes" ? f.champ(texte(l[cle]).trim() || null, libelle).replace(/\r?\n/g, "<br>") : f.champ(texte(l[cle]) || null, libelle))));
 }
 // L'année par défaut d'un document est celle du jour de PARIS : l'année du serveur (UTC) est encore la précédente le
 // 1er janvier entre minuit et 1 h (audit du 23/10, TST-5).
@@ -48,15 +51,18 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
     if (code === "bordereau_ddt") {
       // DOC-01 : la validité d'un DPE d'avant le 01/07/2021 est plafonnée (décret n° 2020-1610).
       const lignes = (await lireLignes(supabase.from("diagnostics").select("type, date_realisation, date_expiration, diagnostiqueur, document_id, classe_dpe").eq("organization_id", orgId).or(`lot_id.eq.${ctx.lot.id},bien_id.eq.${ctx.bien.id}`).is("archived_at", null).order("type")))
-        .map((l): LigneDocument => ({ ...l, date_expiration: echeanceReglementaire(String(l.type), l.date_realisation as string | null, l.date_expiration as string | null) }));
-      contenu = `${section("Diagnostics recensés")}${lignesTableau(f,lignes,[["Diagnostic","type","texte"],["Réalisé le","date_realisation","date"],["Validité","date_expiration","date"],["Diagnostiqueur","diagnostiqueur","texte"]])}
+        // C02 : le libellé de l'écran (TYPES_DIAGNOSTIC), pas le code de la base ; un type inconnu s'imprime tel quel.
+        .map((l): LigneDocument => ({ ...l, libelle_type: TYPES_DIAGNOSTIC[String(l.type)]?.libelle ?? texte(l.type), date_expiration: echeanceReglementaire(String(l.type), l.date_realisation as string | null, l.date_expiration as string | null) }));
+      contenu = `${section("Diagnostics recensés")}${lignesTableau(f,lignes,[["Diagnostic","libelle_type","texte"],["Réalisé le","date_realisation","date"],["Validité","date_expiration","date"],["Diagnostiqueur","diagnostiqueur","texte"]])}
       <p>Pièces disponibles : ${lignes.filter(l=>l.document_id).length} sur ${lignes.length} diagnostics recensés.</p>
       ${lignes.some(l=>!l.document_id) ? `<p>${f.champ(null,"rapports de diagnostic à déposer avant remise du dossier")}</p>` : ""}
       <p>Ce bordereau décrit les pièces du dossier. Les rapports établis par les diagnostiqueurs doivent être joints ; il ne constitue pas un diagnostic du logement.</p>`;
       if (!lignes.length) f.champ(null,"diagnostics du logement et de l’immeuble");
     } else if (code === "inventaire_entree" || code === "inventaire_sortie") {
       if (!ctx.lot.meuble && ctx.bail.type !== "meuble") return { erreur: "L’inventaire du mobilier concerne un logement meublé." };
-      const lignes = await lireLignes(supabase.from("inventaire_lignes").select("piece, designation, quantite, etat, observation").eq("bail_id",bailId).eq("organization_id",orgId).order("ordre"));
+      // C03 : l'état s'imprime comme dans l'annexe d'inventaire du bail meublé (LIBELLE_ETAT_INVENTAIRE : « Usagé », pas « usage »).
+      const lignes = (await lireLignes(supabase.from("inventaire_lignes").select("piece, designation, quantite, etat, observation").eq("bail_id",bailId).eq("organization_id",orgId).order("ordre")))
+        .map((l): LigneDocument => ({ ...l, etat: l.etat == null ? null : LIBELLE_ETAT_INVENTAIRE[String(l.etat)] ?? texte(l.etat) }));
       const sortie = code === "inventaire_sortie";
       if (sortie && !["preavis","termine"].includes(ctx.bail.etat)) return { erreur: "Préparez l’inventaire de sortie après l’enregistrement du congé." };
       contenu = `${section(sortie ? "Mobilier de référence et constat de sortie" : "Mobilier mis à disposition")}
@@ -97,8 +103,12 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
         detteCentimes = Math.round(plan.dette_initiale * 100);
       }
       if (code !== "situation_dette" && detteCentimes <= 0) return { erreur: "Aucune dette échue n’est constatée : ce courrier n’a pas lieu d’être généré." };
+      // C67, C68 : la colonne « Période » écrit le mois (« novembre 2026 ») et signale un terme au prorata avec ses bornes réelles.
+      // L'indicateur vient de l'appel lui-même (appels_loyer.prorata), le calcul des termes ne le rendant pas.
+      const appelsAuProrata = new Set((await lireLignes(supabase.from("appels_loyer").select("id").eq("organization_id",orgId).eq("bail_id",bailId).eq("prorata",true))).map(a => texte(a.id)));
+      const avecPeriodeLisible = (lignes: LigneDocument[]) => lignes.map((l): LigneDocument => ({ ...l, periode: libellePeriodeTerme(texte(l.periode), appelsAuProrata.has(texte(l.appel_id)), ctx.bail.date_debut, ctx.bail.date_fin) }));
       contenu = `${section(code === "situation_dette" ? "Situation des échéances" : "Échéances restant dues")}
-        ${lignesTableau(f,code === "situation_dette" ? termes : echus,[["Période","periode","texte"],["Échéance","date_echeance","date"],["Appelé","montant_du","montant"],["Couvert","montant_couvert","montant"]])}
+        ${lignesTableau(f,avecPeriodeLisible(code === "situation_dette" ? termes : echus),[["Période","periode","texte"],["Échéance","date_echeance","date"],["Appelé","montant_du","montant"],["Couvert","montant_couvert","montant"]])}
         <p><strong>${plan ? `Dette arrêtée au ${f.date(plan.date_arrete)} : ${eur(plan.dette_initiale)}.` : `Solde échu au ${f.date(aujourdhui)} : ${eur(detteCentimes/100)}.`}</strong> Les échéances à venir sont exclues de ce solde.</p>`;
       if (code === "relance_simple") contenu += `<p>Sauf règlement intervenu depuis l’établissement de ce décompte, nous vous invitons à régulariser les sommes échues. En cas de difficulté ou de désaccord, contactez votre gestionnaire afin d’examiner votre situation.</p>`;
       if (code === "mise_en_demeure" && (!/^\d+$/.test(options.delai ?? "") || Number(options.delai) < 1 || Number(options.delai) > 90)) return { erreur: "Indiquez un délai de règlement de 1 à 90 jours." };

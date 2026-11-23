@@ -5,7 +5,7 @@
 import type { MentionsContrat } from "@/lib/mentions-contrat";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
-import { Fusion, type EnTeteExpediteur } from "../gabarit";
+import { Fusion, formaterDateFr, moisEnToutesLettres, type EnTeteExpediteur } from "../gabarit";
 
 // Réservé au recalcul de l’empreinte d’un circuit de signature déjà enregistré.
 export const presentationArchivee = Symbol("presentationArchivee");
@@ -392,4 +392,23 @@ export function bornesTerme(
     if (fin && fin < au && fin >= du) au = fin;
   }
   return { du, au };
+}
+
+// La période d'un terme dans un tableau d'échéances (phase 3, C67 et C68) : le mois en toutes lettres (« novembre 2026 »), pas
+// la date technique « 2026-11-01 ». Un terme au prorata le dit, avec les bornes que son montant rémunère (bornesTerme) :
+// « février 2025 — prorata du 15/02 au 28/02 ». Si les dates du bail ne bornent pas le mois, il le dit sans inventer de dates.
+export function libellePeriodeTerme(
+  periodeIso: string | null | undefined,
+  prorata: boolean,
+  dateDebut: string | null | undefined,
+  dateFin: string | null | undefined
+): string {
+  if (!periodeIso || !/^\d{4}-\d{2}/.test(periodeIso)) return periodeIso ?? "";
+  const mois = moisEnToutesLettres(periodeIso);
+  if (!prorata) return mois;
+  const entier = bornesTerme(periodeIso, false, null, null);
+  const { du, au } = bornesTerme(periodeIso, true, dateDebut, dateFin);
+  if (du === entier.du && au === entier.au) return `${mois} — au prorata`;
+  const jourMois = (iso: string) => formaterDateFr(iso).slice(0, 5);
+  return `${mois} — prorata du ${jourMois(du)} au ${jourMois(au)}`;
 }

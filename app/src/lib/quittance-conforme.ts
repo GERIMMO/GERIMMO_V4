@@ -15,7 +15,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Fusion, type DocumentAssemble } from "@/lib/documents/gabarit";
-import { construireQuittance, signataireQuittance, versementsDuTerme } from "@/lib/documents/modeles/quittance";
+import { construireQuittance, libelleMode, signataireQuittance, versementsDuTerme } from "@/lib/documents/modeles/quittance";
 import { mentionEtage } from "@/lib/documents/modeles/communs";
 import { refusDocumentIncomplet } from "@/lib/documents/completude";
 
@@ -74,21 +74,9 @@ export type DonneesQuittanceDocument = {
   vue_gestionnaire: boolean;
 };
 
-// Les codes enregistrés par « Payé par » (fiche du bail), en toutes lettres
-// sur le document : « par virement », pas « par virement » brut ni « par caf ».
-const MODES: Record<string, string> = {
-  virement: "virement",
-  cheque: "chèque",
-  prelevement: "prélèvement",
-  especes: "espèces",
-  caf: "versement CAF / APL",
-  autre: "autre moyen",
-};
-
-export function libelleMode(mode: string | null | undefined): string | null {
-  if (!mode) return null;
-  return MODES[mode] ?? mode;
-}
+// Les libellés des modes de règlement vivent avec le modèle de quittance (documents/modeles/quittance.ts) depuis la phase 3
+// (lot 36, C48) : la quittance du catalogue imprimait le code (« par cheque »). Ils restent exportés ici pour leurs lecteurs.
+export { libelleMode };
 
 function nomComplet(p: Nom): string {
   return [p.nom, p.prenom].filter(Boolean).join(" ").trim();

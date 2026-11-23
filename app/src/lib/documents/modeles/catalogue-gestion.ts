@@ -1,6 +1,10 @@
 import { detailRapportGestion } from "./detail-rapport-gestion";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { Fusion, assemblerPage, cadreSignature, cartouches, enTete, faitA, section, titre, eur, facultatif, echapper, nombreFr, pointFinal } from "../gabarit";
+import { Fusion, assemblerPage, cadreSignature, cartouches, enTete, faitA, section, titre, eur, facultatif, echapper, nombreFr, pointFinal, moisEnToutesLettres } from "../gabarit";
+import { ETATS_INCIDENT, IMPUTATIONS_INCIDENT, categorieIncident } from "@/lib/incidents";
+import { ETATS_MANDAT } from "@/lib/baux";
+import { NATURES_TRAVAUX, STATUTS_DEVIS, STATUTS_INTERVENTION } from "@/app/agence/[orgId]/artisans/referentiel";
+import { descriptionDevisLisible } from "@/lib/devis-structure";
 import { CATALOGUE_DOCUMENTS } from "../catalogue";
 import { lireLignes, lignesTableau, RefusDocument, texte, montant, anneeDocument, MESSAGE_CHARGEMENT_IMPOSSIBLE } from "./catalogue-bail";
 import { chargerContexteBail, nomsLocataires, adresseLogement, referenceCourte } from "./communs";
@@ -25,12 +29,17 @@ export function libelleSoldeRegularisation(ecart: number): string {
   return "Charges équilibrées : aucun solde";
 }
 
-// « septembre 2026 » pour le premier jour d'un mois (AAAA-MM-JJ).
-export function moisEnToutesLettres(mois: string): string {
-  const [a, m] = mois.slice(0, 7).split("-").map(Number);
-  if (!a || !m) return mois;
-  return new Date(Date.UTC(a, m - 1, 15)).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
-}
+// « septembre 2026 » : l'utilitaire vit dans le gabarit (phase 3, lot 36) ; il reste exporté ici pour ses lecteurs existants.
+export { moisEnToutesLettres };
+
+// Phase 3 (C81, C92) : les documents de gestion impriment les libellés que les écrans affichent, jamais les valeurs de la base
+// (« chauffage_panne », « planifiee », « proprietaire », « non_retenu », « depense »). Les tables viennent des écrans ; un code
+// inconnu (valeur ajoutée en base après coup) s'imprime tel quel plutôt que de disparaître.
+const libelleDe = (table: Record<string, string>, code: unknown): string => { const c = texte(code); return table[c] ?? c; };
+const libelleCategorie = (code: unknown): string => categorieIncident(texte(code))?.libelle ?? texte(code);
+// Le sens d'une écriture : aucune table commune n'existait (le formulaire de comptabilité écrit « Recette » / « Dépense » dans ses options).
+const SENS_ECRITURE: Record<string, string> = { recette: "Recette", depense: "Dépense" };
+const avecSensLisible = (ecritures: Record<string, unknown>[]) => ecritures.map(e => ({ ...e, sens: libelleDe(SENS_ECRITURE, e.sens) }));
 
 // Le récapitulatif du lot nu pour une année, lu comme l'écran « Préparer ma déclaration » : les montants de l'aide 2044 ne viennent que des
 // captures d'encaissement, des qualifications justifiées et de l'exercice confirmé du lot. Partagé par le document et par la proposition
@@ -184,14 +193,15 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       await lotConcerne(texte(incident.lot_id));
       // Les comptes rendus sont rattachés au lot. Leur visibilité suit la GED du lot.
       contenu = `${section(`Incident ${texte(incident.numero)}`)}<p>Signalement : ${f.champ(texte(incident.description),"description du signalement")}${pointFinal(texte(incident.description))}</p>
-        <p>Pièce : ${facultatif(texte(incident.piece))} ; catégorie : ${facultatif(texte(incident.categorie))} ; état : ${f.champ(texte(incident.etat),"état du dossier")}.</p>`;
+        <p>Pièce : ${facultatif(texte(incident.piece))} ; catégorie : ${facultatif(libelleCategorie(incident.categorie))} ; état : ${f.champ(libelleDe(ETATS_INCIDENT,incident.etat),"état du dossier")}.</p>`;
       if (intervention) {
         const artisans = await lireLignes(db.from("artisans").select("raison_sociale,siret,telephone,email").eq("id",intervention.artisan_id).limit(1));
         if (!artisans.length) throw new RefusDocument("Les coordonnées de l’artisan ne sont pas accessibles.");
         const a = artisans[0]; destinataire = f.champ(texte(a.raison_sociale),"entreprise intervenante");
-        contenu += `${section("Mission enregistrée")}<p>${f.champ(texte(intervention.nature_travaux),"nature des travaux")}${pointFinal(texte(intervention.nature_travaux))}</p>
+        const nature = libelleDe(NATURES_TRAVAUX, intervention.nature_travaux);
+        contenu += `${section("Mission enregistrée")}<p>${f.champ(nature,"nature des travaux")}${pointFinal(nature)}</p>
           <p>Artisan : ${destinataire} ; SIRET : ${facultatif(texte(a.siret))}. Contact : ${facultatif(texte(a.telephone))} · ${facultatif(texte(a.email))}.</p>
-          <p>État de la mission : ${f.champ(texte(intervention.statut),"statut de la mission")} ; confiée le ${f.date(texte(intervention.confiee_le))}.</p>`;
+          <p>État de la mission : ${f.champ(libelleDe(STATUTS_INTERVENTION,intervention.statut),"statut de la mission")} ; confiée le ${f.date(texte(intervention.confiee_le))}.</p>`;
         if (code === "ordre_intervention") {
           if (["annulee","refusee"].includes(texte(intervention.statut))) throw new RefusDocument("Cette mission a été annulée ou refusée. Préparez une nouvelle mission pour émettre un ordre d’intervention.");
           contenu += `<p>Créneau prévu : ${f.date(texte(intervention.debut_prevu)||null,"début prévu")} au ${f.date(texte(intervention.fin_prevue)||null,"fin prévue")}.</p>
@@ -209,10 +219,12 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
         if (!devis.length) throw new RefusDocument("Aucun devis n’a encore été déposé pour cet incident.");
         const artisans = await lireLignes(db.from("artisans").select("id,raison_sociale").in("id",[...new Set(devis.map(d=>texte(d.artisan_id)))]));
         const noms = new Map(artisans.map(a=>[a.id,a.raison_sociale]));
-        contenu += lignesTableau(f,devis.map(d=>({...d,entreprise:noms.get(d.artisan_id),montant:montant(d.montant_ttc_cents)/100})),[["Entreprise","entreprise","texte"],["Prestation","description","texte"],["TTC","montant","montant"],["Validité","valide_jusqu_au","date"],["Décision","statut","texte"]]);
+        // C78 : la description composée en SQL se lit en français (descriptionDevisLisible, comme l'écran), lignes conservées.
+        contenu += lignesTableau(f,devis.map(d=>({...d,entreprise:noms.get(d.artisan_id),description:descriptionDevisLisible(texte(d.description)),montant:montant(d.montant_ttc_cents)/100,statut:libelleDe(STATUTS_DEVIS,d.statut)})),[["Entreprise","entreprise","texte"],["Prestation","description","lignes"],["TTC","montant","montant"],["Validité","valide_jusqu_au","date"],["Décision","statut","texte"]]);
         contenu += "<p>Comparaison des offres déposées. Le choix reste soumis à la validation prévue dans le dossier ; ce document ne commande aucune prestation.</p>";
       } else {
-        contenu += `${section("Décision et clôture")}<p>Imputation enregistrée : ${facultatif(texte(incident.imputation))}${pointFinal(texte(incident.imputation))}</p>
+        const imputation = incident.imputation ? libelleDe(IMPUTATIONS_INCIDENT, incident.imputation) : "";
+        contenu += `${section("Décision et clôture")}<p>Imputation enregistrée : ${facultatif(imputation)}${pointFinal(imputation)}</p>
           <p>Justification : ${facultatif(texte(incident.imputation_justification))}${pointFinal(texte(incident.imputation_justification))}</p>
           <p>${incident.clos_le ? `Clôturé le ${f.date(texte(incident.clos_le))}. ${facultatif(texte(incident.cloture_commentaire))}` : "Le dossier est toujours ouvert."}</p>`;
       }
@@ -249,14 +261,14 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
         if (!e.contre_ecriture_de) throw new RefusDocument("Ce justificatif concerne une contre-écriture enregistrée.");
         const origine = await unique("ecritures",texte(e.contre_ecriture_de));
         if (e.lot_id) await lotConcerne(texte(e.lot_id));
-        contenu = `${section("Pièce d’origine et rectification")}${lignesTableau(f,[{...origine,role:"Origine"},{...e,role:"Rectification"}],[["Pièce","role","texte"],["Libellé","libelle","texte"],["Sens","sens","texte"],["Montant","montant","montant"],["Date","date_piece","date"]])}<p>Motif : ${f.champ(texte(e.motif)||null,"motif de la rectification")}${pointFinal(texte(e.motif))}</p>`;
+        contenu = `${section("Pièce d’origine et rectification")}${lignesTableau(f,avecSensLisible([{...origine,role:"Origine"},{...e,role:"Rectification"}]),[["Pièce","role","texte"],["Libellé","libelle","texte"],["Sens","sens","texte"],["Montant","montant","montant"],["Date","date_piece","date"]])}<p>Motif : ${f.champ(texte(e.motif)||null,"motif de la rectification")}${pointFinal(texte(e.motif))}</p>`;
       } else {
         if (cibleId !== orgId || !/^\d{4}-(0[1-9]|1[0-2])$/.test(options.mois ?? "")) throw new RefusDocument("Choisissez le mois du journal à exporter.");
         const debut = `${options.mois}-01`, finDate = new Date(`${debut}T12:00:00Z`); finDate.setUTCMonth(finDate.getUTCMonth()+1);
         const ecritures = await lireLignes(lire("ecritures").gte("date_imputation",debut).lt("date_imputation",finDate.toISOString().slice(0,10)).order("date_imputation"));
         const clotures = await lireLignes(lire("clotures_comptables").eq("mois",debut).limit(1));
-        contenu = `${section(`Journal ${options.mois}`)}<p>${clotures.length ? `Mois clôturé le ${f.date(texte(clotures[0].cloture_at))}` : "Mois ouvert — document provisoire"}.</p>
-          ${lignesTableau(f,ecritures,[["Date","date_imputation","date"],["Libellé","libelle","texte"],["Sens","sens","texte"],["Montant","montant","montant"]])}
+        contenu = `${section(`Journal — ${moisEnToutesLettres(options.mois)}`)}<p>${clotures.length ? `Mois clôturé le ${f.date(texte(clotures[0].cloture_at))}` : "Mois ouvert — document provisoire"}.</p>
+          ${lignesTableau(f,avecSensLisible(ecritures),[["Date","date_imputation","date"],["Libellé","libelle","texte"],["Sens","sens","texte"],["Montant","montant","montant"]])}
           <p>Total recettes : ${eur(ecritures.filter(e=>e.sens==="recette").reduce((s,e)=>s+montant(e.montant),0))} ; dépenses : ${eur(ecritures.filter(e=>e.sens==="depense").reduce((s,e)=>s+montant(e.montant),0))}.</p>`;
       }
     } else {
@@ -269,7 +281,7 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       const lignes = await lireLignes(lire("mandat_lignes").eq("mandat_id",mandat.id).order("date_debut"));
       const lots = lignes.length ? await lireLignes(lire("lots").in("id",[...new Set(lignes.map(l=>texte(l.lot_id)))])) : [];
       const noms = new Map(lots.map(l=>[l.id,l.nom]));
-      contenu = `${section("Mandat et périmètre")}<p>Mandat ${referenceCourte("MANDAT",texte(mandat.id))} ; état : ${f.champ(texte(mandat.etat),"état du mandat")}.</p>
+      contenu = `${section("Mandat et périmètre")}<p>Mandat ${referenceCourte("MANDAT",texte(mandat.id))} ; état : ${f.champ(libelleDe(ETATS_MANDAT,mandat.etat),"état du mandat")}.</p>
         ${lignesTableau(f,lignes.map(l=>({...l,lot:noms.get(l.lot_id),fin:l.date_fin||"En cours"})),[["Lot","lot","texte"],["Début","date_debut","date"],["Fin","fin","texte"],["Honoraires (%)","taux_honoraires","texte"]])}`;
       if (rapport) {
         if (code === "bordereau_versement" && (rapport.versement_montant == null || !rapport.versement_date)) throw new RefusDocument("Enregistrez le versement du rapport avant d’émettre son bordereau.");
@@ -285,7 +297,7 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
           const netActuel = mouvements.reduce((s,e)=>s+(e.sens==="recette"?1:-1)*Math.round(montant(e.montant)*100),0);
           if (Math.abs(netActuel-Math.round(montant(rapport.net)*100))>0) throw new RefusDocument("Le détail comptable ne correspond plus au net du rapport. Vérifiez le rapport avant de générer son PDF.");
           contenu += await detailRapportGestion(db, orgId, f, lots, lignes, mouvements, debut, fin);
-          contenu += mouvements.length ? lignesTableau(f,mouvements,[["Date","date_imputation","date"],["Libellé","libelle","texte"],["Sens","sens","texte"],["Montant","montant","montant"]]) : "<p>Aucune opération comptable enregistrée sur ce mois pour les lots du mandat.</p>";
+          contenu += mouvements.length ? lignesTableau(f,avecSensLisible(mouvements),[["Date","date_imputation","date"],["Libellé","libelle","texte"],["Sens","sens","texte"],["Montant","montant","montant"]]) : "<p>Aucune opération comptable enregistrée sur ce mois pour les lots du mandat.</p>";
         }
         contenu += "<p>Ce document restitue les opérations enregistrées. Il ne constitue pas un ordre de virement.</p>";
       } else if (code === "recap_fiscal_agence") {
@@ -293,7 +305,7 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
         const ids = [...new Set(lignes.map(l=>texte(l.lot_id)))];
         const brutes = ids.length ? await lireLignes(lire("ecritures").in("lot_id",ids).gte("date_piece",`${annee}-01-01`).lt("date_piece",`${annee+1}-01-01`).order("date_piece")) : [];
         const mouvements = brutes.filter(e=>lignes.some(l=>l.lot_id===e.lot_id && texte(l.date_debut)<=texte(e.date_piece) && (!l.date_fin||texte(l.date_fin)>=texte(e.date_piece))));
-        contenu += `${section(`Mouvements de gestion ${annee}`)}${lignesTableau(f,mouvements,[["Date","date_piece","date"],["Nature","categorie","texte"],["Libellé","libelle","texte"],["Sens","sens","texte"],["Montant","montant","montant"]])}
+        contenu += `${section(`Mouvements de gestion ${annee}`)}${lignesTableau(f,avecSensLisible(mouvements),[["Date","date_piece","date"],["Nature","categorie","texte"],["Libellé","libelle","texte"],["Sens","sens","texte"],["Montant","montant","montant"]])}
           <p>Relevé annuel du mandat, à rapprocher des pièces et à transmettre au comptable. Les transferts de fonds et dépôts ne constituent pas automatiquement des recettes fiscales. Ce relevé ne calcule pas un revenu imposable.</p>`;
       } else if (code === "resiliation_mandat") {
         contenu += `${section("Résiliation proposée")}<p>Date d’effet : ${f.date(options.date_effet||null,"date d’effet de la résiliation")} ; motif : ${champ("motif","motif et fondement de la résiliation")}${pointFinal(options.motif)}</p><p>Remise des fonds, pièces et dossiers : ${champ("remise","modalités de remise du dossier et du solde")}${pointFinal(options.remise)}</p>
@@ -303,8 +315,10 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       }
     }
     const reference = referenceCourte(code.toUpperCase().replaceAll("_","-"),cibleId);
+    // C83 : un document interne sans destinataire (comparatif, récapitulatif, journal, récapitulatif fiscal) n'imprime plus la case
+    // « Destinataire » : le mot de repli « Organisation » ne désignait personne.
     const corps = `${enTete(f,exp,{libelle:"Dossier",reference,etabliLe:aujourdhui})}${titre(meta.nom,"Document de gestion",[])}
-      ${cartouches([["Dossier",reference],["Destinataire",destinataire||"Organisation"],...(logement ? [["Logement",logement] as [string,string]] : [])])}${contenu}${faitA(f,exp.ville,aujourdhui)}
+      ${cartouches([["Dossier",reference],...(destinataire ? [["Destinataire",destinataire] as [string,string]] : []),...(logement ? [["Logement",logement] as [string,string]] : [])])}${contenu}${faitA(f,exp.ville,aujourdhui)}
       ${signatures?`<div class="signatures">${cadreSignature("Bailleur / mandataire",echapper(exp.nom))}${cadreSignature("Partie concernée",destinataire)}</div>`:""}`;
     return {document:assemblerPage({f,titreDocument:meta.nom,nomPied:meta.nom,reference,corps:`<style>.bloc-titre{padding:10pt 0;margin-bottom:8pt}h1{font-size:19pt;letter-spacing:.2em}h2{margin:14pt 0 8pt}.cartouches{margin:10pt 0}p{margin:4pt 0}</style>${corps}`}),titreGed:meta.nom,nomFichier:`${code}-${cibleId.slice(0,8)}`,liens};
   } catch(e) { if(e instanceof RefusDocument) return {erreur:e.message}; throw e; }

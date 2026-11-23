@@ -10,6 +10,7 @@ import {
   eur,
   faitA,
   blocSignatureEmetteur,
+  formaterDateFr,
   section,
   tableau,
   titre,
@@ -189,7 +190,8 @@ export async function assemblerRevisionIrl(
 
   return {
     document,
-    titreGed: `Révision IRL — effet au ${r.date_effet}`,
+    // Phase 3 (C64) : le titre de classement porte la date au format français, comme le document.
+    titreGed: `Révision IRL — effet au ${formaterDateFr(r.date_effet)}`,
     nomFichier: `revision-irl-${r.date_effet}`,
     liens: [
       { entite: "bail", entiteId: r.bail_id },

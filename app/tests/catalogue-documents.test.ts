@@ -24,10 +24,12 @@ function fixture():Record<string,Row[]> {return {
   regularisations_charges:[{id:"reg",bail_id:"bail",annee:2025,provisions:1000,charges_reelles:1200,ecart:200,note:"Eau : relevé individuel",justificatif_document:"doc",date_emission:"2026-01-01"}],
   etats_des_lieux:[{id:"edl",bail_id:"bail",type:"sortie",etat:"signe",date_edl:"2026-04-01"}],edl_cles:[{libelle:"Porte",nombre:2,reference:"A1"}],
   incidents:[{id:"incident",numero:42,lot_id:"lot",description:"Fuite du robinet",piece:"Cuisine",categorie:"plomberie",etat:"clos",clos_le:"2026-01-03",cloture_commentaire:"Réparé"}],
-  incident_interventions:[{id:"intervention",incident_id:"incident",artisan_id:"artisan",nature_travaux:"Changer le robinet",statut:"terminee",confiee_le:"2026-01-01",debut_prevu:"2026-01-02",fin_prevue:"2026-01-02"}],
+  // Reprise du lot 42 (C80) : la mission porte son devis, comme toute mission créée par l'application (retenir_devis) ; l'ordre
+  // d'une mission sans devis est désormais refusé (il ne commandait rien).
+  incident_interventions:[{id:"intervention",incident_id:"incident",artisan_id:"artisan",devis_id:"devis",nature_travaux:"Changer le robinet",statut:"terminee",confiee_le:"2026-01-01",debut_prevu:"2026-01-02",fin_prevue:"2026-01-02"}],
   artisans:[{id:"artisan",raison_sociale:"Atelier Plomberie",siret:"12345678901234",telephone:"0600000000"}],
   intervention_comptes_rendus:[{travaux_realises:"Robinet remplacé",cause_reelle:"Usure",montant_final_cents:12345,nouvelle_intervention_necessaire:false,created_at:"2026-01-03"}],
-  incident_devis:[{artisan_id:"artisan",description:"Changer le robinet",montant_ttc_cents:12345,valide_jusqu_au:"2026-01-31",statut:"retenu"}],
+  incident_devis:[{id:"devis",artisan_id:"artisan",description:"Changer le robinet",montant_ttc_cents:12345,depose_le:"2025-12-30",valide_jusqu_au:"2026-01-31",statut:"retenu"}],
   ecritures:[{id:"ecriture",lot_id:"lot",bail_id:"bail",contre_ecriture_de:"origine",categorie:"travaux",sens:"recette",montant:100,date_piece:"2026-01-01",date_imputation:"2026-01-01",libelle:"Annulation réparation",motif:"Doublon"}],clotures_comptables:[{mois:"2026-01-01",cloture_at:"2026-02-01"}],
   mandats:[{id:"mandat",person_id:"p",etat:"actif",preavis_mois:3}],mandat_lignes:[{lot_id:"lot",date_debut:"2025-01-01",date_fin:null,taux_honoraires:7}],
   rapports_gestion:[{id:"rapport",mandat_id:"mandat",mois:"2026-01-01",statut:"envoye",net:100,versement_montant:100,versement_date:"2026-02-01"}],

@@ -58,8 +58,9 @@ export function filtrerCibles<T>(q:T, modele:EntreeCatalogue):T {
   // Inventaires du mobilier : celui de sortie, une fois le congé enregistré. Le logement meublé (case du lot OU bail de type
   // meublé, comme l'assembleur) se contrôle après lecture : un seul filtre ne peut pas porter sur le bail et sur son lot.
   if(id==="inventaire_sortie") r=r.in("etat",["preavis","termine"]);
-  // Ordre d'intervention : pas pour une mission annulée ou refusée (l'assembleur la refuse).
-  if(id==="ordre_intervention") r=r.not("statut","in","(annulee,refusee)");
+  // Ordre d'intervention : pas pour une mission annulée ou refusée, ni pour une mission sans devis (reprise du lot 42, C80 :
+  // l'ordre ne commanderait rien) ; l'assembleur les refuse.
+  if(id==="ordre_intervention") r=r.not("statut","in","(annulee,refusee)").not("devis_id","is",null);
   if(id==="prorata") r=r.eq("prorata",true);
   if(id==="rappel_assurance") r=r.eq("type","attestation_assurance").is("purged_at",null);
   if(["attestation_loyer","attestation_caf"].includes(id)) r=r.in("etat",["actif","preavis"]);

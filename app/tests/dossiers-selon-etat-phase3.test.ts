@@ -324,6 +324,9 @@ describe("C82 — incident des parties communes (sans lot)", () => {
   it("ordre d'intervention : produit pour les parties communes", async () => {
     const t = tables();
     (t.incident_interventions[0] as Ligne).statut = "planifiee";
+    // Reprise du lot 42 (C80) : la mission porte son devis (retenir_devis) ; l'ordre d'une mission sans devis est refusé.
+    Object.assign(t.incident_devis[0], { id: "dev", depose_le: "2026-11-05" });
+    (t.incident_interventions[0] as Ligne).devis_id = "dev";
     const r = await assemblerComplementGestion("ordre_intervention", baseFiltrante(t).db, "org", "int", { acces: "Clé chez le gardien" });
     expect(texteDe(succes(r).document.html)).toContain(lieu);
   });
@@ -463,12 +466,14 @@ describe("reprise du lot 38 — la liste ne propose plus ce que l'assembleur ref
       await expect(verifierCibleCatalogue(baseFiltrante({ baux }).db, "org", modele(id), "sans-actif")).rejects.toBeInstanceOf(RefusDocument);
     }
   });
-  it("incidents : le comparatif demande un devis, le compte rendu celui de l'artisan, l'ordre une mission ni annulée ni refusée", async () => {
+  it("incidents : le comparatif demande un devis, le compte rendu celui de l'artisan, l'ordre une mission ni annulée ni refusée, rattachée à un devis", async () => {
     const incidents = [{ id: "avec-devis", organization_id: "org", incident_devis: [{ id: "d1" }] }, { id: "sans-devis", organization_id: "org", incident_devis: [] }];
     expect(await ids("comparatif_devis", { incidents })).toEqual(["avec-devis"]);
     expect(colonnesCibles(modele("comparatif_devis"), "id")).toBe("id,incident_devis!incident_devis_incident_meme_org_fk!inner(id)");
-    const mission = (id: string, statut: string, crs: unknown[]) => ({ id, organization_id: "org", statut, intervention_comptes_rendus: crs });
-    const missions = [mission("terminee-cr", "terminee", [{ id: "cr" }]), mission("planifiee", "planifiee", []), mission("annulee", "annulee", []), mission("refusee", "refusee", [])];
+    // Reprise du lot 42 (C80) : une mission porte son devis (retenir_devis) ; celle qui n'en a pas (données reprises) n'est plus
+    // proposée pour l'ordre, que l'assembleur refuse désormais (il ne commandait rien).
+    const mission = (id: string, statut: string, crs: unknown[], devis_id: string | null = "dev") => ({ id, organization_id: "org", statut, devis_id, intervention_comptes_rendus: crs });
+    const missions = [mission("terminee-cr", "terminee", [{ id: "cr" }]), mission("planifiee", "planifiee", []), mission("annulee", "annulee", []), mission("refusee", "refusee", []), mission("sans-devis", "planifiee", [], null)];
     expect(await ids("compte_rendu_intervention", { incident_interventions: missions })).toEqual(["terminee-cr"]);
     expect(await ids("ordre_intervention", { incident_interventions: missions })).toEqual(["terminee-cr", "planifiee"]);
   });

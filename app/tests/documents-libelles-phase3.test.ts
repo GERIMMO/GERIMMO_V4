@@ -178,11 +178,13 @@ function incidents(): Record<string, Ligne[]> {
     lots: [{ id: "lot", nom: "Studio meublé n° 7", bien_id: "bien", meuble: true }],
     biens: [{ id: "bien", address_line1: "5 quai des Essais", postal_code: "69007", city: "Lyon" }],
     incidents: [{ id: "incident", numero: "INC-2026-0002", lot_id: "lot", description: "Le radiateur ne chauffe plus.", piece: "Séjour", categorie: "chauffage_panne", etat: "en_cours", imputation: "proprietaire", imputation_justification: "Usure.", clos_le: null }],
-    incident_interventions: [{ id: "intervention", incident_id: "incident", artisan_id: "artisan", nature_travaux: "entretien_courant", statut: "planifiee", confiee_le: "2026-11-22", debut_prevu: "2026-11-26", fin_prevue: "2026-11-26" }],
+    // Reprise du lot 42 (C80) : la mission porte son devis, comme toute mission créée par l'application (retenir_devis) ;
+    // l'ordre d'une mission sans devis est désormais refusé (il ne commandait rien).
+    incident_interventions: [{ id: "intervention", incident_id: "incident", artisan_id: "artisan", devis_id: "devis", nature_travaux: "entretien_courant", statut: "planifiee", confiee_le: "2026-11-22", debut_prevu: "2026-11-26", fin_prevue: "2026-11-26" }],
     artisans: [{ id: "artisan", raison_sociale: "Plomberie Fictive", siret: "12345678901234", telephone: "0600000000", email: "a@x.fr" }],
     intervention_comptes_rendus: [{ travaux_realises: "Thermostat remplacé.", cause_reelle: "Usure.", montant_final_cents: 16170, nouvelle_intervention_necessaire: false, created_at: "2026-11-26" }],
     incident_devis: [
-      { artisan_id: "artisan", statut: "retenu", montant_ttc_cents: 18700, valide_jusqu_au: "2026-12-14",
+      { id: "devis", artisan_id: "artisan", statut: "retenu", montant_ttc_cents: 18700, depose_le: "2026-11-21T17:05:00+00:00", valide_jusqu_au: "2026-12-14",
         description: "Diagnostic : Joint du siphon fendu.\n\nTravaux proposés : Remplacement du siphon.\nSiphon PVC : 1 × 45.0000000000000000 € HT — TVA 10.0000000000000000 % — 49.5000000000000000 € TTC\nMain-d'œuvre (1 h 30) : 1.5 × 60.0000000000000000 € HT — TVA 10.0000000000000000 % — 99.0000000000000000 € TTC" },
       { artisan_id: "artisan", statut: "non_retenu", montant_ttc_cents: 26180, valide_jusqu_au: "2026-12-15", description: "Remplacement : 2 × 60.0000000000000000 € HT" },
     ],

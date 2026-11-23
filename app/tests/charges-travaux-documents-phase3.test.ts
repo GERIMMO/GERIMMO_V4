@@ -17,6 +17,15 @@
  *  - C95 : un récapitulatif fiscal de l'année en cours sans mention provisoire ;
  *  - C96 : le récapitulatif meublé annonçait une ventilation loyers/provisions qu'il n'affiche pas.
  * Chaque cas échouait avant le correctif. La base simulée applique ses filtres (fixtures/base-simulee).
+ *
+ * Reprise du lot 42 (constats des relecteurs) :
+ *  - C77 : la phrase « un mois avant » restait imprimée sans étalement, sur un courrier daté du jour où la régularisation est
+ *    enregistrée ; elle exige désormais que la régularisation ET sa première mensualité tombent au moins un mois après l'envoi ;
+ *  - C80 : la référence « DEV-… » de l'ordre n'était pas celle du PDF du devis (l'ordre désigne le devis par son auteur, sa
+ *    version, ses dates et son montant) ; l'ordre d'une mission sans devis ne commandait rien (il est refusé, et la mission n'est
+ *    plus proposée) ; la clause qui borne les travaux partait seule en page 2 (elle ouvre la section) ;
+ *  - C86 : « le choix reste à faire » sur un incident clos sans devis retenu, ou dont tous les devis ont été écartés ;
+ *  - C89 : « à fixer » et « pas encore déposé » pour une mission annulée ou refusée.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { contexte } from "./fixtures/contexte-document";
@@ -86,14 +95,28 @@ describe("C77 — « un mois avant » n'est dit que si les dates du dossier le p
     expect(unMoisApres("2028-01-31")).toBe("2028-02-29");
     expect(unMoisApres("2026-12-31")).toBe("2027-01-31");
   });
-  it("delaiDecompteRespecte : sans étalement, oui ; première mensualité moins d'un mois après l'envoi, non", () => {
-    expect(delaiDecompteRespecte(null, "2026-11-23")).toBe(true);
-    expect(delaiDecompteRespecte([], "2026-11-23")).toBe(true);
-    expect(delaiDecompteRespecte(etalement("2026-12-01"), "2026-11-23")).toBe(false);
-    expect(delaiDecompteRespecte(etalement("2027-01-01"), "2026-11-23")).toBe(true);
+  // Reprise du lot 42 (C77) : « sans étalement, oui » était faux. Le courrier d'une régularisation enregistrée le jour même de
+  // l'envoi affirmait le délai d'un mois que ses propres dates démentent. La régularisation (date d'émission) ET, s'il y en a, la
+  // première mensualité doivent tomber au moins un mois après l'envoi ; une date d'émission absente ne permet pas de le dire.
+  it("delaiDecompteRespecte : la régularisation et sa première mensualité au moins un mois après l'envoi, sinon non", () => {
+    // Régularisation enregistrée le jour de l'envoi (ce que fait regulariser_charges) : jamais, avec ou sans étalement.
+    expect(delaiDecompteRespecte(null, "2026-11-23", "2026-11-23")).toBe(false);
+    expect(delaiDecompteRespecte([], "2026-11-23", "2026-11-23")).toBe(false);
+    expect(delaiDecompteRespecte(etalement("2026-12-01"), "2026-11-23", "2026-11-23")).toBe(false);
+    expect(delaiDecompteRespecte(etalement("2027-01-01"), "2026-11-23", "2026-11-23")).toBe(false);
+    // Date d'émission absente : on ne peut pas le dire.
+    expect(delaiDecompteRespecte(null, "2026-11-23", null)).toBe(false);
+    expect(delaiDecompteRespecte(null, "2026-11-23", "")).toBe(false);
+    // Régularisation un mois après l'envoi (fin de mois ramenée au dernier jour, comme la base) : oui, sans étalement.
+    expect(delaiDecompteRespecte(null, "2026-11-23", "2026-12-23")).toBe(true);
+    expect(delaiDecompteRespecte(null, "2026-11-23", "2026-12-22")).toBe(false);
+    expect(delaiDecompteRespecte(null, "2026-01-31", "2026-02-28")).toBe(true);
+    // Avec étalement, la première mensualité aussi.
+    expect(delaiDecompteRespecte(etalement("2027-01-01"), "2026-11-23", "2026-12-23")).toBe(true);
+    expect(delaiDecompteRespecte(etalement("2026-12-01"), "2026-11-01", "2026-12-01")).toBe(true);
+    expect(delaiDecompteRespecte(etalement("2026-12-01"), "2026-11-23", "2026-12-23")).toBe(false);
     // Le même dossier, généré plus tard, ne permet plus de le dire.
-    expect(delaiDecompteRespecte(etalement("2027-01-01"), "2026-12-15")).toBe(false);
-    expect(delaiDecompteRespecte(etalement("2026-12-01"), "2026-11-01")).toBe(true);
+    expect(delaiDecompteRespecte(etalement("2027-01-01"), "2026-12-15", "2026-12-23")).toBe(false);
   });
   it.each(["regularisation_charges", "decompte_charges", "consultation_charges"] as const)("%s : première mensualité le 01/12 pour un envoi le 23/11 → la phrase n'est pas imprimée", async (code) => {
     const texte = texteDe(succes(await assemblerComplementGestion(code, baseSimulee(regularisation()).client, "org", "reg", optionsCharges)).document.html);
@@ -101,13 +124,26 @@ describe("C77 — « un mois avant » n'est dit que si les dates du dossier le p
     expect(texte).not.toContain("un mois avant la régularisation");
     expect(texte).toContain("Les justificatifs restent à disposition pendant six mois à compter de l’envoi du décompte.");
   });
-  it("première mensualité au 01/01 (règle de la migration) : la phrase est imprimée", async () => {
+  // Reprise du lot 42 (C77) : ces deux cas affirmaient que la phrase est imprimée. La régularisation y est enregistrée le
+  // 23/11/2026, jour du courrier (« Date du dossier : 23/11/2026 », « Fait à Lyon, le 23/11/2026 ») : le document se contredisait
+  // et tranchait un point ouvert chez le juriste (régularisation validée le jour de l'envoi du décompte).
+  it("première mensualité au 01/01 (règle de la migration), régularisation enregistrée le jour du courrier : la phrase n'est pas imprimée", async () => {
     const texte = texteDe(succes(await assemblerComplementGestion("regularisation_charges", baseSimulee(regularisation({ etalement_12_mois: etalement("2027-01-01") })).client, "org", "reg", optionsCharges)).document.html);
-    expect(texte).toContain(UN_MOIS);
+    expect(texte).toContain("01/01/2027");
+    expect(texte).toContain("Date du dossier : 23/11/2026.");
+    expect(texte).not.toContain("un mois avant la régularisation");
   });
-  it("sans étalement (trop-perçu) : la phrase reste", async () => {
-    const texte = texteDe(succes(await assemblerComplementGestion("regularisation_charges", baseSimulee(regularisation({ ecart: 64.6, tardive: false, etalement_12_mois: null })).client, "org", "reg", optionsCharges)).document.html);
-    expect(texte).toContain(UN_MOIS);
+  it.each(["regularisation_charges", "decompte_charges", "consultation_charges"] as const)("%s sans étalement (trop-perçu), régularisation enregistrée le jour du courrier : la phrase n'est pas imprimée", async (code) => {
+    const texte = texteDe(succes(await assemblerComplementGestion(code, baseSimulee(regularisation({ ecart: 64.6, tardive: false, etalement_12_mois: null })).client, "org", "reg", optionsCharges)).document.html);
+    expect(texte).toContain("Date du dossier : 23/11/2026.");
+    expect(texte).not.toContain("un mois avant la régularisation");
+    expect(texte).toContain("Les justificatifs restent à disposition pendant six mois à compter de l’envoi du décompte.");
+  });
+  it("régularisation datée au moins un mois après le courrier : la phrase est imprimée", async () => {
+    const sansEtalement = texteDe(succes(await assemblerComplementGestion("regularisation_charges", baseSimulee(regularisation({ ecart: 64.6, tardive: false, etalement_12_mois: null, date_emission: "2026-12-23" })).client, "org", "reg", optionsCharges)).document.html);
+    expect(sansEtalement).toContain(UN_MOIS);
+    const etalee = texteDe(succes(await assemblerComplementGestion("regularisation_charges", baseSimulee(regularisation({ etalement_12_mois: etalement("2027-01-01"), date_emission: "2026-12-23" })).client, "org", "reg", optionsCharges)).document.html);
+    expect(etalee).toContain(UN_MOIS);
   });
 });
 
@@ -192,24 +228,43 @@ describe("C79 — le créneau de l'ordre d'intervention, à l'heure de Paris", (
 });
 
 describe("C80 — l'ordre d'intervention dit les travaux commandés", () => {
-  it("devis retenu : référence du PDF du devis, dates, montant TTC et travaux en clair", async () => {
+  // Reprise du lot 42 (C80) : l'ordre imprimait « Devis retenu DEV-7FFD8CF9 », l'identifiant du devis déposé. Le PDF du devis
+  // validé par l'artisan porte une autre référence (celle de sa préparation, tirée à part) : l'ordre citait une référence absente
+  // du devis. Le devis est désigné par son auteur, sa version, ses dates et son montant, que les deux documents partagent.
+  it("devis retenu : auteur, dates, montant TTC et travaux en clair, sans référence « DEV-… » étrangère au PDF du devis", async () => {
     const r = succes(await ordre());
     const texte = texteDe(r.document.html);
     expect(texte).toContain("Travaux commandés");
-    expect(texte).toContain("Devis retenu DEV-7FFD8CF9, déposé le 21/11/2026 et retenu le 22/11/2026 ; montant TTC : 161,70 €.");
+    expect(texte).toContain("Devis retenu de Plomberie Fictive, déposé le 21/11/2026 et retenu le 22/11/2026 ; montant TTC : 161,70 €.");
+    expect(texte).not.toMatch(/DEV-/);
     expect(texte).toContain("Travaux proposés : Diagnostic du radiateur et remplacement du thermostat intégré.");
     expect(texte).toContain("Thermostat de radiateur : 1 × 52,00 € HT — TVA 10,00 % — 57,20 € TTC");
     expect(texte).not.toMatch(/\d\.\d{4,}/);
-    // Le périmètre est posé avant la phrase qui interdit d'en sortir.
-    expect(texte.indexOf("Devis retenu")).toBeLessThan(texte.indexOf("Aucun travail supplémentaire"));
     expect(r.document.manquants).toEqual([]);
   });
-  it("mission sans devis : l'ordre le dit", async () => {
+  // Reprise du lot 42 : la clause « Aucun travail supplémentaire… » venait après le détail du devis et partait seule en page 2
+  // avec « Fait à … » (deux pages de l'ordre sur le banc). Elle ouvre la section, juste sous son titre, et annonce le détail
+  // (classe « annonce » : elle reste avec ce qui suit). L'ancienne attente (« Devis retenu » avant la clause) est remplacée.
+  it("la clause qui borne les travaux ouvre la section « Travaux commandés », avant le détail du devis", async () => {
+    const html = succes(await ordre()).document.html;
+    expect(html).toContain("<h2>Travaux commandés</h2><p class=\"annonce\">Seuls les travaux du devis ci-dessous sont commandés. Aucun travail supplémentaire n’est autorisé par ce document sans accord préalable du donneur d’ordre.</p><p>Devis retenu de ");
+    const texte = texteDe(html);
+    expect(texte.indexOf("Aucun travail supplémentaire")).toBeLessThan(texte.indexOf("Devis retenu"));
+    expect(texte.indexOf("Durée estimée : Une heure")).toBeLessThan(texte.indexOf("Fait à"));
+  });
+  it("version suivante d'un devis, ou devis d'une autre entreprise : la version et l'auteur sont dits", async () => {
+    const t = incidents();
+    Object.assign(t.incident_devis[2], { version: 2, artisan_id: "art2" });
+    const texte = texteDe(succes(await ordre(t)).document.html);
+    expect(texte).toContain("Devis retenu de Dépannage Essai (version 2), déposé le 21/11/2026 et retenu le 22/11/2026 ; montant TTC : 161,70 €.");
+  });
+  // Reprise du lot 42 (C80) : l'ordre d'une mission sans devis disait « Aucun devis n'est rattaché à cette mission », puis interdisait
+  // tout « travail supplémentaire » : il ne commandait rien et le périmètre restait indéfini. L'application rattache toujours la mission
+  // au devis retenu (retenir_devis est la seule à en créer) ; seules des données reprises en sont dépourvues. L'ordre est refusé.
+  it("mission sans devis : l'ordre est refusé, avec la raison", async () => {
     const t = incidents();
     t.incident_interventions[1].devis_id = null;
-    const texte = texteDe(succes(await ordre(t)).document.html);
-    expect(texte).toContain("Aucun devis n’est rattaché à cette mission.");
-    expect(texte).not.toContain("Devis retenu");
+    expect(await ordre(t)).toEqual({ erreur: "Cette mission n’est rattachée à aucun devis : l’ordre d’intervention ne peut pas dire quels travaux sont commandés." });
   });
 });
 
@@ -219,10 +274,27 @@ describe("C86 — la phrase du comparatif suit l'état du dossier", () => {
     expect(texte).toContain("Comparaison des offres déposées. Le devis de Plomberie Fictive (187,00 € TTC) a été retenu le 17/10/2026 ; ce document ne commande aucune prestation.");
     expect(texte).not.toContain("soumis à la validation");
   });
-  it("aucun devis retenu : « le choix reste à faire »", async () => {
+  it("aucun devis retenu, un devis reçu sur un dossier ouvert : « le choix reste à faire »", async () => {
     const texte = texteDe(succes(await assemblerComplementGestion("comparatif_devis", baseSimulee(incidents()).client, "org", "incC")).document.html);
     expect(texte).toContain("Comparaison des offres déposées. Le choix reste à faire ; ce document ne commande aucune prestation.");
     expect(texte).not.toContain("a été retenu");
+  });
+  // Reprise du lot 42 (C86) : un incident clos dont les devis sont non retenus ou refusés (transmis au syndic, réparé autrement)
+  // disait encore que « le choix reste à faire ».
+  it("incident clos sans devis retenu : le comparatif le dit, pas de choix à faire", async () => {
+    const t = incidents();
+    t.incident_devis[1].statut = "refuse";
+    const texte = texteDe(succes(await assemblerComplementGestion("comparatif_devis", baseSimulee(t).client, "org", "incA")).document.html);
+    expect(texte).toContain("état : Clos.");
+    expect(texte).toContain("Comparaison des offres déposées. Aucun devis n’a été retenu ; le dossier est clos ; ce document ne commande aucune prestation.");
+    expect(texte).not.toContain("Le choix reste à faire");
+  });
+  it("dossier ouvert dont tous les devis ont été écartés : aucun choix annoncé", async () => {
+    const t = incidents();
+    t.incident_devis[3].statut = "non_retenu";
+    const texte = texteDe(succes(await assemblerComplementGestion("comparatif_devis", baseSimulee(t).client, "org", "incC")).document.html);
+    expect(texte).toContain("Comparaison des offres déposées. Aucun devis n’est retenu ; ce document ne commande aucune prestation.");
+    expect(texte).not.toContain("Le choix reste à faire");
   });
 });
 
@@ -259,6 +331,26 @@ describe("C89 — le récapitulatif d'incident : signalement, urgence et suivi",
     const texte = texteDe(succes(await recap("incC")).document.html);
     expect(texte).toContain("Devis déposés : 1 ; aucun n’est retenu.");
     expect(texte).toContain("Aucune mission confiée pour cet incident.");
+  });
+  // Reprise du lot 42 (C89) : une mission annulée ou refusée était dite « à fixer » et son compte rendu « pas encore déposé » :
+  // le document annonçait un rendez-vous et un compte rendu qui ne viendront pas.
+  it("mission annulée ou refusée : ni rendez-vous « à fixer », ni compte rendu « pas encore déposé »", async () => {
+    for (const statut of ["annulee", "refusee"]) {
+      const t = incidents();
+      t.incident_interventions.push({ ...o, id: "annulee-0000", incident_id: "incC", devis_id: "devisC-0000", artisan_id: "art2", nature_travaux: "entretien_courant", statut, confiee_le: "2026-11-22T12:30:00+00:00", debut_prevu: null, fin_prevue: null, terminee_le: null });
+      const html = succes(await assemblerComplementGestion("recap_incident", baseSimulee(t).client, "org", "incC")).document.html;
+      const ligne = lignesDe(html).find((l) => l.startsWith("Dépannage Essai|"));
+      expect(ligne).toBe(`Dépannage Essai|22/11/2026|—|—|${statut === "annulee" ? "Annulée" : "Refusée"}|—`);
+      expect(texteDe(html)).not.toMatch(/à fixer|pas encore déposé/);
+    }
+  });
+  it("mission acceptée sans rendez-vous : « à fixer » ; mission terminée sans compte rendu : « pas encore déposé »", async () => {
+    const t = incidents();
+    t.incident_interventions.push({ ...o, id: "acceptee-0000", incident_id: "incC", devis_id: "devisC-0000", artisan_id: "art2", nature_travaux: "entretien_courant", statut: "acceptee", confiee_le: "2026-11-22T12:30:00+00:00", debut_prevu: null, fin_prevue: null, terminee_le: null });
+    expect(lignesDe(succes(await assemblerComplementGestion("recap_incident", baseSimulee(t).client, "org", "incC")).document.html)).toContain("Dépannage Essai|22/11/2026|à fixer|—|Acceptée|pas encore déposé");
+    const u = incidents();
+    u.intervention_comptes_rendus = [];
+    expect(lignesDe(succes(await assemblerComplementGestion("recap_incident", baseSimulee(u).client, "org", "incA")).document.html)).toContain("Plomberie Fictive|17/10/2026|21/10/2026 de 9 h à 11 h|21/10/2026|Terminée|pas encore déposé");
   });
   it("le suivi n'est imprimé que par le récapitulatif", async () => {
     expect(texteDe(succes(await ordre()).document.html)).not.toContain("Signalé le");

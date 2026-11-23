@@ -106,7 +106,10 @@ describe("ordre d'intervention : le donneur d'ordre, jamais le nom de l'espace",
     lots: [{ id: "lot", organization_id: "org", nom: "T2", bien_id: "bien", etage: null }],
     biens: [{ id: "bien", organization_id: "org", address_line1: "8 avenue des Essais", postal_code: "69003", city: "Lyon" }],
     incidents: [{ id: "incident", organization_id: "org", numero: "INC-2026-0004", lot_id: "lot", description: "Fuite sous l'évier.", piece: "Cuisine", categorie: "plomberie_joint", etat: "en_cours" }],
-    incident_interventions: [{ id: "int", organization_id: "org", incident_id: "incident", artisan_id: "art", nature_travaux: "entretien_courant", statut: "planifiee", confiee_le: "2026-11-22", debut_prevu: "2026-11-26", fin_prevue: "2026-11-27" }],
+    // Reprise du lot 42 (C80) : la mission porte son devis, comme toute mission créée par l'application (retenir_devis) ;
+    // l'ordre d'une mission sans devis est désormais refusé (il ne commandait rien).
+    incident_interventions: [{ id: "int", organization_id: "org", incident_id: "incident", artisan_id: "art", devis_id: "dev", nature_travaux: "entretien_courant", statut: "planifiee", confiee_le: "2026-11-22", debut_prevu: "2026-11-26", fin_prevue: "2026-11-27" }],
+    incident_devis: [{ id: "dev", organization_id: "org", incident_id: "incident", artisan_id: "art", statut: "retenu", montant_ttc_cents: 18700, depose_le: "2026-11-21T17:05:00+00:00", description: "Remplacement du joint." }],
     artisans: [{ id: "art", raison_sociale: "Plomberie Fictive", siret: "12345678901234", telephone: "0600000000", email: "a@x.fr" }],
     intervention_comptes_rendus: [{ organization_id: "org", intervention_id: "int", travaux_realises: "Joint remplacé.", cause_reelle: "Usure.", montant_final_cents: 18700, nouvelle_intervention_necessaire: false, created_at: "2026-11-26" }],
     detentions: [{ lot_id: "lot", date_fin: null, quote_part: 100, person: bailleuse() }],

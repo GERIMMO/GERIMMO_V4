@@ -42,15 +42,20 @@ export function unMoisApres(jour: string): string {
 }
 
 // Phase 3, lot 42 (C77) : le courrier de régularisation annonçait le décompte « communiqué un mois avant la régularisation »
-// alors que la première mensualité d'un étalement tombait le 1er du mois suivant, parfois huit jours après. La phrase n'est
-// plus imprimée que si les dates du dossier la permettent : sans étalement, ou première mensualité au moins un mois après
-// l'envoi du document (la borne de `preparer_echeancier_charges`, que `regulariser_charges` applique aussi depuis la migration
-// 20261123150000). Une régularisation enregistrée avant garde ses mensualités (émise, elle ne se modifie pas) : son courrier
-// ne prétend plus au délai.
-export function delaiDecompteRespecte(etalement: unknown, envoi: string): boolean {
+// alors que la première mensualité d'un étalement tombait le 1er du mois suivant, parfois huit jours après.
+// Reprise du lot 42 (C77) : la phrase restait imprimée sans étalement, sur un courrier daté du jour même où la régularisation
+// est enregistrée (« Date du dossier : 23/11/2026 », « Fait à Lyon, le 23/11/2026 ») : le document affirmait un délai que ses
+// propres dates démentent, et tranchait un point ouvert chez le juriste (régularisation validée le jour de l'envoi du décompte).
+// La phrase n'est plus imprimée que si les dates du dossier la permettent TOUTES : la régularisation enregistrée (date
+// d'émission) et, en cas d'étalement, sa première mensualité tombent au moins un mois après l'envoi du document. Une date
+// d'émission absente ne permet pas de le dire. `regulariser_charges` enregistre la régularisation au jour même : son courrier
+// ne prétend donc plus au délai, quelle que soit la lecture du mot « régularisation » (enregistrement ou règlement).
+export function delaiDecompteRespecte(etalement: unknown, envoi: string, emission: unknown): boolean {
+  const borne = unMoisApres(envoi), emise = texte(emission).slice(0, 10);
+  if (!emise || emise < borne) return false;
   if (!Array.isArray(etalement) || !etalement.length) return true;
   const premiere = texte((etalement[0] as Record<string, unknown> | null)?.echeance).slice(0, 10);
-  return premiere !== "" && premiere >= unMoisApres(envoi);
+  return premiere !== "" && premiere >= borne;
 }
 
 // Phase 3, lot 42 (C79) : un rendez-vous est un INSTANT. Il s'imprime au jour et à l'heure de Paris, comme sur les écrans
@@ -245,7 +250,7 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
         <p>${f.champ(detailSaisi||texte(r.note)||null,"détail des dépenses par nature et clé de répartition")}</p>
         <p>Justificatif : ${r.justificatif_document ? "pièce enregistrée dans le dossier, à joindre au courrier" : f.champ(null,"décompte justificatif à déposer et joindre")}.</p>`;
       contenu += `${section("Consultation des justificatifs")}<p>Modalités : ${champ("consultation","lieu ou accès, horaires et contact pour consulter les justificatifs")}${pointFinal(options.consultation)}</p>
-        <p>${delaiDecompteRespecte(r.etalement_12_mois, dateDocument) ? "Le décompte par nature de charges et le mode de répartition sont communiqués un mois avant la régularisation. " : ""}Les justificatifs restent à disposition pendant six mois à compter de l’envoi du décompte.</p>
+        <p>${delaiDecompteRespecte(r.etalement_12_mois, dateDocument, r.date_emission) ?"Le décompte par nature de charges et le mode de répartition sont communiqués un mois avant la régularisation. " : ""}Les justificatifs restent à disposition pendant six mois à compter de l’envoi du décompte.</p>
         <p>Date du dossier : ${f.date(texte(r.date_emission))}. Ce PDF ne déclenche aucun prélèvement ni envoi.</p>`;
     } else if (code === "restitution_cles") {
       const edl = await unique("etats_des_lieux",cibleId);
@@ -300,17 +305,30 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
           if (["annulee","refusee"].includes(texte(intervention.statut))) throw new RefusDocument("Cette mission a été annulée ou refusée. Préparez une nouvelle mission pour émettre un ordre d’intervention.");
           // C79 : le créneau garde ses heures (heure de Paris). Début ou fin manquant : le document reste à compléter, comme avant.
           const debut = texte(intervention.debut_prevu), fin = texte(intervention.fin_prevue);
-          // C80 : l'ordre dit quels travaux il commande, ceux du devis auquel la mission est rattachée (référence du PDF du devis,
-          // travaux en clair, montant TTC). « Aucun travail supplémentaire » n'avait sinon aucun périmètre.
+          // C80 : l'ordre dit quels travaux il commande, ceux du devis auquel la mission est rattachée (travaux en clair, montant
+          // TTC). « Aucun travail supplémentaire » n'avait sinon aucun périmètre.
+          // Reprise du lot 42 (C80) :
+          //  - une mission sans devis ne donne plus d'ordre : il ne commandait rien (« Aucun devis n'est rattaché ») et interdisait
+          //    pourtant tout « travail supplémentaire ». L'application rattache toujours la mission au devis retenu (retenir_devis
+          //    est la seule à en créer) ; seules des données reprises en sont dépourvues. La liste du catalogue ne les propose plus ;
+          //  - la référence « DEV-… » imprimée n'était pas celle du PDF du devis : le PDF validé par l'artisan porte la référence de
+          //    sa préparation (artisan_devis_preparations.reference_id, que le donneur d'ordre ne peut pas lire), la mission
+          //    l'identifiant du devis déposé, tiré à part. Le devis est désigné par ce que les deux documents partagent : son auteur,
+          //    sa version, ses dates et son montant, puis ses travaux ;
+          //  - la phrase qui borne les travaux ouvre la section, avant leur détail : elle partait seule en page 2, loin de la liste
+          //    qu'elle encadre (la section la suit, coupée au besoin entre deux pages).
           const devisId = texte(intervention.devis_id);
-          const devis = devisId ? await unique("incident_devis", devisId) : null;
-          const travaux = devis
-            ? `<p>${devis.statut === "retenu" ? "Devis retenu" : `Devis rattaché (${facultatif(libelleDe(STATUTS_DEVIS,devis.statut))})`} ${referenceCourte("DEV",devisId)}, déposé le ${f.date(texte(devis.depose_le))}${devis.retenu_le ? ` et retenu le ${f.date(texte(devis.retenu_le))}` : ""} ; montant TTC : ${eur(montant(devis.montant_ttc_cents)/100)}.</p>
-              <p>${f.champ(descriptionDevisLisible(texte(devis.description)).trim()||null,"travaux du devis retenu").replace(/\r?\n/g,"<br>")}</p>`
-            : "<p>Aucun devis n’est rattaché à cette mission.</p>";
+          if (!devisId) throw new RefusDocument("Cette mission n’est rattachée à aucun devis : l’ordre d’intervention ne peut pas dire quels travaux sont commandés.");
+          const devis = await unique("incident_devis", devisId);
+          const auteurDevis = texte(devis.artisan_id) === texte(intervention.artisan_id)
+            ? texte(a.raison_sociale)
+            : texte((await lireLignes(db.from("artisans").select("raison_sociale").eq("id",devis.artisan_id).limit(1)))[0]?.raison_sociale);
+          const version = Number(devis.version) > 1 ? ` (version ${Number(devis.version)})` : "";
+          const travaux = `<p>${devis.statut === "retenu" ? "Devis retenu" : `Devis rattaché (${facultatif(libelleDe(STATUTS_DEVIS,devis.statut))})`} de ${facultatif(auteurDevis)}${version}, déposé le ${f.date(texte(devis.depose_le))}${devis.retenu_le ? ` et retenu le ${f.date(texte(devis.retenu_le))}` : ""} ; montant TTC : ${eur(montant(devis.montant_ttc_cents)/100)}.</p>
+              <p>${f.champ(descriptionDevisLisible(texte(devis.description)).trim()||null,"travaux du devis retenu").replace(/\r?\n/g,"<br>")}</p>`;
           contenu += `<p>Créneau prévu : ${debut && fin ? creneauParis(debut, fin) : `${f.date(debut||null,"début prévu")} au ${f.date(fin||null,"fin prévue")}`}.</p>
             <p>Accès et personne à contacter : ${champ("acces","modalités d’accès et contact sur place")}${pointFinal(options.acces)}</p>
-            ${section("Travaux commandés")}${travaux}<p>Aucun travail supplémentaire n’est autorisé par ce document sans accord préalable du donneur d’ordre.</p>`;
+            ${section("Travaux commandés")}<p class="annonce">Seuls les travaux du devis ci-dessous sont commandés. Aucun travail supplémentaire n’est autorisé par ce document sans accord préalable du donneur d’ordre.</p>${travaux}`;
         } else {
           const crs = await lireLignes(lire("intervention_comptes_rendus").eq("intervention_id",cibleId).order("created_at",{ascending:false}));
           if (!crs.length) throw new RefusDocument("L’artisan doit déposer son compte rendu avant la génération du document.");
@@ -331,10 +349,16 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
         // C78 : la description composée en SQL se lit en français (descriptionDevisLisible, comme l'écran), lignes conservées.
         contenu += lignesTableau(f,devis.map(d=>({...d,entreprise:noms.get(d.artisan_id),description:descriptionDevisLisible(texte(d.description)),montant:montant(d.montant_ttc_cents)/100,statut:libelleDe(STATUTS_DEVIS,d.statut)})),[["Entreprise","entreprise","texte"],["Prestation","description","lignes"],["TTC","montant","montant"],["Validité","valide_jusqu_au","date"],["Décision","statut","texte"]]);
         // C86 : la phrase suit l'état du dossier. Elle disait le choix « soumis à la validation » quand un devis était déjà retenu.
+        // Reprise du lot 42 (C86) : « le choix reste à faire » n'est dit que s'il reste un devis reçu, sans décision, sur un dossier
+        // ouvert. Un incident clos sans devis retenu (transmis au syndic, réparé autrement) ou dont tous les devis ont été écartés
+        // (non retenus, refusés, expirés) le disait aussi.
         const retenu = devis.find(d=>d.statut==="retenu");
+        const clos = texte(incident.etat) === "clos";
         contenu += `<p>Comparaison des offres déposées. ${retenu
           ? `Le devis de ${facultatif(texte(noms.get(retenu.artisan_id)))} (${eur(montant(retenu.montant_ttc_cents)/100)} TTC) a été retenu${retenu.retenu_le ? ` le ${f.date(texte(retenu.retenu_le))}` : ""}`
-          : "Le choix reste à faire"} ; ce document ne commande aucune prestation.</p>`;
+          : clos ? "Aucun devis n’a été retenu ; le dossier est clos"
+          : devis.some(d=>d.statut==="depose") ? "Le choix reste à faire"
+          : "Aucun devis n’est retenu"} ; ce document ne commande aucune prestation.</p>`;
       } else {
         // C89 : le récapitulatif dit aussi le suivi tel que le dossier l'enregistre : devis, missions (entreprise, dates, état) et
         // montant déclaré au compte rendu. Il n'en donnait que le signalement et la clôture.
@@ -352,13 +376,18 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
         const phraseDevis = !devis.length ? "Aucun devis déposé." : `Devis déposés : ${devis.length} ; ${retenu
           ? `devis retenu : ${nomArtisan(retenu.artisan_id)}, ${eur(montant(retenu.montant_ttc_cents)/100)} TTC${retenu.retenu_le ? `, le ${f.date(texte(retenu.retenu_le))}` : ""}`
           : "aucun n’est retenu"}.`;
+        // Reprise du lot 42 (C89) : « à fixer » et « pas encore déposé » annoncent un rendez-vous et un compte rendu à venir. Ils ne
+        // s'impriment que pour une mission qui peut encore en avoir : rendez-vous à fixer tant que la mission n'est ni commencée
+        // ni terminée, compte rendu attendu tant qu'elle n'est ni annulée ni refusée. Sinon « — ».
         const lignesMissions = missions.map(m => {
           const cr = comptesRendus.find(c=>texte(c.intervention_id)===texte(m.id));
+          const statut = texte(m.statut), close = ["annulee","refusee"].includes(statut);
           return [nomArtisan(m.artisan_id), f.date(texte(m.confiee_le),"date de la mission"),
-            texte(m.debut_prevu) ? creneauParis(texte(m.debut_prevu), texte(m.fin_prevue)||null).replace(/^le /,"") : "à fixer",
+            texte(m.debut_prevu) ? creneauParis(texte(m.debut_prevu), texte(m.fin_prevue)||null).replace(/^le /,"")
+              : ["proposee","acceptee","planifiee"].includes(statut) ? "à fixer" : "—",
             texte(m.terminee_le) ? formaterDateFr(texte(m.terminee_le)) : "—",
             facultatif(libelleDe(STATUTS_INTERVENTION_DOCUMENT,m.statut)),
-            !cr ? "pas encore déposé" : cr.montant_final_cents == null ? "non déclaré" : eur(montant(cr.montant_final_cents)/100)];
+            cr ? (cr.montant_final_cents == null ? "non déclaré" : eur(montant(cr.montant_final_cents)/100)) : close ? "—" : "pas encore déposé"];
         });
         contenu += `${section("Suivi des travaux")}<p>${phraseDevis}</p>${lignesMissions.length
           ? tableau([{libelle:"Entreprise"},{libelle:"Confiée le"},{libelle:"Rendez-vous"},{libelle:"Terminée le"},{libelle:"État"},{libelle:"Compte rendu",droite:true}],lignesMissions)

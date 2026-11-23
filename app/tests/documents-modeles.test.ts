@@ -173,6 +173,7 @@ describe("Modèles 14/15 — états des lieux", () => {
       logementAdresse: "12 rue des Lilas, 69003 Lyon",
       referenceBail: "BAIL-0F3A21BC",
       exp: { nom: "Parc de Claire Moreau", adresse: "8 avenue des Tilleuls, 69006 Lyon", email: "c@x.fr", telephone: null, ville: "Lyon" },
+      typeOrganisation: "proprietaire_direct",
       f,
       ...sur,
     };
@@ -315,6 +316,7 @@ describe.skipIf(!CHROME_LOCAL)("Rendu PDF des modèles (Chrome local)", () => {
       logementAdresse: "12 rue des Lilas, 69003 Lyon",
       referenceBail: "BAIL-0F3A21BC",
       exp: { nom: "Parc de Claire Moreau", adresse: "8 avenue des Tilleuls, 69006 Lyon", email: "c@x.fr", telephone: null, ville: "Lyon" },
+      typeOrganisation: "proprietaire_direct",
       f: new Fusion(),
     });
     const pdfEdl = await rendrePdf(edl);

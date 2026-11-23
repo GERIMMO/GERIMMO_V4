@@ -31,6 +31,7 @@ function avis(jour?: string): string {
     referenceBail: "BAIL-1",
     dateBail: "2026-09-15",
     exp,
+    typeOrganisation: "agence",
     f: new Fusion(),
     ...(jour ? { jour } : {}),
   }).html;

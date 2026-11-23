@@ -139,6 +139,7 @@ describe.each(INSTANTS)("documents de contrat produits à %s : « Établi le » 
       logementAdresse: "1 rue A",
       referenceBail: "BAIL-1",
       canalReponse: null,
+      espaceLocataire: false,
       exp,
       f: new Fusion(),
     });
@@ -167,6 +168,7 @@ describe.each(INSTANTS)("documents de contrat produits à %s : « Établi le » 
       logementAdresse: "1 rue A",
       referenceBail: "BAIL-1",
       exp,
+      typeOrganisation: "proprietaire_direct",
       f: new Fusion(),
     });
     expect(datesDuDocument(construireEdl(donnees(null)).html)).toEqual([attendu, attendu]);

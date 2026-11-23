@@ -117,13 +117,16 @@ export type ContexteBail = {
   garants: (PersonneDocument & { garant_de: string | null })[];
 };
 
+// Les colonnes d'une personne que lisent les documents (bailleurs, occupants, garants).
+const CHAMPS_PERSONNE_DOCUMENT =
+  "id, nom, prenom, email, telephone, date_naissance, commune_naissance, address_line1, postal_code, city, qualite, siren";
+
 export async function chargerContexteBail(
   supabase: SupabaseClient,
   orgId: string,
   bailId: string
 ): Promise<ContexteBail | { erreur: string }> {
-  const CHAMPS_PERSONNE =
-    "id, nom, prenom, email, telephone, date_naissance, commune_naissance, address_line1, postal_code, city, qualite, siren";
+  const CHAMPS_PERSONNE = CHAMPS_PERSONNE_DOCUMENT;
 
   const [{ data: organisation, error: erreurOrganisation }, { data: bail, error: erreurBail }] = await Promise.all([
     supabase
@@ -307,6 +310,41 @@ export function expediteur(ctx: {
       ville:ctx.bailleurs[0]?.city??null};
   }
   return {nom:ctx.organisation.name,adresse:adresseOrganisation(ctx.organisation),email:ctx.organisation.email_contact,telephone:ctx.organisation.telephone,ville:ctx.organisation.city};
+}
+
+// Les détenteurs actuels d'un lot (détention sans date de fin), lus comme dans le contexte d'un bail. Pour un document
+// rattaché au lot sans passer par un bail (rappel d'assurance, compte rendu d'intervention) : ce sont eux que `expediteur`
+// retient hors espace d'agence. `null` si la lecture échoue : l'appelant refuse alors le document plutôt que de
+// revenir au nom de l'espace.
+export async function chargerDetenteursLot(
+  supabase: SupabaseClient,
+  lotId: string
+): Promise<ContexteBail["bailleurs"] | null> {
+  const { data, error } = await supabase
+    .from("detentions")
+    .select(`quote_part, person:persons!detentions_person_id_fkey(${CHAMPS_PERSONNE_DOCUMENT})`)
+    .eq("lot_id", lotId)
+    .is("date_fin", null);
+  if (error) return null;
+  return ((data ?? []) as { quote_part: unknown; person: UnOuPlusieurs<PersonneDocument> }[])
+    .map((d) => {
+      const p = premier(d.person);
+      return p ? { ...p, quote_part: Number(d.quote_part) } : null;
+    })
+    .filter((p): p is PersonneDocument & { quote_part: number } => p !== null);
+}
+
+// Phase 3 (C41, C52, C70, C71) : l'interlocuteur vers lequel un document renvoie le locataire. Il n'y a de « gestionnaire »
+// que dans un espace d'agence ; ailleurs le bailleur gère lui-même, et c'est lui que le locataire contacte. Le modèle garde
+// son article (« votre gestionnaire », « avec le bailleur »).
+export function interlocuteurLocataire(typeOrganisation: string | null | undefined): "gestionnaire" | "bailleur" {
+  return typeOrganisation === "agence" ? "gestionnaire" : "bailleur";
+}
+
+// Phase 3 (C16, C24) : le cadre où signe le bailleur d'un document du bail. « ou son mandataire » seulement dans un espace
+// d'agence ; un propriétaire qui gère lui-même n'a pas de mandataire.
+export function libelleSignataireBailleur(typeOrganisation: string | null | undefined): string {
+  return typeOrganisation === "agence" ? "Le bailleur ou son mandataire" : "Le bailleur";
 }
 
 // Le nom du bailleur tel que les épreuves l'affichent : les détenteurs joints

@@ -30,6 +30,7 @@ import {
   liensLocataires,
   libelleCharges,
   bornesTerme,
+  interlocuteurLocataire,
 } from "./communs";
 import type { Assemblage } from "./index";
 
@@ -54,6 +55,8 @@ export type DonneesAvisEcheance = {
   referenceBail: string;
   dateBail: string | null;
   exp: ReturnType<typeof expediteur>;
+  /** Le type de l'espace qui émet l'avis : il n'y a de « gestionnaire » à contacter que dans une agence (C52). */
+  typeOrganisation: string | null;
   // Signature préenregistrée de l'émetteur (data-URI) — null : zone vierge
   signatureImg?: string | null;
   /** Jour d'établissement de l'avis (« AAAA-MM-JJ »). Par défaut : le jour de Paris, celui que la base donne à l'appel. */
@@ -107,7 +110,7 @@ export function construireAvisEcheance(d: DonneesAvisEcheance) {
     <p>Lieu de paiement prévu au bail : ${f.champ(d.lieuPaiement ?? null, "domicile du bailleur, virement…")}${pointFinal(d.lieuPaiement)}</p>
     <p>Coordonnées bancaires : ${facultatif(d.iban ?? null)}.</p>
     <div class="mentions">
-      <p>En cas de difficulté de paiement, rapprochez-vous sans attendre de votre gestionnaire :
+      <p>En cas de difficulté de paiement, rapprochez-vous sans attendre de votre ${interlocuteurLocataire(d.typeOrganisation)} :
       des solutions amiables existent (délais, aides au logement).</p>
     </div>
     ${faitA(f, d.exp.ville, jour)}
@@ -164,6 +167,7 @@ export async function assemblerAvisEcheance(
     referenceBail: referenceCourte("BAIL", ctx.bail.id),
     dateBail: ctx.bail.date_debut,
     exp: expediteur(ctx),
+    typeOrganisation: ctx.organisation.type,
     signatureImg: await signatureOrganisation(supabase, orgId),
     f,
   });

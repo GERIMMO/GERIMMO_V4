@@ -29,6 +29,7 @@ import {
   referenceCourte,
   type ContexteBail,
   liensLocataires,
+  libelleSignataireBailleur,
 } from "./communs";
 import type { Assemblage } from "./index";
 import { RAPPEL_COMPLEMENT_EDL_ENTREE_DOCUMENT } from "@/lib/textes-signature-actes";
@@ -80,6 +81,8 @@ export type DonneesEdl = {
   logementAdresse: string;
   referenceBail: string;
   exp: ReturnType<typeof expediteur>;
+  /** Le type de l'espace : « Le bailleur ou son mandataire » ne signe que dans une agence (phase 3, C16). */
+  typeOrganisation: string | null;
   f: Fusion;
 };
 
@@ -277,7 +280,7 @@ export function construireEdl(d: DonneesEdl) {
     }</p>
     ${faitA(f, d.exp.ville, d.signeLe ?? d.dateEdl ?? new Date().toISOString(), ", en autant d'exemplaires que de parties.")}
     <div class="signatures">
-      ${cadreSignature("Le bailleur ou son mandataire", d.bailleurNom)}
+      ${cadreSignature(libelleSignataireBailleur(d.typeOrganisation), d.bailleurNom)}
       ${cadreSignature("Le locataire", d.locatairesNoms)}
     </div>
   `;
@@ -412,6 +415,7 @@ export async function assemblerEdl(
     logementAdresse: adresseLogement(ctx.lot, ctx.bien),
     referenceBail: referenceCourte("BAIL", ctx.bail.id),
     exp: expediteur(ctx),
+    typeOrganisation: ctx.organisation.type,
     f,
   });
 

@@ -34,7 +34,7 @@ function donnees(sur: Partial<DonneesEdl> = {}): DonneesEdl {
     compteurs: [{ type: "Électricité", numero: "E-1", releve: "100" }], cles: [{ libelle: "Clé", nombre: 2, reference: null }],
     comparatif: [], retenues: [], bailleurNom: "Claire Moreau", locatairesNoms: "Julie Leblanc",
     logementAdresse: "12 rue des Lilas, 69003 Lyon", referenceBail: "BAIL-1",
-    exp: { nom: "Parc", adresse: "8 avenue des Tilleuls, 69006 Lyon", email: "c@example.invalid", telephone: null, ville: "Lyon" }, f,
+    exp: { nom: "Parc", adresse: "8 avenue des Tilleuls, 69006 Lyon", email: "c@example.invalid", telephone: null, ville: "Lyon" }, typeOrganisation: "proprietaire_direct", f,
     ...sur,
   };
 }

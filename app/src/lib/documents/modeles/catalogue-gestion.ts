@@ -1,13 +1,13 @@
 import { detailRapportGestion } from "./detail-rapport-gestion";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { Fusion, assemblerPage, cadreSignature, cartouches, enTete, faitA, section, titre, eur, facultatif, echapper, nombreFr, pointFinal, moisEnToutesLettres } from "../gabarit";
+import { Fusion, assemblerPage, cadreSignature, cartouches, enTete, faitA, section, titre, eur, facultatif, nombreFr, pointFinal, moisEnToutesLettres } from "../gabarit";
 import { ETATS_INCIDENT, IMPUTATIONS_INCIDENT, categorieIncident } from "@/lib/incidents";
 import { ETATS_MANDAT } from "@/lib/baux";
 import { NATURES_TRAVAUX, STATUTS_DEVIS, STATUTS_INTERVENTION } from "@/app/agence/[orgId]/artisans/referentiel";
 import { descriptionDevisLisible } from "@/lib/devis-structure";
 import { CATALOGUE_DOCUMENTS } from "../catalogue";
 import { lireLignes, lignesTableau, RefusDocument, texte, montant, anneeDocument, MESSAGE_CHARGEMENT_IMPOSSIBLE } from "./catalogue-bail";
-import { chargerContexteBail, nomsLocataires, adresseLogement, referenceCourte } from "./communs";
+import { chargerContexteBail, chargerDetenteursLot, expediteur, libelleSignataireBailleur, nomsLocataires, adresseLogement, referenceCourte } from "./communs";
 import { LIBELLE_DEPENSES_EXCLUES, LIBELLE_RECETTES_EXCLUES, phrasePerimetreFiscal, phrasePiecesAQualifier, recapitulatifFiscal, type ComposantesFiscales, type EcritureFiscale, type ExerciceFiscalLot, type QualificationFiscale, type RecapitulatifFiscal } from "@/lib/fiscal";
 import type { Assemblage, LienDocument } from "./index";
 import { aujourdhuiParis } from "@/lib/ged";
@@ -131,7 +131,12 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
     const orgs = await lireLignes(db.from("organizations").select("*").eq("id",orgId).limit(1));
     if (!orgs.length) throw new RefusDocument("Organisation inaccessible.");
     const org = orgs[0], f = new Fusion(), meta = CATALOGUE_DOCUMENTS.find(m=>m.id===code)!;
-    const exp = { nom:texte(org.name), adresse:[org.address_line1,org.postal_code,org.city].filter(Boolean).join(" "), email:texte(org.email_contact), telephone:texte(org.telephone), ville:texte(org.city) };
+    // L'organisation telle que l'en-tête la lit (une valeur absente reste absente).
+    const organisation = { name:texte(org.name), type:texte(org.type), address_line1:texte(org.address_line1)||null, postal_code:texte(org.postal_code)||null, city:texte(org.city)||null, telephone:texte(org.telephone)||null, email_contact:texte(org.email_contact)||null };
+    // Phase 3 (C36, C76) : un document de bail est émis par les détenteurs du bail hors espace d'agence (expediteur, comme les
+    // autres documents du bail) ; les autres documents de gestion, par l'organisation. L'en-tête construit ici à partir du nom
+    // de l'espace faisait du nom technique du parc le bailleur et le signataire du bordereau des clés et des courriers de charges.
+    let exp = expediteur({ organisation });
     // Le jour à Paris, pas en UTC : entre 0 h et 2 h, toISOString donnait la veille.
     const aujourdhui = aujourdhuiParis();
     const champ = (cle:string,libelle:string) => f.champ(options[cle]?.trim()||null,libelle);
@@ -146,7 +151,7 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
     const bailConcerne = async (id:string) => {
       const ctx = await chargerContexteBail(db,orgId,id);
       if ("erreur" in ctx) throw new RefusDocument(ctx.erreur);
-      destinataire = nomsLocataires(f,ctx.locataires); logement = adresseLogement(ctx.lot,ctx.bien);
+      destinataire = nomsLocataires(f,ctx.locataires); logement = adresseLogement(ctx.lot,ctx.bien); exp = expediteur(ctx);
       liens.push({entite:"bail",entiteId:id},{entite:"lot",entiteId:ctx.lot.id});
       return ctx;
     };
@@ -197,10 +202,19 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       if (intervention) {
         const artisans = await lireLignes(db.from("artisans").select("raison_sociale,siret,telephone,email").eq("id",intervention.artisan_id).limit(1));
         if (!artisans.length) throw new RefusDocument("Les coordonnées de l’artisan ne sont pas accessibles.");
-        const a = artisans[0]; destinataire = f.champ(texte(a.raison_sociale),"entreprise intervenante");
+        const a = artisans[0], entreprise = f.champ(texte(a.raison_sociale),"entreprise intervenante");
+        // C90 : l'ordre d'intervention est adressé à l'entreprise ; le compte rendu, qu'elle a déclaré, au donneur d'ordre :
+        // l'agence, ou hors agence les détenteurs du lot (la règle d'expediteur). Il désignait l'artisan lui-même. Une lecture des
+        // détenteurs en échec refuse le document plutôt que de redonner le nom technique de l'espace.
+        destinataire = entreprise;
+        if (code === "compte_rendu_intervention") {
+          const detenteurs = organisation.type === "agence" ? [] : await chargerDetenteursLot(db, texte(incident.lot_id));
+          if (!detenteurs) throw new RefusDocument(MESSAGE_CHARGEMENT_IMPOSSIBLE);
+          destinataire = f.champ(expediteur({ organisation, bailleurs: detenteurs }).nom, "donneur d’ordre");
+        }
         const nature = libelleDe(NATURES_TRAVAUX, intervention.nature_travaux);
         contenu += `${section("Mission enregistrée")}<p>${f.champ(nature,"nature des travaux")}${pointFinal(nature)}</p>
-          <p>Artisan : ${destinataire} ; SIRET : ${facultatif(texte(a.siret))}. Contact : ${facultatif(texte(a.telephone))} · ${facultatif(texte(a.email))}.</p>
+          <p>Artisan : ${entreprise} ; SIRET : ${facultatif(texte(a.siret))}. Contact : ${facultatif(texte(a.telephone))} · ${facultatif(texte(a.email))}.</p>
           <p>État de la mission : ${f.champ(libelleDe(STATUTS_INTERVENTION,intervention.statut),"statut de la mission")} ; confiée le ${f.date(texte(intervention.confiee_le))}.</p>`;
         if (code === "ordre_intervention") {
           if (["annulee","refusee"].includes(texte(intervention.statut))) throw new RefusDocument("Cette mission a été annulée ou refusée. Préparez une nouvelle mission pour émettre un ordre d’intervention.");
@@ -319,7 +333,7 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
     // « Destinataire » : le mot de repli « Organisation » ne désignait personne.
     const corps = `${enTete(f,exp,{libelle:"Dossier",reference,etabliLe:aujourdhui})}${titre(meta.nom,"Document de gestion",[])}
       ${cartouches([["Dossier",reference],...(destinataire ? [["Destinataire",destinataire] as [string,string]] : []),...(logement ? [["Logement",logement] as [string,string]] : [])])}${contenu}${faitA(f,exp.ville,aujourdhui)}
-      ${signatures?`<div class="signatures">${cadreSignature("Bailleur / mandataire",echapper(exp.nom))}${cadreSignature("Partie concernée",destinataire)}</div>`:""}`;
+      ${signatures?`<div class="signatures">${cadreSignature(code === "restitution_cles" ? libelleSignataireBailleur(organisation.type) : "Le mandataire",f.champ(exp.nom,"nom et prénom(s), ou dénomination"))}${cadreSignature("Partie concernée",destinataire)}</div>`:""}`;
     return {document:assemblerPage({f,titreDocument:meta.nom,nomPied:meta.nom,reference,corps:`<style>.bloc-titre{padding:10pt 0;margin-bottom:8pt}h1{font-size:19pt;letter-spacing:.2em}h2{margin:14pt 0 8pt}.cartouches{margin:10pt 0}p{margin:4pt 0}</style>${corps}`}),titreGed:meta.nom,nomFichier:`${code}-${cibleId.slice(0,8)}`,liens};
   } catch(e) { if(e instanceof RefusDocument) return {erreur:e.message}; throw e; }
 }

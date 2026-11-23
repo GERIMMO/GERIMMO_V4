@@ -248,7 +248,7 @@ describe("courriers avec signature et lignes de total (C45, C51, C53)", () => {
     const html = construireAvisEcheance({
       reference: "AVIS-1", periode: "2026-03-01", prorata: false, dateBail: "2025-10-15", dateFinBail: null, dateEcheance: "2026-03-05",
       loyerHc: 700, charges: 60, chargesMode: "provision", montantDu: 760, arriere: 0, lieuPaiement: "Virement bancaire.", iban: null,
-      bailleurNom: "Claire Moreau", locatairesNoms: "Julie Leblanc", logementAdresse: "1 rue", referenceBail: "BAIL-1", exp, f: new Fusion(), jour: "2026-02-20",
+      bailleurNom: "Claire Moreau", locatairesNoms: "Julie Leblanc", logementAdresse: "1 rue", referenceBail: "BAIL-1", exp, typeOrganisation: "proprietaire_direct", f: new Fusion(), jour: "2026-02-20",
     }).html;
     expect(html).toContain('<table class="ligne-total"><tbody><tr class="total"><td><b>Total du terme</b>');
     expect(html).toContain('<p class="fait-a">Fait à ');
@@ -273,7 +273,7 @@ describe("courriers avec signature et lignes de total (C45, C51, C53)", () => {
       attestationAssuranceFournie: null, adresseRestitutionDepot: "5 rue des Essais, 38000 Grenoble.",
       retenues: [{ libelle: "Plan de travail", cout: 260, duree_vie_ans: 10, age_ans: 8, montant_retenu: 52 }],
       bailleurNom: f.champ("Claire Moreau", "bailleur"), locatairesNoms: f.champ("Julie Leblanc", "locataire"), logementAdresse: "1 rue",
-      referenceBail: "BAIL-1", exp, f,
+      referenceBail: "BAIL-1", exp, typeOrganisation: "proprietaire_direct", f,
     }).html;
     expect(html).toContain('<table class="ligne-total"><tbody><tr class="total"><td><b>Total des retenues après vétusté</b>');
     expect(texteDe(html)).toContain("5 rue des Essais, 38000 Grenoble.");

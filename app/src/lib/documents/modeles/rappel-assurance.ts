@@ -5,7 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { aujourdhuiParis } from "@/lib/ged";
 import { Fusion, assemblerPage, blocSignatureEmetteur, cartouches, enTete, faitA, formaterDateFr, titre } from "../gabarit";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
-import { adresseOrganisation, nomPersonne, referenceCourte, signatureOrganisation } from "./communs";
+import { chargerDetenteursLot, expediteur, nomPersonne, referenceCourte, signatureOrganisation } from "./communs";
 import type { Assemblage } from "./index";
 
 export type DonneesRappelAssurance = {
@@ -16,7 +16,9 @@ export type DonneesRappelAssurance = {
   logementAdresse: string | null;
   referenceBail: string | null;
   canalReponse: string | null;
-  exp: { nom: string; adresse: string | null; email: string | null; telephone: string | null; ville: string | null };
+  /** C58 : le locataire a un espace locataire actif dans cet espace de travail (sinon le courrier n'en parle pas). */
+  espaceLocataire: boolean;
+  exp: ReturnType<typeof expediteur>;
   signatureImg?: string | null;
   f: Fusion;
 };
@@ -41,8 +43,9 @@ export function construireRappelAssurance(d: DonneesRappelAssurance) {
            échéance le ${d.echeance ? formaterDateFr(d.echeance) : ""}.`
     }</p>
     <p>Nous vous remercions de nous faire parvenir, <b>dès son renouvellement</b>, votre nouvelle
-    attestation couvrant les risques locatifs (incendie, dégât des eaux, explosion), directement
-    depuis votre espace locataire Gerimmo ou à l'adresse suivante : ${f.champ(d.canalReponse, "adresse ou courriel")}.</p>
+    attestation couvrant les risques locatifs (incendie, dégât des eaux, explosion), ${
+      d.espaceLocataire ? "directement depuis votre espace locataire Gerimmo ou " : ""
+    }à l'adresse suivante : ${f.champ(d.canalReponse, "adresse ou courriel")}.</p>
     <div class="mentions">
       <p>L'assurance du logement est une obligation du locataire pendant toute la durée du bail
       (article 7 g de la loi du 6 juillet 1989). Son défaut, après mise en demeure restée sans
@@ -67,7 +70,7 @@ export async function assemblerRappelAssurance(
   documentId: string
 ): Promise<Assemblage> {
   const CHAMPS_PERSONNE =
-    "id, nom, prenom, email, telephone, date_naissance, address_line1, postal_code, city, qualite";
+    "id, nom, prenom, email, telephone, date_naissance, address_line1, postal_code, city, qualite, account_id";
   const [{ data: doc }, { data: organisation }] = await Promise.all([
     supabase
       .from("documents")
@@ -103,15 +106,29 @@ export async function assemblerRappelAssurance(
   const { data: bail } = await supabase
     .from("baux")
     .select(
-      "id, locataire_principal, lot:lots!baux_lot_meme_org_fk(nom, etage, bien:biens!lots_bien_id_fkey(address_line1, postal_code, city))"
+      "id, locataire_principal, lot:lots!baux_lot_meme_org_fk(id, nom, etage, bien:biens!lots_bien_id_fkey(address_line1, postal_code, city))"
     )
     .eq("organization_id", orgId)
     .eq("locataire_principal", personne.id)
     .in("etat", ["actif", "preavis"])
     .limit(1)
     .maybeSingle();
-  const lot = bail ? premier(bail.lot as UnOuPlusieurs<{ nom: string; etage: string | null; bien: UnOuPlusieurs<{ address_line1: string; postal_code: string; city: string }> }>) : null;
+  const lot = bail ? premier(bail.lot as UnOuPlusieurs<{ id: string; nom: string; etage: string | null; bien: UnOuPlusieurs<{ address_line1: string; postal_code: string; city: string }> }>) : null;
   const bien = lot ? premier(lot.bien) : null;
+
+  // C56 : le rappel est émis et signé comme les autres documents du bail, par ses détenteurs hors espace d'agence (expediteur).
+  // Il l'était au nom de l'espace de travail, avec son téléphone. Sans bail en cours (aucun lot connu), l'organisation émet.
+  const detenteurs = lot && organisation.type !== "agence" ? await chargerDetenteursLot(supabase, lot.id) : [];
+  if (!detenteurs) return { erreur: "Les bailleurs du logement ne peuvent pas être vérifiés. Réessayez." };
+
+  // C58 : « votre espace locataire Gerimmo » seulement si le locataire en a un, ouvert (compte rattaché et accès actif, comme
+  // la fiche de la personne le lit). Sinon, ou si l'accès ne peut pas être vérifié, le courrier ne donne que l'adresse de dépôt.
+  let espaceLocataire = false;
+  if (personne.account_id) {
+    const { data: acces, error: erreurAcces } = await supabase.rpc("statut_acces_locataire", { p_org: orgId, p_person_id: personne.id });
+    const statut = acces as { role?: string; status?: string } | null;
+    espaceLocataire = !erreurAcces && statut?.role === "locataire" && statut.status === "active";
+  }
 
   const f = new Fusion();
   const aujourdHui = aujourdhuiParis();
@@ -125,13 +142,8 @@ export async function assemblerRappelAssurance(
       : null,
     referenceBail: bail ? referenceCourte("BAIL", bail.id) : null,
     canalReponse: organisation.email_contact,
-    exp: {
-      nom: organisation.name,
-      adresse: adresseOrganisation(organisation),
-      email: organisation.email_contact,
-      telephone: organisation.telephone,
-      ville: organisation.city,
-    },
+    espaceLocataire,
+    exp: expediteur({ organisation, bailleurs: detenteurs }),
     signatureImg: await signatureOrganisation(supabase, orgId),
     f,
   });

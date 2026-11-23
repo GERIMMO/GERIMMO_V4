@@ -198,6 +198,7 @@ describe("avis d'échéance PDF", () => {
       referenceBail: "BAIL-1",
       dateBail: "2026-09-15",
       exp,
+      typeOrganisation: "agence",
       f,
     }).html;
     expect(html).toContain("Solde antérieur restant dû : 400,00");

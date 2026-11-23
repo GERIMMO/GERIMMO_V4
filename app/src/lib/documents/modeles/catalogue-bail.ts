@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { Fusion, assemblerPage, cadreSignature, blocSignatureEmetteur, cartouches, enTete, faitA, section, tableau, titre, eur, nombreFr, pointFinal } from "../gabarit";
+import { Fusion, assemblerPage, cadreSignature, blocSignatureEmetteur, cartouches, enTete, faitA, section, tableau, titre, eur, nombreFr, pointFinal, facultatif } from "../gabarit";
 import { CATALOGUE_DOCUMENTS } from "../catalogue";
-import { signatureOrganisation, chargerContexteBail, expediteur, adresseLogement, nomsBailleurs, nomsLocataires, liensLocataires, referenceCourte, libellePeriodeTerme } from "./communs";
+import { signatureOrganisation, chargerContexteBail, expediteur, adresseLogement, nomsBailleurs, nomsLocataires, liensLocataires, referenceCourte, libellePeriodeTerme, interlocuteurLocataire, libelleSignataireBailleur } from "./communs";
 import { TYPES_DIAGNOSTIC } from "@/lib/parc";
 import { LIBELLE_ETAT_INVENTAIRE } from "@/lib/inventaire-meuble";
 import { modeSignatureDocument } from "@/lib/politique-signature";
@@ -43,7 +43,11 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
     const meta = CATALOGUE_DOCUMENTS.find(m => m.id === code)!;
     // Le jour à Paris (audit du 27/09) : toISOString donnait la veille entre 0 h et 2 h.
     const f = new Fusion(), exp = expediteur(ctx), aujourdhui = aujourdhuiParis();
+    // Phase 3 (C41, C70, C71) : « votre gestionnaire » seulement dans un espace d'agence ; ailleurs, le bailleur.
+    const interlocuteur = interlocuteurLocataire(ctx.organisation.type);
     let contenu = "", signatures = false;
+    // S39 : l'adresse postale du destinataire d'un courrier de recouvrement (`undefined` : pas un courrier ; `null` : inconnue).
+    let adresseDestinataire: string | null | undefined;
     const opt = (cle: string, libelle: string) => f.champ(options[cle]?.trim() || null, libelle);
     if (["attestation_loyer", "attestation_caf"].includes(code) && !["actif","preavis"].includes(ctx.bail.etat)) return { erreur: "Cette attestation concerne un contrat actuellement en cours." };
     if (["attestation_loyer", "attestation_caf", "relance_simple", "seconde_relance", "mise_en_demeure", "protocole_apurement"].includes(code) && ctx.bail.etat === "brouillon") return { erreur: "Ce document se prépare pour un bail engagé, après la signature du contrat." };
@@ -110,13 +114,19 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
       contenu = `${section(code === "situation_dette" ? "Situation des échéances" : "Échéances restant dues")}
         ${lignesTableau(f,avecPeriodeLisible(code === "situation_dette" ? termes : echus),[["Période","periode","texte"],["Échéance","date_echeance","date"],["Appelé","montant_du","montant"],["Couvert","montant_couvert","montant"]])}
         <p><strong>${plan ? `Dette arrêtée au ${f.date(plan.date_arrete)} : ${eur(plan.dette_initiale)}.` : `Solde échu au ${f.date(aujourdhui)} : ${eur(detteCentimes/100)}.`}</strong> Les échéances à venir sont exclues de ce solde.</p>`;
-      if (code === "relance_simple") contenu += `<p>Sauf règlement intervenu depuis l’établissement de ce décompte, nous vous invitons à régulariser les sommes échues. En cas de difficulté ou de désaccord, contactez votre gestionnaire afin d’examiner votre situation.</p>`;
+      if (code === "relance_simple") contenu += `<p>Sauf règlement intervenu depuis l’établissement de ce décompte, nous vous invitons à régulariser les sommes échues. En cas de difficulté ou de désaccord, contactez votre ${interlocuteur} afin d’examiner votre situation.</p>`;
       if (code === "mise_en_demeure" && (!/^\d+$/.test(options.delai ?? "") || Number(options.delai) < 1 || Number(options.delai) > 90)) return { erreur: "Indiquez un délai de règlement de 1 à 90 jours." };
       if (code === "relance_simple" || code === "seconde_relance" || code === "mise_en_demeure") {
         const niveau = code === "relance_simple" ? "relance_1" : code === "seconde_relance" ? "relance_2" : "recommande";
         const suivi = await verifierCourrierDuBail(supabase, orgId, bailId, echus, aujourdhui, niveau);
         if (suivi.erreur) return { erreur: suivi.erreur };
-        if (code === "seconde_relance") contenu += `<p>Notre précédent courrier du ${f.date(suivi.precedente)} reste sans régularisation complète à ce jour. Merci de régler ce solde ou de prendre contact avec votre gestionnaire.</p>`;
+        // S39 : ces trois courriers portent l'adresse postale du locataire. Tant qu'il occupe les lieux, c'est le logement loué ;
+        // après sa sortie (bail terminé, ou état des lieux de sortie signé), l'adresse laissée à l'état des lieux de sortie si
+        // elle existe. Sinon, aucune adresse n'est inventée : le nom figure seul.
+        const [edlSortie] = await lireLignes(supabase.from("etats_des_lieux").select("etat,adresse_restitution_depot").eq("organization_id",orgId).eq("bail_id",bailId).eq("type","sortie").limit(1));
+        const sorti = ctx.bail.etat === "termine" || texte(edlSortie?.etat) === "signe";
+        adresseDestinataire = (sorti ? texte(edlSortie?.adresse_restitution_depot).trim() : adresseLogement(ctx.lot,ctx.bien)) || null;
+        if (code === "seconde_relance") contenu += `<p>Notre précédent courrier du ${f.date(suivi.precedente)} reste sans régularisation complète à ce jour. Merci de régler ce solde ou de prendre contact avec votre ${interlocuteur}.</p>`;
       }
       if (code === "mise_en_demeure") contenu += `<p>Par le présent courrier, nous vous mettons en demeure de régler les sommes échues détaillées ci-dessus dans un délai de ${opt("delai","délai de règlement à compter de la réception")} jours à compter de sa réception, sous réserve des règlements intervenus depuis son établissement.</p><p>Ce courrier est à notifier avec preuve de réception. Il ne constitue ni un commandement de payer ni une décision de résiliation du bail.</p>`;
       if (code !== "situation_dette") contenu += `<p>Modalités de règlement : ${f.champ(ctx.bail.lieu_paiement,"modalités de règlement")} ; référence à rappeler : ${referenceCourte("BAIL",bailId)}.</p>`;
@@ -152,7 +162,7 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
       contenu = `${section(code === "accuse_conge" ? "Congé reçu" : "Fin du contrat")}
         <p>Congé donné par ${c.par === "locataire" ? "le locataire" : "le bailleur"}, reçu le ${f.date(texte(c.date_premiere_presentation))}.
         Durée du préavis : ${f.champ(texte(c.preavis_mois),"durée du préavis")} mois ; date d’effet enregistrée : ${f.date(texte(c.date_effet))}.</p>
-        <p>${code === "accuse_conge" ? "L’état des lieux de sortie, la remise des clés et la transmission de la nouvelle adresse sont à organiser avec le gestionnaire." : "Le contrat est clôturé dans le dossier. Cette attestation ne constitue pas une quittance ni une renonciation au règlement des sommes restant dues."}</p>`;
+        <p>${code === "accuse_conge" ? `L’état des lieux de sortie, la remise des clés et la transmission de la nouvelle adresse sont à organiser avec le ${interlocuteur}.` : "Le contrat est clôturé dans le dossier. Cette attestation ne constitue pas une quittance ni une renonciation au règlement des sommes restant dues."}</p>`;
       signatures = code === "attestation_fin_bail";
     } else if (code === "decompte_retenues") {
       const rs = await lireLignes(supabase.from("restitutions").select("id,statut").eq("bail_id",bailId).eq("organization_id",orgId).limit(1));
@@ -191,8 +201,8 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
     const signatureEmetteur = modeSignatureDocument(code)==="enregistree" ? blocSignatureEmetteur(exp.nom, await signatureOrganisation(supabase,orgId)) : null;
     const reference = referenceCourte(code.toUpperCase().replaceAll("_","-"), bailId);
     const corps = `${enTete(f,exp,{libelle:"Dossier",reference:referenceCourte("BAIL",bailId),etabliLe:aujourdhui})}${titre(meta.nom,"Dossier de location",[])}
-      ${cartouches([["Bailleur",nomsBailleurs(f,ctx.bailleurs)],["Locataire",nomsLocataires(f,ctx.locataires)],["Locaux concernés",f.champ(adresseLogement(ctx.lot,ctx.bien),"adresse du logement")],["Contrat",referenceCourte("BAIL",bailId)]])}
-      ${contenu}${faitA(f,exp.ville,aujourdhui)}${signatureEmetteur ?? (signatures ? `<div class="signatures">${cadreSignature("Le bailleur / mandataire",nomsBailleurs(f,ctx.bailleurs))}${cadreSignature("Le locataire",nomsLocataires(f,ctx.locataires))}</div>` : "")}`;
+      ${cartouches([["Bailleur",nomsBailleurs(f,ctx.bailleurs)],adresseDestinataire === undefined ? ["Locataire",nomsLocataires(f,ctx.locataires)] : ["Locataire (destinataire)",`${nomsLocataires(f,ctx.locataires)}${adresseDestinataire ? `<div>${facultatif(adresseDestinataire)}</div>` : ""}`],["Locaux concernés",f.champ(adresseLogement(ctx.lot,ctx.bien),"adresse du logement")],["Contrat",referenceCourte("BAIL",bailId)]])}
+      ${contenu}${faitA(f,exp.ville,aujourdhui)}${signatureEmetteur ?? (signatures ? `<div class="signatures">${cadreSignature(libelleSignataireBailleur(ctx.organisation.type),nomsBailleurs(f,ctx.bailleurs))}${cadreSignature("Le locataire",nomsLocataires(f,ctx.locataires))}</div>` : "")}`;
     return { document:assemblerPage({f,titreDocument:meta.nom,nomPied:meta.nom,reference,corps:`<style>.bloc-titre{padding:10pt 0;margin-bottom:8pt}h1{font-size:19pt;letter-spacing:.2em}h2{margin:14pt 0 8pt}.cartouches{margin:10pt 0}p{margin:4pt 0}</style>${corps}`}),titreGed:meta.nom,nomFichier:`${code}-${bailId.slice(0,8)}`,liens:[{entite:"bail",entiteId:bailId},{entite:"lot",entiteId:ctx.lot.id},...liensLocataires(ctx)] };
   } catch(e) { if(e instanceof RefusDocument) return {erreur:e.message}; throw e; }
 }

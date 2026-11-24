@@ -5,7 +5,8 @@ import { verifierBaseDeTest } from "./garde-base";
 import { lierCommandeFictive } from "./fixtures/preuve-commande";
 import { clientSurPg } from "./fixtures/supabase-sur-pg";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { envoyerRelancesDues } from "../src/lib/relances-paiement";
+import { envoyerRelancesDues, VERSIONS_AVEC_ARTICLE_15_4 } from "../src/lib/relances-paiement";
+import { CONDITIONS_VERSION } from "../src/lib/editeur";
 import { envoyerAccuseRetractation,envoyerReceptionRetractation, notifierResiliationImpaye } from "../src/lib/courriers-contrat-envoi";
 import { factureImpayee } from "../src/lib/impaye-preuve-stripe";
 import Stripe from "stripe";
@@ -19,7 +20,12 @@ const url=process.env.SUPABASE_DB_URL;
 verifierBaseDeTest(url);
 const h=(v:string)=>createHash("sha256").update(v).digest("hex");
 
-describe.skipIf(!url)("Incidents contractuels — vrais droits, preuves et finalisation PostgreSQL",()=>{
+// Lot T4 (24/11/2026) : tout le fichier est rejoué pour CHAQUE version des conditions sous laquelle le courrier d'impayé
+// peut partir (il n'était joué que sous « 2026-11-15 »). La version du 24 novembre 2026 y entre par la migration
+// 20261125104000 ; la version en vigueur doit toujours en être.
+if(!VERSIONS_AVEC_ARTICLE_15_4.includes(CONDITIONS_VERSION)) throw new Error("La version en vigueur des conditions manque à VERSIONS_AVEC_ARTICLE_15_4.");
+for(const VERSION_CGU of VERSIONS_AVEC_ARTICLE_15_4)
+describe.skipIf(!url)(`Incidents contractuels — vrais droits, preuves et finalisation PostgreSQL (conditions ${VERSION_CGU})`,()=>{
  const db=new Client({connectionString:url});
  const paiement = {status:"past_due",facture:"open",solde:599};
  let org:string,acteur:string,sub:string,to:string,episode:string,jour:string;
@@ -33,8 +39,8 @@ describe.skipIf(!url)("Incidents contractuels — vrais droits, preuves et final
   org=(await db.query("insert into organizations(name,type,status,grille_tarifaire,email_contact) values('SCI fictive','proprietaire_direct','active','2026-09-28','ancienne-adresse@example.invalid') returning id")).rows[0].id;
   await db.query("insert into memberships(account_id,organization_id,role,status) values($1,$2,'proprietaire_direct','active')",[acteur,org]);
   await db.query("insert into abonnements(organization_id,stripe_customer_id,stripe_subscription_id,stripe_statut,souscrit_le,formule,unites_souscrites,montant_periode_cents,montant_mensuel_cents,premiere_facture_payee,paiement_en_defaut_depuis) values($1,$2,$3,'past_due',now(),'solo',1,599,599,true,aujourdhui_paris()-16)",[org,'cus_'+sub,sub]);
-  await db.query("insert into acceptations_cgu(account_id,version,document,source) values($1,'2026-11-15','conditions_clients','inscription')",[acteur]);
-  await lierCommandeFictive(db,org,acteur,sub,"2026-11-15");
+  await db.query("insert into acceptations_cgu(account_id,version,document,source) values($1,$2,'conditions_clients','inscription')",[acteur,VERSION_CGU]);
+  await lierCommandeFictive(db,org,acteur,sub,VERSION_CGU);
   ({episode,jour}=(await db.query("select (aujourdhui_paris()-16)::text as episode,aujourdhui_paris()::text as jour")).rows[0]);
   const service=clientSurPg(db,{transactionnel:true});
   banc.service={...service,rpc:async(n:string,args:Record<string,unknown>)=>{

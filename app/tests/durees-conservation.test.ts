@@ -185,9 +185,11 @@ describe("la liste de référence reprend le lot 2 du plan du 23/10", () => {
     }
   });
 
-  it("décision du 23/10 (éditeur non commerçant) : factures de Gerimmo six ans, preuve du contrat dix ans", () => {
-    const factures = DUREES_CONSERVATION.find((d) => d.donnees === "Factures d’abonnement émises par Gerimmo");
-    expect(factures?.duree_mois).toBe(72);
+  // Lot T4 du 24/11/2026 (écart R31-A1) : ce test affirmait « six ans » (décision du 23/10, ancien délai de l'article
+  // L. 102 B du livre des procédures fiscales). Dix ans depuis l'article 36 de la loi n° 2026-534 (recueil du dirigeant).
+  it("factures de Gerimmo dix ans (loi n° 2026-534, article 36), preuve du contrat dix ans", () => {
+    const factures = DUREES_CONSERVATION.filter((d) => d.donnees === "Factures d’abonnement émises par Gerimmo");
+    expect(factures.map((d) => d.duree_mois)).toEqual([120, 120]);
     expect(DUREES_CONSERVATION.find((d) => d.data_type === "archive:preuve_contrat")?.duree_mois).toBe(120);
     expect(DUREES_CONSERVATION.find((d) => d.data_type === "contrat:retractation")?.duree_mois).toBe(120);
     // Les rapports de gestion des agences gardent leurs dix ans (C. com. L. 123-22, propre aux agences commerçantes).

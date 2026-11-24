@@ -302,6 +302,10 @@ const MISSION_OCTOBRE = [
   "20261124220000_justificatif_retenue_dossier_du_bail.sql",
   // 24/11, seconde reprise du lot D3 (Q38) : le journal de l'ancien réglage des repères fiscaux dit quelle source il a effacée.
   "20261124230000_reperes_fiscaux_ancien_reglage_journal_source.sql",
+  // 24/11, textes officiels, lot T4 (R31-A1) : factures d'abonnement conservées dix ans (loi n° 2026-534, article 36).
+  "20261125103000_factures_conservation_dix_ans.sql",
+  // 24/11, textes officiels, lot T4 : le courrier d'impayé part aussi pour un contrat conclu sous la version du 24/11/2026 des conditions.
+  "20261125104000_courrier_impaye_conditions_du_24_novembre.sql",
 
 
 ];

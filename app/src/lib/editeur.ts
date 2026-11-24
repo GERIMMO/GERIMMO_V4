@@ -22,7 +22,8 @@ export const EDITEUR = {
   /**
    * Dénomination sociale d'une société ; pour un entrepreneur individuel, son nom et son prénom accompagnés de la
    * mention « entrepreneur individuel » ou des initiales « EI » (fiches officielles F37351 et F31808 d'Entreprendre
-   * Service Public, lues le 24/11/2026 ; `validerIdentite` le vérifie à la saisie).
+   * Service Public, lues le 24/11/2026 ; code de commerce, art. R. 526-27, lu dans le recueil du dirigeant ;
+   * `validerIdentite` le vérifie à la saisie, `defautsVendeur` avant toute vente).
    */
   denomination: null as FaitEditeur,
   /** SAS, SARL… ou « Entrepreneur individuel » (voir `estEntrepreneurIndividuel`). */
@@ -80,9 +81,15 @@ const REQUIS = [
   ["telephone", "le téléphone de contact"],
 ] as const satisfies readonly (readonly [keyof typeof EDITEUR, string])[];
 
-/** Les coordonnées du médiateur de la consommation ne ferment rien, pas même la première souscription d'un
- * particulier (décision du dirigeant du 24/11/2026, Q7 : « on peut ouvrir les ventes même sans ce dernier »). Tant
- * qu'elles manquent, les pages et les courriers disent qu'aucun médiateur n'est désigné ; elles restent dues. */
+/**
+ * Les coordonnées du médiateur de la consommation. Reprise du 24/11/2026 (décision de pilotage, lot D7) : le recueil
+ * fourni par le dirigeant contient les articles L. 612-1 et L. 616-1 du code de la consommation (« le professionnel
+ * garantit au consommateur le recours effectif à un dispositif de médiation de la consommation » ; il « communique au
+ * consommateur […] les coordonnées du ou des médiateurs compétents dont il relève »). Tant qu'elles manquent, la
+ * première souscription d'un PARTICULIER reste donc fermée par défaut (lib/garde-souscription.ts) ; le super admin peut
+ * l'ouvrir quand même en levant le blocage, en connaissance de cause. Elles ne ferment rien d'autre : ni les pages
+ * légales (qui disent qu'aucun médiateur n'est désigné), ni la souscription d'un professionnel, ni une hausse.
+ */
 const A_COMPLETER = [
   ["mediateurNom", "le médiateur de la consommation"],
   ["mediateurAdresse", "l'adresse du médiateur"],
@@ -101,7 +108,7 @@ export function faitsManquants(editeur: Record<string, FaitEditeur> = EDITEUR): 
   return REQUIS.filter(([cle]) => !editeur[cle]).map(([, libelle]) => libelle);
 }
 
-/** Coordonnées du médiateur restant à renseigner, sans rien fermer. */
+/** Coordonnées du médiateur restant à renseigner (elles ne ferment que la première souscription d'un particulier). */
 export function faitsACompleter(editeur: Record<string, FaitEditeur> = EDITEUR): string[] {
   return A_COMPLETER.filter(([cle]) => !editeur[cle]).map(([, libelle]) => libelle);
 }
@@ -111,21 +118,98 @@ export function documentsIncomplets(editeur: Record<string, FaitEditeur> = EDITE
   return faitsManquants(editeur).length > 0;
 }
 
+/**
+ * Ce que le texte des conditions générales (/conditions) imprime de l'identité saisie, et rien d'autre : le nom,
+ * l'adresse et l'adresse de contact (formulaire de rétractation, articles 8 et 17), et la présence de l'encadré
+ * « Document en cours de finalisation » (un fait requis manque). Le médiateur n'y figure plus : depuis la version du
+ * 24/11/2026, l'article 17 renvoie aux mentions légales, qu'il soit désigné ou non.
+ *
+ * Sert à la garde de commande (lib/garde-souscription-serveur.ts, relecture D7R-02) : retoucher le téléphone, le
+ * médiateur ou un prestataire ne change pas le contrat et ne doit pas refermer les ventes ; changer le nom ou
+ * l'adresse le change. tests/vendeur-mediateur-reprise-d7.test.ts (bloc 4) prouve, champ par champ, que le texte rendu ne
+ * dépend de rien d'autre : si un article se met à citer un autre champ, ce test échoue et la liste doit suivre.
+ */
+export function identiteDesConditions(identite: Record<string, unknown>): Record<string, string | null> {
+  const faits: Record<string, FaitEditeur> = {};
+  for (const [cle, valeur] of Object.entries(identite)) faits[cle] = typeof valeur === "string" && valeur ? valeur : null;
+  return {
+    denomination: faits.denomination ?? null,
+    siege: faits.siege ?? null,
+    email: faits.email ?? null,
+    encadre: documentsIncomplets(faits) ? "en cours de finalisation" : "complet",
+  };
+}
+
 /** La confidentialité doit identifier son responsable ; le médiateur relève des mentions et des CGV. */
 export function confidentialiteIncomplete(editeur: Record<string, FaitEditeur> = EDITEUR): boolean {
   return ["denomination", "forme", "siege", "email"].some((cle) => !editeur[cle]?.trim());
 }
 
+/** Minuscules, sans accents, espaces (insécables compris) réduits à un seul : pour comparer une saisie libre. */
+function formeSimple(texte: string | null | undefined): string {
+  return (texte ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[\s\u00a0\u202f]+/g, " ").trim();
+}
+
+// Les mots qui désignent un entrepreneur individuel dans le champ libre « Forme juridique » (relecture D7R-03 : une
+// virgule, une parenthèse collée ou « E.I. » faisaient sortir du régime, et la page annonçait un capital « à venir »).
+const MOTS_ENTREPRENEUR_INDIVIDUEL =
+  /(?:^|[^a-z0-9])(?:entrepreneur individuel|entrepreneuse individuelle|entreprise individuelle|micro[- ]?entrepreneur|micro[- ]?entrepreneuse|micro[- ]?entreprise|auto[- ]?entrepreneur|auto[- ]?entrepreneuse)(?:[^a-z0-9]|$)/;
+// Les initiales, en tête du champ seulement : « EI », « E.I. », « EI (nom commercial X) ». « EIRL » et « EIffage » n'en sont pas.
+const INITIALES_EI_EN_TETE = /^e\.? ?i\.?(?:[^a-z0-9]|$)/;
+
+/** La forme juridique saisie désigne-t-elle un entrepreneur individuel ? Ponctuation, casse et accents indifférents. */
 export function estEntrepreneurIndividuel(editeur: Record<string, FaitEditeur>): boolean {
-  return /^(?:EI|entrepreneur individuel|entreprise individuelle)(?:\s|$)/i.test(editeur.forme?.trim() ?? "");
+  const forme = formeSimple(editeur.forme);
+  return MOTS_ENTREPRENEUR_INDIVIDUEL.test(forme) || INITIALES_EI_EN_TETE.test(forme);
 }
 
-/** Le nom porte-t-il la mention « entrepreneur individuel » ou les initiales « EI » (en majuscules, mot entier) ? */
+/**
+ * Le nom porte-t-il la mention de l'entrepreneur individuel ?
+ *
+ * Code de commerce, article R. 526-27 (recueil fourni par le dirigeant le 24/11/2026, non recontrôlé par nous) :
+ * « l'entrepreneur individuel utilise une dénomination incorporant son nom ou nom d'usage précédé ou suivi
+ * immédiatement des mots : “ entrepreneur individuel ” ou des initiales : “ EI ” ».
+ *
+ * On vérifie donc que la mention est un mot entier (« EI » ou « E.I. » en majuscules, ou les mots en toutes lettres),
+ * et qu'elle TOUCHE un autre mot du nom : rien entre eux qu'une espace, une virgule ou une parenthèse. Un trait d'union
+ * ou une apostrophe collent deux mots en un seul : « EI-CONSEIL Martin » ne porte pas la mention (relecture D7R-05).
+ * Refusés aussi : la mention seule (aucun nom) et la mention niée (« non entrepreneur individuel »).
+ * Ce que le code ne sait pas faire : reconnaître que le mot voisin est bien le NOM de la personne (« SOCIETE EI » passe).
+ */
 export function porteLaMentionEI(nom: string | null | undefined): boolean {
-  return /(?:^|[^\p{L}\p{N}])EI(?:[^\p{L}\p{N}]|$)/u.test(nom ?? "") || /entrepreneur individuel/i.test(nom ?? "");
+  const mots = (nom ?? "")
+    // Les mots en toutes lettres et « E.I. » sont ramenés aux initiales, pour n'avoir qu'une forme à chercher.
+    .replace(/(?<![\p{L}\p{N}-])entrepreneu(?:r\s+individuel|se\s+individuelle)(?![\p{L}\p{N}-])/giu, "EI")
+    .replace(/(?<![\p{L}\p{N}.-])E\.I\.(?![\p{L}\p{N}])/gu, "EI")
+    // Espaces, virgules et parenthèses séparent les mots ; le trait d'union et l'apostrophe, non.
+    .split(/[\s\u00a0\u202f,()]+/u)
+    .map((mot) => mot.replace(/[.;:]+$/u, ""))
+    .filter(Boolean);
+  const estUnNom = (mot: string | undefined) => mot !== undefined && mot !== "EI" && /^\p{L}[\p{L}\p{N}'’.-]+$/u.test(mot);
+  const estUneNegation = (mot: string | undefined) => /^(?:non|pas|sans|ni|ex|ancien|ancienne)$/i.test(mot ?? "");
+  return mots.some((mot, i) => mot === "EI" && !estUneNegation(mots[i - 1]) && (estUnNom(mots[i - 1]) || estUnNom(mots[i + 1])));
 }
 
-/** « 821 974 474 » et « 821 974 474 00032 » depuis un SIRET de 14 chiffres ; `null` si la saisie n'en est pas un. */
+/** Le manque dit au super admin quand le nom d'un entrepreneur individuel ne porte pas la mention. */
+export const MANQUE_MENTION_EI = "la mention « EI » accolée au nom de l'éditeur (entrepreneur individuel)";
+
+/**
+ * Tout ce qui empêche de vendre du côté du vendeur : les faits requis absents, puis la mention « EI » absente du nom
+ * d'un entrepreneur individuel. La saisie la refuse déjà (lib/identite-editeur.ts) ; ce contrôle est rejoué à
+ * l'ouverture des ventes et avant chaque première souscription, pour une identité enregistrée avant ce contrôle
+ * (relecture D7R-05).
+ */
+export function defautsVendeur(editeur: Record<string, FaitEditeur> = EDITEUR): string[] {
+  const sansMention = Boolean(editeur.denomination) && estEntrepreneurIndividuel(editeur) && !porteLaMentionEI(editeur.denomination);
+  return [...faitsManquants(editeur), ...(sansMention ? [MANQUE_MENTION_EI] : [])];
+}
+
+/** Les trois coordonnées du médiateur de la consommation sont-elles saisies ? (La saisie les exige ensemble.) */
+export function mediateurDesigne(editeur: Record<string, FaitEditeur> = EDITEUR): boolean {
+  return ["mediateurNom", "mediateurAdresse", "mediateurSite"].every((cle) => Boolean(editeur[cle]?.trim()));
+}
+
+/** « 123 456 789 » et « 123 456 789 00012 » (exemple fictif) depuis un SIRET de 14 chiffres ; `null` si la saisie n'en est pas un. */
 export function sirenEtSiret(siret: string | null | undefined): { siren: string; siret: string } | null {
   const chiffres = (siret ?? "").replace(/\s/g, "");
   if (!/^\d{14}$/.test(chiffres)) return null;
@@ -184,6 +268,8 @@ export type Prestataire = {
   sousTraitantClient?: true;
   /** Ce que le prestataire traite pour le Client, quand son rôle général couvre davantage (annexe seulement). */
   roleClient?: string;
+  /** Ce que le prestataire traite pour l'Artisan (annexe des conditions de l'espace artisan), s'il diffère de `roleClient`. */
+  roleArtisan?: string;
 };
 
 //
@@ -257,11 +343,19 @@ export const PRESTATAIRES: readonly Prestataire[] = [
     // l'assistant « Demander à Gerimmo » (lib/conversation-privee-ia.ts) et la lecture assistée d'une facture ou d'une
     // photo de compteur (lib/lecture-document-ia.ts), qui transmet le fichier entier. Il les nomme désormais.
     role: "Aides par intelligence artificielle, déclenchées à la demande : assistant « Demander à Gerimmo » (le sujet choisi et les messages écrits par l’utilisateur, sans dossier joint) ; lecture assistée d’une facture ou d’une photo de compteur (le fichier choisi par l’utilisateur, avec ce qu’il contient) ; propositions de devis artisans (catalogue tarifaire et symptômes techniques sélectionnés, sans nom, adresse ni description libre des occupants). Assistance rédactionnelle de la supervision (veille, brouillons et illustrations du Journal) : textes éditoriaux publics",
-    // Pour le Client, la supervision éditoriale n'est pas un traitement pour son compte.
-    // À FAIRE AVEC LA PROCHAINE VERSION DES CONDITIONS (décision du dirigeant, QUESTIONS.md) : `roleClient` alimente
-    // l'annexe 1 des conditions, dont le texte est figé par version (tests/conditions-empreinte.test.ts). Il doit
-    // nommer lui aussi l'assistant et la lecture assistée ; le changer exige une nouvelle version des conditions.
-    roleClient: "Propositions de devis artisans : catalogue tarifaire et symptômes techniques sélectionnés, à l'exclusion des noms, adresses et descriptions libres des occupants",
+    // Pour le Client, la supervision éditoriale n'est pas un traitement pour son compte : `roleClient` alimente
+    // l'annexe 1 des conditions, dont le texte est figé par version (tests/conditions-empreinte.test.ts).
+    // Version du 24/11/2026 (écart R34-A1, décision Q15) : l'annexe ne citait que les propositions de devis. Elle
+    // décrit désormais les trois envois que le code fait réellement, relus le 24/11/2026 :
+    //  · lib/conversation-privee-ia.ts — le sujet choisi, la question et l'historique de la conversation ;
+    //  · lib/lecture-document-ia.ts — le fichier entier (PDF ou image), encodé dans la requête ;
+    //  · lib/proposition-devis-ia.ts — la catégorie, les symptômes reconnus dans une liste fermée de mots, le catalogue.
+    // La changer exige une nouvelle version des conditions.
+    roleClient: "Aides par intelligence artificielle, déclenchées à la demande de l'utilisateur : assistant « Demander à Gerimmo » (le sujet choisi et les messages de la conversation, avec tout ce que l'utilisateur y écrit ; aucun dossier n'est joint) ; lecture assistée d'une facture ou d'une photo de compteur (le fichier choisi par l'utilisateur, transmis en entier avec tout ce qu'il contient) ; propositions de devis artisans (catégorie de la demande, symptômes techniques reconnus dans une liste fermée de mots et catalogue tarifaire, à l'exclusion des noms, adresses et descriptions libres des occupants)",
+    // L'espace artisan n'a ni l'assistant ni la lecture assistée (réservés aux espaces propriétaire et locataire) :
+    // pour l'Artisan, OpenAI ne reçoit que les propositions de devis. Ce texte est celui de l'annexe des conditions de
+    // l'espace artisan depuis le 24/10/2026 ; il ne change pas, et ces conditions gardent leur version.
+    roleArtisan: "Propositions de devis artisans : catalogue tarifaire et symptômes techniques sélectionnés, à l'exclusion des noms, adresses et descriptions libres des occupants",
     localisation: "États-Unis (transfert hors UE)",
     documentation: "https://openai.com/policies/data-processing-addendum/",
   },
@@ -321,6 +415,11 @@ export const PRESTATAIRES: readonly Prestataire[] = [
  */
 export function sousTraitantsClient(liste: readonly Prestataire[] = PRESTATAIRES): Prestataire[] {
   return liste.filter((p) => p.sousTraitantClient).map((p) => ({ ...p, role: p.roleClient ?? p.role }));
+}
+
+/** Les mêmes sous-traitants, avec le rôle qui concerne l'Artisan : annexe des conditions de l'espace artisan. */
+export function sousTraitantsArtisan(liste: readonly Prestataire[] = PRESTATAIRES): Prestataire[] {
+  return liste.filter((p) => p.sousTraitantClient).map((p) => ({ ...p, role: p.roleArtisan ?? p.roleClient ?? p.role }));
 }
 
 const majuscule = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -425,10 +524,15 @@ export function reservesLegales(editeur: Record<string, FaitEditeur> = EDITEUR):
 // (même date). La règle d'inactivité (VERSION_MIN_INACTIVITE,
 // lib/comptes-fermeture.ts) et la règle de conservation compte:inactif
 // (migration 20261024150000) s'activent avec elle.
-export const CONDITIONS_VERSION = "2026-11-15";
+// 24/11/2026 : reprise du lot D7 et lot « textes » T4 — article 17 (médiateur : un seul texte, vrai qu'il soit désigné
+// ou non, qui renvoie aux mentions légales), annexe 1 (ce qui est réellement transmis à OpenAI), conservation des
+// factures portée de six à dix ans (article 9), article 2 (« l'entreprise »), article 15.3 (réexamen par une
+// personne). Déclarée « nouvelles souscriptions uniquement » dans conditions-versions.json : le recueil de l'accord
+// exprès des clients déjà abonnés est un autre lot (décision Q15, lot D4).
+export const CONDITIONS_VERSION = "2026-11-24";
 
 /** Date d'entrée en vigueur affichée en tête des conditions. */
-export const CONDITIONS_DATE = "15 novembre 2026";
+export const CONDITIONS_DATE = "24 novembre 2026";
 
 // ── Version des conditions de l'espace artisan ─────────────────────────────
 //

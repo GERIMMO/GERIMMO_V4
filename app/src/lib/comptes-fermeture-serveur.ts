@@ -11,7 +11,7 @@ import "server-only";
 //    d'artisan, préparations de devis, archives d'export), envoyer « Votre compte Gerimmo est fermé », envoyer les
 //    avertissements d'inactivité J-60 et J-15 (règle active seulement quand VERSION_MIN_INACTIVITE est posée),
 //    supprimer les archives d'export de plus de sept jours, préparer les archives demandées restées en attente, et
-//    supprimer les clients Stripe arrivés au terme de leurs factures (six ans).
+//    supprimer les clients Stripe arrivés au terme de leurs factures (dix ans depuis le lot T4 du 24/11/2026).
 // Relectures adverses du 24/10 : montant établi sur tous les paiements de la période (prorata d'une hausse compris),
 // J+14 refusé quand il ne peut pas l'être ou quand la période finit avant ; remboursement retrouvé chez Stripe avant
 // toute création (la clé d'idempotence ne dure que 24 h) ; état d'avant remis à l'annulation ; courriel de fin qui
@@ -566,7 +566,7 @@ export async function traiterSuitesComptes(db: SupabaseClient, d: DependancesSui
     }
   }
 
-  // 5. Les clients Stripe arrivés au terme de leurs factures (six ans après la plus récente ; relecture du 24/10, R2-5).
+  // 5. Les clients Stripe arrivés au terme de leurs factures (dix ans après la plus récente : lot T4 du 24/11/2026 ; relecture du 24/10, R2-5).
   if (d.stripe) {
     const { data: clients, error: lectureClients } = await db.rpc("clients_stripe_au_terme", { p_limite: 50 });
     if (lectureClients) {

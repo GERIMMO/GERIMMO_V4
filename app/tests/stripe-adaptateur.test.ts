@@ -466,7 +466,7 @@ describe("jamais deux souscriptions (audit 29/09, point 1)", () => {
     expect(creees).toHaveLength(1);
     // Le pied de facture suit le régime déclaré (franchise : mention 293 B).
     expect(stripe.customers.update).toHaveBeenCalledWith("cus_1", {
-      invoice_settings: { footer: "TVA non applicable, art. 293 B du CGI." },
+      invoice_settings: { footer: "TVA non applicable, article 293 B du CGI." },
     });
   });
 });
@@ -497,7 +497,7 @@ describe("le client Stripe (audit 29/09, points 6 et 12)", () => {
     expect(creations[0].options).toEqual({ idempotencyKey: "client:org-1:cus_vieux" });
     expect(creations[0].corps).toMatchObject({
       metadata: { organization_id: "org-1" },
-      invoice_settings: { footer: "TVA non applicable, art. 293 B du CGI." },
+      invoice_settings: { footer: "TVA non applicable, article 293 B du CGI." },
     });
   });
 
@@ -518,15 +518,15 @@ describe("le client Stripe (audit 29/09, points 6 et 12)", () => {
     const { stripe } = stripeClients({ id: "cus_1", invoice_settings: { footer: null }, metadata: { organization_id: "org-1" } });
     await assurerClientStripe(stripe as never, { orgId: "org-1", nom: "Org", email: null, existant: "cus_1" });
     expect(stripe.customers.update).toHaveBeenLastCalledWith("cus_1", {
-      invoice_settings: { footer: "TVA non applicable, art. 293 B du CGI." },
+      invoice_settings: { footer: "TVA non applicable, article 293 B du CGI." },
     });
-    const assujetti = stripeClients({ id: "cus_2", invoice_settings: { footer: "TVA non applicable, art. 293 B du CGI." } });
+    const assujetti = stripeClients({ id: "cus_2", invoice_settings: { footer: "TVA non applicable, article 293 B du CGI." } });
     await assurerClientStripe(assujetti.stripe as never, {
       orgId: "org-1", nom: "Org", email: null, existant: "cus_2", regime: { nature: "assujetti", tauxPourcent: 20 },
     });
     expect(assujetti.stripe.customers.update).toHaveBeenLastCalledWith("cus_2", { invoice_settings: { footer: "" } });
     // Déjà juste : aucun appel.
-    const juste = stripeClients({ id: "cus_3", invoice_settings: { footer: "TVA non applicable, art. 293 B du CGI." } });
+    const juste = stripeClients({ id: "cus_3", invoice_settings: { footer: "TVA non applicable, article 293 B du CGI." } });
     await assurerClientStripe(juste.stripe as never, { orgId: "org-1", nom: "Org", email: null, existant: "cus_3" });
     expect(juste.stripe.customers.update).not.toHaveBeenCalled();
   });

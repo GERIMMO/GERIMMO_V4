@@ -268,7 +268,10 @@ export async function demarrerAbonnement(
   //    légales complètes, pas de paiement — même phrase qu'à l'écran. Une
   //    lecture en échec ferme aussi. « Votre essai continue » seulement si
   //    l'essai court encore (un essai gelé garde le statut « essai »).
-  const motifIdentite = await lireMotifIdentiteEditeur(supabase, essaiEnCours(etat), etat.public_tarif === "proprietaire_direct");
+  //    Reprise du 24/11/2026 (D7R-04) : cette action n'ouvre que des PREMIÈRES souscriptions (un abonnement en cours
+  //    est refusé plus haut) ; le vendeur doit donc être identifié pour tout client, agence comprise, blocage levé ou
+  //    non. Le médiateur n'est exigé, par défaut, que pour un particulier.
+  const motifIdentite = await lireMotifIdentiteEditeur(supabase, essaiEnCours(etat), etat.public_tarif === "proprietaire_direct", true);
   if (motifIdentite) return { erreur: motifIdentite };
   // 2. La version en vigueur des conditions, acceptée par LE COMPTE qui clique.
   //    L'écran propose la case qui l'enregistre (accepterConditionsGenerales) ;

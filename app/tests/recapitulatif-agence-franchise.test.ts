@@ -22,7 +22,7 @@ describe("récapitulatif d'une agence", () => {
     expect(html).not.toContain("HT");
     expect(html).not.toContain("TTC");
     expect(html).not.toMatch(/TVA 0,00/);
-    expect(html).toContain("TVA non applicable, art. 293 B du CGI.");
+    expect(html).toContain("TVA non applicable, article 293 B du CGI.");
   });
   it("assujetti : le détail HT, TVA, TTC reste", () => {
     const html = texte(renderToStaticMarkup(createElement(DetailMontants, { offre: offreAgence(30), regime: { nature: "assujetti", tauxPourcent: 20 } })));

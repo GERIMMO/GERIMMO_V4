@@ -4,16 +4,23 @@
 // Deux conditions de contrat, vérifiées par le serveur (actions/abonnement.ts)
 // et dites par l'écran (abonnement-2026.tsx, formulaire-souscription.tsx) avec
 // les MÊMES phrases :
-//  1. l'identité de l'éditeur est complète — les faits requis de
-//     lib/editeur.ts, lus dans `supervision_identite` par-dessus le code
-//     (lib/editeur-serveur.ts). Le superadmin peut lever ce contrôle depuis
-//     les paramètres pour une hausse de capacité ; le serveur lit cette
-//     décision en base. Pour la PREMIÈRE souscription d'un particulier, il ne
-//     se lève pas : pas de vente à un consommateur sans vendeur identifié
-//     (décision du dirigeant du 24/11/2026, Q7).
-//     Le médiateur de la consommation ne ferme plus rien (même décision :
-//     « on peut ouvrir les ventes même sans ce dernier ») : tant qu'il n'est
-//     pas saisi, les pages et les courriers disent qu'il n'est pas désigné.
+//  1. le vendeur est identifié — les faits requis de lib/editeur.ts, lus dans
+//     `supervision_identite` par-dessus le code (lib/editeur-serveur.ts), et
+//     la mention « EI » accolée au nom d'un entrepreneur individuel.
+//     Pour TOUTE première souscription (particulier ou agence), ce contrôle
+//     ne se lève pas : pas de vente sans vendeur identifié (décision du
+//     dirigeant du 24/11/2026, Q7 ; relecture D7R-04 pour l'agence). Le
+//     superadmin peut le lever depuis les paramètres pour une hausse de
+//     capacité seulement ; le serveur lit cette décision en base.
+//  1 bis. le médiateur de la consommation est désigné — pour la première
+//     souscription d'un PARTICULIER seulement, et PAR DÉFAUT. Reprise du
+//     24/11/2026 (décision de pilotage) : le recueil fourni par le dirigeant
+//     contient les articles L. 612-1 et L. 616-1 du code de la consommation
+//     (le professionnel garantit au consommateur le recours effectif à une
+//     médiation et lui communique les coordonnées du médiateur). Le superadmin
+//     peut ouvrir quand même aux particuliers en levant le blocage, en
+//     connaissance de cause (l'écran de console cite ces deux articles) ; la
+//     levée est inscrite à l'historique. Un professionnel n'est pas concerné.
 //  2. le compte qui clique a accepté LA VERSION EN VIGUEUR des conditions
 //     générales (`acceptations_cgu`, ajout seul). Exigée pour la souscription
 //     initiale seulement (arbitrage du 19/10) : une hausse de capacité porte
@@ -23,7 +30,7 @@
 // l'utilisent tel quel. Les lectures en base vivent dans
 // lib/garde-souscription-serveur.ts.
 
-import { CONDITIONS_VERSION, faitsManquants, type FaitEditeur } from "@/lib/editeur";
+import { CONDITIONS_VERSION, defautsVendeur, mediateurDesigne, type FaitEditeur } from "@/lib/editeur";
 
 /**
  * Le refus tant que les mentions légales de l'éditeur manquent. Même phrase
@@ -62,20 +69,40 @@ export const ERREUR_ACCEPTATION_CONDITIONS =
  * sans changement de statut) : il n'est plus « en essai » au sens de cette
  * phrase.
  */
-export type ContexteGarde = { enEssai: boolean; blocageIdentiteActif?: boolean; nouvelleSouscriptionParticulier?: boolean };
+export type ContexteGarde = {
+  enEssai: boolean;
+  /** `false` seulement si le superadmin a levé le blocage (lu en base) ; absent ou illisible : actif. */
+  blocageIdentiteActif?: boolean;
+  /** Vrai pour toute première souscription, quel que soit le client : le vendeur doit être identifié, blocage levé ou non. */
+  premiereSouscription?: boolean;
+  /** Vrai pour la première souscription d'un particulier (tarif « propriétaire ») : elle est aussi une première souscription. */
+  nouvelleSouscriptionParticulier?: boolean;
+};
 
 /**
- * Le motif qui ferme le paiement, ou `null` si l'identité est complète ou la règle levée (la règle ne se lève pas
- * pour la première souscription d'un particulier : `nouvelleSouscriptionParticulier`). Le
- * détail des faits manquants n'est pas dit au client : il est déjà affiché au
- * dirigeant (/admin/sante, /admin/parametres). Pendant l'essai, la phrase
- * ajoute « Votre essai continue. » ; gelé ou abonné, elle s'arrête avant.
+ * Le refus fait au particulier tant qu'aucun médiateur de la consommation n'est saisi (phrase d'avant le lot D7,
+ * rétablie). Elle commence comme les autres motifs (« Le paiement en ligne n'est pas encore ouvert ») et ne dit pas
+ * qu'un médiateur existe.
  */
-export function motifIdentiteEditeur(editeur: Record<string, FaitEditeur>, { enEssai, blocageIdentiteActif, nouvelleSouscriptionParticulier }: ContexteGarde): string | null {
-  // Décision du dirigeant du 24/11/2026 (Q7) : le médiateur ne ferme plus la première souscription d'un particulier
-  // (il la fermait même règle levée) ; c'est l'identité du vendeur qui la ferme, règle levée ou non.
-  if ((blocageIdentiteActif !== false || nouvelleSouscriptionParticulier) && faitsManquants(editeur).length > 0) {
+export const MOTIF_MEDIATEUR =
+  "Le paiement en ligne n'est pas encore ouvert aux particuliers. Les coordonnées du médiateur de la consommation de Gerimmo doivent être publiées avant la première souscription.";
+
+/**
+ * Le motif qui ferme le paiement, ou `null`.
+ *  - Vendeur incomplet : ferme toute première souscription, blocage levé ou non ; ferme une hausse tant que le blocage
+ *    est actif. Le détail des manques n'est pas dit au client : il est affiché au dirigeant (/admin/sante,
+ *    /admin/parametres).
+ *  - Médiateur non saisi : ferme la première souscription d'un particulier tant que le blocage est actif.
+ * Pendant l'essai, la phrase ajoute « Votre essai continue. » ; gelé ou abonné, elle s'arrête avant.
+ */
+export function motifIdentiteEditeur(editeur: Record<string, FaitEditeur>, { enEssai, blocageIdentiteActif, premiereSouscription, nouvelleSouscriptionParticulier }: ContexteGarde): string | null {
+  const blocageLeve = blocageIdentiteActif === false;
+  const premiere = Boolean(premiereSouscription || nouvelleSouscriptionParticulier);
+  if ((!blocageLeve || premiere) && defautsVendeur(editeur).length > 0) {
     return enEssai ? MOTIF_IDENTITE_EDITEUR_ESSAI : MOTIF_IDENTITE_EDITEUR;
+  }
+  if (nouvelleSouscriptionParticulier && !blocageLeve && !mediateurDesigne(editeur)) {
+    return enEssai ? `${MOTIF_MEDIATEUR} Votre essai continue.` : MOTIF_MEDIATEUR;
   }
   return null;
 }

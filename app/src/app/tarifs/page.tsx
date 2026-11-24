@@ -15,7 +15,7 @@ export const revalidate = 3600;
 export function generateMetadata() {
   return metadonneesPubliques({
     titre: "Tarifs — Gerimmo",
-    description: `Un abonnement Gerimmo pour les particuliers et SCI, dès 5,99 €${avec(TTC)}/mois.${REGIME_TVA?.nature === "franchise" ? " TVA non applicable, art. 293 B du CGI." : ""} Essai gratuit de ${dureeEssai()}.`,
+    description: `Un abonnement Gerimmo pour les particuliers et SCI, dès 5,99 €${avec(TTC)}/mois.${REGIME_TVA?.nature === "franchise" ? " TVA non applicable, article 293 B du CGI." : ""} Essai gratuit de ${dureeEssai()}.`,
     chemin: "/tarifs",
   });
 }

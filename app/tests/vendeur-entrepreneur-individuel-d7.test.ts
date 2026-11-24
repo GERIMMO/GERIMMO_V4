@@ -14,13 +14,22 @@
  * https://entreprendre.service-public.gouv.fr/vosdroits/F37351 (site internet, « vérifié le 13 octobre 2026 ») et
  * https://entreprendre.service-public.gouv.fr/vosdroits/F31808 (facture, « vérifié le 11 août 2026 »).
  *
+ * REPRISE DU 24/11/2026 (décision de pilotage, relecture D7R). Trois affirmations de ce fichier étaient celles du
+ * premier commit D7 et sont réécrites, chacune avec son commentaire :
+ *  · « rien ne ferme la première souscription d'un particulier sans médiateur » : par défaut elle reste FERMÉE (le
+ *    recueil du dirigeant contient L. 612-1 et L. 616-1 du code de la consommation) ; lever le blocage l'ouvre ;
+ *  · l'article 17 « sera désigné […] dès l'adhésion » (D7R-01 : ce test figeait une phrase fausse) : un seul texte,
+ *    vrai avec et sans médiateur, sous une nouvelle version des conditions ;
+ *  · E141 : le renvoi au bailleur ne vise que le locataire (D7R-09).
+ * Les règles nouvelles (variantes « EI », agence, console) ont leur fichier : tests/vendeur-mediateur-reprise-d7.test.ts.
+ *
  * AUCUNE DONNÉE RÉELLE : un vendeur fictif de la même forme que le vrai (nom, prénom, « EI », nom commercial entre
  * parenthèses dans la forme, SIRET de 14 chiffres). Les vraies valeurs se saisissent en console le jour de la publication.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { PRESTATAIRES, cleCoordonnees, estEntrepreneurIndividuel, faitsACompleter, faitsManquants, porteLaMentionEI, sirenEtSiret } from "../src/lib/editeur";
-import { motifIdentiteEditeur, MOTIF_IDENTITE_EDITEUR, MOTIF_IDENTITE_EDITEUR_ESSAI } from "../src/lib/garde-souscription";
+import { motifIdentiteEditeur, MOTIF_IDENTITE_EDITEUR, MOTIF_IDENTITE_EDITEUR_ESSAI, MOTIF_MEDIATEUR } from "../src/lib/garde-souscription";
 import { validerIdentite } from "../src/lib/identite-editeur";
 import { courrierConfirmationSouscription, formulaireRetractation, identiteEditeurEnLigne, phraseMediateurReclamation, type Confirmation } from "../src/lib/courriers-contrat";
 import { piedDeFacturePour } from "../src/lib/stripe";
@@ -66,14 +75,16 @@ beforeEach(() => {
   lecture.valeurs = { ...VENDEUR, ...PRESTATAIRES_FICTIFS };
 });
 
-describe("garde : ouverture possible sans médiateur, impossible sans vendeur", () => {
+describe("garde : fermée sans vendeur ; sans médiateur, fermée au particulier par défaut", () => {
   const particulier = { enEssai: true, blocageIdentiteActif: true, nouvelleSouscriptionParticulier: true };
 
-  it("vendeur complet, aucun médiateur : rien ne ferme la première souscription d'un particulier", () => {
+  // Reprise du 24/11/2026 : ce test affirmait « rien ne ferme ». Par défaut, sans médiateur, le particulier ne
+  // souscrit pas ; le super admin peut lever ce blocage (troisième ligne).
+  it("vendeur complet, aucun médiateur : la première souscription d'un particulier est fermée par défaut, ouverte si le blocage est levé", () => {
     expect(faitsManquants(VENDEUR)).toEqual([]);
     expect(faitsACompleter(VENDEUR)).toEqual(["le médiateur de la consommation", "l'adresse du médiateur", "le site du médiateur"]);
-    expect(motifIdentiteEditeur(VENDEUR, particulier)).toBeNull();
-    expect(motifIdentiteEditeur(VENDEUR, { ...particulier, enEssai: false })).toBeNull();
+    expect(motifIdentiteEditeur(VENDEUR, particulier)).toBe(`${MOTIF_MEDIATEUR} Votre essai continue.`);
+    expect(motifIdentiteEditeur(VENDEUR, { ...particulier, enEssai: false })).toBe(MOTIF_MEDIATEUR);
     expect(motifIdentiteEditeur(VENDEUR, { ...particulier, blocageIdentiteActif: false })).toBeNull();
   });
 
@@ -101,8 +112,11 @@ describe("garde : ouverture possible sans médiateur, impossible sans vendeur", 
     expect(motifIdentiteEditeur({}, { enEssai: false, blocageIdentiteActif: true })).toBe(MOTIF_IDENTITE_EDITEUR);
   });
 
-  it("le motif ne parle jamais du médiateur", () => {
+  it("le motif du vendeur ne parle pas du médiateur ; celui du médiateur ne dit pas qu'il en existe un", () => {
     for (const m of [MOTIF_IDENTITE_EDITEUR, MOTIF_IDENTITE_EDITEUR_ESSAI]) expect(m).not.toMatch(/médiateur/i);
+    expect(MOTIF_MEDIATEUR).toBe(
+      "Le paiement en ligne n'est pas encore ouvert aux particuliers. Les coordonnées du médiateur de la consommation de Gerimmo doivent être publiées avant la première souscription."
+    );
   });
 });
 
@@ -167,29 +181,59 @@ describe("conditions de vente : le vendeur et le médiateur", () => {
     expect(texte(html)).toContain("TVA non applicable, article 293 B du code général des impôts : les prix affichés sont les montants payés.");
   });
 
-  it("sans médiateur : l'article 17 dit qu'il sera désigné, sans coordonnées ni conformité affirmée", async () => {
-    const article = section(renderToStaticMarkup(await Conditions()), "17. Droit applicable et litiges");
-    expect(article).toContain("qui sera désigné aux mentions légales dès l'adhésion de l'Éditeur.");
+  // Reprise du 24/11/2026 (D7R-01, D7R-02). Les deux tests d'ici figeaient l'ancien article 17 : « sera désigné aux
+  // mentions légales dès l'adhésion de l'Éditeur » (un recours au présent, une adhésion que rien n'établit), puis les
+  // coordonnées imprimées dans le contrat. L'article est désormais le MÊME texte dans les deux cas.
+  const ARTICLE_17 =
+    "Le Client consommateur a le droit de recourir gratuitement à un médiateur de la consommation en vue de la résolution amiable d'un litige qui l'oppose à l'Éditeur, après une réclamation écrite restée sans solution. " +
+    "Dès qu'un médiateur est désigné, son nom et ses coordonnées figurent aux mentions légales et sont rappelés dans la réponse de l'Éditeur à la réclamation. " +
+    "Tant qu'aucun médiateur n'est désigné, les mentions légales et cette réponse l'indiquent expressément ; le Client garde alors la réclamation écrite prévue ci-dessus et les voies de droit commun.";
+
+  it("sans médiateur : l'article 17 ne promet aucun recours existant, aucune adhésion, et renvoie aux mentions légales", async () => {
+    const html = renderToStaticMarkup(await Conditions());
+    const article = section(html, "17. Droit applicable et litiges");
+    expect(article).toContain(ARTICLE_17);
     expect(article).toContain("la réclamation s'adresse à contact@example.test");
-    expect(article).not.toContain("dont relève");
-    expect(article).not.toContain("Médiateur fictif");
+    for (const faux of ["adhésion", "sera désigné", "dont relève", "Médiateur fictif", "peut recourir gratuitement au médiateur"]) expect(article).not.toContain(faux);
     expect(article).not.toMatch(/conforme/i);
+    expect(html.slice(html.indexOf("17. Droit applicable et litiges"))).toContain('href="/mentions-legales"');
   });
 
-  it("avec médiateur : l'article 17 donne son nom, son adresse et son site", async () => {
+  it("avec médiateur : le même article, mot pour mot ; les coordonnées sont aux mentions légales, pas dans le contrat", async () => {
+    const sans = section(renderToStaticMarkup(await Conditions()), "17. Droit applicable et litiges");
     Object.assign(lecture.valeurs, MEDIATEUR);
-    const article = section(renderToStaticMarkup(await Conditions()), "17. Droit applicable et litiges");
-    expect(article).toContain("dont relève l'Éditeur : Médiateur fictif, 2 rue Exemple, 75000 Paris, https://example.test/mediation");
-    expect(article).not.toContain("sera désigné");
+    const avec = section(renderToStaticMarkup(await Conditions()), "17. Droit applicable et litiges");
+    expect(avec).toBe(sans);
+    expect(avec).not.toContain("Médiateur fictif");
+    // Ce que l'article promet est tenu par la page à laquelle il renvoie, dans les deux cas.
+    const mentions = texte(renderToStaticMarkup(await Mentions()));
+    expect(mentions).toContain("Médiateur fictif 2 rue Exemple, 75000 Paris https://example.test/mediation");
+    Object.assign(lecture.valeurs, { mediateurNom: null, mediateurAdresse: null, mediateurSite: null });
+    expect(texte(renderToStaticMarkup(await Mentions()))).toContain("Médiateur de la consommation : aucun organisme n’est désigné à ce jour.");
   });
 
-  it("le vendeur n'est nulle part présenté comme une société dans les conditions", async () => {
+  // Reprise du 24/11/2026 (D7R-11) : l'ancienne preuve ne regardait que 80 caractères après le mot « Éditeur ». Elle
+  // lit désormais chaque phrase qui nomme l'Éditeur, en entier, et la définition de l'article 2 mot pour mot.
+  it("le vendeur n'est nulle part présenté comme une société dans les conditions, ni figé en « entrepreneur individuel »", async () => {
     const page = texte(renderToStaticMarkup(await Conditions()));
-    // Les conditions parlent de sociétés à propos des CLIENTS (SCI, société civile) : on cherche donc les tournures qui
-    // qualifieraient l'Éditeur lui-même.
-    expect(page).not.toMatch(/Éditeur[^.]{0,80}\b(?:société|SAS|SARL|capital|RCS)\b/i);
-    expect(page).not.toMatch(/\b(?:société|SAS|SARL)\b[^.]{0,40}MARTIN Camille/i);
-    expect(page).not.toMatch(/capital social|siège social de l'Éditeur|immatriculée au RCS/i);
+    // D7R-08 : l'article 2 ne dit plus « l'entrepreneur individuel » en dur (une société peut être saisie plus tard).
+    expect(page).toContain("Éditeur : l'entreprise identifiée aux mentions légales , qui édite et exploite le Service.");
+    expect(page).not.toMatch(/entrepreneur individuel/i);
+    // Les conditions parlent de sociétés à propos des CLIENTS (SCI, société civile) : on cherche les phrases qui
+    // nomment l'Éditeur ou le vendeur, et aucune ne doit porter un mot propre aux sociétés.
+    const phrases = page.split(/(?<=[.;:!?])\s+/);
+    const surLEditeur = phrases.filter((ph) => /Éditeur|MARTIN Camille/.test(ph));
+    expect(surLEditeur.length).toBeGreaterThan(50);
+    for (const ph of surLEditeur) expect(ph, ph).not.toMatch(/\b(?:sociétés?|SAS|SARL|capital|RCS)\b|siège/i);
+    expect(page).not.toMatch(/capital social|siège social|immatriculée au RCS|adresse du siège/i);
+  });
+
+  it("une société saisie plus tard : l'article 2 reste vrai et la réserve du formulaire ne parle plus de « siège »", async () => {
+    lecture.valeurs = { ...lecture.valeurs, denomination: "Exemple", forme: "SAS", capital: "1 000 €", siege: null };
+    const page = texte(renderToStaticMarkup(await Conditions()));
+    expect(page).toContain("Éditeur : l'entreprise identifiée aux mentions légales");
+    expect(page).toMatch(/À l'attention de Exemple, adresse de l'éditeur \(à venir\) ?, contact@example\.test :/);
+    expect(page).not.toContain("adresse du siège");
   });
 });
 
@@ -201,12 +245,21 @@ describe("confidentialité : le responsable est un entrepreneur individuel", () 
     expect(phrase).not.toMatch(MOTS_DE_SOCIETE);
   });
 
+  // Reprise du 24/11/2026 (D7R-09) : la phrase attendue disait « les autres comptes […] s'adressent à leur bailleur »,
+  // ce qui englobait l'artisan ; le renvoi au bailleur ne vise que le locataire.
   it("E141 : la fermeture du compte ne promet plus à tous un téléchargement que seul le titulaire d'un espace trouve", async () => {
     const page = texte(renderToStaticMarkup(await Confidentialite()));
     expect(page).not.toContain("après avoir téléchargé vos données si vous le souhaitez");
     expect(page).toContain(
-      "après avoir récupéré vos données si vous le souhaitez : le titulaire d'un espace y télécharge son archive complète ; les autres comptes y demandent une copie des données de leur compte (« Recevoir une copie de mes données ») et s'adressent à leur bailleur pour les données d'une location."
+      "après avoir récupéré vos données si vous le souhaitez : le titulaire d'un espace y télécharge son archive complète ; les autres comptes y demandent une copie des données de leur compte (« Recevoir une copie de mes données ») ; un locataire s'adresse en outre à son bailleur pour les données de sa location."
     );
+    expect(page).not.toContain("s'adressent à leur bailleur");
+    // La phrase voisine (« Votre compte ») ne promet plus un export à tous.
+    expect(page).not.toContain("après avoir exporté ce que vous souhaitez garder");
+    expect(page).toContain("après avoir récupéré ce que vous souhaitez garder (depuis la page « Mes données personnelles », le titulaire d'un espace obtient son archive complète ; les autres comptes y demandent une copie des données de leur compte).");
+    // La finalité ne promet plus un « renvoi au médiateur » quand aucun n'est désigné.
+    expect(page).not.toContain("renvoi au médiateur de la consommation");
+    expect(page).toContain("information sur le médiateur de la consommation (ses coordonnées s’il est désigné, sinon l’indication qu’aucun ne l’est)");
   });
 });
 
@@ -229,7 +282,7 @@ describe("facture d'abonnement : ce que Gerimmo écrit (le reste de la facture v
   });
 
   it("le pied de facture garde la mention et la référence déjà présentes dans le code", () => {
-    expect(piedDeFacturePour({ nature: "franchise" })).toBe("TVA non applicable, art. 293 B du CGI.");
+    expect(piedDeFacturePour({ nature: "franchise" })).toBe("TVA non applicable, article 293 B du CGI.");
     expect(piedDeFacturePour({ nature: "assujetti", tauxPourcent: 20 })).toBeUndefined();
   });
 
@@ -242,7 +295,7 @@ describe("facture d'abonnement : ce que Gerimmo écrit (le reste de la facture v
   it("courriel de confirmation sans médiateur : le vendeur, la TVA, et « aucun n'est désigné »", () => {
     const t = texte(courrierConfirmationSouscription(confirmation(VENDEUR)).html);
     expect(t).toContain("MARTIN Camille EI");
-    expect(t).toContain("TVA non applicable, art. 293 B du CGI");
+    expect(t).toContain("TVA non applicable, article 293 B du CGI");
     expect(t).toContain("Médiateur de la consommation : aucun n'est désigné à ce jour ; ses coordonnées figureront dans les mentions légales dès sa désignation.");
     expect(t).not.toContain("adhésion en cours");
     expect(t).not.toMatch(/\bSAS\b|\bSARL\b|\bRCS\b|capital social|siège social/);
@@ -278,6 +331,8 @@ describe("saisie en console : cohérente avec un entrepreneur individuel", () =>
     // « EI » en mot entier et en majuscules : ni « Reine », ni « ei ».
     for (const nom of ["MARTIN Reine", "LEIRIS Camille", "martin camille ei", "MEIER Camille"]) expect(porteLaMentionEI(nom), nom).toBe(false);
     for (const nom of ["MARTIN Camille EI", "MARTIN Camille (EI)", "EI MARTIN Camille", "MARTIN Camille Entrepreneur individuel"]) expect(porteLaMentionEI(nom), nom).toBe(true);
+    // Le message dit la règle de l'article R. 526-27 du code de commerce : « immédiatement précédés ou suivis ».
+    expect(validerIdentite(form({ ...VENDEUR, denomination: "MARTIN Camille" })).erreur).toContain("immédiatement précédés ou suivis de « EI »");
   });
 
   it("refuse un capital social pour un entrepreneur individuel ; une société garde ses champs", () => {

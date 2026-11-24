@@ -93,9 +93,10 @@ describe("I2 : relevé après la date d'effet", () => {
 
   it("Santé prévient avant le premier archivage d'une version déjà en vigueur", () => {
     // Les documents client et artisan ont des dates d’effet différentes.
-    const html = renderToStaticMarkup(ArchiveConditions({ versions: [], sansArchive: [], autorise: true, aujourdhui: "2026-11-16" }));
+    const html = renderToStaticMarkup(ArchiveConditions({ versions: [], sansArchive: [], autorise: true, aujourdhui: "2026-11-25" }));
     expect(html).toContain("en vigueur depuis le 24 octobre 2026");
-    expect(html).toContain("en vigueur depuis le 15 novembre 2026");
+    // Lot T4 (24/11/2026) : la version en vigueur des conditions clients est celle du 24 novembre 2026.
+    expect(html).toContain("en vigueur depuis le 24 novembre 2026");
     expect(html).toContain("relevé aujourd’hui");
     expect(html).toContain("à trancher par le dirigeant avant le premier archivage");
     // Le jour de l'effet, ou une fois archivées, rien à signaler.

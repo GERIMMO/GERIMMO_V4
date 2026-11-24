@@ -99,7 +99,7 @@ export default async function PageSante() {
     supabase.rpc("is_permanent_super_admin"),
   ]);
   const manquants = faitsManquants(identite.indisponible?{}:identite.editeur);
-  // 23/10 : le médiateur se complète plus tard, sans rien fermer (lib/editeur.ts, A_COMPLETER).
+  // Le médiateur se compte à part : il ne ferme que la première souscription d'un particulier (lib/editeur.ts, A_COMPLETER).
   // Relecture du 23/10 : lecture en échec, on ne sait rien du médiateur — il est compté non fourni, comme les
   // faits requis, et non plus « fourni » faute d'entrée dans une liste vide.
   const aCompleter = faitsACompleter(identite.indisponible ? {} : identite.editeur);
@@ -336,7 +336,7 @@ export default async function PageSante() {
             {manquants.length > 0
               ? `${manquants.length} à fournir`
               : aCompleter.length > 0
-                ? `${aCompleter.length} à compléter, non bloquant`
+                ? `${aCompleter.length} à compléter (médiateur)`
                 : "complets"}
           </span>
         </div>
@@ -356,10 +356,10 @@ export default async function PageSante() {
                 (lib/garde-souscription.ts : un `false` lu en base la lève ; une lecture impossible la garde). */}
             <p>
               {manquants.length === 0
-                ? "L’identité requise est complète : le paiement en ligne n’en dépend plus. Les faits « à compléter » s’affichent « à venir » sur les mentions légales, sans rien fermer."
+                ? "L’identité requise est complète. Reste le médiateur de la consommation : tant qu’il n’est pas saisi, les mentions légales disent qu’aucun n’est désigné, et la première souscription d’un particulier reste fermée, sauf si le blocage des abonnements est levé dans les paramètres."
                 : regle.blocageIdentiteActif
                   ? "Tant qu’un fait « manquant » n’est pas fourni, les pages légales affichent l’encadré « Document en cours de finalisation » et le paiement en ligne reste fermé."
-                  : "Tant qu’un fait « manquant » n’est pas fourni, les pages légales affichent l’encadré « Document en cours de finalisation ». Le blocage des abonnements est levé dans les paramètres : ces manques ne ferment plus les augmentations payantes ; la première souscription d’un particulier reste fermée."}
+                  : "Tant qu’un fait « manquant » n’est pas fourni, les pages légales affichent l’encadré « Document en cours de finalisation ». Le blocage des abonnements est levé dans les paramètres : ces manques ne ferment plus les augmentations payantes ; toute première souscription reste fermée."}
             </p>
             <ul className="mt-3 divide-y divide-[var(--filet)]">
               {faitsExiges.map((fait) => {
@@ -379,7 +379,7 @@ export default async function PageSante() {
                   <li key={fait} className="flex items-center justify-between gap-3 py-2.5">
                     <span>{fait[0].toUpperCase() + fait.slice(1)}</span>
                     <span className={`puce ${manque ? "puce-prep" : "puce-loue"}`}>
-                      {manque ? "à compléter, non bloquant" : "fourni"}
+                      {manque ? "à compléter" : "fourni"}
                     </span>
                   </li>
                 );

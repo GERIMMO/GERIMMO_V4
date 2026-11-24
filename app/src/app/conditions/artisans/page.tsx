@@ -6,7 +6,7 @@ import {
   CONDITIONS_ARTISANS_VERSION,
   courrielDeContact,
   documentsIncomplets,
-  sousTraitantsClient,
+  sousTraitantsArtisan,
 } from "@/lib/editeur";
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
 
@@ -33,7 +33,7 @@ export const metadata = metadonneesPubliques({
 export default async function PageConditionsArtisans() {
   const { editeur: EDITEUR, indisponible } = await lireEditeur();
   // La même liste figée que l'annexe 1 des conditions clients : lue depuis les constantes, jamais depuis la base.
-  const prestataires = sousTraitantsClient();
+  const prestataires = sousTraitantsArtisan();
   return (
     <CoquilleLegale
       titre="Conditions de l'espace artisan"

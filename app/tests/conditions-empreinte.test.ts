@@ -8,7 +8,8 @@
  *
  * La page est rendue sous plusieurs identités fictives (VARIANTES : médiateur désigné ou non, coordonnées du médiateur
  * manquantes, adresse de contact seule, identité vide) : l'empreinte de garde couvre chaque branche du texte qui dépend
- * de l'identité (relecture adverse du 24/10, I3).
+ * de l'identité (relecture adverse du 24/10, I3). Depuis la version du 24/11/2026 des conditions clients, le médiateur
+ * ne change plus leur texte : ses variantes restent, pour le prouver.
  *
  * QUAND CE TEST ÉCHOUE, le texte a changé :
  *  - le changement touche le contrat : nouvelle version (CONDITIONS_VERSION et CONDITIONS_DATE dans lib/editeur.ts),
@@ -43,7 +44,7 @@ import {
   versionDeclaree,
   versionsDeclarees,
 } from "../src/lib/conditions-versions";
-import { CONDITIONS_ARTISANS_VERSION, CONDITIONS_VERSION, PRESTATAIRES, cleCoordonnees, sousTraitantsClient } from "../src/lib/editeur";
+import { CONDITIONS_ARTISANS_VERSION, CONDITIONS_VERSION, PRESTATAIRES, cleCoordonnees, sousTraitantsArtisan, sousTraitantsClient } from "../src/lib/editeur";
 
 /** L'identité fictive et figée de la garde : la changer change l'empreinte de référence. */
 const IDENTITE_FIXE: Record<string, string | null> = {
@@ -161,7 +162,11 @@ describe("garde du code : le texte des conditions ne change pas sans nouvelle ve
   it.each(DOCUMENTS_PUBLIES.map((d) => [d.document, d] as const))(
     "l'empreinte de garde de %s (toutes les variantes de l'identité) est celle de conditions-versions.json pour sa version en vigueur",
     async (document, d) => {
-      const calculee = empreinteDeGarde(await rendusDeGarde(document));
+      // Lot T4 (24/11/2026) : l'annexe des conditions de l'espace artisan garde son propre rôle d'OpenAI (propositions
+      // de devis seulement) ; celle des conditions clients décrit désormais les trois envois. Chaque document est
+      // empreint avec SA liste, et les conditions de l'espace artisan gardent leur empreinte du 24/10/2026.
+      const liste = listeFigeeSousTraitants(document === "conditions_artisans" ? sousTraitantsArtisan() : sousTraitantsClient());
+      const calculee = empreinteDeGarde(await rendusDeGarde(document), liste);
       const declaree = versionDeclaree(document, d.version)?.empreinte_reference;
       expect(
         calculee,
@@ -174,6 +179,13 @@ describe("garde du code : le texte des conditions ne change pas sans nouvelle ve
   it("la liste figée des sous-traitants est celle des annexes : les seuls sous-traitants des données du Client", () => {
     expect(listeFigeeSousTraitants().map((p) => p.nom)).toEqual(sousTraitantsClient().map((p) => p.nom));
     expect(listeFigeeSousTraitants().map((p) => p.cle)).toEqual(["supabase", "vercel", "resend", "zohoSign", "openai", "scaleway", "github"]);
+    // Lot T4 : mêmes prestataires pour l'espace artisan ; seul le rôle d'OpenAI y diffère (devis seulement).
+    const artisan = listeFigeeSousTraitants(sousTraitantsArtisan());
+    expect(artisan.map((p) => p.cle)).toEqual(listeFigeeSousTraitants().map((p) => p.cle));
+    expect(artisan.filter((p, i) => p.role !== listeFigeeSousTraitants()[i].role).map((p) => p.cle)).toEqual(["openai"]);
+    expect(artisan.find((p) => p.cle === "openai")?.role).toBe(
+      "Propositions de devis artisans : catalogue tarifaire et symptômes techniques sélectionnés, à l'exclusion des noms, adresses et descriptions libres des occupants"
+    );
   });
 
   it("l'empreinte de garde de /conditions (toutes les variantes de l'identité) est celle de conditions-versions.json", async () => {
@@ -187,31 +199,39 @@ describe("garde du code : le texte des conditions ne change pas sans nouvelle ve
     ).toBe(declaree);
   });
 
-  it("I3 : chaque branche de l'identité est rendue — médiateur désigné, coordonnées manquantes, encadré et ses deux renvois", async () => {
+  // Version du 24/11/2026 (reprise du lot D7, relectures D7R-01 et D7R-02) : ce test affirmait l'ancienne règle —
+  // un paragraphe par état du médiateur (« dès l'adhésion de l'Éditeur », ou ses coordonnées), donc cinq rendus
+  // distincts. L'article 17 est désormais UN SEUL texte, vrai dans les deux cas : les trois variantes qui ne diffèrent
+  // que par le médiateur rendent le même texte, mot pour mot. Les variantes restent dans la garde : elles prouvent à
+  // chaque passage que le contrat ne dépend pas du médiateur.
+  it("I3 : chaque branche de l'identité est rendue — le médiateur ne change plus le texte ; encadré et ses deux renvois", async () => {
     const rendus = Object.fromEntries((await rendusDeGarde()).map((r) => [r.variante, r.html]));
-    // V1 (article 17, décision du 23/10) : sans médiateur, il « sera désigné aux mentions légales dès l'adhésion » ;
-    // désigné, ses coordonnées lues en base suivent « dont relève l'Éditeur ».
-    expect(rendus.identite_complete_sans_mediateur).toContain("dès l&#x27;adhésion de l&#x27;Éditeur");
-    expect(rendus.identite_complete_avec_mediateur).toContain("médiateur de la consommation dont relève l&#x27;Éditeur");
-    expect(rendus.identite_complete_avec_mediateur).toContain("Médiateur fictif de la consommation");
-    expect(rendus.identite_complete_avec_mediateur).toContain("https://mediateur.example");
-    expect(rendus.mediateur_sans_coordonnees).toContain("adresse du médiateur (à venir)");
+    expect(rendus.identite_complete_avec_mediateur).toBe(rendus.identite_complete_sans_mediateur);
+    expect(rendus.mediateur_sans_coordonnees).toBe(rendus.identite_complete_sans_mediateur);
+    for (const html of Object.values(rendus)) {
+      expect(html).not.toContain("adhésion de l&#x27;Éditeur");
+      expect(html).not.toContain("Médiateur fictif de la consommation");
+      expect(html).not.toContain("https://mediateur.example");
+      expect(html).not.toContain("adresse du médiateur (à venir)");
+      expect(html).toContain("Tant qu&#x27;aucun médiateur n&#x27;est désigné, les mentions légales");
+    }
     expect(rendus.adresse_de_contact_seule).toContain("Document en cours de finalisation");
     expect(rendus.adresse_de_contact_seule).toContain('href="mailto:contact@example.com');
     expect(rendus.identite_vide).toContain("formulaire de contact de l&#x27;accueil");
-    // Cinq rendus distincts : aucune variante n'est superflue.
-    expect(new Set(Object.values(rendus)).size).toBe(VARIANTES.length);
+    // Trois textes distincts : identité complète (avec ou sans médiateur), adresse de contact seule, identité vide.
+    expect(new Set(Object.values(rendus)).size).toBe(3);
   });
 
-  it("I3 : un mot changé dans le paragraphe du médiateur désigné change l'empreinte de garde", async () => {
+  // Même raison : il n'existe plus de « paragraphe du médiateur désigné ». La propriété gardée est la même — un mot
+  // changé dans UNE variante change l'empreinte de garde, les autres rendus restant intacts.
+  it("I3 : un mot changé dans le paragraphe de la médiation d'une seule variante change l'empreinte de garde", async () => {
     const rendus = await rendusDeGarde();
     const reference = empreinteDeGarde(rendus);
     const modifies = rendus.map((r) =>
-      r.variante === "identite_complete_avec_mediateur" ? { ...r, html: r.html.replace("dont relève l&#x27;Éditeur", "que choisit l&#x27;Éditeur") } : r
+      r.variante === "identite_complete_avec_mediateur" ? { ...r, html: r.html.replace("recourir gratuitement à un médiateur", "recourir à un médiateur") } : r
     );
     expect(modifies).not.toEqual(rendus);
     expect(empreinteDeGarde(modifies)).not.toBe(reference);
-    // L'empreinte d'un seul rendu, sans médiateur, ne l'aurait pas vu.
     const sansMediateur = rendus.find((r) => r.variante === "identite_complete_sans_mediateur")!;
     expect(modifies.find((r) => r.variante === "identite_complete_sans_mediateur")!.html).toBe(sansMediateur.html);
   });

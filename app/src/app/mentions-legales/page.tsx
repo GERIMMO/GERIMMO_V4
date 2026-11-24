@@ -67,7 +67,8 @@ export default async function PageMentionsLegales() {
       </Article>
 
       <Article titre="Médiation de la consommation">
-        {/* Même rendu que l'article 17 des conditions (relecture du 23/10). */}
+        {/* L'article 17 des conditions renvoie ici, que le médiateur soit désigné ou non (version du 24/11/2026) :
+            cette rubrique doit toujours dire l'un ou l'autre, jamais se taire. */}
         {EDITEUR.mediateurNom ? (
           <CoordonneesMediateur editeur={EDITEUR} />
         ) : (

@@ -336,7 +336,7 @@ export function montants(prixCents: Centimes, base: "ttc" | "ht", regime: Regime
       htCents: prixCents,
       tvaCents: 0,
       ttcCents: prixCents,
-      mention: "TVA non applicable, art. 293 B du CGI.",
+      mention: "TVA non applicable, article 293 B du CGI.",
     };
   }
   const t = regime.tauxPourcent;
@@ -372,8 +372,8 @@ export function mentionTaxesPubliques(regime: RegimeTva | null, options: { agenc
   if (!regime) return MENTION_REGIME_INCONNU;
   if (regime.nature === "franchise") {
     return agences
-      ? "TVA non applicable, art. 293 B du CGI : les prix affichés sont les montants payés, pour les particuliers comme pour les agences."
-      : "TVA non applicable, art. 293 B du CGI : les prix affichés sont les montants payés.";
+      ? "TVA non applicable, article 293 B du CGI : les prix affichés sont les montants payés, pour les particuliers comme pour les agences."
+      : "TVA non applicable, article 293 B du CGI : les prix affichés sont les montants payés.";
   }
   return agences
     ? `Particuliers : prix TTC, TVA ${regime.tauxPourcent} % incluse. Agences : prix HT, TVA ${regime.tauxPourcent} % en sus, détaillée avant paiement.`

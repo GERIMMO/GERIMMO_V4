@@ -48,3 +48,35 @@ Mon premier passage des tests liés a lancé `tests/demande-rappel-api.test.ts`,
 
 ## Reste
 Mineurs non traités (consigne) ; E057/E170 (« 24 moisaprès ») notamment, qui changerait le texte de /confidentialite : la garde E056 demandera alors de relever date et empreinte ensemble.
+
+## Décisions du dirigeant du 25/11 (même arbre `$S/palier1-t`, commit local `35331720`, sans push)
+
+Tests : bases `gerimmo_ci_sonde_tquatre` (et `_api`) seulement, émulateur neutralisé (`tour5/decisions-2511/env.sh`). Aucun serveur lancé, aucun port 3100/3101/54321 utilisé.
+
+| Point | Verdict | Ce qui change |
+|---|---|---|
+| 1. Outil IRL : rien de prérempli | **appliqué** | Tous les champs démarrent vides : loyer (850 €), date du bail (« un an avant le dernier indice », aide « Exemple pré-rempli »), trimestre du bail, trimestres et années de la saisie manuelle (T2 2025 → T2 2026), classe DPE (« Je ne sais pas » coché) et date de la lettre (date du jour posée au montage). `EXEMPLE_IRL` est retiré de `lib/outils/irl.ts` ; un trimestre y est `null` tant que trimestre et année ne sont pas choisis, et manque au calcul. Seul exemple restant : le placeholder « Ex. 850 » du loyer (libellé visible conservé) ; années en liste avec un premier choix vide « Choisir l'année » ; date de la lettre avec l'aide « Par exemple, la date du jour. ». Aucun indice en placeholder (la garde « aucun indice écrit » reste). Le résultat dit tout ce qui manque d'un coup (« Renseignez le loyer hors charges actuel et la date de signature… »). La lettre : bouton inactif tant que le calcul n'est pas fait ET que ses six champs (nom et adresse du bailleur, nom du locataire, adresse du logement, date de la lettre, date d'effet) ne sont pas saisis, avec la raison sous le bouton (`irl-lettre-manque`, relié par `aria-describedby`) ; incomplète, elle ne sort pas non plus par l'impression du navigateur (feuille `print:hidden`, la page imprimée donne la raison). « Saisir les indices moi-même » sans date saisie ne reprend rien. |
+| 2. Diffusion Facebook masquée sans Page « Relié » | **appliqué** | Lecture unique `lib/diffusion-facebook.ts` (`etatPageFacebook`, même règle que « Vos canaux de diffusion ») et court texte commun `components/diffusion-facebook-masquee.tsx` : pourquoi (« La connexion à la Page Facebook est à vérifier : Gerimmo n'arrive pas à lire la Page, la diffusion sur Facebook n'est donc pas proposée. ») et où (« Vérifiez la Page dans » → lien « Vos canaux de diffusion », /admin/marketing#canaux). Éditeur : le texte de la publication Facebook et « Publier sur Facebook » sont masqués ; le texte préparé repart tel quel à l'enregistrement (champ caché : `enregistrerPublication` l'aurait effacé) ; l'image reste modifiable (« Adresse de l'illustration de l'article ») car c'est aussi l'illustration du journal. Une tentative incertaine reste vérifiable (constat, pas une diffusion). Marketing : colonne « À diffuser » remplacée par le texte ; « Publier maintenant » et « Valider pour l'heure prévue » des posts programmés masqués (Modifier, Reporter, Refuser restent) ; case « Publier automatiquement » masquée (elle était grisée) ; « Article et texte Facebook à relire » devient « Article à relire ». Actions serveur et refus de `lib/facebook.ts` inchangés. |
+| 3. Date de /confidentialite | **vérifié, rien changé** | `CONFIDENTIALITE_DATE` = « 24 novembre 2026 ». Derniers commits sur les sources du texte rendu (page, `lib/editeur.ts`, composants légaux) : e9e46692, 6b9d9e01 et a1093368, tous le 24/11 (de 19 h 50 à 21 h 56, heure de Paris) ; b04d89f1 (23 h 33, Paris) n'a changé que la source de la date (même valeur, `CONDITIONS_DATE` valait déjà « 24 novembre 2026 »). Ce lot ne touche pas le texte : la garde d'empreinte `tests/confidentialite-v1.test.ts` passe avant et après (pas de test « rouge avant » possible, rien ne change). |
+
+### Tests (échouent avant, passent après)
+- Avant (code de b04d89f1, nouveaux tests) : `tour5/decisions-2511/vitest-avant.log` — 16 échecs / 49 (point 1 : 12, point 2 : 4 ; confidentialite-v1 vert).
+- Après, mêmes fichiers : `vitest-apres.log` — 49 / 49.
+- Tous les tests qui citent les fichiers touchés et ceux qui balaient le code (65 fichiers, `tests-a-lancer.txt`) : `vitest-lies.log` — 64 fichiers passés, 1 sauté ; 1 547 tests passés, 4 sautés.
+- `npx tsc --noEmit` propre ; `npx eslint` sur les 17 fichiers touchés propre.
+- Nouveaux : `tests/outils-irl-sans-valeur.test.ts` (composant réel exécuté par le moteur de hooks : états de départ, effet de montage, saisie, lettre) et `tests/diffusion-facebook-masquee.test.ts` (éditeur et écran Marketing rendus avec leurs vrais composants). Mis à jour avec commentaire : `tests/outils-irl.test.ts` (l'exemple de la page n'existe plus ; trimestres manquants), `tests/outils-irl-rendu.test.ts` (le test « l'exemple part du dernier trimestre publié … 859,79 € » affirmait l'exemple prérempli).
+
+### Specs e2e mises à jour, NON lancées (vérification groupée)
+- `e2e/outils.spec.ts` (calcul IRL) : champs vides, placeholder, aucun segment coché, années vides, raison sous le bouton, lettre masquée à l'impression tant qu'incomplète, puis complète et imprimable ; suggestions d'adresse servies vides (`page.route` de la BAN, comme `creation-bien-reprise.spec.ts`).
+- `e2e/ecrans-majeurs-tour5.spec.ts` : E198 étendu (texte de publication masqué, illustration visible) et nouveau test « Marketing et contenus » (colonne, gestes, case, raison, lien).
+- `e2e/finalisation.spec.ts` : il cherchait la case « Publier automatiquement » désactivée (`isDisabled` attendrait un élément qui n'existe plus) ; il vérifie désormais son absence et la raison quand la Page n'est pas « Relié ».
+
+### Captures à prendre (390 et 1440)
+/outils/calcul-irl (série non lue et lue : champs vides, raison sous « Imprimer la lettre ») ; /admin/marketing (atelier, posts programmés, réglages ouverts) et /admin/publications/<article paru> avec la Page du banc (« À relier »).
+
+### Questions pour le dirigeant
+1. IRL : le trimestre de référence du bail se coche d'après la date SAISIE (dernier indice publié à la signature, à défaut de clause ; règle déjà dans l'outil) et reste modifiable. Gardé ainsi (rien n'est coché avant la saisie) ; faut-il exiger que l'utilisateur le coche lui-même ?
+2. IRL : « champ requis » de la lettre compris comme ses six champs (avant : imprimable avec des blancs « [Nom du bailleur] »). Option la plus prudente ; la garder ?
+3. Facebook : « À relier » est traité comme « À vérifier » (masqué aussi). D'accord ?
+4. Facebook, hors écran : la mission marketing (pg_cron) diffuse encore à l'heure dite un post programmé si `publication_automatique` est vrai en base, même Page à vérifier (l'écran ne fait que masquer). Comme avec la case grisée, enregistrer les réglages dans cet état met la publication automatique à « non ». Faut-il aussi suspendre la diffusion côté serveur tant que la Page n'est pas lue ? (non fait : logique serveur.)
+5. Les autres outils publics préremplissent encore leurs exemples (quittance 850 € + 120 €, comparateur GLI/Visale 970 €, rentabilité, LMNP). Hors décision (IRL seul) : les vider aussi ?

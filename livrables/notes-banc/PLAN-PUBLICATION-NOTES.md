@@ -6,3 +6,5 @@
 - Envois : ouvrir les cinq interrupteurs un par un (ouvrir la relance de loyer ouvre aussi la relance à la main) ; GERIMMO_MODE=commercial ; repères fiscaux 15 000 / 30 % avec source.
 - Circuits de signature « prêts » non envoyés à re-préparer : bail, acte de cautionnement, état des lieux de sortie, protocole, autorisation de travaux (prod : un seul circuit, bail terminé).
 - Sauvegarde préalable avec la nouvelle clé (Q9) — rappel programmé.
+- À CORRIGER lors de la fusion (décision du 25/11 « Facebook masqué ») : la mission marketing côté serveur diffuse encore les posts programmés si la publication automatique est activée en base, même Page non « Relié » → la mission doit refuser de diffuser tant que la Page n'est pas reliée/vérifiée (test).
+- Question ouverte : les autres outils publics (quittance, GLI/Visale, rentabilité, LMNP) préremplissent des exemples ; l'IRL non (décision du 25/11).

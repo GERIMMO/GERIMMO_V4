@@ -57,3 +57,9 @@ Réponse du dirigeant, mot pour mot : « Fais soit selon les lois, sois selon ce
 Aucun texte lu ne fixe de règle précise sur ces points. Choix pris par Claude, réversibles :
 - Q13 : la mention « Rédigé avec l'aide de l'IA » figure sur la page de l'article et à la fin du post Facebook, pas sur les listes d'articles. Un article écrit entièrement à la main ne la porte pas : l'origine de chaque article est enregistrée.
 - Q20 : seul l'auteur de la note lit le motif de son retrait. Le locataire lit le motif pour sa note ; l'organisation ne peut plus lire celui de la note de son locataire ; l'artisan ne lit rien.
+
+## Complément du 24/11 (nuit) — copie de base (Q1)
+
+Décision du dirigeant, mot pour mot : « Pas de copie de base (Q1 annulée). Publication directe en production après mon message "je valide la publication". »
+
+Conséquences notées par Claude : aucune copie de base hébergée n'est créée (aucun coût). Il n'y aura donc pas de lien de préproduction utilisable avec un compte : les vérifications se font sur le banc local de Claude, avec des données fictives, puis en production juste après la publication (parcours de vérification de 15 minutes, retour en arrière prêt).

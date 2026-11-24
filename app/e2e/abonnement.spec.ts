@@ -41,7 +41,7 @@ test.describe("Côté propriétaire bailleur", () => {
     await expect(tarifs).toContainText("Abonnement Gerimmo");
     await expect(tarifs).toContainText("2 biens en gestion");
     await expect(tarifs.locator("dl > div").filter({ has: page.locator("dt", { hasText: /^Mensuel$/ }) })).toContainText("7,98 € / mois");
-    await expect(tarifs).toContainText("TVA non applicable, art. 293 B du CGI");
+    await expect(tarifs).toContainText("TVA non applicable, article 293 B du CGI");
     await expect(page.locator("main")).not.toContainText("offert, à vie");
     await expect(page.getByRole("region", { name: "Récapitulatif avant paiement", exact: true })).toHaveCount(0);
   });
@@ -140,7 +140,7 @@ test.describe("Côté agence", () => {
     await expect(recap).toContainText("Total à payer");
     await expect(recap).not.toContainText("Total HT");
     await expect(recap).not.toContainText("TTC");
-    await expect(recap).toContainText("TVA non applicable, art. 293 B du CGI");
+    await expect(recap).toContainText("TVA non applicable, article 293 B du CGI");
   });
 
   test("aucun identifiant Stripe ne descend jusqu'au navigateur", async ({

@@ -165,7 +165,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
   // l'action (lib/garde-souscription.ts), bouton indisponible, pas de case.
   // « Votre essai continue » seulement si l'essai court encore : un essai
   // arrivé à son terme garde le statut « essai » mais ferme l'écriture.
-  const motifIdentite = motifIdentiteEditeur(garde.editeur, { enEssai: enEssai && !ferme, blocageIdentiteActif: garde.blocageIdentiteActif, nouvelleSouscriptionParticulier: !souscrit && publicTarif === "proprietaire_direct" });
+  const motifIdentite = motifIdentiteEditeur(garde.editeur, { enEssai: enEssai && !ferme, blocageIdentiteActif: garde.blocageIdentiteActif, premiereSouscription: !souscrit, nouvelleSouscriptionParticulier: !souscrit && publicTarif === "proprietaire_direct" });
   const contactPaiement = enEssai
     ? "Écrivez-nous pour demander une prolongation de votre essai."
     : "Contactez Gerimmo si vous avez besoin d’aide pour votre contrat.";
@@ -562,8 +562,9 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
             <h2 id="choisir-abonnement">{!estAgence && motifSouscription ? "Votre offre Gerimmo" : ferme ? "Reprendre avec un abonnement" : "Souscrire à Gerimmo"}</h2>
             {!estAgence && <p>Le montant dépend du nombre de biens que vous gérez dans cet espace et de la périodicité choisie.</p>}
           </div>
-          {/* Décision du dirigeant du 24/11/2026 (Q7) : la vente s'ouvre sans médiateur ; avant de payer, le particulier
-              lit alors qu'aucun n'est désigné — la même phrase que dans le courriel de confirmation. */}
+          {/* Sans médiateur saisi, le paiement d'un particulier est fermé par défaut (lib/garde-souscription.ts) ; si le
+              super admin a levé ce blocage, le particulier lit avant de payer qu'aucun médiateur n'est désigné — la
+              même phrase que dans le courriel de confirmation. */}
           {!estAgence && (garde.editeur.mediateurNom && garde.editeur.mediateurAdresse && garde.editeur.mediateurSite ? (
             <p className="text-sm">Médiateur de la consommation : {garde.editeur.mediateurNom}, {garde.editeur.mediateurAdresse}. Site : {garde.editeur.mediateurSite}. <Link href="/conditions" className="lien-texte">Consulter les modalités de recours</Link>.</p>
           ) : (

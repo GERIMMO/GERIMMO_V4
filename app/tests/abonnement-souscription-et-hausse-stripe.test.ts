@@ -29,7 +29,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { libelleActionAudit } from "@/lib/libelles-journaux";
 import { offreParticulier } from "@/lib/tarifs";
 
-const PIED = "TVA non applicable, art. 293 B du CGI.";
+const PIED = "TVA non applicable, article 293 B du CGI.";
 const ORG = "org-1";
 
 type Session = {

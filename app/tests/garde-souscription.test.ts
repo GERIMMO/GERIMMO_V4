@@ -141,18 +141,18 @@ vi.mock("@/lib/stripe-offres", async (importer) => ({
 import { accepterConditionsGenerales, confirmerHausse, demarrerAbonnement } from "@/app/actions/abonnement";
 import { GRILLE } from "@/lib/stripe-offres";
 
-const PIED = "TVA non applicable, art. 293 B du CGI.";
+const PIED = "TVA non applicable, article 293 B du CGI.";
 
 /**
  * L'état lu par l'action. `ecritureOuverte` faux = compte gelé en lecture
  * seule ; un essai arrivé à son terme garde le statut « essai »
  * (public.org_ecriture_ouverte ferme à la date, sans changement de statut).
  */
-function etat(grille: string, souscrit = false, ecritureOuverte = true) {
+function etat(grille: string, souscrit = false, ecritureOuverte = true, publicTarif: "proprietaire_direct" | "agence" = "proprietaire_direct") {
   mocks.rpc.mockImplementation(async (nom: string) => {
     if (nom === "etat_abonnement") {
       return {
-        data: [{ statut: souscrit ? "active" : "essai", ecriture_ouverte: ecritureOuverte, essai_fin: null, public_tarif: "proprietaire_direct", unites_facturees: 1, en_ligne_possible: true, grille, unites_a_couvrir: 1, unites_souscrites: souscrit ? 1 : null }],
+        data: [{ statut: souscrit ? "active" : "essai", ecriture_ouverte: ecritureOuverte, essai_fin: null, public_tarif: publicTarif, unites_facturees: 1, en_ligne_possible: true, grille, unites_a_couvrir: 1, unites_souscrites: souscrit ? 1 : null }],
         error: null,
       };
     }
@@ -262,20 +262,67 @@ describe("souscription : l'identité de l'éditeur, lue en base par-dessus le co
     } finally { vi.unstubAllEnvs(); }
   });
 
-  // LOT D7 — DÉCISION DU DIRIGEANT DU 24/11/2026 (Q7) : « on peut ouvrir les ventes même sans » médiateur de la
-  // consommation. Les deux tests d'ici affirmaient l'inverse (« ferme le parcours Stripe quand seul <champ du médiateur>
-  // manque » et « refuse le paiement même si le verrou facultatif est levé, sans médiateur ») : ils sont RÉÉCRITS pour
-  // dire la décision. Ce qui ne s'ouvre pas, règle levée ou non, c'est la première souscription d'un particulier SANS
-  // VENDEUR : la garde est déplacée, elle n'est pas retirée.
-  it("sans médiateur, vendeur complet, règle active : le parcours Stripe s'ouvre (le médiateur ne ferme plus rien)", async () => {
+  // REPRISE DU LOT D7 (24/11/2026, décision de pilotage). Le commit D7 avait retiré toute fermeture par le médiateur ;
+  // ses tests disaient « sans médiateur, le parcours Stripe s'ouvre ». Le recueil fourni par le dirigeant contient les
+  // articles L. 612-1 et L. 616-1 du code de la consommation : PAR DÉFAUT, la première souscription d'un particulier
+  // reste donc fermée sans médiateur ; lever le blocage l'ouvre, en connaissance de cause ; un professionnel n'est pas
+  // concerné ; et sans vendeur, rien ne s'ouvre, blocage levé ou non, agence comprise. Les tests ci-dessous disent
+  // cette règle ; celui qui affirmait « le médiateur ne ferme plus rien » est réécrit pour dire l'inverse.
+  const SANS_MEDIATEUR = { ...EDITEUR_COMPLET, mediateurNom: null, mediateurAdresse: null, mediateurSite: null };
+  const MOTIF_MEDIATEUR_ESSAI =
+    "Le paiement en ligne n'est pas encore ouvert aux particuliers. Les coordonnées du médiateur de la consommation de Gerimmo doivent être publiées avant la première souscription. Votre essai continue.";
+
+  it("particulier, sans médiateur, vendeur complet, règle active (par défaut) : le parcours Stripe reste fermé, avec sa phrase", async () => {
     etat(GRILLE);
-    const sansMediateur = { ...EDITEUR_COMPLET, mediateurNom: null, mediateurAdresse: null, mediateurSite: null };
-    identite(sansMediateur);
-    mocks.archive = { identite_editeur: sansMediateur };
+    identite(SANS_MEDIATEUR);
+    mocks.archive = { identite_editeur: SANS_MEDIATEUR };
     const r = await demarrerAbonnement("org-1", {}, souscrire());
-    expect(r.erreur).not.toContain("médiateur");
+    expect(r.erreur).toBe(MOTIF_MEDIATEUR_ESSAI);
+    expect(mocks.lecturesCgu).toEqual([]);
+    expect(mocks.retrieve).not.toHaveBeenCalled();
+    expect(mocks.serviceRpc).not.toHaveBeenCalled();
+  });
+
+  it.each(["mediateurNom", "mediateurAdresse", "mediateurSite"])(
+    "particulier, règle active, seul %s manque : fermé (un médiateur sans coordonnées complètes n'est pas désigné)",
+    async (cle) => {
+      etat(GRILLE);
+      identite({ ...EDITEUR_COMPLET, [cle]: null });
+      const r = await demarrerAbonnement("org-1", {}, souscrire());
+      expect(r.erreur).toBe(MOTIF_MEDIATEUR_ESSAI);
+      expect(mocks.retrieve).not.toHaveBeenCalled();
+    },
+  );
+
+  it("professionnel (agence), sans médiateur, vendeur complet, règle active : ni le médiateur ni le vendeur ne ferment", async () => {
+    etat(GRILLE, false, true, "agence");
+    identite(SANS_MEDIATEUR);
+    const r = await demarrerAbonnement("org-1", {}, souscrire());
+    // Le flux a dépassé la garde du vendeur et du médiateur : il a lu l'acceptation des conditions, contrôle qui la
+    // suit dans l'action (la suite du parcours d'une agence n'est pas l'objet de ce test).
+    expect(r.erreur ?? "").not.toContain("médiateur");
     expect(r.erreur).not.toBe(MOTIF_IDENTITE);
-    expect(mocks.serviceRpc).toHaveBeenCalledWith("abonnement_client_pose", { p_org: "org-1", p_customer: "cus_connu" });
+    expect(mocks.lecturesCgu.length).toBeGreaterThan(0);
+  });
+
+  // Relecture D7R-04 : la première souscription d'une agence restait ouverte sans vendeur quand la règle était levée.
+  it.each([true, false])("professionnel (agence), sans vendeur, règle active = %s : la première souscription reste fermée", async (actif) => {
+    etat(GRILLE, false, true, "agence");
+    identite({ ...EDITEUR_VIDE });
+    mocks.reglage = { data: { blocage_souscription_identite: actif, revision: 1 }, error: null };
+    const r = await demarrerAbonnement("org-1", {}, souscrire());
+    expect(r.erreur).toBe(MOTIF_IDENTITE);
+    expect(mocks.retrieve).not.toHaveBeenCalled();
+  });
+
+  // Relecture D7R-05 : une identité enregistrée avant le contrôle de saisie (« NOM Prénom » sans « EI ») ne vend pas.
+  it.each([true, false])("entrepreneur individuel dont le nom ne porte pas « EI », règle active = %s : fermé comme un vendeur incomplet", async (actif) => {
+    etat(GRILLE);
+    identite({ ...EDITEUR_COMPLET, forme: "Entrepreneur individuel", denomination: "DUPONT Jeanne" });
+    mocks.reglage = { data: { blocage_souscription_identite: actif, revision: 1 }, error: null };
+    const r = await demarrerAbonnement("org-1", {}, souscrire());
+    expect(r.erreur).toBe(MOTIF_IDENTITE);
+    expect(mocks.retrieve).not.toHaveBeenCalled();
   });
 
   it.each(["denomination", "forme", "siege", "rcs", "siret", "directeurPublication", "email", "telephone"])(
@@ -299,7 +346,7 @@ describe("souscription : l'identité de l'éditeur, lue en base par-dessus le co
     expect(mocks.retrieve).not.toHaveBeenCalled();
   });
 
-  it("verrou levé, vendeur complet, sans médiateur : le parcours Stripe s'ouvre", async () => {
+  it("verrou levé par le super admin, vendeur complet, sans médiateur : le parcours Stripe s'ouvre au particulier", async () => {
     etat(GRILLE);
     const sansMediateur = { ...EDITEUR_COMPLET, mediateurNom: null, mediateurAdresse: null, mediateurSite: null };
     identite(sansMediateur);
@@ -457,16 +504,36 @@ describe("souscription : la version en vigueur des conditions générales, accep
     expect(mocks.retrieve).not.toHaveBeenCalled();
   });
 
-  it.each([null, { identite_editeur: {...EDITEUR_COMPLET, mediateurNom: null} }])(
-    "refuse la commande si l’archive manque ou si son médiateur est différent",
-    async archive => {
-      etat(GRILLE);
-      mocks.archive = archive;
-      const r = await demarrerAbonnement("org-1", {}, souscrire());
-      expect(r.erreur).toContain("version archivée des conditions");
-      expect(mocks.retrieve).not.toHaveBeenCalled();
-    }
-  );
+  // Reprise du lot D7 (relecture D7R-02). Ce test refusait aussi la commande quand le MÉDIATEUR archivé différait :
+  // saisir le médiateur après l'ouverture refermait les ventes sans un mot. La comparaison ne porte plus que sur ce
+  // que le texte des conditions imprime (nom, adresse, e-mail de contact, encadré « en cours de finalisation »).
+  it.each([
+    ["l'archive manque", null],
+    ["le nom archivé est différent", { identite_editeur: { ...EDITEUR_COMPLET, denomination: "Autre vendeur EI" } }],
+    ["l'adresse archivée est différente", { identite_editeur: { ...EDITEUR_COMPLET, siege: "9 rue d'Avant, 75000 Paris" } }],
+    ["l'e-mail de contact archivé est différent", { identite_editeur: { ...EDITEUR_COMPLET, email: "avant@example.com" } }],
+    ["l'archive a été faite avec un vendeur incomplet (encadré « en cours de finalisation »)", { identite_editeur: { ...EDITEUR_COMPLET, rcs: null } }],
+  ])("refuse la commande si %s", async (_cas, archive) => {
+    etat(GRILLE);
+    mocks.archive = archive;
+    const r = await demarrerAbonnement("org-1", {}, souscrire());
+    expect(r.erreur).toBe("Les souscriptions sont en attente de la vérification de la version archivée des conditions générales.");
+    expect(mocks.retrieve).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["le médiateur a été saisi après l'archivage", { ...EDITEUR_COMPLET, mediateurNom: null, mediateurAdresse: null, mediateurSite: null }],
+    ["le médiateur a changé depuis l'archivage", { ...EDITEUR_COMPLET, mediateurNom: "Ancien médiateur", mediateurSite: "https://ancien.example" }],
+    ["le téléphone a été retouché", { ...EDITEUR_COMPLET, telephone: "01 99 99 99 99" }],
+    ["les coordonnées d'un prestataire ont été saisies", { ...EDITEUR_COMPLET, coordonneesVercel: "Vercel Inc., adresse fictive" }],
+    ["le SIRET, l'immatriculation ou le directeur de la publication ont été retouchés", { ...EDITEUR_COMPLET, siret: "11111111111111", rcs: "RNE autre", directeurPublication: "Autre personne" }],
+  ])("ne referme pas la commande quand %s : le texte des conditions n'en dépend pas", async (_cas, archivee) => {
+    etat(GRILLE);
+    mocks.archive = { identite_editeur: archivee };
+    const r = await demarrerAbonnement("org-1", {}, souscrire());
+    expect(r.erreur ?? "").not.toContain("version archivée des conditions");
+    expect(mocks.serviceRpc).toHaveBeenCalledWith("abonnement_client_pose", { p_org: "org-1", p_customer: "cus_connu" });
+  });
 
   it("une acceptation d'une version antérieure ne suffit pas", async () => {
     etat(GRILLE);

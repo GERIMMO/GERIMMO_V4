@@ -83,7 +83,7 @@ vi.mock("@/lib/stripe", async (importer) => {
 
 import { demarrerAbonnement } from "@/app/actions/abonnement";
 
-const PIED = "TVA non applicable, art. 293 B du CGI.";
+const PIED = "TVA non applicable, article 293 B du CGI.";
 
 function etat(grille: string, souscrit = false) {
   mocks.rpc.mockImplementation(async (nom: string) => {

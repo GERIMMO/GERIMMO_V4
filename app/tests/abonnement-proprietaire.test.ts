@@ -176,7 +176,7 @@ describe("garde de souscription à l’écran « Mon abonnement »", () => {
     expect(html).not.toContain("Récapitulatif avant paiement");
     expect(html).not.toContain("Total à payer");
     expect(html).not.toContain("Total à payer TTC");
-    expect(html).toContain("TVA non applicable, art. 293 B du CGI.");
+    expect(html).toContain("TVA non applicable, article 293 B du CGI.");
   });
   it("identité illisible : même motif (fermeture par défaut)", async () => {
     mocks.stripePret = true;
@@ -260,18 +260,39 @@ describe("garde de souscription à l’écran « Mon abonnement »", () => {
     expect(html).not.toContain("coordonnées du médiateur de la consommation");
     expect(html).not.toContain("Continuer vers le paiement sécurisé");
   });
-  it("lot D7 : vendeur complet, médiateur non saisi — le paiement s'ouvre et l'écran dit qu'aucun médiateur n'est désigné", async () => {
+  // REPRISE DU LOT D7 (24/11/2026, décision de pilotage). Le test du premier commit D7 disait : « vendeur complet,
+  // médiateur non saisi — le paiement s'ouvre ». Le recueil du dirigeant contient L. 612-1 et L. 616-1 du code de la
+  // consommation : PAR DÉFAUT le paiement d'un particulier reste fermé sans médiateur ; il ne s'ouvre que si le super
+  // admin a levé le blocage, et l'écran dit alors qu'aucun médiateur n'est désigné.
+  const SANS_MEDIATEUR = { ...EDITEUR_COMPLET, mediateurNom: null, mediateurAdresse: null, mediateurSite: null };
+  it("reprise D7 : vendeur complet, médiateur non saisi, règle active (par défaut) — le paiement reste fermé au particulier", async () => {
     mocks.stripePret = true;
-    const sansMediateur = { ...EDITEUR_COMPLET, mediateurNom: null, mediateurAdresse: null, mediateurSite: null };
-    mocks.editeur = { editeur: sansMediateur, indisponible: false };
-    // La version archivée des conditions porte la même identité (sans médiateur) : la commande n'attend rien d'autre.
-    mocks.archive = sansMediateur;
-    let html: string;
-    try { html = await rendre(); } finally { mocks.archive = null; }
+    mocks.editeur = { editeur: SANS_MEDIATEUR, indisponible: false };
+    const html = (await rendre()).replace(/&#x27;/g, "'");
+    expect(html).toContain("Le paiement en ligne n'est pas encore ouvert aux particuliers. Les coordonnées du médiateur de la consommation de Gerimmo doivent être publiées avant la première souscription. Votre essai continue.");
+    expect(html).not.toContain(MOTIF_IDENTITE_HORS_ESSAI);
+    expect(html).not.toContain("Continuer vers le paiement sécurisé");
+  });
+  it("reprise D7 : vendeur complet, médiateur non saisi, blocage levé par le super admin — le paiement s'ouvre et l'écran dit qu'aucun médiateur n'est désigné", async () => {
+    mocks.stripePret = true;
+    mocks.blocageIdentiteActif = false;
+    mocks.editeur = { editeur: SANS_MEDIATEUR, indisponible: false };
+    // D7R-02 : la version archivée des conditions porte ici un médiateur (identité par défaut de l'archive du test)
+    // que l'identité affichée n'a pas. Le contrat ne dépend plus du médiateur : la commande n'attend rien.
+    const html = await rendre();
     expect(html).not.toContain(MOTIF_IDENTITE_HORS_ESSAI_HTML);
     expect(html).not.toContain("coordonnées du médiateur de la consommation");
+    expect(html).not.toContain("version archivée des conditions");
     expect(html.replace(/&#x27;/g, "'")).toContain("Médiateur de la consommation : aucun n'est désigné à ce jour ; ses coordonnées figureront dans les mentions légales dès sa désignation.");
     expect(html).toContain("Continuer vers le paiement sécurisé");
+  });
+  it("reprise D7 (D7R-02) : l'adresse du vendeur a changé depuis l'archivage des conditions — la commande attend, et l'écran le dit", async () => {
+    mocks.stripePret = true;
+    mocks.archive = { ...EDITEUR_COMPLET, siege: "9 rue d'Avant, 75000 Paris" };
+    let html: string;
+    try { html = await rendre(); } finally { mocks.archive = null; }
+    expect(html).toContain("Les souscriptions sont en attente de la vérification de la version archivée des conditions générales.");
+    expect(html).not.toContain("Continuer vers le paiement sécurisé");
   });
   it("pilote gratuit : même avec Stripe prêt, médiateur et conditions acceptées, aucune commande", async () => {
     vi.stubEnv("GERIMMO_MODE", "commercial");

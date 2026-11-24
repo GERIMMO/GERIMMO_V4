@@ -72,7 +72,7 @@ describe("R03 — la confirmation de la souscription", () => {
     expect(t).toContain("Bonjour Camille Exemple,");
     expect(t).toContain("Nous confirmons votre abonnement Gerimmo, souscrit le 26 octobre 2026 pour l'espace Espace de Camille.");
     expect(t).toContain("Formule : Solo, jusqu'à 1 bien.");
-    expect(t).toContain("Prix : 5,99 € par mois, TVA non applicable, art. 293 B du CGI.");
+    expect(t).toContain("Prix : 5,99 € par mois, TVA non applicable, article 293 B du CGI.");
     expect(t).toContain("Paiement : carte bancaire.");
     expect(t).toContain("Premier prélèvement : 26 décembre 2026.");
     expect(t).toContain("Durée : abonnement à durée indéterminée, facturé chaque mois, résiliable à tout moment pour la prochaine échéance.");
@@ -85,7 +85,7 @@ describe("R03 — la confirmation de la souscription", () => {
 
   it("annuel : douze mois reconduits tacitement, avis entre trois mois et un mois avant l'échéance", () => {
     const t = texte(courrierConfirmationSouscription(confirmation({ periodicite: "annuel", montantCents: 5990 })).html);
-    expect(t).toContain("Prix : 59,90 € par an, TVA non applicable, art. 293 B du CGI.");
+    expect(t).toContain("Prix : 59,90 € par an, TVA non applicable, article 293 B du CGI.");
     expect(t).toContain("Durée : douze mois, reconduits tacitement ; nous vous écrirons entre trois mois et un mois avant chaque échéance.");
   });
 
@@ -121,7 +121,9 @@ describe("R03 — la confirmation de la souscription", () => {
   });
 
   it("un fait d'éditeur manquant est signalé dans le formulaire, jamais inventé", () => {
-    expect(formulaireRetractation({ ...EDITEUR, siege: null })[1]).toContain("[adresse du siège à compléter]");
+    // Reprise D7 (D7R-08) : la réserve ne parle plus de « siège » (le vendeur est un entrepreneur individuel) ; même
+    // mot que dans le formulaire des conditions (« adresse de l'éditeur (à venir) »).
+    expect(formulaireRetractation({ ...EDITEUR, siege: null })[1]).toContain("[adresse de l'éditeur à compléter]");
   });
 });
 

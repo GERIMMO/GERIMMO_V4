@@ -204,11 +204,13 @@ describe("conditions générales d'utilisation et de vente (29/09)", () => {
       expect(cgu).not.toMatch(new RegExp(`\\n  ${cle}: null,`));
     }
     // V1 (plan de conformité du 23/10, R14) : le compte n'est plus gardé sans limite, et la fin de l'abonnement
-    // n'entraîne pas à elle seule la suppression. Factures six ans (éditeur non commerçant), preuve dix ans.
+    // n'entraîne pas à elle seule la suppression. Preuve dix ans. Factures : six ans à l'époque ; DIX ans depuis le
+    // lot T4 du 24/11/2026 (loi n° 2026-534, article 36, lue dans le recueil du dirigeant) — l'attente est mise à jour.
     expect(cgu).not.toContain("jamais supprimées automatiquement");
     expect(cgu).toContain("cette fin n'entraîne pas à elle seule leur suppression");
     expect(cgu).toContain("supprimés vingt-quatre mois après la plus tardive des dates suivantes");
-    expect(cgu).toContain("les factures qu'il a émises pendant au moins six ans");
+    expect(cgu).toContain("les factures qu'il a émises pendant au moins dix ans");
+    expect(cgu).not.toContain("les factures qu'il a émises pendant au moins six ans");
     expect(cgu).toContain("dix ans après la fin du dernier abonnement payé");
     expect(cgu).toContain("douze mois précédant le fait générateur");
     expect(cgu).toContain('delaiMiseEnDemeure: "trente jours"');
@@ -276,10 +278,13 @@ describe("confidentialité (29/09)", () => {
     expect(page).not.toMatch(/hébergées <b className="font-semibold">dans\s+l&apos;Union/);
   });
 
-  // Décision du 23/10 (éditeur non commerçant) : six ans pour les factures (LPF, art. L. 102 B) ; plan du 23/10
-  // (constat R12) : preuve du contrat dix ans après la fin du dernier abonnement payé (C. conso, art. L. 213-1).
-  it("conserve les factures six ans et la preuve du contrat dix ans après le dernier abonnement payé", () => {
-    expect(page).toContain("6 ans (obligation fiscale : livre des procédures fiscales, art. L. 102 B)");
+  // Plan du 23/10 (constat R12) : preuve du contrat dix ans après la fin du dernier abonnement payé (C. conso,
+  // art. L. 213-1). Factures : ce test attendait « 6 ans » (décision du 23/10, éditeur non commerçant, ancien délai de
+  // l'article L. 102 B du LPF). Lot T4 du 24/11/2026 (écart R31-A1) : dix ans, d'après l'article 36 de la loi
+  // n° 2026-534 lu dans le recueil fourni par le dirigeant.
+  it("conserve les factures dix ans et la preuve du contrat dix ans après le dernier abonnement payé", () => {
+    expect(page).toContain("Au moins 10 ans (obligation fiscale : livre des procédures fiscales, art. L. 102 B)");
+    expect(page).not.toContain("6 ans (obligation fiscale");
     expect(page).not.toContain("10 ans (obligation légale)");
     expect(page).not.toContain("Durée du contrat, puis 5 ans");
     expect(page).toContain("10 ans, puis suppression ; supprimée avec le compte si aucun abonnement payant n’a été souscrit");

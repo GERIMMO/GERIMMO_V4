@@ -234,7 +234,8 @@ describe("archiverConditionsPubliees", () => {
 
   it("B1 et I1 sur les pages réellement servies par next start : la page normale s'archive entière, la page dégradée est refusée", async () => {
     // Pages relevées le 11/11/2026 sur le build de cette branche : base du banc joignable (identité fictive), puis
-    // base coupée (statut 200, mentions « à venir »).
+    // base coupée (statut 200, mentions « à venir »). Lot T4 (24/11/2026) : les passages du contrat modifiés par la
+    // version du 24/11/2026 y ont été remplacés sans nouveau relevé (voir l'en-tête de tests/conditions-flux.test.ts).
     const banc = {
       denomination: "Éditeur fictif du banc EI", forme: "Entrepreneur individuel (EI)", siege: "1 rue de l'Exemple, 75000 Paris",
       rcs: "RNE 000 000 000", siret: "00000000000000", directeurPublication: "Personne fictive", email: "contact@example.com",

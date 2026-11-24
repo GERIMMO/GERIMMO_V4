@@ -166,7 +166,8 @@ describe("« J'accepte la nouvelle version » (R19)", () => {
   it("enregistre les conditions clients en vigueur, source « compte »", async () => {
     const r = await accepterNouvelleVersionConditions(ORG, {}, envoi(CONDITIONS_VERSION));
     expect(acceptation()).toEqual({ p_version: CONDITIONS_VERSION, p_source: "compte", p_document: "conditions_clients" });
-    expect(r.succes).toBe("Votre acceptation de la version du 15 novembre 2026 des conditions générales est enregistrée.");
+    // Lot T4 (24/11/2026) : nouvelle version des conditions ; la phrase cite sa date.
+    expect(r.succes).toBe("Votre acceptation de la version du 24 novembre 2026 des conditions générales est enregistrée.");
   });
 
   it("abonnement déjà programmé pour finir : la confirmation le dit et renvoie à « Mon abonnement »", async () => {

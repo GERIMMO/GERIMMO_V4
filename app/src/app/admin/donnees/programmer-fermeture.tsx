@@ -33,7 +33,7 @@ export function ProgrammerFermeture({ accountId, demandeId }: { accountId: strin
         {b.adhesions_retirees > 0 && <li>{b.adhesions_retirees === 1 ? "1 accès à un autre espace retiré." : `${b.adhesions_retirees} accès à d’autres espaces retirés.`}</li>}
         {b.dossiers_tiers > 0 && <li>{b.dossiers_tiers === 1 ? "1 fiche" : `${b.dossiers_tiers} fiches`} chez {b.proprietaires_prevenus === 1 ? "un autre propriétaire" : `${b.proprietaires_prevenus} autres propriétaires`} : lien au compte retiré, propriétaire prévenu.</li>}
         {b.artisan && <li>Fiche d’artisan : registres privés, zones et métiers effacés ; fiche supprimée, ou détachée si un dossier la cite.</li>}
-        <li>{b.archive_requise.length > 0 ? "Preuve du contrat payé archivée avant l’effacement (dix ans ; factures six ans)." : "Aucun contrat payé : la preuve part avec le compte."}</li>
+        <li>{b.archive_requise.length > 0 ? "Preuve du contrat payé archivée avant l’effacement (dix ans ; factures dix ans)." : "Aucun contrat payé : la preuve part avec le compte."}</li>
         <li>{b.mode_prevu === "suppression" ? "Compte de connexion supprimé." : `Compte neutralisé (adresse et mot de passe effacés) : des références subsistent (${Object.keys(b.references_restantes).join(", ")}).`}</li>
       </ul>
       {b.abonnement?.vivante && <p>Souscription Stripe en cours ({b.abonnement.stripe_statut ?? "statut inconnu"}{b.abonnement.periode_fin ? `, période jusqu’au ${formaterDateParis(b.abonnement.periode_fin)}` : ""}) : elle sera arrêtée à la date d’effet.</p>}

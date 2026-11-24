@@ -121,7 +121,7 @@ function stripeFictif(s: Stripe.Subscription, factures: string[] = []) {
   const annulees: string[] = [];
   const stripe = {
     subscriptions: { retrieve: async () => s },
-    customers: { retrieve: async () => ({ id: "cus_1", invoice_settings: { footer: "TVA non applicable, art. 293 B du CGI." } }), update: async () => ({}) },
+    customers: { retrieve: async () => ({ id: "cus_1", invoice_settings: { footer: "TVA non applicable, article 293 B du CGI." } }), update: async () => ({}) },
     invoices: {
       retrieve:async(id:string)=>({id,parent:{subscription_details:{subscription:s.id}},customer:s.customer,currency:"eur",amount_remaining:599,status:"open"}),
       list: async () => ({ data: factures.map((id) => ({ id })) }),

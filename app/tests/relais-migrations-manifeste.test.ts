@@ -305,6 +305,10 @@ const MISSION_OCTOBRE = [
   // 25/11, textes officiels, lot T1 (congés) : date limite du congé du bailleur comptée jusqu'au dernier jour du bail, préavis
   // d'un mois en zone tendue seulement s'il est demandé, reprise refusée à une société non familiale (location nue).
   "20261125101500_conge_textes_officiels_t1.sql",
+  // 24/11, textes officiels, lot T4 (R31-A1) : factures d'abonnement conservées dix ans (loi n° 2026-534, article 36).
+  "20261125103000_factures_conservation_dix_ans.sql",
+  // 24/11, textes officiels, lot T4 : le courrier d'impayé part aussi pour un contrat conclu sous la version du 24/11/2026 des conditions.
+  "20261125104000_courrier_impaye_conditions_du_24_novembre.sql",
   // 25/11, textes officiels, lot T3 : complément de charges d'un exercice de plus de trois ans plus refusé comme « prescrit »
   // (l'application avertit et fait confirmer) ; terme d'un bail commencé un 29 février (reprise T1R-2).
   "20261125111000_textes_officiels_t3.sql",

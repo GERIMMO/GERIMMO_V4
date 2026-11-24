@@ -78,17 +78,22 @@ describe("/confidentialite (lot 4)", () => {
     expect(lire("app/confidentialite/page.tsx")).not.toContain("à confirmer par le juriste et le DPO");
   });
 
-  it("factures de Gerimmo six ans au moins (L. 102 B), jamais dix ; preuve du contrat dix ans après le dernier abonnement payé", async () => {
+  // Lot T4 du 24/11/2026 (écart R31-A1). Ce test affirmait « six ans au moins, jamais dix » : c'était la règle du 23/10
+  // (éditeur non commerçant, ancien délai de l'article L. 102 B du livre des procédures fiscales). Le recueil fourni par
+  // le dirigeant contient l'article 36 de la loi n° 2026-534 du 25 juin 2026, qui porte ce délai à dix ans pour les
+  // pièces dont la conservation expire après le 1er janvier 2027 — toutes les factures de Gerimmo. Le test dit dix ans.
+  it("factures de Gerimmo dix ans au moins (L. 102 B), plus jamais six ; preuve du contrat dix ans après le dernier abonnement payé", async () => {
     const page = await confidentialite();
-    expect(page).toContain("Au moins 6 ans (obligation fiscale : livre des procédures fiscales, art. L. 102 B), chez notre prestataire de paiement, selon sa propre politique de conservation");
-    // La copie jointe à l'archive d'un compte fermé est retirée six ans après la fin de l'exercice de la facture, à
-    // défaut après la fin du dernier abonnement payé (echeance_facture_archivee, migration 20261024140000).
-    expect(page).toContain("la copie jointe à la preuve du contrat d’un compte fermé est supprimée six ans après la fin de l’exercice de la facture");
+    expect(page).toContain("Au moins 10 ans (obligation fiscale : livre des procédures fiscales, art. L. 102 B), chez notre prestataire de paiement, selon sa propre politique de conservation");
+    // La copie jointe à l'archive d'un compte fermé est retirée dix ans après la fin de l'exercice de la facture, à
+    // défaut après la fin du dernier abonnement payé (echeance_facture_archivee, migration 20261125103000).
+    expect(page).toContain("la copie jointe à la preuve du contrat d’un compte fermé est supprimée dix ans après la fin de l’exercice de la facture");
     expect(page).toContain("Émission ; pour la copie jointe à la preuve du contrat, fin de l’exercice de la facture (à défaut, fin du dernier abonnement payé)");
-    expect(page).toContain("avec la copie de vos factures, six ans après la fin de leur exercice");
+    expect(page).toContain("avec la copie de vos factures, dix ans après la fin de leur exercice");
     expect(page).toContain("où votre fiche de client est supprimée au terme de la conservation de vos factures");
-    expect(page).toContain("les factures d'abonnement, au moins six ans, chez notre prestataire de paiement");
-    expect(page).not.toMatch(/factures[^.;]{0,80}dix ans/i);
+    expect(page).toContain("les factures d'abonnement, au moins dix ans, chez notre prestataire de paiement");
+    expect(page).toContain("Les factures d'abonnement émises par Gerimmo sont conservées au moins dix ans");
+    expect(page).not.toMatch(/factures[^.;]{0,80}(?:six ans|6 ans)/i);
     expect(page).not.toContain("10 ans (obligation légale)");
     expect(page).not.toContain("conservation comptable obligatoire des factures est de dix ans");
     expect(page).toContain("dix ans après la fin de votre dernier abonnement payé");

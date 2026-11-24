@@ -1275,10 +1275,12 @@ describe.skipIf(!url)("fermeture des comptes, inactivité, export complet (avec 
     await db.query("update public.effacements_a_reappliquer set executee_le = now() - interval '37 months' where fermeture_id = $1", [id]);
     expect(await quotidienne()).toMatchObject({ traces_purgees: 1 });
     expect(await nombre("select count(*) n from public.fermetures_comptes where id = $1", [id])).toBe(0);
-    // Le client Stripe d'une archive dont les factures ont passé leurs six ans.
+    // Le client Stripe d'une archive dont les factures ont passé leur terme. Lot T4 (24/11/2026) : ce terme est de dix
+    // ans, et non plus six (catalogue porté à 120 mois par 20261125103000) ; la facture d'essai date donc de 2015 et
+    // non plus de 2019. La règle elle-même (pas avant dix ans) est éprouvée dans tests/factures-conservation-dix-ans-base.test.ts.
     await db.query(
       `insert into public.archives_comptes (account_id_origine, organisation_id_origine, stripe_customer_id, fin_dernier_abonnement_paye, factures)
-       values (gen_random_uuid(), gen_random_uuid(), 'cus_terme_r5', '2019-01-01', '[{"stripe_facture":"in_r5","emise_le":"2019-01-01"}]')`);
+       values (gen_random_uuid(), gen_random_uuid(), 'cus_terme_r5', '2015-01-01', '[{"stripe_facture":"in_r5","emise_le":"2015-01-01"}]')`);
     await serviceRole();
     expect((await db.query("select stripe_customer_id from public.clients_stripe_au_terme(50)")).rows).toContainEqual({ stripe_customer_id: "cus_terme_r5" });
     await db.query("select public.client_stripe_supprime('cus_terme_r5')");

@@ -4,7 +4,7 @@ import {createClient} from "@/lib/supabase/server";
 import {IdentiteEditeur} from "./identite";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
-import { faitsACompleter, faitsManquants } from "@/lib/editeur";
+import { defautsVendeur, faitsACompleter, faitsManquants } from "@/lib/editeur";
 import { lireReglageSouscription } from "@/lib/reglage-souscription-serveur";
 import { BlocageSouscription, OuvertureVentes } from "./blocage-souscription";
 import { InterrupteurIA } from "./interrupteur-ia";
@@ -50,7 +50,7 @@ export default async function PageParametres() {
   const jourDeParis = aujourdhuiParis();
   const requis = faitsManquants({});
   const manquants = new Set(faitsManquants(editeur));
-  // 23/10 : le médiateur se complète plus tard, sans fermer le paiement (lib/editeur.ts, A_COMPLETER).
+  // Le médiateur se complète à part : il ne ferme que la première souscription d'un particulier (lib/editeur.ts, A_COMPLETER).
   const nonBloquants = faitsACompleter({});
   const aCompleter = new Set(faitsACompleter(editeur));
   const exiges = [...requis, ...nonBloquants];
@@ -82,9 +82,9 @@ export default async function PageParametres() {
         <Link className="lien-discret mt-4 inline-flex" href="/admin/journaux?registre=supervision_identite">Historique des modifications →</Link>
       </section>
 
-      <ConsoleSection id="souscriptions" titre="Ouverture des abonnements" description="Règle de blocage si l’identité de Gerimmo est incomplète." icone="securite" ton="ambre" statut={indisponible || regle.revision === null ? "Lecture indisponible" : manquants.size ? `${manquants.size} à fournir` : 'Identité requise complète'}>
+      <ConsoleSection id="souscriptions" titre="Ouverture des abonnements" description="Ouverture des ventes, et règle de blocage tant que l’identité du vendeur est incomplète ou que le médiateur de la consommation manque." icone="securite" ton="ambre" statut={indisponible || regle.revision === null ? "Lecture indisponible" : manquants.size ? `${manquants.size} à fournir` : 'Identité requise complète'}>
         <OuvertureVentes ouvertes={regle.ventesOuvertes} revision={regle.revision} />
-        <BlocageSouscription actif={regle.blocageIdentiteActif} revision={regle.revision} manquants={[...manquants]} aCompleter={[...aCompleter]} />
+        <BlocageSouscription actif={regle.blocageIdentiteActif} revision={regle.revision} manquants={defautsVendeur(editeur)} aCompleter={[...aCompleter]} />
       </ConsoleSection>
 
       <section id="ia" className="scroll-mt-24">

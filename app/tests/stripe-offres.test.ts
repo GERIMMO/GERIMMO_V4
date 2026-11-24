@@ -211,7 +211,7 @@ describe("la page de paiement porte la grille, pas un tarif Stripe", () => {
     expect(p.line_items.every((l) => !l.tax_rates)).toBe(true);
     expect(p.subscription_data.metadata).toMatchObject({ gerimmo_grille: "2026-09-28", gerimmo_formule: "patrimoine", gerimmo_unites: "25", gerimmo_montant_cents: "147500" });
     expect(p.subscription_data.trial_end).toBeUndefined();
-    expect(appels["customers.update"][0]).toEqual({ invoice_settings: { footer: "TVA non applicable, art. 293 B du CGI." } });
+    expect(appels["customers.update"][0]).toEqual({ invoice_settings: { footer: "TVA non applicable, article 293 B du CGI." } });
   });
 
   it("agence assujettie : lignes HT par tranche, TVA 20 % en sus (taux créé une fois)", async () => {

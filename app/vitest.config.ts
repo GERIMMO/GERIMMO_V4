@@ -105,6 +105,11 @@ export const FICHIERS_EN_SERIE = [
   // Textes officiels, lot T1 (25/11) : rejeu de 20261125101500 et de son retour dans la transaction du fichier
   // (`enregistrer_conge` réécrite, même fonction que tests/conge-dernier-terme-base.test.ts).
   "tests/textes-t1-conges-base.test.ts",
+  // Textes officiels, lot T4 (24/11) : rejeu de 20261125103000 et de son retour dans la transaction du fichier
+  // (trois fonctions de la conservation des factures réécrites).
+  "tests/factures-conservation-dix-ans-base.test.ts",
+  // Même lot : rejeu de 20261125104000 et de son retour (fonction de preuve des courriers d'incident de contrat).
+  "tests/courrier-impaye-version-conditions-base.test.ts",
   // Textes officiels, lot T3 : rejoue la migration 20261125111000 et son retour (trois fonctions) dans sa transaction.
   "tests/textes-t3-base.test.ts",
   // Reprise du lot T3 (T3R-1, 25/11) : rejoue 20261125151000 et son retour, puis le retour du lot T3, dans sa transaction

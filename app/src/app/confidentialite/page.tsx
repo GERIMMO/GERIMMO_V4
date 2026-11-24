@@ -168,7 +168,7 @@ export default async function PageConfidentialite() {
                 <td data-libelle="Base légale">Obligation légale de conserver les contrats conclus par voie électronique d&apos;au moins 120 € (art. L. 213-1 du code de la consommation) ; intérêt légitime dans les autres cas</td>
               </tr>
               <tr>
-                <td>Rétractation, résiliation et réclamations : accusés de réception, suivi et renvoi au médiateur de la consommation</td>
+                <td>Rétractation, résiliation et réclamations : accusés de réception, suivi et information sur le médiateur de la consommation (ses coordonnées s’il est désigné, sinon l’indication qu’aucun ne l’est)</td>
                 <td data-libelle="Base légale">Obligation légale (code de la consommation) ; exécution du contrat</td>
               </tr>
               <tr>
@@ -678,7 +678,7 @@ export default async function PageConfidentialite() {
           </tr>
           <tr>
             <td>Factures d’abonnement émises par Gerimmo</td>
-            <td>Au moins 6 ans (obligation fiscale : livre des procédures fiscales, art. L. 102 B), chez notre prestataire de paiement, selon sa propre politique de conservation ; la copie jointe à la preuve du contrat d’un compte fermé est supprimée six ans après la fin de l’exercice de la facture, puis suppression</td>
+            <td>Au moins 10 ans (obligation fiscale : livre des procédures fiscales, art. L. 102 B), chez notre prestataire de paiement, selon sa propre politique de conservation ; la copie jointe à la preuve du contrat d’un compte fermé est supprimée dix ans après la fin de l’exercice de la facture, puis suppression</td>
             <td>Émission ; pour la copie jointe à la preuve du contrat, fin de l’exercice de la facture (à défaut, fin du dernier abonnement payé)</td>
           </tr>
           <tr>
@@ -692,9 +692,14 @@ export default async function PageConfidentialite() {
             <td>Traitement de l’événement</td>
           </tr>
         </TableauDurees>
+        {/* Lot T4 du 24/11/2026 (écart R31-A1) : dix ans, et non plus six. Texte lu dans le recueil fourni par le
+            dirigeant (non recontrôlé par nous) : loi n° 2026-534 du 25 juin 2026, article 36, qui porte de six à dix ans
+            le délai de l'article L. 102 B du livre des procédures fiscales pour « les documents et […] pièces dont le
+            délai de conservation expire après le 1er janvier 2027 » — c'est le cas de toutes les factures de Gerimmo.
+            La base applique la même durée (migration 20261125103000). */}
         <p>
           Les factures d&apos;abonnement émises par Gerimmo sont conservées au
-          moins six ans, durée prévue pour les pièces justificatives par le livre
+          moins dix ans, durée prévue pour les pièces justificatives par le livre
           des procédures fiscales (art. L. 102 B). Les autres durées dépendent de la
           finalité et du dossier. Un besoin de preuve ou un contentieux peut
           justifier un archivage limité des seuls éléments nécessaires : un
@@ -716,19 +721,19 @@ export default async function PageConfidentialite() {
           supprimé du seul fait de l&apos;arrêt, en dehors des durées propres aux
           pièces listées ci-dessus ; après vingt-quatre mois sans connexion ni
           abonnement, le compte est fermé après deux avertissements. Vous pouvez
-          demander la suppression de votre compte à tout moment, après avoir exporté ce que vous souhaitez garder
-          (le titulaire d&apos;un espace en obtient l&apos;archive complète depuis la page « Mes données
-          personnelles »).
+          demander la suppression de votre compte à tout moment, après avoir récupéré ce que vous souhaitez garder
+          (depuis la page « Mes données personnelles », le titulaire d&apos;un espace obtient son archive complète ;
+          les autres comptes y demandent une copie des données de leur compte).
         </p>
-        {/* Plan du 23/10, lot 4 (constat R15), adapté à la décision « non commerçant » du 23/10 : factures six ans.
+        {/* Plan du 23/10, lot 4 (constat R15) : factures six ans à l'époque, DIX ans depuis le lot T4 du 24/11/2026.
             « demander la fermeture » : le bouton en libre-service vient au lot 5 ; d'ici là, la demande faite depuis
             « Mes données personnelles » est exécutée par la supervision. Pour un compte qui n'a jamais payé, la preuve
             part avec lui : la phrase sur la preuve vise les seuls abonnés payants.
             Relecture du 23/10 : les dossiers ne partent que si le compte est le seul membre de l'espace (lot 1E : sinon,
             retrait de la seule adhésion) ; la liste « Nous conservons seulement » reprend tout ce qui survit à la
             fermeture dans le tableau (rétractation, effacements à rejouer, empreinte d'opposition) ; la copie des
-            factures jointe à l'archive suit les six ans (archives_comptes, migration du socle).
-            Intégration des textes du 24/10 (code livré, PR #246) : la copie des factures de l'archive est retirée six ans
+            factures jointe à l'archive suit la durée des factures (archives_comptes, migration du socle).
+            Intégration des textes du 24/10 (code livré, PR #246) : la copie des factures de l'archive est retirée dix ans
             après la fin de l'exercice de la facture, à défaut après la fin du dernier abonnement payé
             (echeance_facture_archivee, règle archive:facture) ; la déclaration de rétractation survit à la fermeture,
             détachée de l'espace (retractations_abonnement.organization_id en « set null », règle contrat:retractation) ;
@@ -737,7 +742,9 @@ export default async function PageConfidentialite() {
             que seul le titulaire d'un espace trouve sur « Mes données personnelles » (archive complète) ; un locataire
             n'y trouve que la demande « Recevoir une copie de mes données » et le renvoi vers son bailleur. Le texte
             dit ce que la page fait ; aucune fonction n'est ajoutée. La page ne nomme que le bailleur : la V1 n'a plus
-            d'agence cliente (tests/confidentialite-v1.test.ts). */}
+            d'agence cliente (tests/confidentialite-v1.test.ts).
+            Reprise du 24/11/2026 (relecture D7R-09) : « les autres comptes […] s'adressent à leur bailleur » englobait
+            l'artisan, à qui la page n'affiche justement aucun renvoi ; le renvoi au bailleur ne vise que le locataire. */}
         <p>
           <b className="font-semibold">Fermeture de votre compte.</b> Vous pouvez
           demander la fermeture de votre compte depuis la page{" "}
@@ -747,8 +754,8 @@ export default async function PageConfidentialite() {
           , après avoir récupéré vos données si vous le souhaitez : le
           titulaire d&apos;un espace y télécharge son archive complète ; les
           autres comptes y demandent une copie des données de leur compte
-          (« Recevoir une copie de mes données ») et s&apos;adressent à leur
-          bailleur pour les données d&apos;une location. Si un
+          (« Recevoir une copie de mes données ») ; un locataire s&apos;adresse
+          en outre à son bailleur pour les données de sa location. Si un
           abonnement payé est en cours, vous choisissez : la fermeture à la fin
           de la période déjà payée, ou une fermeture quatorze jours après votre
           confirmation, avec le remboursement de la part non utilisée de cette
@@ -763,9 +770,9 @@ export default async function PageConfidentialite() {
           votre contrat (texte et version des conditions acceptées, dates,
           identifiant de facturation et adresse électronique), dix ans après la
           fin de votre dernier abonnement payé, avec la copie de vos factures,
-          six ans après la fin de leur exercice ; la preuve d&apos;une
+          dix ans après la fin de leur exercice ; la preuve d&apos;une
           éventuelle rétractation, dix ans après la rétractation, même une fois
-          le compte fermé ; les factures d&apos;abonnement, au moins six ans,
+          le compte fermé ; les factures d&apos;abonnement, au moins dix ans,
           chez notre prestataire de paiement, où votre fiche de client est
           supprimée au terme de la conservation de vos factures ; la trace de votre demande et
           de son traitement, trois ans ; la liste des effacements à rejouer après

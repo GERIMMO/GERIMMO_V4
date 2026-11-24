@@ -115,6 +115,40 @@ async function alerterRelais(
   return envois.filter((e) => !e.erreur).length;
 }
 
+/**
+ * Reprise du lot D4 (relecture D4R-02, option prudente retenue le 24/11/2026). L'article 16 des conditions clients
+ * promet qu'une nouvelle version est notifiée au Client par courrier électronique et dans son espace, avec un préavis,
+ * avant sa prise d'effet ; Gerimmo n'envoie pas encore cette annonce, et l'archivage d'une version déclenche aussitôt la
+ * demande d'accord aux abonnés. Tant que cette annonce n'existe pas, une NOUVELLE version des conditions clients ne
+ * s'archive donc pas s'il existe au moins un abonné actif. Une version déjà archivée se revérifie toujours.
+ * Abonné actif : une souscription chez le prestataire de paiement qui n'est pas close (`canceled`,
+ * `incomplete_expired`) ; un statut inconnu compte comme actif. Une lecture en échec refuse aussi (prudence).
+ */
+const STATUTS_CLOS = ["canceled", "incomplete_expired"];
+
+async function abonnesActifs(service: SupabaseClient): Promise<number | null> {
+  const { data, error } = await service.from("abonnements").select("stripe_statut").not("stripe_subscription_id", "is", null).limit(100_000);
+  if (error || !Array.isArray(data)) return null;
+  return (data as { stripe_statut: unknown }[]).filter((l) => !STATUTS_CLOS.includes(String(l.stripe_statut ?? ""))).length;
+}
+
+async function dejaArchivee(service: SupabaseClient, document: DocumentConditions, version: string): Promise<boolean | null> {
+  const { data, error } = await service.from("versions_conditions").select("version").eq("document", document).eq("version", version).maybeSingle();
+  return error ? null : data !== null;
+}
+
+export function messageAbonnesAPrevenir(libelle: string, abonnes: number | null): string {
+  const qui = abonnes === null
+    ? "Le nombre d'abonnés actifs n'a pas pu être lu"
+    : `${abonnes === 1 ? "Un abonné actif est concerné" : `${abonnes} abonnés actifs sont concernés`}`;
+  return (
+    `${libelle} : refusé, rien n'est archivé. ${qui}. L'article 16 des conditions prévoit que toute nouvelle version leur ` +
+    "soit d'abord notifiée par courrier électronique et dans leur espace, avec un résumé des changements, avant sa prise d'effet. " +
+    "Gerimmo n'envoie pas encore cette annonce : l'archivage reste refusé tant qu'il existe un abonné actif. " +
+    "Il faut d'abord annoncer la version aux abonnés (évolution à prévoir), puis l'archiver."
+  );
+}
+
 /** Archive la version en vigueur de chaque document publié. Ne lève pas : chaque document a son résultat. */
 export async function archiverConditionsPubliees(deps: Dependances): Promise<ResultatArchivage[]> {
   const lirePage = deps.lirePage ?? lirePagePubliee;
@@ -126,6 +160,13 @@ export async function archiverConditionsPubliees(deps: Dependances): Promise<Res
     if (!declaree) {
       resultats.push(echec(`La version ${d.version} n'est pas déclarée dans conditions-versions.json : rien n'est archivé.`));
       continue;
+    }
+    if (d.document === "conditions_clients") {
+      const abonnes = await abonnesActifs(deps.service);
+      if (abonnes !== 0 && (await dejaArchivee(deps.service, d.document, d.version)) !== true) {
+        resultats.push(echec(messageAbonnesAPrevenir(`${LIBELLE_DOCUMENT[d.document]}, version du ${d.dateAffichee}`, abonnes)));
+        continue;
+      }
     }
     const avant = await lireIdentite(deps.service);
     if (!avant) {

@@ -90,6 +90,11 @@ vi.mock("@/lib/supabase/server", () => ({
           filtres.push([colonne, valeur]);
           return q;
         },
+        // Reprise D4 (D4R-01) : la preuve d'accord ne lit que les lignes à empreinte (`versionsAcceptees` en porte une).
+        not: (colonne: string, operateur: string, valeur: unknown) => {
+          filtres.push([`${colonne} non ${operateur}`, valeur]);
+          return q;
+        },
         order: () => q,
         limit: () => q,
         maybeSingle: async () => {
@@ -590,6 +595,8 @@ describe("souscription : la version en vigueur des conditions générales, accep
     expect(mocks.lecturesCgu[0]).toEqual(
       expect.arrayContaining([["account_id", "compte-1"], ["document", "conditions_clients"], ["version", VERSION_EN_VIGUEUR]])
     );
+    // Reprise D4 (D4R-01) : et seulement aux lignes qui portent l'empreinte du texte archivé.
+    expect(mocks.lecturesCgu[0]).toContainEqual(["empreinte_sha256 non is", null]);
   });
 
   it("l'identité passe avant les conditions", async () => {

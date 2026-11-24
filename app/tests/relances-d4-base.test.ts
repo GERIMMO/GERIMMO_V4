@@ -509,6 +509,27 @@ describe.skipIf(!url)("lot D4 — cinquième envoi et relance à la main (avec b
     expect(transport).toHaveBeenCalledTimes(1);
   });
 
+  // Reprise du lot D4 (relecture D4R-03, migration 20261125150000) : la consigne au bail (`relances`) n'est écrite que
+  // par l'action du propriétaire, après un envoi réussi. Une reprise par la tâche des courriels enverrait l'e-mail sans
+  // cette trace : la relance à la main n'a donc pas de reprise autonome, comme avant le lot D4.
+  it("Q24 — un envoi à la main en échec n'est jamais repris par la tâche des courriels : le propriétaire renvoie lui-même", async () => {
+    const d = await decorLoyer();
+    await ouvrir("relance_loyer");
+    transport.mockImplementationOnce(async () => new Response(JSON.stringify({ message: "limite fictive" }), { status: 429 }));
+    const p = chargeManuelle(d);
+    expect((await envoyer(p, "app/actions/reception-loyer")).erreur).toBeTruthy();
+    expect(transport).toHaveBeenCalledTimes(1);
+    expect(await ligne(p)).toMatchObject({ etat: "en_attente", reprise_autonome: false, charge_chiffree: null });
+    await enService();
+    await db.query("update public.courriels_durables set reprendre_apres = now() - interval '1 minute' where id = $1", [identiteCourriel(p).id]);
+    await reprendre();
+    expect(transport).toHaveBeenCalledTimes(1);
+    // Le propriétaire clique de nouveau : le même e-mail (même clé) part, une seule fois.
+    expect((await envoyer(p, "app/actions/reception-loyer")).erreur).toBeUndefined();
+    expect(transport).toHaveBeenCalledTimes(2);
+    expect(await ligne(p)).toMatchObject({ etat: "accepte" });
+  });
+
   it("jour de la publication : une relance retenue tant que l'interrupteur était fermé part, une fois, dès qu'il est ouvert", async () => {
     const r = await decorReport(), l = await decorLoyer();
     const cas = [[chargeReport(r), "lib/relances-reports-rdv", "relance_report_rdv"], [chargeManuelle(l), "app/actions/reception-loyer", "relance_loyer"]] as const;

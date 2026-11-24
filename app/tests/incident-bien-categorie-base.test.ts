@@ -45,7 +45,10 @@ describe("incident déclaré depuis la fiche du bien — manifeste, retour et é
     const codes = [...ordre.slice(0, ordre.indexOf("puis `500000`")).matchAll(/`(\d{14})`/g)].map((m) => m[1]);
     expect(codes.indexOf("20261122220000")).toBeGreaterThanOrEqual(0);
     expect(codes.slice(0, codes.indexOf("20261122220000")).every((c) => c > "20261122220000")).toBe(true);
-    expect(codes[codes.indexOf("20261122220000") + 1]).toBe("20261122200000");
+    // Reprise du lot D4 (24/11) : le retour des motifs envoyés à l'artisan (20261122210000, maillon de la chaîne des
+    // e-mails, qui ne cite pas la fonction du jour) manquait entre les deux ; sans lui, le retour des envois
+    // automatiques se refusait. Il s'intercale ; tous deux restent plus anciens que celui-ci, et il les précède toujours.
+    expect(codes.slice(codes.indexOf("20261122220000") + 1, codes.indexOf("20261122220000") + 3)).toEqual(["20261122210000", "20261122200000"]);
     expect(readFileSync("tests/relais-migrations-manifeste.test.ts", "utf8")).toContain(`"${NOM}.sql",`);
     expect(readFileSync("vitest.config.ts", "utf8")).toContain('"tests/incident-bien-categorie-base.test.ts"');
   });

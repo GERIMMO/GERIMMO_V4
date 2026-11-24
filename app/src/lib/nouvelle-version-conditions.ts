@@ -85,7 +85,7 @@ export function messageActeSansAccord(dateVersion: string): string {
 /** Q15 : l'accord exprès se donne par une case non cochée par défaut ; sans elle, rien n'est enregistré. */
 export const REFUS_CASE_NOUVELLE_VERSION = "Cochez la case « J’ai lu et j’accepte » pour donner votre accord à la nouvelle version.";
 /** Q15 : l'accord n'est enregistré que sur une version archivée — c'est l'archive qui porte le texte publié et son empreinte. */
-export const REFUS_VERSION_NON_ARCHIVEE = "Votre accord ne peut pas être enregistré pour le moment : cette version n’est pas encore archivée. Rien ne change pour votre espace ; réessayez plus tard.";
+export const REFUS_VERSION_NON_ARCHIVEE = "Votre accord ne peut pas être enregistré pour le moment : cette version n’est pas encore archivée. Votre abonnement continue et vos données restent accessibles ; réessayez plus tard.";
 
 /** L'abonnement de l'espace, tel que `mon_abonnement` le rend au responsable ; `null` sans abonnement ou sans lecture. */
 export type AbonnementCourant = { souscrit: boolean; periode_fin: string | null; annulation_demandee: boolean } | null;
@@ -140,7 +140,10 @@ export function nouvelleVersionAAccepter(params: {
       paragraphes: [
         `Une nouvelle version des conditions générales d’utilisation et de vente, datée du ${dateEffet}, est en ligne. ` +
           `Résumé des changements : ${sansPointFinal(declaree.resume_modifications)}.`,
-        "Votre accord est demandé pour cette nouvelle version. Tant que vous ne l’avez pas donné, rien ne change : votre abonnement continue et vos données restent accessibles. " +
+        // Reprise D4 (relecture D4R-02) : l'écran ne dit plus « rien ne change ». L'article 16, second alinéa, fait
+        // s'appliquer à la date annoncée les changements autres que le prix, la durée ou les caractéristiques
+        // essentielles : l'écran renvoie à l'article, sans trancher ce qui en relève (question au juriste).
+        "Votre accord est demandé pour cette nouvelle version. Tant que vous ne l’avez pas donné, votre abonnement continue et vos données restent accessibles ; l’article 16 des conditions générales précise ce qui s’applique à la date annoncée. " +
           "Il vous sera redemandé à votre prochaine démarche sur votre abonnement (changement de formule, de capacité ou de périodicité, reprise après une résiliation).",
       ],
       accordExpres: false,

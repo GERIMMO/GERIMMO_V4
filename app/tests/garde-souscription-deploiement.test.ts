@@ -26,6 +26,7 @@ function client(reponses: Reponse[]) {
       const q = {
         select: () => q,
         eq: (colonne: string, valeur: unknown) => (filtres.push([colonne, valeur]), q),
+        not: (colonne: string, operateur: string, valeur: unknown) => (filtres.push([`${colonne} non ${operateur}`, valeur]), q),
         limit: () => q,
         maybeSingle: async () => reponses.shift() ?? { data: null, error: { message: "aucune réponse prévue" } },
       };
@@ -50,10 +51,11 @@ describe("M3 : garde de souscription déployée avant sa migration", () => {
     expect(await conditionsEnVigueurAccepteesPar(c as never, "compte-1")).toBe(false);
   });
 
-  it("migration appliquée : une seule lecture, bornée aux conditions clients", async () => {
+  it("migration appliquée : une seule lecture, bornée aux conditions clients et aux lignes à empreinte", async () => {
     const c = client([{ data: { id: "a-1" }, error: null }]);
     expect(await conditionsEnVigueurAccepteesPar(c as never, "compte-1")).toBe(true);
-    expect(c.lectures).toEqual([[["account_id", "compte-1"], ["document", "conditions_clients"], ["version", CONDITIONS_VERSION]]]);
+    // Reprise D4 (relecture D4R-01) : une ligne sans empreinte du texte archivé ne vaut plus preuve ; le filtre s'ajoute.
+    expect(c.lectures).toEqual([[["account_id", "compte-1"], ["document", "conditions_clients"], ["empreinte_sha256 non is", null], ["version", CONDITIONS_VERSION]]]);
   });
 
   it("toute autre erreur ferme par défaut, sans seconde lecture", async () => {

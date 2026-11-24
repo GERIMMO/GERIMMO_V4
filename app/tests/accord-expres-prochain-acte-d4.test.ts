@@ -3,8 +3,9 @@
  *
  * Avant le lot, la version du 24/11/2026 était déclarée « nouvelles souscriptions uniquement » : un Client déjà abonné
  * n'était ni informé ni invité à accepter. Depuis le lot :
- *  1. il voit l'écran « Nos conditions générales évoluent » (rappel à chaque connexion), qui dit que rien ne change
- *     tant qu'il n'a pas répondu ;
+ *  1. il voit l'écran « Nos conditions générales évoluent » (rappel à chaque connexion), qui dit que son abonnement
+ *     continue tant qu'il n'a pas répondu, et renvoie à l'article 16 pour ce qui s'applique à la date annoncée
+ *     (reprise D4, relecture D4R-02 : il disait « rien ne change », ce qui n'était pas exact) ;
  *  2. son accord se donne par une case NON cochée par défaut, à côté du lien vers le texte ; la base garde la date, la
  *     version et l'empreinte du texte archivé (tests/acceptation-conditions-base.test.ts tient l'empreinte) ;
  *  3. l'accord n'est demandé que pour une version ARCHIVÉE (sinon il n'y aurait pas d'empreinte à garder) ;
@@ -46,6 +47,8 @@ const client = () => ({
     const q = {
       select: () => q,
       eq: (colonne: string, valeur: unknown) => { filtres[colonne] = valeur; return q; },
+      // Reprise D4 (D4R-01) : la preuve d'accord filtre les lignes à empreinte ; ce faux client les tient pour telles.
+      not: () => q,
       order: () => q,
       limit: () => q,
       maybeSingle: async () => {
@@ -184,8 +187,12 @@ describe("Q15 — l'écran « Nos conditions générales évoluent » pour un Cl
     expect(ecran.paragraphes).toHaveLength(2);
     expect(ecran.paragraphes[0]).toContain("datée du 24 novembre 2026, est en ligne");
     expect(ecran.paragraphes[0]).toContain("Résumé des changements : Médiation de la consommation (article 17)");
+    // Reprise D4 (relecture D4R-02) : « rien ne change » n'était pas exact — l'article 16, second alinéa, fait
+    // s'appliquer à la date annoncée les changements autres que le prix, la durée ou les caractéristiques essentielles.
+    // L'écran dit ce qui est sûr (abonnement et données) et renvoie à l'article.
+    expect(ecran.paragraphes.join(" ")).not.toMatch(/rien ne change/i);
     expect(ecran.paragraphes[1]).toBe(
-      "Votre accord est demandé pour cette nouvelle version. Tant que vous ne l’avez pas donné, rien ne change : votre abonnement continue et vos données restent accessibles. " +
+      "Votre accord est demandé pour cette nouvelle version. Tant que vous ne l’avez pas donné, votre abonnement continue et vos données restent accessibles ; l’article 16 des conditions générales précise ce qui s’applique à la date annoncée. " +
       "Il vous sera redemandé à votre prochaine démarche sur votre abonnement (changement de formule, de capacité ou de périodicité, reprise après une résiliation).");
     expect(ecran.paragraphes.join(" ")).not.toMatch(/reconduit|s’applique à compter/);
   });

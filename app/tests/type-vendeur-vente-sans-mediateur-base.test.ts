@@ -39,8 +39,9 @@ describe("type de vendeur et vente sans médiateur — manifeste et droits (sans
     expect(manifeste.filter((l) => l === `${NOM}.sql`)).toHaveLength(1);
     // Lot D4 du 24/11/2026 : cette migration n'est plus la dernière du manifeste (20261125110000 la suit). Ce que le test
     // tient : elle clôt les quatre migrations des lots D7 et T4, et seules celles des lots D4 et D5 (ce dernier ne
-    // retire que des droits d'exécution, 20261125140000) viennent après elle.
-    expect(manifeste.slice(manifeste.indexOf(`${NOM}.sql`) + 1)).toEqual(["20261125110000_relance_report_rdv_et_relance_a_la_main.sql", "20261125140000_ancien_parcours_signature_manuelle_droits_retires.sql"]);
+    // retire que des droits d'exécution, 20261125140000) viennent après elle — puis celle de la reprise du lot D4
+    // (20261125150000 : accord aux conditions sur une version archivée, relance à la main sans reprise autonome).
+    expect(manifeste.slice(manifeste.indexOf(`${NOM}.sql`) + 1)).toEqual(["20261125110000_relance_report_rdv_et_relance_a_la_main.sql", "20261125140000_ancien_parcours_signature_manuelle_droits_retires.sql", "20261125150000_accord_conditions_version_archivee.sql"]);
     expect(manifeste[manifeste.indexOf(`${NOM}.sql`) - 1]).toBe("20261125105000_archive_compte_apres_client_stripe.sql");
     for (const avant of ["20261019123000_identite_editeur_prestataires.sql", "20261022210326_reglage_blocage_souscription_identite.sql", "20261114001320_ouverture_souscriptions_payantes.sql"]) {
       expect(manifeste.indexOf(`${NOM}.sql`), avant).toBeGreaterThan(manifeste.indexOf(avant));

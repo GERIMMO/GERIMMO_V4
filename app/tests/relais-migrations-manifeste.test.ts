@@ -298,6 +298,10 @@ const MISSION_OCTOBRE = [
   "20261124200000_justificatif_retenue_piece_existante.sql",
   // 24/11, reprise du lot D3 (M2, Q38) : l'ancien réglage des repères fiscaux vide la source au lieu de garder celle d'avant.
   "20261124210000_reperes_fiscaux_ancien_reglage_sans_source.sql",
+  // 24/11, seconde reprise du lot D3 (Q49) : la pièce d'une retenue ne vient pas du dossier d'une autre personne, d'un autre bail ou d'un autre logement ; une pièce purgée se remplace.
+  "20261124220000_justificatif_retenue_dossier_du_bail.sql",
+  // 24/11, seconde reprise du lot D3 (Q38) : le journal de l'ancien réglage des repères fiscaux dit quelle source il a effacée.
+  "20261124230000_reperes_fiscaux_ancien_reglage_journal_source.sql",
 
 
 ];

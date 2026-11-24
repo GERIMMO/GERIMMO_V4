@@ -176,3 +176,26 @@ export function carteNoticeDeposee(habitation: boolean, deposee: boolean): { eta
       : "Ce bien n’est pas déclaré comme un logement (appartement, maison, immeuble) : Gerimmo ne bloque pas la signature électronique sans la notice. Si vous la déposez, elle sera jointe au dossier.",
   };
 }
+
+// Seconde reprise du lot D3 (point 5) : même distinction pour la carte « Résumé de la notice ». Hors habitation, la carte
+// de la notice dit « non demandée » : le résumé n'est pas demandé non plus, et la carte ne renvoie plus à une notice à
+// déposer. Le résumé peut toujours être généré ; un résumé rangé avec l'ancien texte reste à actualiser (il serait joint).
+export function carteResumeNotice(habitation: boolean, range: boolean, aActualiser: boolean): { etat: string; ton: "ok" | "attention" | undefined; texte: string } {
+  if (range) return {
+    etat: aActualiser ? "Résumé à actualiser" : "Résumé disponible",
+    ton: aActualiser ? "attention" : "ok",
+    texte: habitation
+      ? "Ce résumé ne remplace pas la notice d’information officielle, à déposer dans la carte « Notice d’information officielle » : il accompagne le dossier comme document d’information."
+      : "Il accompagne le dossier comme document d’information.",
+  };
+  if (habitation) return {
+    etat: "Résumé à générer",
+    ton: "attention",
+    texte: "Ce résumé ne remplace pas la notice d’information officielle, à déposer dans la carte « Notice d’information officielle » : il accompagne le dossier comme document d’information.",
+  };
+  return {
+    etat: "Non demandé",
+    ton: undefined,
+    texte: "Ce bien n’est pas déclaré comme un logement (appartement, maison, immeuble) : Gerimmo ne demande pas ce résumé pour la signature électronique. Si vous le générez, il accompagnera le dossier comme document d’information.",
+  };
+}

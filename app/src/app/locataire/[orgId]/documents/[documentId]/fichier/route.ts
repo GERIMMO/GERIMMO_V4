@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { pageErreurFichier } from "@/lib/page-erreur-fichier";
 import { verifierLocataire } from "@/lib/ged-acces";
 import { servirFichierSigne } from "@/lib/fichier-signe";
+import { titrePieceRetenuePourLocataire } from "@/lib/justificatif-retenue";
 
 // Droits et trace vérifiés avant la création du lien de lecture temporaire.
 
@@ -76,6 +77,12 @@ export async function GET(
     );
   }
 
+  // Seconde reprise du lot D3 (point 1) : le titre d'un devis ou d'une facture de retenue est refait avec les libellés
+  // des retenues de CE locataire (la pièce peut aussi justifier la retenue d'un autre bail, dont le titre porte le
+  // libellé). Si ses retenues ne se lisent pas, le titre court « Devis/facture » s'affiche : jamais le libellé d'un autre.
+  const { data: mesRetenues } = await supabase.rpc("mes_retenues_restitution", { p_org: orgId });
+  const titre = titrePieceRetenuePourLocataire(doc.titre, doc.document_id, (mesRetenues ?? []) as { libelle: string | null; justificatif_document: string | null }[]);
+
   return servirFichierSigne(supabase, { path: doc.storage_path, mime: doc.mime_type,
-    titre: doc.titre, mode, apercuIntegre: request.nextUrl.searchParams.get("apercu") === "integre", retour: "depuis votre dossier Documents" });
+    titre, mode, apercuIntegre: request.nextUrl.searchParams.get("apercu") === "integre", retour: "depuis votre dossier Documents" });
 }

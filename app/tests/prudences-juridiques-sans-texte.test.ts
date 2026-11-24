@@ -42,6 +42,7 @@ import { OPTIONS_CATALOGUE } from "@/lib/documents/catalogue-options";
 import { CATALOGUE_DOCUMENTS } from "@/lib/documents/catalogue";
 import { refusDocumentIncomplet } from "@/lib/documents/completude";
 import { lienPourManquant } from "@/lib/documents/ou-renseigner";
+import { carteResumeNotice } from "@/lib/documents-bail";
 
 const texteDe = (html: string) =>
   html.replace(/<[^>]+>/g, " ").replace(/&#x27;|&#39;|&apos;|’/g, "'").replace(/&amp;/g, "&").replace(/[  ]/g, " ").replace(/\s+/g, " ");
@@ -129,7 +130,10 @@ describe("P0-07 — notice d'information", () => {
     // signature électronique. La phrase « Gerimmo ne le joint pas à votre place » n'est donc plus vraie ; l'écran dit que
     // Gerimmo ne fournit pas le texte et ne vérifie pas le fichier, et que le résumé ne remplace pas la notice.
     expect(parcours).toContain("Gerimmo ne fournit pas ce texte et ne vérifie pas le fichier déposé");
-    expect(parcours).toContain("Ce résumé ne remplace pas la notice d’information officielle");
+    // Seconde reprise du lot D3 (24/11) : la phrase est rendue par carteResumeNotice (lib/documents-bail.ts), pour un
+    // bien d'habitation ; hors habitation la notice n'est pas demandée et la phrase ne s'affiche plus.
+    expect(parcours).toContain("{carteResume.texte}");
+    expect(carteResumeNotice(true, false, false).texte).toContain("Ce résumé ne remplace pas la notice d’information officielle");
     expect(parcours).toContain('"Actualiser le résumé" : "Générer le résumé"');
     expect(page).toContain("Générer le résumé de la notice (PDF)");
     expect(CATALOGUE_DOCUMENTS.find((d) => d.code === "notice")?.description).toBe("Résumé des droits et obligations. La notice officielle complète reste à remettre avec le bail.");

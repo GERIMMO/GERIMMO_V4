@@ -334,7 +334,8 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       ? supabase
           .from("restitutions")
           .select(
-            "id, date_remise_cles, delai_mois, depot, impayes, trop_percu, montants_arretes_le, sans_edl_entree, statut, solde, date_emission, envoye_le, retenues(id, libelle, cout, duree_vie_ans, age_ans, montant_retenu, sans_justificatif, justificatif_document, created_at)"
+            // Seconde reprise du lot D3 : avec la fiche de la pièce de chaque retenue (une pièce purgée ne justifie plus rien).
+            "id, date_remise_cles, delai_mois, depot, impayes, trop_percu, montants_arretes_le, sans_edl_entree, statut, solde, date_emission, envoye_le, retenues(id, libelle, cout, duree_vie_ans, age_ans, montant_retenu, sans_justificatif, justificatif_document, created_at, piece:documents!retenues_justificatif_document_fkey(purged_at))"
           )
           .eq("bail_id", bailId)
           .maybeSingle()
@@ -646,12 +647,22 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       <Card id="notice-information">
         <CardHeader>
           <CardTitle className="text-base">Notice d&apos;information</CardTitle>
-          <CardDescription data-notice-resume>
-            Annexe obligatoire au contrat. Gerimmo en prépare un résumé, rangé dans
-            Documents : il ne remplace pas la notice officielle, dont le texte complet
-            est à remettre au locataire avec le bail (site officiel de
-            l&apos;administration, service-public.fr).
-          </CardDescription>
+          {/* Seconde reprise du lot D3 (point 5) : hors habitation, la carte de la notice dit « non demandée » ; ce texte
+              ne dit donc plus « annexe obligatoire » et ne renvoie plus à une notice à remettre. */}
+          {!bienDuLot || estBienHabitation(bienDuLot.type) ? (
+            <CardDescription data-notice-resume>
+              Annexe obligatoire au contrat. Gerimmo en prépare un résumé, rangé dans
+              Documents : il ne remplace pas la notice officielle, dont le texte complet
+              est à remettre au locataire avec le bail (site officiel de
+              l&apos;administration, service-public.fr).
+            </CardDescription>
+          ) : (
+            <CardDescription data-notice-resume="hors-habitation">
+              Ce bien n&apos;est pas déclaré comme un logement (appartement, maison, immeuble) :
+              Gerimmo ne demande ni la notice d&apos;information ni son résumé. Vous pouvez
+              tout de même générer le résumé ; il sera rangé dans Documents.
+            </CardDescription>
+          )}
         </CardHeader>
         <CardContent>
           <BoutonGenererDocument

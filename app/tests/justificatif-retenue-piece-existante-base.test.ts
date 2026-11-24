@@ -235,6 +235,10 @@ describe.skipIf(!url)("pièce existante d'une retenue (avec base)", () => {
     const autres = async () => (await db.query<{ f: string; e: string }>(`
       select p.proname f, md5(pg_get_functiondef(p.oid)) e from pg_proc p join pg_namespace n on n.oid = p.pronamespace and n.nspname = 'public'
        where p.proname in ('justifier_retenue', 'ajouter_retenue', 'justifier_retenue_avec_piece', 'ajouter_retenue_avec_justificatif') order by 1`)).rows;
+    // Seconde reprise du lot D3 (24/11) : la migration 20261124220000 réécrit `garde_justificatif_retenue` (contrôle
+    // étendu) et `justifier_retenue` (pièce purgée). Ce test tient 20261124200000 seule : on défait d'abord cette
+    // réécriture (son retour rend les deux textes d'avant), sinon « rejouer ne change rien » comparerait deux textes.
+    await db.query(readFileSync("supabase/retours-arriere/20261124220000_justificatif_retenue_dossier_du_bail.retour.sql", "utf8"));
     const avec = await etat(), fonctionsDAvant = await autres();
     expect(avec).toHaveLength(1);
     expect(avec[0].declencheurs).toBe(1);

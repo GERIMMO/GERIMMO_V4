@@ -176,10 +176,12 @@ describe.skipIf(!url)("repères fiscaux (avec base)", () => {
     const lignes = await journal();
     expect(lignes).toHaveLength(3);
     expect(lignes.every((l) => l.auteur === superviseur && l.objet === null)).toBe(true);
+    // Seconde reprise du lot D3 (24/11, migration 20261124230000) : chaque ligne de ce réglage dit aussi la source qu'il
+    // efface (« source_effacee »). Ici aucune source n'était enregistrée : elle est vide. L'attente d'avant ne la listait pas.
     expect(lignes.map((l) => l.details)).toEqual(expect.arrayContaining([
-      { plafond_euros: 15300, abattement_pourcent: 31, verifie_le: jour, plafond_precedent: 15000, abattement_precedent: 30, verification_precedente: null },
-      { plafond_euros: 15300, abattement_pourcent: 31, verifie_le: jour, plafond_precedent: 15300, abattement_precedent: 31, verification_precedente: "2025-03-12" },
-      { plafond_euros: 16000, abattement_pourcent: 30, verifie_le: jour, plafond_precedent: 15300, abattement_precedent: 31, verification_precedente: jour },
+      { plafond_euros: 15300, abattement_pourcent: 31, verifie_le: jour, plafond_precedent: 15000, abattement_precedent: 30, verification_precedente: null, source_effacee: null },
+      { plafond_euros: 15300, abattement_pourcent: 31, verifie_le: jour, plafond_precedent: 15300, abattement_precedent: 31, verification_precedente: "2025-03-12", source_effacee: null },
+      { plafond_euros: 16000, abattement_pourcent: 30, verifie_le: jour, plafond_precedent: 15300, abattement_precedent: 31, verification_precedente: jour, source_effacee: null },
     ]));
     // Le journal n'est lisible que du superviseur permanent.
     await simuler({ compte: ordinaire, role: "authenticated" });
@@ -228,6 +230,8 @@ describe.skipIf(!url)("repères fiscaux (avec base)", () => {
     // Reprise du lot D3 (24/11) : la migration 20261124210000 réécrit `regler_reperes_fiscaux` (elle y vide la source).
     // Ce test tient la migration du 23/11 seule : on défait d'abord cette réécriture (son retour rend le texte du 23/11),
     // sinon « rejouer ne change rien » comparerait le texte du 23/11 à celui du 24/11.
+    // Seconde reprise (20261124230000) : même raison, son retour se joue d'abord (ordre du LISEZ-MOI).
+    await db.query(readFileSync("supabase/retours-arriere/20261124230000_reperes_fiscaux_ancien_reglage_journal_source.retour.sql", "utf8"));
     await db.query(readFileSync("supabase/retours-arriere/20261124210000_reperes_fiscaux_ancien_reglage_sans_source.retour.sql", "utf8"));
     await db.query("update public.reperes_fiscaux_reglage set micro_foncier_plafond_euros = 15300, micro_foncier_abattement_pourcent = 31, verifie_le = date '2026-11-23' where singleton");
     const avec = await etat();

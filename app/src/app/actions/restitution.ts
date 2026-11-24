@@ -8,6 +8,7 @@ import { verifierGerant } from "@/lib/ged-acces";
 import { preparerFichierGed, type FichierPrepareGed } from "@/lib/ged-depot";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { erreurDuChamp, lireDecimalFacultatif, lireMontant } from "@/lib/saisie-montant";
+import { estRefusFichierDejaDepose, PIECE_DEPOSEE_PAR_UN_AUTRE } from "@/lib/justificatif-retenue";
 
 // Le Storage n'est pas transactionnel : quand la règle métier refuse la
 // retenue, l'octet est déjà monté. Sans fiche il est déjà illisible (la policy
@@ -25,8 +26,16 @@ async function abandonnerPiece(
 // Reprise du lot D3 (B1, décision Q49) : le fichier choisi est DÉJÀ rangé dans Documents (un devis unique pour plusieurs
 // réparations, l'état des lieux de sortie…). Un même fichier ne se dépose qu'une fois par espace : on rattache donc la
 // pièce existante à la retenue, sans copie. La base vérifie que cette pièce est du même espace, lisible par la personne
-// connectée et pas rangée dans le dossier d'un autre bail (migration 20261124200000).
+// connectée et pas rangée dans le dossier d'une autre personne, d'un autre bail ou d'un autre logement (migrations
+// 20261124200000 et 20261124220000).
 const PIECE_DEJA_RANGEE = "Ce fichier est déjà dans vos documents : il a été rattaché à cette retenue, sans copie supplémentaire.";
+
+// Seconde reprise du lot D3 (point 2) : le refus d'un dépôt NOUVEAU. Si la base répond « fichier identique déjà
+// présent » alors que l'écran n'avait trouvé aucun doublon, c'est que la pièce existe mais que la personne connectée ne
+// la lit pas (agent limité à son portefeuille, pièce déposée par un collègue) : on lui dit à qui s'adresser.
+function refusDuDepot(message: string): string {
+  return estRefusFichierDejaDepose(message) ? PIECE_DEPOSEE_PAR_UN_AUTRE : sansJargon(message);
+}
 
 export type EtatRestit = {
   erreur?: string;
@@ -132,7 +141,7 @@ export async function ajouterRetenue(
       });
   if (error) {
     if (piece) await abandonnerPiece(supabase, piece);
-    return { erreur: sansJargon(error.message), valeurs };
+    return { erreur: piece ? refusDuDepot(error.message) : sansJargon(error.message), valeurs };
   }
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   if (pieceDejaRangee) return { succes: `Retenue ajoutée. ${PIECE_DEJA_RANGEE}` };
@@ -192,7 +201,7 @@ export async function justifierRetenue(
   });
   if (error) {
     await abandonnerPiece(supabase, piece);
-    return { erreur: sansJargon(error.message) };
+    return { erreur: refusDuDepot(error.message) };
   }
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: prep.avertissement ? `Justificatif joint. ${prep.avertissement}` : "Justificatif joint." };

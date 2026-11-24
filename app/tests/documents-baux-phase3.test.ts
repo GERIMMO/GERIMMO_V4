@@ -27,7 +27,7 @@ import { assemblerNotice, AVERTISSEMENT_RESUME_NOTICE } from "@/lib/documents/mo
 import { assemblerAvenant } from "@/lib/documents/modeles/avenant";
 import { construireBailNu } from "@/lib/documents/modeles/bail-nu";
 import { construireBailMeuble } from "@/lib/documents/modeles/bail-meuble";
-import { classerPiecesBail, resumeNoticeAActualiser, TITRE_GED_RESUME_NOTICE, TITRES_GED_RESUME_NOTICE } from "@/lib/documents-bail";
+import { carteResumeNotice, classerPiecesBail, resumeNoticeAActualiser, TITRE_GED_RESUME_NOTICE, TITRES_GED_RESUME_NOTICE } from "@/lib/documents-bail";
 import { ajouterPagesSignature, annexesSignatureBail, empreinteSignatureBail, type AnnexeSignature } from "@/lib/signature-bail";
 import { rubriquesRecapBail } from "@/lib/presentation-recapitulatif-bail";
 import { CATALOGUE_DOCUMENTS } from "@/lib/documents/catalogue";
@@ -516,7 +516,11 @@ describe("reprise du lot 40 — C01 : le résumé n'est ni la notice annexée au
 
   it("la fiche du bail dit « Résumé à actualiser » pour l'ancien texte ; l'aperçu et le catalogue nomment le résumé", () => {
     const fiche = source("src/app/agence/[orgId]/baux/[bailId]/documents-parcours-bail.tsx");
-    expect(fiche).toContain('noticeAActualiser ? "Résumé à actualiser" : "Résumé disponible"');
+    // Seconde reprise du lot D3 (24/11) : l'état de la carte est rendu par carteResumeNotice (lib/documents-bail.ts), qui
+    // distingue aussi le bien hors habitation ; l'écran l'affiche. Les deux libellés sont les mêmes.
+    expect(fiche).toContain('{docsBail.error ? "Indisponible" : carteResume.etat}');
+    expect(carteResumeNotice(true, true, true).etat).toBe("Résumé à actualiser");
+    expect(carteResumeNotice(true, true, false).etat).toBe("Résumé disponible");
     expect(fiche).toContain('titre="Résumé de la notice d’information"');
     expect(fiche).not.toContain('titre="Notice d’information"');
     expect(CATALOGUE_DOCUMENTS.find((d) => d.code === "notice")?.nom).toBe("Résumé de la notice d’information");

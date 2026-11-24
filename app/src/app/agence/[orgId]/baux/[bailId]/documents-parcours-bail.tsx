@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { premier } from "@/lib/postgrest";
 import { aujourdhuiParis, formaterDateHeure } from "@/lib/ged";
 import { estBienHabitation } from "@/lib/parc";
-import { anciennesNoticesDeposees, carteNoticeDeposee, classerPiecesBail, echeanceReglementaire, noticeDeposeeRetenue, resumeNoticeAActualiser, resumeNoticeRetenu, TYPE_GED_NOTICE_DEPOSEE, type DiagnosticBail, type PieceBail } from "@/lib/documents-bail";
+import { anciennesNoticesDeposees, carteNoticeDeposee, carteResumeNotice, classerPiecesBail, echeanceReglementaire, noticeDeposeeRetenue, resumeNoticeAActualiser, resumeNoticeRetenu, TYPE_GED_NOTICE_DEPOSEE, type DiagnosticBail, type PieceBail } from "@/lib/documents-bail";
 import { FileCheck2, BookOpen, Building2, Paperclip, ShieldCheck, KeyRound } from "lucide-react";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { FormulaireNoticeBail, FormulaireReglementCopropriete } from "./formulaires-bail";
@@ -60,11 +60,13 @@ export async function DocumentsParcoursBail({ orgId, bailId, lotId, bienId, anne
   const notice = resumeNoticeRetenu(documentsBail);
   // Reprise du lot 40 (C01) : un résumé rangé avec l'ancien texte n'est pas « disponible » : il est à actualiser.
   const noticeAActualiser = resumeNoticeAActualiser(notice);
-  const tonNotice = docsBail.error ? undefined : notice && !noticeAActualiser ? "ok" : "attention";
   // Décision du 24/11/2026 (Q46) : la notice d'information que le bailleur a déposée pour ce bail (la plus récente).
   const noticeDeposee = noticeDeposeeRetenue(documentsBail);
   // Reprise du lot D3 (M4) : exigée pour les seuls biens d'habitation (bien illisible : on garde l'exigence).
   const carteNotice = carteNoticeDeposee(!batiment.data || estBienHabitation(batiment.data.type), Boolean(noticeDeposee));
+  // Seconde reprise du lot D3 (point 5) : hors habitation, le résumé n'est pas demandé non plus (même distinction).
+  const carteResume = carteResumeNotice(!batiment.data || estBienHabitation(batiment.data.type), Boolean(notice), noticeAActualiser);
+  const tonNotice = docsBail.error ? undefined : carteResume.ton;
   const tonNoticeDeposee = docsBail.error ? undefined : carteNotice.ton;
   // Reprise du lot D3 (M7) : les versions déposées avant celle qui est retenue.
   const anciennesNotices = anciennesNoticesDeposees(documentsBail);
@@ -133,8 +135,8 @@ export async function DocumentsParcoursBail({ orgId, bailId, lotId, bienId, anne
           </details>}
         </article>
         <article className={styles.carte} data-ton={tonNotice}>
-          <div className={styles.carteEntete}><h4>Résumé de la notice (document d’information)</h4><span className={styles.etat} data-ton={tonNotice}>{docsBail.error ? "Indisponible" : !notice ? "Résumé à générer" : noticeAActualiser ? "Résumé à actualiser" : "Résumé disponible"}</span></div>
-          <p className={styles.obligation}>Préparé par Gerimmo · Joint pour information</p><p>Les droits et obligations du propriétaire et du locataire, résumés.</p><p data-notice-resume><strong>Gerimmo en prépare un résumé, pas le texte officiel.</strong> Ce résumé ne remplace pas la notice d’information officielle, à déposer dans la carte « Notice d’information officielle » : il accompagne le dossier comme document d’information.</p>
+          <div className={styles.carteEntete}><h4>Résumé de la notice (document d’information)</h4><span className={styles.etat} data-ton={tonNotice}>{docsBail.error ? "Indisponible" : carteResume.etat}</span></div>
+          <p className={styles.obligation}>Préparé par Gerimmo · Joint pour information</p><p>Les droits et obligations du propriétaire et du locataire, résumés.</p><p data-notice-resume><strong>Gerimmo en prépare un résumé, pas le texte officiel.</strong> {carteResume.texte}</p>
           {noticeAActualiser && <p data-notice-a-actualiser>Le résumé rangé a été établi avec un ancien texte, qui se disait à tort annexé au contrat et reçu par le locataire : actualisez-le avant de préparer la signature.</p>}
           {!docsBail.error && <div className={styles.actions}>{notice && <ApercuPieceBail fichier={fichier(notice.id)} titre="Résumé de la notice d’information" mime="application/pdf"/>}<BoutonGenererDocument orgId={orgId} code="notice" cibleId={bailId} cheminRetour={`${base}/baux/${bailId}`} libelle={notice ? "Actualiser le résumé" : "Générer le résumé"}/></div>}
         </article>

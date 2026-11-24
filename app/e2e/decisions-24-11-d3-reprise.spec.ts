@@ -96,7 +96,8 @@ test("B1 et M1 : un devis pour deux retenues, l'état des lieux déjà rangé po
 
     // ── B1 (2) : la pièce du dossier d'un AUTRE bail est refusée, et l'écran le dit.
     await joindre(pieceAutreBail, "autre-bail.pdf");
-    await expect(carte.getByText("Cette pièce est rangée dans le dossier d'un autre bail : elle ne peut pas justifier cette retenue. Déposez le justificatif propre à ce bail")).toBeVisible({ timeout: 60_000 });
+    // Seconde reprise du lot D3 : le message nomme aussi « un autre logement » et dit l'issue pour une pièce commune.
+    await expect(carte.getByText("Cette pièce est rangée dans le dossier d'un autre bail ou d'un autre logement : elle ne peut pas justifier cette retenue. Déposez le justificatif propre à ce bail, ou rangez-la aussi dans le dossier de ce bail")).toBeVisible({ timeout: 60_000 });
     await expect(sansPiece).toHaveCount(1);
 
     // ── B1 (3) : l'état des lieux de sortie déjà rangé dans le dossier de ce bail justifie la troisième, sans copie.
@@ -160,8 +161,11 @@ test("M4 et M7 : parking sans notice exigée ; les anciennes versions de la noti
     await expect(carte.getByRole("button", { name: "Déposer la notice" })).toBeVisible(); // le dépôt reste possible
     await page.goto(`/espace/${ORG}/baux/${dossier.parking.bail}#signature`);
     await expect(signature).toBeVisible({ timeout: 60_000 });
-    // Les autres consignes de la signature sont chargées (le résumé reste demandé) : la notice n'en fait pas partie.
-    await expect(signature.getByText("Générez le résumé de la notice d’information", { exact: false })).toBeVisible({ timeout: 60_000 });
+    // Les autres consignes de la signature sont chargées (le diagnostic ERP) : la notice n'en fait pas partie.
+    // Seconde reprise du lot D3 (point 5) : ce test figeait « le résumé reste demandé » pour un parking. Hors habitation,
+    // le résumé de la notice n'est plus exigé non plus ; on attend donc une autre consigne pour savoir l'écran chargé.
+    await expect(signature.getByText("Joignez le diagnostic ERP", { exact: false })).toBeVisible({ timeout: 60_000 });
+    await expect(signature.getByText("Générez le résumé de la notice d’information", { exact: false })).toHaveCount(0);
     await expect(signature.getByText("Déposez la notice d’information officielle", { exact: false })).toHaveCount(0);
     await expect(signature.locator("[data-rappel-notice-papier]")).toHaveCount(0);
 

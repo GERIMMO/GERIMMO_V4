@@ -9,6 +9,10 @@
 -- journal de la supervision (action « reperes_fiscaux ») la garde dans chaque geste. Le plafond, l'abattement et la
 -- date de vérification ne sont pas touchés.
 --
+-- Se joue APRÈS les retours de 20261124230000 puis de 20261124210000 (seconde reprise du lot D3 : précision ajoutée
+-- ici, le LISEZ-MOI le disait seul). Ces deux migrations font lire et écrire la colonne `source` par l'ancien réglage
+-- `regler_reperes_fiscaux(plafond, abattement)` : joué avant leurs retours, ce retour-ci laisserait un ancien réglage
+-- qui s'arrête sur une colonne absente (il suffit alors de jouer le retour de 20261124210000 pour le rétablir).
 -- Se joue AVANT le retour de 20261123090000 (qui supprime la table). Rejouable.
 do $retour$
 begin

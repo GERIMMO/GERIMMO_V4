@@ -117,6 +117,10 @@ describe.skipIf(!url)("ancien réglage des repères fiscaux (avec base)", () => 
     const retour = readFileSync(`supabase/retours-arriere/${NOM}.retour.sql`, "utf8");
     const etat = async (nom: string) => (await db.query<{ e: string; d: string }>(
       "select md5(pg_get_functiondef(p.oid)) e, coalesce(p.proacl::text,'') d from pg_proc p join pg_namespace n on n.oid = p.pronamespace and n.nspname = 'public' where p.proname = $1", [nom])).rows;
+    // Seconde reprise du lot D3 (24/11) : la migration 20261124230000 réécrit de nouveau `regler_reperes_fiscaux` (une
+    // ligne de journal de plus). Ce test tient 20261124210000 seule : on défait d'abord cette réécriture (son retour rend
+    // le texte de 20261124210000), sinon « rejouer ne change rien » comparerait deux textes différents.
+    await db.query(readFileSync("supabase/retours-arriere/20261124230000_reperes_fiscaux_ancien_reglage_journal_source.retour.sql", "utf8"));
     const avec = await etat("regler_reperes_fiscaux"), avecSource = await etat("regler_reperes_fiscaux_avec_source");
     await db.query(migration);
     await db.query(migration);

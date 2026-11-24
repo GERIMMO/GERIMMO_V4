@@ -25,7 +25,7 @@ import { Modale } from "@/components/ui/modale";
 import { ChampFichier } from "@/components/champ-fichier";
 import { useBaseEspace } from "@/components/racine-espace-contexte";
 import { REGLE_ECART_EDL } from "@/lib/regle-ecart-edl";
-import { retenueJustifiee } from "@/lib/justificatif-retenue";
+import { piecePurgee, retenueJustifiee, type JustificatifRetenue } from "@/lib/justificatif-retenue";
 
 export type Restitution = {
   id: string;
@@ -58,6 +58,8 @@ export type Retenue = {
   montant_retenu: number;
   sans_justificatif: boolean;
   justificatif_document: string | null;
+  /** Seconde reprise du lot D3 : la fiche de la pièce, pour reconnaître une pièce purgée (lib/justificatif-retenue.ts). */
+  piece?: JustificatifRetenue["piece"];
 };
 
 // Durées de vie indicatives — aide à la saisie, recopiée de la grille par
@@ -730,7 +732,10 @@ function FormJustifierRetenue({
   );
   return (
     <form data-saisie-confirmee action={action} className="flex w-full flex-wrap items-center gap-2 pl-1">
-      <span className="text-sm text-destructive">Sans justificatif</span>
+      {/* Seconde reprise du lot D3 : la pièce existait, une règle de conservation l'a supprimée ; elle se remplace ici. */}
+      <span className="text-sm text-destructive" data-piece-purgee={piecePurgee(retenue) || undefined}>
+        {piecePurgee(retenue) ? "Justificatif supprimé (règle de conservation) : joignez-en un autre" : "Sans justificatif"}
+      </span>
       <ChampFichier depotDirect id={`just-retenue-${retenue.id}`} name="justificatif" accept=".pdf,image/*" required aria-label={`Justificatif pour ${retenue.libelle}`} />
       <BoutonEnvoi size="sm" variant="outline">
         Joindre le devis / la facture

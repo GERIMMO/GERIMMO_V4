@@ -41,6 +41,7 @@ type Retenue = {
   montant_retenu: number;
   sans_justificatif: boolean;
   justificatif_document: string | null;
+  piece?: JustificatifRetenue["piece"];
 };
 
 // Fin du délai légal : la remise des clés décalée du délai en mois, BORNÉE au
@@ -65,7 +66,7 @@ export function exigerJustificatifsRetenues(f: Fusion, retenues: (JustificatifRe
 
 // Colonne « Justificatif » d'une retenue (audit du 27/09) : « sur demande » est réservé aux pièces réellement
 // déposées. Sans pièce, le décompte n'est plus imprimé (Q49) : « À déposer » ne se lit que dans l'épreuve bloquée.
-export function libelleJustificatifRetenue(r: { sans_justificatif: boolean; justificatif_document: string | null }): string {
+export function libelleJustificatifRetenue(r: JustificatifRetenue): string {
   return retenueJustifiee(r) ? "Déposé — sur demande" : "À déposer";
 }
 
@@ -102,7 +103,8 @@ export async function assemblerDecompteRestitution(
   const { data: lignes } = await supabase
     .from("retenues")
     .select(
-      "libelle, cout, duree_vie_ans, age_ans, montant_retenu, sans_justificatif, justificatif_document"
+      // Seconde reprise du lot D3 : avec la fiche de la pièce, pour ne pas compter une pièce purgée comme un justificatif.
+      "libelle, cout, duree_vie_ans, age_ans, montant_retenu, sans_justificatif, justificatif_document, piece:documents!retenues_justificatif_document_fkey(purged_at)"
     )
     .eq("restitution_id", restitution.id)
     .order("created_at");

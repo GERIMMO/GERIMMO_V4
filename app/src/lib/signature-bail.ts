@@ -71,7 +71,11 @@ export async function annexesSignatureBail(db:SupabaseClient,org:string,bail:str
   if(notices.error)throw new Error("Le résumé de la notice joint au bail ne peut pas être vérifié.");
   const notice = notices.data?.[0];
   const manquants:string[]=[];
-  if (!notice) manquants.push("Générez le résumé de la notice d’information à l’étape Documents. Il ne remplace pas la notice officielle, à remettre aussi au locataire.");
+  // Seconde reprise du lot D3 (point 5) : hors habitation, la notice n'est pas demandée (M4) ; son résumé non plus, et
+  // la phrase qui renvoie à la notice officielle ne s'affiche plus. Un résumé déjà rangé reste joint au dossier (plus
+  // bas : l'empreinte d'un circuit déjà préparé ne change pas) ; s'il porte l'ancien texte, il reste à actualiser.
+  const habitation = estBienHabitation(ctx.bien.type);
+  if (!notice) { if (habitation) manquants.push("Générez le résumé de la notice d’information à l’étape Documents. Il ne remplace pas la notice officielle, à remettre aussi au locataire."); }
   // Reprise du lot 40 (C01) : un résumé rangé sous l'ancien titre a l'ancien texte, qui se disait annexé au contrat, « partie
   // intégrante », et faisait reconnaître sa réception au locataire. Il reste lu (l'empreinte d'un circuit déjà préparé avec
   // lui se recalcule à l'identique à l'activation, qui ne lit pas ces consignes), mais une NOUVELLE préparation et l'envoi
@@ -87,7 +91,7 @@ export async function annexesSignatureBail(db:SupabaseClient,org:string,bail:str
     if(deposees.error)throw new Error("La notice d’information déposée pour ce bail ne peut pas être vérifiée.");
     noticeDeposee = deposees.data?.[0]?.id ?? null;
     // Reprise du lot D3 (M4) : exigée pour les seuls biens d'habitation, comme le contrôle de mise en location.
-    if (!noticeDeposee && estBienHabitation(ctx.bien.type)) manquants.push(MANQUE_NOTICE_DEPOSEE);
+    if (!noticeDeposee && habitation) manquants.push(MANQUE_NOTICE_DEPOSEE);
   }
   if (ctx.bien.copropriete && !contrat.data?.reglement_copropriete) manquants.push("Joignez les extraits du règlement de copropriété à l’étape Documents.");
   const ids=new Set<string>(); if(notice)ids.add(notice.id); if(noticeDeposee)ids.add(noticeDeposee); if(contrat.data?.reglement_copropriete)ids.add(contrat.data.reglement_copropriete);

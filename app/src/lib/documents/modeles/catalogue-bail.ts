@@ -310,7 +310,7 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
     } else if (code === "decompte_retenues") {
       const rs = await lireLignes(supabase.from("restitutions").select("id,statut").eq("bail_id",bailId).eq("organization_id",orgId).limit(1));
       if (!rs.length) return { erreur: "Préparez d’abord la restitution du dépôt de ce contrat." };
-      const retenues = await lireLignes(supabase.from("retenues").select("libelle,cout,duree_vie_ans,age_ans,montant_retenu,justificatif_document,sans_justificatif").eq("restitution_id",rs[0].id).eq("organization_id",orgId));
+      const retenues = await lireLignes(supabase.from("retenues").select("libelle,cout,duree_vie_ans,age_ans,montant_retenu,justificatif_document,sans_justificatif,piece:documents!retenues_justificatif_document_fkey(purged_at)").eq("restitution_id",rs[0].id).eq("organization_id",orgId));
       // Phase 3 (C37) : l'écran de restitution laisse l'âge et la durée de vie facultatifs (vides : coût retenu en intégralité, la
       // base ne calcule alors aucune décote). Vides, ils s'impriment « — », comme dans le décompte de restitution, sans bloquer le PDF.
       const sansDecote = retenues.some(l=>l.duree_vie_ans==null || l.age_ans==null);

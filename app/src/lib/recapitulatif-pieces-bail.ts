@@ -123,14 +123,17 @@ export async function lireRecapitulatifPiecesBail(
   // Phase 3 (C01) : la pièce que Gerimmo prépare est un résumé ; la notice officielle reste à remettre à part.
   // Reprise du lot 40 (C01) : un résumé rangé avec l'ancien texte est à actualiser (la préparation de la signature le refuse).
   const etatNotice = liensIncomplets ? INDISPONIBLE : fichier(notice?.id ?? null, true);
+  // Reprise du lot D3 (M4) : hors bien d'habitation, Gerimmo ne demande pas la notice (bien illisible : on garde l'exigence).
+  // Seconde reprise (point 5) : son résumé non plus.
+  const noticeNonDemandee = !bienIndisponible && !estBienHabitation(bien!.type);
   ajouter("notice", "Résumé de la notice d’information", "signature", etatNotice.statut === "pret" && resumeNoticeAActualiser(notice)
-    ? { statut: "a_completer", detail: "Actualisez le résumé : celui qui est rangé a été établi avec un ancien texte." } : etatNotice, `${baseBail}#annexes-attendues`);
+    ? { statut: "a_completer", detail: "Actualisez le résumé : celui qui est rangé a été établi avec un ancien texte." }
+    : etatNotice.statut === "a_completer" && !notice && noticeNonDemandee ? { statut: "non_concerne", detail: "Bien déclaré hors habitation : Gerimmo ne le demande pas." }
+    : etatNotice, `${baseBail}#annexes-attendues`);
   // Décision du 24/11/2026 (Q46) : la notice officielle, déposée par le bailleur. Sans elle, la signature électronique est
   // bloquée ; pour une signature sur papier, le bailleur l'annexe lui-même.
   const noticeDeposee = noticeDeposeeRetenue(liens.lignes.map(l => parId.get(l.document_id)).filter((d): d is Fichier => Boolean(d)));
   const etatNoticeDeposee = liensIncomplets ? INDISPONIBLE : fichier(noticeDeposee?.id ?? null, true);
-  // Reprise du lot D3 (M4) : hors bien d'habitation, Gerimmo ne la demande pas (bien illisible : on garde l'exigence).
-  const noticeNonDemandee = !bienIndisponible && !estBienHabitation(bien!.type);
   ajouter("notice-deposee", "Notice d’information officielle", "signature", etatNoticeDeposee.statut === "a_completer" && !noticeDeposee
     ? noticeNonDemandee ? { statut: "non_concerne", detail: "Bien déclaré hors habitation : Gerimmo ne la demande pas." }
     : { statut: "a_completer", detail: "À déposer : la signature électronique est bloquée sans elle. Sur papier, annexez-la au contrat." }

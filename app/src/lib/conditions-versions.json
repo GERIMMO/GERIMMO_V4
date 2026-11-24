@@ -34,8 +34,12 @@
     "2026-11-24": {
       "date_effet": "2026-11-24",
       "nature": "substantielle",
-      "resume_modifications": "Médiation de la consommation (article 17) : un seul texte, qui renvoie aux mentions légales pour le nom et les coordonnées du médiateur et dit qu’elles indiquent, tant qu’aucun n’est désigné, qu’il n’y en a pas ; l’ancienne mention d’une adhésion à venir est retirée. Annexe 1 : description complète de ce qui est transmis à OpenAI à la demande de l’utilisateur (assistant « Demander à Gerimmo », lecture assistée d’une facture ou d’une photo de compteur, propositions de devis). Factures émises par l’Éditeur : conservation portée de six à dix ans (article 9). L’Éditeur est désigné comme « l’entreprise identifiée aux mentions légales » (article 2). Lecture seule après un impayé : le Client peut demander qu’une personne réexamine sa situation (article 15.3).",
-      "empreinte_reference": "d8c690edacf312bdd57d28dfdf5b24a35e4b3e8edb9b131d06879ad5cd20d6df",
+      "resume_modifications": "Médiation de la consommation (article 17) : un seul texte, qui renvoie aux mentions légales pour le nom et les coordonnées du médiateur et dit qu’elles indiquent, tant qu’aucun n’est désigné, qu’il n’y en a pas ; l’ancienne mention d’une adhésion à venir est retirée. Annexe 1 : description complète de ce qui est transmis à OpenAI à la demande de l’utilisateur (assistant « Demander à Gerimmo », lecture assistée d’une facture ou d’une photo de compteur, propositions de devis). Factures émises par l’Éditeur : conservation portée de six à dix ans (article 9). L’Éditeur est désigné comme « l’entreprise identifiée aux mentions légales » (article 2). Lecture seule après un impayé : il est précisé qu’elle est appliquée automatiquement, à l’échéance prévue (article 15.3). Le nom et les coordonnées du médiateur sont rappelés dans la réponse qui clôt une réclamation faite depuis la page « Aide et retours » (article 17).",
+      "empreinte_reference": "67391a33df830dffdb617ba08de99b734ce3e6ec0ac490d1d67f05f784d52fb9",
+      "empreintes_precedentes": [
+        "d8c690edacf312bdd57d28dfdf5b24a35e4b3e8edb9b131d06879ad5cd20d6df"
+      ],
+      "note": "Empreinte relevée de nouveau le 24/11/2026, le jour même, avant toute publication et tout archivage de cette version (seconde reprise du lot, relectures T4R-06 et T4R-07) : article 15.3, « sur le seul constat de l’impayé » remplacé par « à l’échéance prévue ci-dessus » et phrase sur le réexamen par une personne retirée (question laissée au dirigeant) ; article 17, rappel du médiateur borné à la réponse qui clôt une réclamation faite depuis « Aide et retours ». L’empreinte précédente n’a jamais été publiée ni archivée.",
       "nouvelles_souscriptions_uniquement": true
     }
   },

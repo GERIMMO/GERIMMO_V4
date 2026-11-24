@@ -9,7 +9,8 @@
  * Ce que ces tests tiennent pour la migration 20261125103000 :
  *  1. sans base : manifeste, retour listé, droits, et les trois fonctions réécrites ne diffèrent de leur texte d'avant
  *     que par les lignes marquées « lot T4 » ; le retour rend ces textes mot pour mot ;
- *  2. le catalogue : règle « archive:facture » à 120 mois, plancher 120 ;
+ *  2. le catalogue : règle « archive:facture » à 120 mois, plancher 120 ; seconde reprise (relecture T4R-10) : le
+ *     passage de 72 à 120 mois laisse UNE ligne au journal des durées, celle que lit l'écran /admin/conservation ;
  *  3. l'échéance d'une facture : dix ans, quelle que soit la durée enregistrée sur l'archive (jamais moins) ;
  *  4. une archive constituée AVANT le lot (72 mois enregistrés, date d'échéance à six ans) : sa facture de sept ans ne
  *     part plus, ni par la purge, ni à la main ; son client chez le prestataire de paiement n'est plus proposé à la
@@ -76,8 +77,14 @@ describe("factures conservées dix ans — manifeste, droits et textes des fonct
     // La migration n'écrit qu'une ligne du catalogue, et seulement pour l'allonger.
     const hors = MIGRATION.replace(/^\s*--.*$/gm, "").replace(/\$\$[\s\S]*?\$\$/g, "");
     expect(hors.match(/\bupdate\s+public\.\w+/gi)).toEqual(["update public.retention_rules"]);
-    expect(hors).toContain("set duree_mois = greatest(duree_mois, 120)");
-    expect(hors).not.toMatch(/insert into/i);
+    expect(hors).toContain("set duree_mois = greatest(r.duree_mois, 120)");
+    // Seconde reprise (relecture T4R-10). Ce test interdisait toute insertion ; le changement de durée doit pourtant
+    // laisser une ligne au journal des durées, sans quoi l'écran de conservation affirme qu'aucune durée n'a changé.
+    // Une seule insertion est admise, dans le journal, sous l'action que cet écran lit ; le retour n'en fait aucune.
+    expect(hors.match(/insert into\s+[\w.]+/gi)).toEqual(["insert into public.audit_log"]);
+    expect(hors).toContain("select 'conservation_regle_modifiee', jsonb_build_object(");
+    expect(RETOUR.replace(/^\s*--.*$/gm, "")).not.toMatch(/insert into/i);
+    expect(readFileSync("src/app/admin/conservation/page.tsx", "utf8")).toContain('.eq("action", "conservation_regle_modifiee")');
   });
 
   it("chaque fonction ne diffère de son texte d'avant que par les lignes marquées « lot T4 » ; le retour rend ce texte mot pour mot", () => {
@@ -159,6 +166,49 @@ describe.skipIf(!url)("factures conservées dix ans (avec base)", () => {
       .toEqual({ duree_mois: 120, duree_initiale_mois: 120, minimum_mois: 120, actif: true });
     expect((await un<{ d: number }>("select duree_mois as d from public.retention_rules where data_type = 'archive:preuve_contrat'")).d).toBe(120);
     expect((await un<{ d: string }>("select column_default as d from information_schema.columns where table_schema = 'public' and table_name = 'archives_comptes' and column_name = 'factures_duree_mois'")).d).toBe("120");
+  });
+
+  // Relecture T4R-10 : le catalogue passait de 72 à 120 mois sans ligne au journal (0 ligne « conservation_regle_modifiee »).
+  it("T4R-10 — le passage de 72 à 120 mois laisse une ligne au journal des durées, avec l'ancienne et la nouvelle durée ; rien au rejeu", async () => {
+    const lignes = async () => (await db.query<{ account_id: string | null; details: Record<string, unknown> }>(
+      "select account_id, details from public.audit_log where action = 'conservation_regle_modifiee' and details ->> 'categorie' = 'archive:facture' order by created_at, id")).rows;
+    // Dans cette transaction, la migration vient d'être rejouée sur une base déjà à 120 mois : aucune ligne.
+    const avant = await lignes();
+    // L'état d'avant le lot : 72 mois, plancher 72.
+    await db.query(RETOUR);
+    await db.query("update public.retention_rules set duree_mois = 72, duree_initiale_mois = 72 where data_type = 'archive:facture'");
+    await db.query(MIGRATION);
+    const apres = await lignes();
+    expect(apres).toHaveLength(avant.length + 1);
+    // Les lignes d'une même transaction portent la même date : la nouvelle se reconnaît à son contenu, pas à son rang.
+    const nouvelles = apres.filter((l) => !avant.some((a) => JSON.stringify(a) === JSON.stringify(l)));
+    expect(nouvelles).toHaveLength(1);
+    const ligne = nouvelles[0];
+    // Sans auteur : c'est la mise à jour du logiciel, pas une personne.
+    expect(ligne.account_id).toBeNull();
+    expect(ligne.details).toMatchObject({
+      categorie: "archive:facture", libelle: "Factures de l'abonnement (archive des comptes fermés)",
+      ancienne_duree_mois: 72, nouvelle_duree_mois: 120, actif: true,
+    });
+    // Les quatre champs que l'écran /admin/conservation affiche sont là, et le motif dit d'où vient le changement.
+    expect(String(ligne.details.motif)).toMatch(/^Mise à jour de Gerimmo du 24\/11\/2026, sans intervention d'une personne : factures d'abonnement conservées dix ans/);
+    expect(String(ligne.details.motif)).toContain("article 36 de la loi n° 2026-534");
+    // Rejouée, la migration ne récrit rien.
+    await db.query(MIGRATION);
+    expect(await lignes()).toHaveLength(avant.length + 1);
+    // Une durée déjà réglée à 120 mois ou plus ne « change » pas : le plancher monte, sans ligne au journal.
+    await db.query(RETOUR);
+    await db.query("update public.retention_rules set duree_mois = 144 where data_type = 'archive:facture'");
+    await db.query(MIGRATION);
+    expect(await lignes()).toHaveLength(avant.length + 1);
+    expect(await un("select duree_mois, minimum_mois from public.retention_rules where data_type = 'archive:facture'")).toEqual({ duree_mois: 144, minimum_mois: 120 });
+    // Une durée intermédiaire réglée à la main (96 mois) : la ligne dit la vraie durée d'avant.
+    await db.query(RETOUR);
+    await db.query("update public.retention_rules set duree_mois = 96 where data_type = 'archive:facture'");
+    await db.query(MIGRATION);
+    const toutes = await lignes();
+    expect(toutes).toHaveLength(avant.length + 2);
+    expect(toutes.filter((l) => l.details.ancienne_duree_mois === 96 && l.details.nouvelle_duree_mois === 120)).toHaveLength(1);
   });
 
   it("échéance d'une facture : dix ans après la plus tardive de l'émission et de la fin d'exercice (à défaut, de la fin du dernier abonnement payé), jamais moins", async () => {

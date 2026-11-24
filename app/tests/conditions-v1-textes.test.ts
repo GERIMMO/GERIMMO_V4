@@ -259,7 +259,9 @@ describe("V1, article 4.7 : la caution et l'état des lieux signent dans Gerimmo
 describe("article 17 : la médiation, un seul texte avec ou sans médiateur (version du 24/11/2026)", () => {
   const PHRASES = [
     "Le Client consommateur a le droit de recourir gratuitement à un médiateur de la consommation en vue de la résolution amiable d'un litige qui l'oppose à l'Éditeur, après une réclamation écrite restée sans solution.",
-    "Dès qu'un médiateur est désigné, son nom et ses coordonnées figurent aux mentions légales et sont rappelés dans la réponse de l'Éditeur à la réclamation.",
+    // Seconde reprise du 24/11/2026 (relecture T4R-07) : « rappelés dans la réponse de l'Éditeur à la réclamation » promettait
+    // plus que le code ne tient ; la promesse est bornée à la réponse qui clôt une réclamation faite dans l'application.
+    "Dès qu'un médiateur est désigné, son nom et ses coordonnées figurent aux mentions légales ; la réponse par laquelle l'Éditeur clôt une réclamation faite depuis la page « Aide et retours » les rappelle.",
     "Tant qu'aucun médiateur n'est désigné, les mentions légales et cette réponse l'indiquent expressément ; le Client garde alors la réclamation écrite prévue ci-dessus et les voies de droit commun.",
   ];
 

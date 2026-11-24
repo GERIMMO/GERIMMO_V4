@@ -306,6 +306,10 @@ const MISSION_OCTOBRE = [
   "20261125103000_factures_conservation_dix_ans.sql",
   // 24/11, textes officiels, lot T4 : le courrier d'impayé part aussi pour un contrat conclu sous la version du 24/11/2026 des conditions.
   "20261125104000_courrier_impaye_conditions_du_24_novembre.sql",
+  // 24/11, lot T4, seconde reprise (T4R-01) : l'archive d'un compte fermé attend la suppression de la fiche du client chez le prestataire de paiement.
+  "20261125105000_archive_compte_apres_client_stripe.sql",
+  // 24/11, lot D7 et textes T4, seconde reprise (T4R-02 à T4R-04) : type de vendeur choisi ; vente aux particuliers sans médiateur décidée à part, datée.
+  "20261125106000_type_vendeur_et_vente_sans_mediateur.sql",
 
 
 ];

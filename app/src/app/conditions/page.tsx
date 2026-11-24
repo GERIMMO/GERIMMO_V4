@@ -977,11 +977,16 @@ export default async function PageConditions() {
           les envois automatiques reprennent pour l&apos;avenir ; les envois qui
           n&apos;ont pas eu lieu pendant la lecture seule ne sont pas tous
           rattrapés. Le passage en lecture seule est appliqué automatiquement,
-          sur le seul constat de l&apos;impayé. Le Client peut à tout moment
-          demander qu&apos;une personne réexamine sa situation, faire valoir
-          son point de vue et contester cette mesure, en écrivant à
-          l&apos;Éditeur (adresse de contact ou page « Aide et retours »).
+          à l&apos;échéance prévue ci-dessus.
         </p>
+        {/* Seconde reprise du 24/11/2026 (relecture T4R-06). « Sur le seul constat de l'impayé » était inexact : l'article
+            fixe quinze jours, et le code attend la preuve de livraison du premier courrier (lib/relances-paiement.ts).
+            La phrase « le Client peut demander qu'une personne réexamine sa situation », ajoutée au tour précédent sans
+            décision du dirigeant, est RETIRÉE : l'article 22 du RGPD tel que le recueil le reproduit ne l'exige que pour
+            une « décision fondée exclusivement sur un traitement automatisé […] produisant des effets juridiques » sur
+            une personne, et le texte ne dit pas que la lecture seule d'un compte impayé en est une ; la phrase engageait
+            en outre l'Éditeur à un réexamen qu'aucun parcours n'organise, et ne couvrait pas la fin d'essai (8.2).
+            Question laissée au dirigeant et à son juriste (notes du lot, seconde reprise). */}
         <p>
           <b className="font-semibold">15.4 — Résiliation par
           l&apos;Éditeur.</b> En cas de défaut de paiement ou de manquement
@@ -1053,7 +1058,14 @@ export default async function PageConditions() {
           légales pour le nom et les coordonnées du médiateur, et dit que ces mentions indiquent, tant qu'aucun n'est
           désigné, qu'il n'y en a pas. Le texte du contrat ne dépend plus des champs « médiateur » : les saisir ne
           demande pas de nouvelle version (lib/editeur.ts, identiteDesConditions).
-          La réponse qui clôt une réclamation porte la même information (actions/retours.ts). */}
+          La réponse qui clôt une réclamation porte la même information (actions/retours.ts).
+          Seconde reprise du 24/11/2026 (relecture T4R-07) : l'article promettait que ces informations sont « rappelées
+          dans la réponse de l'Éditeur à la réclamation ». Le code ne le fait que pour une réclamation faite depuis
+          « Aide et retours » et close dans l'application (actions/retours.ts, `deciderRetour` : seul état de clôture
+          d'une réclamation) ; une réponse par courriel dépend de la personne qui l'écrit. La promesse est bornée à ce
+          cas. « Non-professionnel » n'est PAS rétabli : l'article L. 612-1 reproduit au recueil ne vise que le
+          « consommateur », et rien dans le recueil n'établit que la médiation de la consommation est ouverte à une
+          personne morale (question laissée au juriste). */}
       <Article titre="17. Droit applicable et litiges">
         <p>
           Les présentes conditions sont soumises au{" "}
@@ -1073,11 +1085,11 @@ export default async function PageConditions() {
           <Link href="/mentions-legales" className="lien-texte">
             mentions légales
           </Link>{" "}
-          et sont rappelés dans la réponse de l&apos;Éditeur à la réclamation.
-          Tant qu&apos;aucun médiateur n&apos;est désigné, les mentions légales
-          et cette réponse l&apos;indiquent expressément ; le Client garde
-          alors la réclamation écrite prévue ci-dessus et les voies de droit
-          commun.
+          ; la réponse par laquelle l&apos;Éditeur clôt une réclamation faite
+          depuis la page « Aide et retours » les rappelle. Tant qu&apos;aucun
+          médiateur n&apos;est désigné, les mentions légales et cette réponse
+          l&apos;indiquent expressément ; le Client garde alors la réclamation
+          écrite prévue ci-dessus et les voies de droit commun.
         </p>
       </Article>
 

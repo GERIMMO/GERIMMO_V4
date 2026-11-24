@@ -23,11 +23,18 @@ export const EDITEUR = {
    * Dénomination sociale d'une société ; pour un entrepreneur individuel, son nom et son prénom accompagnés de la
    * mention « entrepreneur individuel » ou des initiales « EI » (fiches officielles F37351 et F31808 d'Entreprendre
    * Service Public, lues le 24/11/2026 ; code de commerce, art. R. 526-27, lu dans le recueil du dirigeant ;
-   * `validerIdentite` le vérifie à la saisie, `defautsVendeur` avant toute vente).
+   * `validerIdentite` le vérifie à la saisie, `defautsVendeur` avant toute vente, quand le type de vendeur choisi est
+   * « entrepreneur individuel »).
    */
   denomination: null as FaitEditeur,
-  /** SAS, SARL… ou « Entrepreneur individuel » (voir `estEntrepreneurIndividuel`). */
+  /** SAS, SARL… ou « Entrepreneur individuel » : texte libre, affiché tel quel aux mentions légales. Il ne décide de rien. */
   forme: null as FaitEditeur,
+  /**
+   * Le type de vendeur, choisi dans une liste (`TYPES_VENDEUR`) : « entrepreneur_individuel » ou « personne_morale ».
+   * C'est lui, et non le texte libre de la forme juridique, qui dit si la mention « EI » est exigée et si un capital
+   * s'affiche (seconde reprise du 24/11/2026, relectures T4R-03 et T4R-04).
+   */
+  typeVendeur: null as FaitEditeur,
   /** Capital social, si société. `null` pour une entreprise individuelle. */
   capital: null as FaitEditeur,
   /** Adresse complète : siège d'une société, ou adresse de l'entreprise individuelle. */
@@ -145,22 +152,27 @@ export function confidentialiteIncomplete(editeur: Record<string, FaitEditeur> =
   return ["denomination", "forme", "siege", "email"].some((cle) => !editeur[cle]?.trim());
 }
 
-/** Minuscules, sans accents, espaces (insécables compris) réduits à un seul : pour comparer une saisie libre. */
-function formeSimple(texte: string | null | undefined): string {
-  return (texte ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[\s\u00a0\u202f]+/g, " ").trim();
+/**
+ * Les deux types de vendeur, et leur libellé dans la console. Seconde reprise du 24/11/2026 (relectures T4R-03 et
+ * T4R-04) : le type se CHOISIT ; il n'est plus deviné dans le champ libre « Forme juridique », où « Auto-entreprise »,
+ * « Artisan » ou « EIRL » échappaient au contrôle quand « E.I.R.L. » ou « SAS (ex-entreprise individuelle) » y
+ * tombaient à tort. La base n'admet que ces deux valeurs (migration 20261125106000).
+ */
+export const TYPES_VENDEUR = {
+  entrepreneur_individuel: "Entrepreneur individuel",
+  personne_morale: "Société ou autre personne morale",
+} as const;
+export type TypeVendeur = keyof typeof TYPES_VENDEUR;
+
+/** Le type de vendeur choisi, ou `null` s'il ne l'est pas encore (ou si la valeur lue n'est pas l'une des deux). */
+export function typeVendeur(editeur: Record<string, FaitEditeur>): TypeVendeur | null {
+  const choix = editeur.typeVendeur;
+  return typeof choix === "string" && Object.hasOwn(TYPES_VENDEUR, choix) ? (choix as TypeVendeur) : null;
 }
 
-// Les mots qui désignent un entrepreneur individuel dans le champ libre « Forme juridique » (relecture D7R-03 : une
-// virgule, une parenthèse collée ou « E.I. » faisaient sortir du régime, et la page annonçait un capital « à venir »).
-const MOTS_ENTREPRENEUR_INDIVIDUEL =
-  /(?:^|[^a-z0-9])(?:entrepreneur individuel|entrepreneuse individuelle|entreprise individuelle|micro[- ]?entrepreneur|micro[- ]?entrepreneuse|micro[- ]?entreprise|auto[- ]?entrepreneur|auto[- ]?entrepreneuse)(?:[^a-z0-9]|$)/;
-// Les initiales, en tête du champ seulement : « EI », « E.I. », « EI (nom commercial X) ». « EIRL » et « EIffage » n'en sont pas.
-const INITIALES_EI_EN_TETE = /^e\.? ?i\.?(?:[^a-z0-9]|$)/;
-
-/** La forme juridique saisie désigne-t-elle un entrepreneur individuel ? Ponctuation, casse et accents indifférents. */
+/** Le vendeur est-il un entrepreneur individuel ? Seul le type choisi le dit ; la forme juridique saisie n'est pas lue. */
 export function estEntrepreneurIndividuel(editeur: Record<string, FaitEditeur>): boolean {
-  const forme = formeSimple(editeur.forme);
-  return MOTS_ENTREPRENEUR_INDIVIDUEL.test(forme) || INITIALES_EI_EN_TETE.test(forme);
+  return typeVendeur(editeur) === "entrepreneur_individuel";
 }
 
 /**
@@ -170,38 +182,55 @@ export function estEntrepreneurIndividuel(editeur: Record<string, FaitEditeur>):
  * « l'entrepreneur individuel utilise une dénomination incorporant son nom ou nom d'usage précédé ou suivi
  * immédiatement des mots : “ entrepreneur individuel ” ou des initiales : “ EI ” ».
  *
- * On vérifie donc que la mention est un mot entier (« EI » ou « E.I. » en majuscules, ou les mots en toutes lettres),
- * et qu'elle TOUCHE un autre mot du nom : rien entre eux qu'une espace, une virgule ou une parenthèse. Un trait d'union
- * ou une apostrophe collent deux mots en un seul : « EI-CONSEIL Martin » ne porte pas la mention (relecture D7R-05).
- * Refusés aussi : la mention seule (aucun nom) et la mention niée (« non entrepreneur individuel »).
- * Ce que le code ne sait pas faire : reconnaître que le mot voisin est bien le NOM de la personne (« SOCIETE EI » passe).
+ * La règle vérifiée, et rien de plus : la mention est un mot entier — « EI », « E.I. », « E.I » ou « E. I. » en
+ * majuscules, ou les mots « entrepreneur individuel » — et le mot qui la précède ou qui la suit est un mot du nom.
+ * Entre les deux, seulement des espaces et de la ponctuation de séparation : virgule, parenthèse, deux-points, tiret
+ * ISOLÉ (« MARTIN Camille - EI »). Un trait d'union ou une apostrophe COLLÉS font un seul mot : « EI-CONSEIL Martin »
+ * ne porte pas la mention (relecture D7R-05).
+ *
+ * Seconde reprise du 24/11/2026 (relecture T4R-04) — faux refus corrigés : un tiret isolé entre le nom et la mention,
+ * « E.I » sans point final, un nom d'une seule lettre, et les noms de famille qui sont aussi des mots de négation
+ * (« Jean SANS EI », « Marie PAS EI »). Une négation ne compte plus que si elle est écrite tout en minuscules (« non
+ * entrepreneur individuel ») : un nom de famille prend une majuscule.
+ *
+ * Ce que le code ne sait pas faire, et ne prétend pas faire : reconnaître que le mot voisin est bien le NOM de la
+ * personne (« SOCIETE EI » passe). Le type de vendeur, lui, est choisi, pas deviné (`TYPES_VENDEUR`).
  */
 export function porteLaMentionEI(nom: string | null | undefined): boolean {
   const mots = (nom ?? "")
-    // Les mots en toutes lettres et « E.I. » sont ramenés aux initiales, pour n'avoir qu'une forme à chercher.
+    // Les mots en toutes lettres et les initiales pointées sont ramenés à « EI », pour n'avoir qu'une forme à chercher.
     .replace(/(?<![\p{L}\p{N}-])entrepreneu(?:r\s+individuel|se\s+individuelle)(?![\p{L}\p{N}-])/giu, "EI")
-    .replace(/(?<![\p{L}\p{N}.-])E\.I\.(?![\p{L}\p{N}])/gu, "EI")
-    // Espaces, virgules et parenthèses séparent les mots ; le trait d'union et l'apostrophe, non.
-    .split(/[\s\u00a0\u202f,()]+/u)
-    .map((mot) => mot.replace(/[.;:]+$/u, ""))
-    .filter(Boolean);
-  const estUnNom = (mot: string | undefined) => mot !== undefined && mot !== "EI" && /^\p{L}[\p{L}\p{N}'’.-]+$/u.test(mot);
-  const estUneNegation = (mot: string | undefined) => /^(?:non|pas|sans|ni|ex|ancien|ancienne)$/i.test(mot ?? "");
+    .replace(/(?<![\p{L}\p{N}.-])E\.\s?I\.?(?![\p{L}\p{N}-])/gu, "EI")
+    // Espaces, virgules, parenthèses et deux-points séparent les mots ; le trait d'union et l'apostrophe collés, non.
+    .split(/[\s\u00a0\u202f,():]+/u)
+    .map((mot) => mot.replace(/[.;]+$/u, ""))
+    // Un tiret isolé (entouré d'espaces) n'est qu'un séparateur.
+    .filter((mot) => mot && !/^[-–—]+$/u.test(mot));
+  const estUnNom = (mot: string | undefined) => mot !== undefined && mot !== "EI" && /^\p{L}[\p{L}\p{N}'’.-]*$/u.test(mot);
+  // Sensible à la casse, exprès : « SANS », « Sans », « PAS » sont des noms de famille ; « sans », « non » nient.
+  const estUneNegation = (mot: string | undefined) => /^(?:non|pas|sans|ni|ex|ancien|ancienne)$/.test(mot ?? "");
   return mots.some((mot, i) => mot === "EI" && !estUneNegation(mots[i - 1]) && (estUnNom(mots[i - 1]) || estUnNom(mots[i + 1])));
 }
+
+/** Le manque dit au super admin quand le type de vendeur n'est pas choisi. */
+export const MANQUE_TYPE_VENDEUR = "le type de vendeur (entrepreneur individuel, ou société ou autre personne morale)";
 
 /** Le manque dit au super admin quand le nom d'un entrepreneur individuel ne porte pas la mention. */
 export const MANQUE_MENTION_EI = "la mention « EI » accolée au nom de l'éditeur (entrepreneur individuel)";
 
 /**
- * Tout ce qui empêche de vendre du côté du vendeur : les faits requis absents, puis la mention « EI » absente du nom
- * d'un entrepreneur individuel. La saisie la refuse déjà (lib/identite-editeur.ts) ; ce contrôle est rejoué à
- * l'ouverture des ventes et avant chaque première souscription, pour une identité enregistrée avant ce contrôle
- * (relecture D7R-05).
+ * Tout ce qui empêche de vendre du côté du vendeur : les faits requis absents, le type de vendeur non choisi, puis la
+ * mention « EI » absente du nom d'un entrepreneur individuel. La saisie refuse déjà un nom sans mention
+ * (lib/identite-editeur.ts) ; ce contrôle est rejoué à l'ouverture des ventes et avant chaque première souscription,
+ * pour une identité enregistrée avant lui (relecture D7R-05).
+ *
+ * UNE SEULE VÉRITÉ (relecture T4R-05) : la garde de paiement, l'ouverture des ventes, /admin/parametres et /admin/sante
+ * lisent toutes cette liste. Un vendeur n'est dit « complet » nulle part si elle n'est pas vide.
  */
 export function defautsVendeur(editeur: Record<string, FaitEditeur> = EDITEUR): string[] {
+  const sansType = typeVendeur(editeur) === null;
   const sansMention = Boolean(editeur.denomination) && estEntrepreneurIndividuel(editeur) && !porteLaMentionEI(editeur.denomination);
-  return [...faitsManquants(editeur), ...(sansMention ? [MANQUE_MENTION_EI] : [])];
+  return [...faitsManquants(editeur), ...(sansType ? [MANQUE_TYPE_VENDEUR] : []), ...(sansMention ? [MANQUE_MENTION_EI] : [])];
 }
 
 /** Les trois coordonnées du médiateur de la consommation sont-elles saisies ? (La saisie les exige ensemble.) */
@@ -526,8 +555,10 @@ export function reservesLegales(editeur: Record<string, FaitEditeur> = EDITEUR):
 // (migration 20261024150000) s'activent avec elle.
 // 24/11/2026 : reprise du lot D7 et lot « textes » T4 — article 17 (médiateur : un seul texte, vrai qu'il soit désigné
 // ou non, qui renvoie aux mentions légales), annexe 1 (ce qui est réellement transmis à OpenAI), conservation des
-// factures portée de six à dix ans (article 9), article 2 (« l'entreprise »), article 15.3 (réexamen par une
-// personne). Déclarée « nouvelles souscriptions uniquement » dans conditions-versions.json : le recueil de l'accord
+// factures portée de six à dix ans (article 9), article 2 (« l'entreprise »), article 15.3 (la lecture seule est
+// appliquée automatiquement à l'échéance prévue ; seconde reprise du même jour : la phrase de réexamen par une
+// personne est retirée, l'article 17 ne promet le rappel du médiateur que dans la réponse qui clôt une réclamation
+// faite depuis « Aide et retours »). Déclarée « nouvelles souscriptions uniquement » dans conditions-versions.json : le recueil de l'accord
 // exprès des clients déjà abonnés est un autre lot (décision Q15, lot D4).
 export const CONDITIONS_VERSION = "2026-11-24";
 

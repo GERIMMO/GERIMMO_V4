@@ -14,7 +14,7 @@
 --
 -- LA CORRECTION (on allonge, on ne raccourcit rien, on ne supprime rien) :
 --  1. catalogue des durées : la règle « archive:facture » passe à 120 mois, plancher 120 (le réglage du superadmin ne
---     peut plus descendre dessous) ;
+--     peut plus descendre dessous) ; une ligne au journal des durées dit le changement (relecture T4R-10) ;
 --  2. `echeance_facture_archivee` : plancher de 120 mois, pour TOUTES les archives, y compris celles déjà constituées
 --     avec 72 mois (elles ne sont pas réécrites : une archive ne se modifie pas) ;
 --  3. `archives_comptes_echeances` : une nouvelle archive enregistre 120 mois au moins ; valeur par défaut de la colonne ;
@@ -27,13 +27,34 @@
 -- À SAVOIR : rejouer SEULE l'une des trois anciennes migrations citées remet l'ancien texte ; rejouer ensuite celle-ci.
 
 -- 1. Le catalogue. La révision avance pour qu'un formulaire de réglage resté ouvert soit rechargé.
-update public.retention_rules
-   set duree_mois = greatest(duree_mois, 120),
-       duree_initiale_mois = greatest(duree_initiale_mois, 120),
-       minimum_mois = 120,
-       revision = revision + 1
- where data_type = 'archive:facture'
-   and (duree_mois < 120 or duree_initiale_mois < 120 or minimum_mois < 120);
+-- Seconde reprise du 24/11/2026 (relecture T4R-10) : l'écran des durées de conservation (/admin/conservation) tire son
+-- historique du journal (action « conservation_regle_modifiee ») et affirme, quand il est vide, qu'aucune durée n'a
+-- changé depuis la publication. Le passage à 120 mois y laisse donc une ligne, écrite ICI parce que seule cette
+-- instruction connaît l'ancienne durée. Sans auteur (changement fait par la mise à jour, pas par une personne). Aucune
+-- ligne si la durée ne change pas (rejeu, ou durée déjà réglée à 120 mois et plus).
+with avant as (
+  select r.id, r.data_type, r.libelle, r.duree_mois, r.actif
+    from public.retention_rules r
+   where r.data_type = 'archive:facture'
+     and (r.duree_mois < 120 or r.duree_initiale_mois < 120 or r.minimum_mois < 120)
+     for update
+), apres as (
+  update public.retention_rules r
+     set duree_mois = greatest(r.duree_mois, 120),
+         duree_initiale_mois = greatest(r.duree_initiale_mois, 120),
+         minimum_mois = 120,
+         revision = r.revision + 1
+    from avant
+   where r.id = avant.id
+  returning r.id, r.duree_mois
+)
+insert into public.audit_log (action, details)
+select 'conservation_regle_modifiee', jsonb_build_object(
+         'categorie', avant.data_type, 'libelle', avant.libelle, 'ancienne_duree_mois', avant.duree_mois,
+         'nouvelle_duree_mois', apres.duree_mois, 'actif', avant.actif,
+         'motif', 'Mise à jour de Gerimmo du 24/11/2026, sans intervention d''une personne : factures d''abonnement conservées dix ans (livre des procédures fiscales, article L. 102 B, modifié par l''article 36 de la loi n° 2026-534 du 25 juin 2026). La durée ne peut plus être réglée en dessous de 120 mois.')
+  from avant join apres on apres.id = avant.id
+ where apres.duree_mois <> avant.duree_mois;
 
 -- 2. L'échéance d'une facture archivée : dix ans après la fin de son exercice (`exercice_clos_le`, quand l'archive le
 -- porte) ou, à défaut, après la fin du dernier abonnement payé, jamais moins de dix ans après son émission.

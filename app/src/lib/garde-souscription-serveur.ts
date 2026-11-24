@@ -28,6 +28,8 @@ export type GardeSouscription = {
   /** Vrai si le compte a une acceptation enregistrée pour la version en vigueur des conditions. */
   conditionsAcceptees: boolean;
   blocageIdentiteActif: boolean;
+  /** Vrai si le superadmin a décidé (décision datée, lue en base) de vendre aux particuliers sans médiateur. */
+  venteSansMediateurDecidee: boolean;
   ventesOuvertes: boolean;
 };
 
@@ -43,8 +45,8 @@ export async function lireMotifIdentiteEditeur(
   nouvelleSouscriptionParticulier = false,
   premiereSouscription = nouvelleSouscriptionParticulier
 ): Promise<string | null> {
-  const [{ editeur }, { blocageIdentiteActif }] = await Promise.all([lireEditeur(), lireReglageSouscription()]);
-  const contexte: ContexteGarde = { enEssai, blocageIdentiteActif, premiereSouscription, nouvelleSouscriptionParticulier };
+  const [{ editeur }, { blocageIdentiteActif, venteSansMediateurLe }] = await Promise.all([lireEditeur(), lireReglageSouscription()]);
+  const contexte: ContexteGarde = { enEssai, blocageIdentiteActif, venteSansMediateurDecidee: Boolean(venteSansMediateurLe), premiereSouscription, nouvelleSouscriptionParticulier };
   return motifIdentiteEditeur(editeur, contexte) ?? (nouvelleSouscriptionParticulier ? await motifArchiveCommande(supabase, editeur) : null);
 }
 
@@ -95,10 +97,10 @@ export async function conditionsEnVigueurAccepteesPar(supabase: Client, accountI
 
 /** Les deux lectures en parallèle, pour l'écran « Mon abonnement ». */
 export async function lireGardeSouscription(supabase: Client, accountId: string): Promise<GardeSouscription> {
-  const [{ editeur }, conditionsAcceptees, { blocageIdentiteActif, ventesOuvertes }] = await Promise.all([
+  const [{ editeur }, conditionsAcceptees, { blocageIdentiteActif, ventesOuvertes, venteSansMediateurLe }] = await Promise.all([
     lireEditeur(),
     conditionsEnVigueurAccepteesPar(supabase, accountId),
     lireReglageSouscription(),
   ]);
-  return { editeur, conditionsAcceptees, blocageIdentiteActif, ventesOuvertes };
+  return { editeur, conditionsAcceptees, blocageIdentiteActif, venteSansMediateurDecidee: Boolean(venteSansMediateurLe), ventesOuvertes };
 }

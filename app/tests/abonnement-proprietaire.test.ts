@@ -4,7 +4,7 @@ import { CONDITIONS_DATE } from "@/lib/editeur";
 
 /** Un éditeur fictif complet (les huit faits requis par lib/editeur.ts ; domaine example : jamais une adresse réelle). */
 const EDITEUR_COMPLET: Record<string, string | null> = {
-  denomination: "Éditeur de test", forme: "SAS", capital: null, siege: "1 rue de l'Essai, 75000 Paris",
+  denomination: "Éditeur de test", forme: "SAS", typeVendeur: "personne_morale", capital: null, siege: "1 rue de l'Essai, 75000 Paris",
   rcs: "RCS Paris 000 000 000", siret: "00000000000000", tvaIntracommunautaire: null,
   directeurPublication: "Personne de test", email: "contact@example.com", telephone: "01 00 00 00 00",
   mediateurNom: "Médiateur de test", mediateurAdresse: "1 rue Exemple, Paris", mediateurSite: "https://example.test/mediateur",
@@ -34,6 +34,7 @@ const mocks = vi.hoisted(() => ({
   /** Vrai si le compte a une acceptation enregistrée pour la version en vigueur des conditions. */
   conditionsAcceptees: true,
   blocageIdentiteActif: true,
+  venteSansMediateurLe: null as string | null,
   /** L'identité rangée avec la version archivée des conditions ; `null` : celle de l'éditeur complet. */
   archive: null as Record<string, string | null> | null,
 }));
@@ -66,7 +67,7 @@ vi.mock("@/lib/stripe", () => ({
   clientStripe: vi.fn(),
 }));
 vi.mock("@/lib/editeur-serveur", () => ({ lireEditeur: async () => mocks.editeur }));
-vi.mock("@/lib/reglage-souscription-serveur", () => ({ lireReglageSouscription: async () => ({ blocageIdentiteActif: mocks.blocageIdentiteActif, revision: 1, indisponible: false }) }));
+vi.mock("@/lib/reglage-souscription-serveur", () => ({ lireReglageSouscription: async () => ({ blocageIdentiteActif: mocks.blocageIdentiteActif, venteSansMediateurLe: mocks.venteSansMediateurLe, revision: 1, indisponible: false }) }));
 vi.mock("@/app/actions/abonnement", () => ({ accepterConditionsGenerales: vi.fn(), demarrerAbonnement: vi.fn(), confirmerHausse: vi.fn(), demanderPeriodicite: vi.fn(), ouvrirPortailAbonnement: vi.fn(), resilierAbonnement: vi.fn() }));
 import { PageAbonnement2026 } from "@/app/agence/[orgId]/abonnement/abonnement-2026";
 
@@ -84,6 +85,7 @@ beforeEach(() => {
   mocks.editeur = { editeur: EDITEUR_COMPLET, indisponible: false };
   mocks.conditionsAcceptees = true;
   mocks.blocageIdentiteActif = true;
+  mocks.venteSansMediateurLe = null;
 });
 afterEach(() => vi.useRealTimers());
 async function rendre(recherche: Record<string, string> = {}) {
@@ -257,7 +259,7 @@ describe("garde de souscription à l’écran « Mon abonnement »", () => {
     mocks.conditionsAcceptees = false;
     const html = await rendre();
     expect(html).toContain(MOTIF_IDENTITE_HORS_ESSAI_HTML);
-    expect(html).not.toContain("coordonnées du médiateur de la consommation");
+    expect(html).not.toContain("Un médiateur de la consommation doit d"); // phrase du médiateur (T4R-08)
     expect(html).not.toContain("Continuer vers le paiement sécurisé");
   });
   // REPRISE DU LOT D7 (24/11/2026, décision de pilotage). Le test du premier commit D7 disait : « vendeur complet,
@@ -269,19 +271,32 @@ describe("garde de souscription à l’écran « Mon abonnement »", () => {
     mocks.stripePret = true;
     mocks.editeur = { editeur: SANS_MEDIATEUR, indisponible: false };
     const html = (await rendre()).replace(/&#x27;/g, "'");
-    expect(html).toContain("Le paiement en ligne n'est pas encore ouvert aux particuliers. Les coordonnées du médiateur de la consommation de Gerimmo doivent être publiées avant la première souscription. Votre essai continue.");
+    // Seconde reprise (T4R-08) : la phrase ne présuppose plus qu'un médiateur existe.
+    expect(html).toContain("Le paiement en ligne n'est pas encore ouvert aux particuliers. Un médiateur de la consommation doit d'abord être désigné, et ses coordonnées publiées, avant la première souscription. Votre essai continue.");
+    expect(html).not.toContain("médiateur de la consommation de Gerimmo");
     expect(html).not.toContain(MOTIF_IDENTITE_HORS_ESSAI);
     expect(html).not.toContain("Continuer vers le paiement sécurisé");
   });
-  it("reprise D7 : vendeur complet, médiateur non saisi, blocage levé par le super admin — le paiement s'ouvre et l'écran dit qu'aucun médiateur n'est désigné", async () => {
+  // Seconde reprise du 24/11/2026 (relecture T4R-02) : ce test ouvrait le paiement sur la seule levée du blocage. Une
+  // levée enregistrée avant le lot ne doit rien ouvrir aux particuliers : l'écran reste fermé ; il s'ouvre avec la
+  // décision à part, datée.
+  it("T4R-02 : vendeur complet, médiateur non saisi, blocage levé SEUL — le paiement reste fermé au particulier", async () => {
     mocks.stripePret = true;
     mocks.blocageIdentiteActif = false;
+    mocks.editeur = { editeur: SANS_MEDIATEUR, indisponible: false };
+    const html = (await rendre()).replace(/&#x27;/g, "'");
+    expect(html).toContain("Un médiateur de la consommation doit d'abord être désigné, et ses coordonnées publiées, avant la première souscription.");
+    expect(html).not.toContain("Continuer vers le paiement sécurisé");
+  });
+  it("reprise D7 : vendeur complet, médiateur non saisi, décision datée de vendre sans médiateur — le paiement s'ouvre et l'écran dit qu'aucun médiateur n'est désigné", async () => {
+    mocks.stripePret = true;
+    mocks.venteSansMediateurLe = "2026-11-25T09:00:00+00:00";
     mocks.editeur = { editeur: SANS_MEDIATEUR, indisponible: false };
     // D7R-02 : la version archivée des conditions porte ici un médiateur (identité par défaut de l'archive du test)
     // que l'identité affichée n'a pas. Le contrat ne dépend plus du médiateur : la commande n'attend rien.
     const html = await rendre();
     expect(html).not.toContain(MOTIF_IDENTITE_HORS_ESSAI_HTML);
-    expect(html).not.toContain("coordonnées du médiateur de la consommation");
+    expect(html).not.toContain("Un médiateur de la consommation doit d");
     expect(html).not.toContain("version archivée des conditions");
     expect(html.replace(/&#x27;/g, "'")).toContain("Médiateur de la consommation : aucun n'est désigné à ce jour ; ses coordonnées figureront dans les mentions légales dès sa désignation.");
     expect(html).toContain("Continuer vers le paiement sécurisé");

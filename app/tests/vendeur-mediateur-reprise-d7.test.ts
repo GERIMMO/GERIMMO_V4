@@ -7,15 +7,18 @@
  * reprise de la façon la plus prudente et réversible :
  *  a) PAR DÉFAUT, la première souscription d'un particulier reste fermée tant qu'aucun médiateur n'est saisi ; un
  *     professionnel n'est pas bloqué par le médiateur ;
- *  b) le super admin peut lever ce blocage (bouton existant) : la vente s'ouvre alors au particulier, sans médiateur ;
+ *  b) le super admin peut décider d'ouvrir quand même la vente au particulier, sans médiateur — SECONDE REPRISE du
+ *     24/11/2026 (relecture T4R-02) : par une décision à part, datée, et non plus par le bouton « Lever le blocage »,
+ *     dont une levée enregistrée avant le lot aurait ouvert cette vente d'office ;
  *  c) le vendeur incomplet bloque toujours, levée ou non, et pour TOUTE première souscription, agence comprise ;
  *  d) aucun médiateur n'est jamais inventé.
  *
  * Ce fichier prouve, sans base ni réseau :
  *  1. la règle de la garde, case par case (particulier ou professionnel, médiateur saisi ou non, blocage actif ou levé,
  *     vendeur complet ou non, mention « EI ») ;
- *  2. la reconnaissance de la forme « entrepreneur individuel » et de la mention « EI », une variante par test
- *     (relectures D7R-03 et D7R-05 ; code de commerce, article R. 526-27 : « précédé ou suivi immédiatement ») ;
+ *  2. le type de vendeur CHOISI (seconde reprise, relectures T4R-03 et T4R-04 : il n'est plus deviné dans la forme
+ *     juridique, une variante de forme par test) et la mention « EI », une variante par test (relecture D7R-05 ; code
+ *     de commerce, article R. 526-27 : « précédé ou suivi immédiatement ») ;
  *  3. l'ouverture des ventes en console : vendeur exigé, mention « EI » rejouée, et ce que dit le message ;
  *  4. que le texte des conditions générales ne dépend que de ce que `identiteDesConditions` retient (relecture
  *     D7R-02) : saisir le médiateur ou retoucher le téléphone ne change pas le contrat, donc ne referme pas les ventes.
@@ -26,6 +29,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   MANQUE_MENTION_EI,
+  MANQUE_TYPE_VENDEUR,
   defautsVendeur,
   estEntrepreneurIndividuel,
   faitsManquants,
@@ -35,7 +39,7 @@ import {
   sirenEtSiret,
 } from "../src/lib/editeur";
 import { MOTIF_IDENTITE_EDITEUR, MOTIF_IDENTITE_EDITEUR_ESSAI, MOTIF_MEDIATEUR, motifIdentiteEditeur } from "../src/lib/garde-souscription";
-import { AIDES_EDITEUR, CHAMPS_EDITEUR, validerIdentite } from "../src/lib/identite-editeur";
+import { AIDES_EDITEUR, CHAMPS_EDITEUR, CHOIX_TYPE_VENDEUR, validerIdentite } from "../src/lib/identite-editeur";
 import { extraireTexteContractuel } from "../src/lib/conditions-versions";
 import { readFileSync } from "node:fs";
 
@@ -57,6 +61,8 @@ import Conditions from "../src/app/conditions/page";
 /** Le vendeur fictif : entrepreneur individuel, nom suivi de « EI », sans médiateur. */
 const VENDEUR: Record<string, string | null> = {
   denomination: "MARTIN Camille EI",
+  // Seconde reprise (T4R-03) : le type de vendeur est choisi ; la forme juridique n'est plus qu'un texte affiché.
+  typeVendeur: "entrepreneur_individuel",
   forme: "Entrepreneur individuel (nom commercial EXEMPLEXPERT)",
   capital: null,
   siege: "1 rue de l'Exemple, 75000 Paris",
@@ -80,7 +86,7 @@ beforeEach(() => {
   mocks.saved.mockResolvedValue({ data: { revision: 5 }, error: null });
 });
 
-describe("1. la garde : particulier sans médiateur fermé par défaut, ouvert si levé ; professionnel ouvert ; sans vendeur, fermé dans tous les cas", () => {
+describe("1. la garde : particulier sans médiateur fermé par défaut, ouvert sur décision distincte ; professionnel ouvert ; sans vendeur, fermé dans tous les cas", () => {
   const particulier = { enEssai: false, premiereSouscription: true, nouvelleSouscriptionParticulier: true };
   const professionnel = { enEssai: false, premiereSouscription: true, nouvelleSouscriptionParticulier: false };
   const hausse = { enEssai: false };
@@ -92,13 +98,37 @@ describe("1. la garde : particulier sans médiateur fermé par défaut, ouvert s
     expect(motifIdentiteEditeur(VENDEUR, { ...particulier, enEssai: true, blocageIdentiteActif: true })).toBe(`${MOTIF_MEDIATEUR} Votre essai continue.`);
   });
 
-  it("particulier, vendeur complet, sans médiateur, blocage levé par le super admin : ouvert", () => {
-    expect(motifIdentiteEditeur(VENDEUR, { ...particulier, blocageIdentiteActif: false })).toBeNull();
+  // Seconde reprise (relecture T4R-02). Ce test affirmait « blocage levé par le super admin : ouvert ». Une levée
+  // enregistrée AVANT le lot (elle ne visait alors que les hausses) aurait donc ouvert d'office, au déploiement, la
+  // vente aux particuliers sans médiateur. La levée seule ne l'ouvre plus.
+  it("T4R-02 — particulier, vendeur complet, sans médiateur, blocage levé SEUL : toujours fermé", () => {
+    expect(motifIdentiteEditeur(VENDEUR, { ...particulier, blocageIdentiteActif: false })).toBe(MOTIF_MEDIATEUR);
+    expect(motifIdentiteEditeur(VENDEUR, { ...particulier, blocageIdentiteActif: false, venteSansMediateurDecidee: false })).toBe(MOTIF_MEDIATEUR);
+    expect(motifIdentiteEditeur(VENDEUR, { ...particulier, enEssai: true, blocageIdentiteActif: false })).toBe(`${MOTIF_MEDIATEUR} Votre essai continue.`);
   });
 
-  it("particulier, vendeur complet, médiateur saisi : ouvert, blocage actif ou levé", () => {
+  it("T4R-02 — particulier, vendeur complet, sans médiateur, décision distincte de vendre sans médiateur : ouvert, blocage actif ou levé", () => {
+    for (const blocageIdentiteActif of [true, false, undefined]) {
+      expect(motifIdentiteEditeur(VENDEUR, { ...particulier, blocageIdentiteActif, venteSansMediateurDecidee: true })).toBeNull();
+    }
+    // Seule la valeur `true` vaut décision : rien d'autre n'ouvre.
+    for (const autre of [undefined, false, "oui", 1, "2026-11-25"]) {
+      expect(motifIdentiteEditeur(VENDEUR, { ...particulier, venteSansMediateurDecidee: autre as unknown as boolean }), String(autre)).toBe(MOTIF_MEDIATEUR);
+    }
+  });
+
+  it("T4R-02 — la décision de vendre sans médiateur n'ouvre rien si le vendeur est incomplet", () => {
+    for (const client of [particulier, professionnel]) {
+      expect(motifIdentiteEditeur({}, { ...client, blocageIdentiteActif: false, venteSansMediateurDecidee: true })).toBe(MOTIF_IDENTITE_EDITEUR);
+      expect(motifIdentiteEditeur({ ...VENDEUR, typeVendeur: null }, { ...client, venteSansMediateurDecidee: true })).toBe(MOTIF_IDENTITE_EDITEUR);
+    }
+  });
+
+  it("particulier, vendeur complet, médiateur saisi : ouvert, blocage actif ou levé, décision prise ou non", () => {
     for (const blocageIdentiteActif of [true, false]) {
-      expect(motifIdentiteEditeur({ ...VENDEUR, ...MEDIATEUR }, { ...particulier, blocageIdentiteActif })).toBeNull();
+      for (const venteSansMediateurDecidee of [true, false]) {
+        expect(motifIdentiteEditeur({ ...VENDEUR, ...MEDIATEUR }, { ...particulier, blocageIdentiteActif, venteSansMediateurDecidee })).toBeNull();
+      }
     }
   });
 
@@ -148,57 +178,103 @@ describe("1. la garde : particulier sans médiateur fermé par défaut, ouvert s
         expect(motifIdentiteEditeur(sansMention, { ...client, blocageIdentiteActif })).toBe(MOTIF_IDENTITE_EDITEUR);
       }
     }
-    // Une société n'a pas à porter « EI ».
-    expect(defautsVendeur({ ...VENDEUR, denomination: "Exemple", forme: "SAS" })).toEqual([]);
+    // Une société n'a pas à porter « EI » (seconde reprise, T4R-03 : elle se déclare par le type choisi, pas par sa forme).
+    expect(defautsVendeur({ ...VENDEUR, typeVendeur: "personne_morale", denomination: "Exemple", forme: "SAS" })).toEqual([]);
     expect(defautsVendeur(VENDEUR)).toEqual([]);
+  });
+
+  // Seconde reprise (T4R-03) : sans type de vendeur choisi, on ne sait pas si « EI » est dû — le vendeur est incomplet.
+  it.each([null, undefined, "", "Entrepreneur individuel", "EI", "societe", "ENTREPRENEUR_INDIVIDUEL"])("T4R-03 — type de vendeur « %s » (non choisi ou hors liste) : vendeur incomplet, toute première souscription fermée", (choix) => {
+    const sansType = { ...VENDEUR, ...MEDIATEUR, typeVendeur: choix as string | null };
+    expect(faitsManquants(sansType)).toEqual([]);
+    expect(defautsVendeur(sansType)).toEqual([MANQUE_TYPE_VENDEUR]);
+    for (const client of [particulier, professionnel]) {
+      for (const blocageIdentiteActif of [true, false]) {
+        expect(motifIdentiteEditeur(sansType, { ...client, blocageIdentiteActif })).toBe(MOTIF_IDENTITE_EDITEUR);
+      }
+    }
   });
 
   it("les deux phrases servies au client ne disent ni qu'un médiateur existe, ni qu'une adhésion est en cours", () => {
     expect(MOTIF_MEDIATEUR).not.toMatch(/adhésion|en cours/i);
     expect(MOTIF_IDENTITE_EDITEUR).not.toMatch(/médiateur/i);
+    // Relecture T4R-08 : « les coordonnées du médiateur de la consommation de Gerimmo doivent être publiées »
+    // présupposait un médiateur existant. La phrase dit qu'il reste à désigner.
+    expect(MOTIF_MEDIATEUR).toBe("Le paiement en ligne n'est pas encore ouvert aux particuliers. Un médiateur de la consommation doit d'abord être désigné, et ses coordonnées publiées, avant la première souscription.");
+    expect(MOTIF_MEDIATEUR).not.toMatch(/médiateur de la consommation de Gerimmo|du médiateur|le médiateur/i);
   });
 });
 
-describe("2. forme « entrepreneur individuel » : une variante par test (D7R-03)", () => {
-  it.each([
-    "Entrepreneur individuel",
-    "Entrepreneur individuel (nom commercial EXEMPLEXPERT)",
-    "Entrepreneur individuel, nom commercial X",
-    "Entrepreneur individuel(X)",
-    "entrepreneur individuel.",
-    "ENTREPRENEUR INDIVIDUEL",
-    "Entrepreneur  individuel",
-    "Entrepreneur individuel",
-    "Entrepreneuse individuelle",
-    "Entreprise individuelle",
-    "EI",
-    "EI, nom commercial X",
-    "EI (nom commercial X)",
-    "E.I.",
-    "E. I.",
-    "ei",
-    "Micro-entrepreneur",
-    "Micro entrepreneur",
-    "Microentrepreneur",
-    "Micro-entrepreneuse",
-    "Micro-entreprise",
-    "Auto-entrepreneur",
-    "Auto-entrepreneuse",
-    "Nom commercial X — entrepreneur individuel",
-  ])("« %s » est un entrepreneur individuel : « EI » exigé avec le nom, capital refusé", (forme) => {
-    expect(estEntrepreneurIndividuel({ forme })).toBe(true);
-    const f = (valeurs: Record<string, string | null>) => { const d = new FormData(); for (const [k, v] of Object.entries(valeurs)) if (v) d.set(k, v); return d; };
-    expect(validerIdentite(f({ ...VENDEUR, forme, denomination: "MARTIN Camille" })).erreur).toContain("« EI »");
-    expect(validerIdentite(f({ ...VENDEUR, forme, capital: "1 000 €" })).erreur).toContain("pas de capital social");
-    expect(validerIdentite(f({ ...VENDEUR, forme })).erreur).toBeUndefined();
+// Seconde reprise du 24/11/2026 (relectures T4R-03 et T4R-04). Ce bloc faisait RECONNAÎTRE l'entrepreneur individuel
+// dans le champ libre « Forme juridique », une variante par test (D7R-03). La relecture a montré que la devinette
+// restait fragile dans les deux sens : « Auto-entreprise », « Artisan », « Profession libérale », « Personne physique »
+// échappaient au contrôle « EI » (ventes ouvertes sans la mention), tandis que « E.I.R.L. », « SAS (ex-entreprise
+// individuelle) » et « EI SAS » y tombaient (une société se voyait exiger « EI » et refuser son capital). Le type de
+// vendeur se CHOISIT désormais dans une liste. Les mêmes variantes de forme sont gardées, une par test, pour prouver
+// l'inverse : AUCUNE ne décide plus de rien.
+describe("2. type de vendeur choisi : la forme juridique saisie ne décide de rien (T4R-03, T4R-04)", () => {
+  const f = (valeurs: Record<string, string | null>) => { const d = new FormData(); for (const [k, v] of Object.entries(valeurs)) if (v) d.set(k, v); return d; };
+  const FORMES = [
+    // Les vingt-quatre variantes que le code reconnaissait.
+    "Entrepreneur individuel", "Entrepreneur individuel (nom commercial EXEMPLEXPERT)", "Entrepreneur individuel, nom commercial X",
+    "Entrepreneur individuel(X)", "entrepreneur individuel.", "ENTREPRENEUR INDIVIDUEL", "Entrepreneur  individuel",
+    "Entrepreneur\u00a0individuel", "Entrepreneuse individuelle", "Entreprise individuelle", "EI", "EI, nom commercial X",
+    "EI (nom commercial X)", "E.I.", "E. I.", "ei", "Micro-entrepreneur", "Micro entrepreneur", "Microentrepreneur",
+    "Micro-entrepreneuse", "Micro-entreprise", "Auto-entrepreneur", "Auto-entrepreneuse", "Nom commercial X — entrepreneur individuel",
+    // Celles qu'il ne reconnaissait pas (personnes physiques comprises), et celles qu'il reconnaissait à tort.
+    "Auto-entreprise", "Artisan", "Profession libérale", "Personne physique", "Commerçant", "Indépendant",
+    "EIRL", "E.I.R.L.", "SAS (ex-entreprise individuelle)", "EI SAS", "SARL de micro-entreprise",
+    "SAS", "SARL", "SASU", "EURL", "SCI", "Société par actions simplifiée", "Association", "EIFFAGE SA",
+  ];
+
+  it.each(FORMES)("forme « %s » — type « entrepreneur individuel » : « EI » exigé avec le nom, capital refusé", (forme) => {
+    const editeur = { ...VENDEUR, forme, typeVendeur: "entrepreneur_individuel" };
+    expect(estEntrepreneurIndividuel(editeur)).toBe(true);
+    expect(validerIdentite(f({ ...editeur, denomination: "MARTIN Camille" })).erreur).toContain("« EI »");
+    expect(validerIdentite(f({ ...editeur, capital: "1 000 €" })).erreur).toContain("pas de capital social");
+    expect(validerIdentite(f(editeur)).erreur).toBeUndefined();
+    expect(defautsVendeur({ ...editeur, denomination: "MARTIN Camille" })).toEqual([MANQUE_MENTION_EI]);
+    expect(defautsVendeur(editeur)).toEqual([]);
   });
 
-  it.each(["SAS", "SARL", "SASU", "EURL", "EIRL", "SCI", "Société par actions simplifiée", "Association", "EIFFAGE SA", "", null])(
-    "« %s » n'est pas reconnu comme un entrepreneur individuel",
-    (forme) => {
-      expect(estEntrepreneurIndividuel({ forme })).toBe(false);
-    },
-  );
+  it.each(FORMES)("forme « %s » — type « société ou autre personne morale » : ni « EI » exigé, ni capital refusé", (forme) => {
+    const editeur = { ...VENDEUR, forme, typeVendeur: "personne_morale", denomination: "Exemple" };
+    expect(estEntrepreneurIndividuel(editeur)).toBe(false);
+    expect(validerIdentite(f(editeur)).erreur).toBeUndefined();
+    expect(validerIdentite(f({ ...editeur, capital: "1 000 €" })).erreur).toBeUndefined();
+    expect(defautsVendeur(editeur)).toEqual([]);
+  });
+
+  it.each(FORMES)("forme « %s » — type non choisi : personne n'est deviné entrepreneur individuel, et le vendeur est incomplet", (forme) => {
+    const editeur = { ...VENDEUR, forme, typeVendeur: null };
+    expect(estEntrepreneurIndividuel(editeur)).toBe(false);
+    expect(defautsVendeur(editeur)).toEqual([MANQUE_TYPE_VENDEUR]);
+    expect(defautsVendeur({ ...editeur, denomination: "MARTIN Camille" })).toEqual([MANQUE_TYPE_VENDEUR]);
+  });
+
+  it("la saisie n'admet que les deux types de la liste ; un type vide s'enregistre (il reste dû, et ferme les ventes)", () => {
+    for (const choix of ["Entrepreneur individuel", "EI", "societe", "personne_morale_", "ENTREPRENEUR_INDIVIDUEL", "1"]) {
+      expect(validerIdentite(f({ ...VENDEUR, typeVendeur: choix })).erreur, choix).toBe("Choisissez le type de vendeur dans la liste : entrepreneur individuel, ou société ou autre personne morale.");
+    }
+    const sansType = validerIdentite(f({ ...VENDEUR, typeVendeur: null }));
+    expect(sansType.erreur).toBeUndefined();
+    expect(sansType.valeurs?.typeVendeur).toBeNull();
+    expect(validerIdentite(f(VENDEUR)).valeurs?.typeVendeur).toBe("entrepreneur_individuel");
+    expect(CHAMPS_EDITEUR.typeVendeur).toBe("Type de vendeur");
+    expect(Object.keys(CHAMPS_EDITEUR).at(-1)).toBe("typeVendeur");
+  });
+
+  it("le formulaire propose le type dans une liste fermée (un `select`, deux choix), avant le nom", () => {
+    const formulaire = readFileSync("src/app/admin/parametres/identite.tsx", "utf8");
+    expect(formulaire).toContain('champs: ["typeVendeur", "denomination",');
+    expect(formulaire).toContain('k === "typeVendeur"');
+    expect(formulaire).toContain('<select className="champ mt-1 w-full" name={k} defaultValue={valeurs[k] ?? ""}><option value="">— À choisir —</option>{CHOIX_TYPE_VENDEUR.map(');
+    expect(CHOIX_TYPE_VENDEUR).toEqual([["entrepreneur_individuel", "Entrepreneur individuel"], ["personne_morale", "Société ou autre personne morale"]]);
+    // Plus aucune devinette sur la forme dans le code.
+    const lib = readFileSync("src/lib/editeur.ts", "utf8");
+    expect(lib).not.toMatch(/MOTS_ENTREPRENEUR_INDIVIDUEL|INITIALES_EI_EN_TETE|formeSimple/);
+    expect(lib).toContain('return typeVendeur(editeur) === "entrepreneur_individuel";');
+  });
 });
 
 describe("2 bis. mention « EI » accolée au nom : « précédé ou suivi immédiatement » (R. 526-27 ; D7R-05)", () => {
@@ -219,6 +295,19 @@ describe("2 bis. mention « EI » accolée au nom : « précédé ou suivi immé
     "Jean-Pierre O'NEIL EI",
     "MARTIN Camille EI.",
     "MARTIN Camille EI",
+    // Seconde reprise (relecture T4R-04) : faux refus corrigés. Un tiret ISOLÉ entre le nom et la mention n'est qu'un
+    // séparateur (le premier cas était rangé parmi les refus : « pas immédiatement ») ; « E.I » sans point final ;
+    // un nom d'une lettre ; les noms de famille qui sont aussi des mots de négation.
+    "MARTIN Camille — EI",
+    "DUPONT Jean - EI",
+    "EI - DUPONT Jean",
+    "DUPONT Jean E.I",
+    "DUPONT Jean E. I.",
+    "Y EI",
+    "Jean SANS EI",
+    "Marie PAS EI",
+    "Sans Jean EI",
+    "EI : DUPONT Jean",
   ])("« %s » porte la mention", (nom) => {
     expect(porteLaMentionEI(nom)).toBe(true);
   });
@@ -232,7 +321,12 @@ describe("2 bis. mention « EI » accolée au nom : « précédé ou suivi immé
     ["MARTIN-EI Camille", "« EI » collé à un autre mot par un trait d'union"],
     ["non entrepreneur individuel", "la mention niée"],
     ["MARTIN Camille non EI", "la mention niée"],
-    ["MARTIN Camille — EI", "un tiret entre le nom et la mention : pas « immédiatement »"],
+    ["MARTIN Camille-EI", "un trait d'union collé : un seul mot"],
+    ["MARTIN Camille/EI", "une barre oblique collée : un seul mot"],
+    ["MARTIN Camille sans EI", "la mention niée (négation en minuscules)"],
+    ["MARTIN Camille pas EI", "la mention niée (négation en minuscules)"],
+    ["MARTIN Camille E.I.R.L.", "un autre sigle"],
+    ["- EI", "la mention seule, sans nom"],
     ["martin camille ei", "initiales en minuscules"],
     ["MARTIN Camille Ei", "initiales mal écrites"],
     ["EIRL MARTIN", "un autre sigle"],
@@ -272,7 +366,8 @@ describe("3. console : ouverture des ventes et levée du blocage", () => {
     expect(r.erreur).toBeUndefined();
     expect(mocks.update).toHaveBeenCalledWith({ souscriptions_payantes_ouvertes: true, revision: 5 });
     expect(r.succes).toBe(
-      "Ouverture enregistrée. Les contrôles avant paiement s’appliquent. Aucun médiateur de la consommation n’est saisi : la première souscription d’un particulier reste fermée tant qu’il manque, sauf si vous levez le blocage des abonnements."
+      // Seconde reprise (T4R-02) : « sauf si vous levez le blocage des abonnements » n'est plus vrai.
+      "Ouverture enregistrée. Les contrôles avant paiement s’appliquent. Aucun médiateur de la consommation n’est saisi : la première souscription d’un particulier reste fermée tant qu’il manque, sauf décision de votre part (carte « Blocage des abonnements », « Vente aux particuliers sans médiateur »)."
     );
   });
 
@@ -300,24 +395,32 @@ describe("3. console : ouverture des ventes et levée du blocage", () => {
     expect(mocks.update).not.toHaveBeenCalled();
   });
 
-  it("lever le blocage : le message dit ce qui s'ouvre, ce qui reste fermé, et que la décision est inscrite à l'historique", async () => {
+  // Seconde reprise (relecture T4R-02). Ces deux tests affirmaient que lever le blocage ouvre la première souscription
+  // d'un particulier sans médiateur, et que le réactiver la referme. La levée ne concerne plus que les augmentations
+  // payantes ; elle ne touche pas à la décision de vendre sans médiateur, et le message le dit.
+  it("T4R-02 — lever le blocage : n'écrit que ce réglage ; le message dit que la vente sans médiateur est une décision à part", async () => {
     const r = await reglerBlocageSouscription({}, blocage("lever"));
     expect(mocks.update).toHaveBeenCalledWith({ blocage_souscription_identite: false, revision: 5 });
-    expect(r.succes).toContain("la première souscription d’un particulier n’attend plus le médiateur de la consommation");
+    expect(r.succes).not.toContain("n’attend plus le médiateur");
+    expect(r.succes).toContain("Blocage levé : une identité du vendeur incomplète n’empêche plus les augmentations payantes.");
     expect(r.succes).toContain("Toute première souscription reste fermée tant que l’identité du vendeur est incomplète.");
+    expect(r.succes).toContain("Cette levée n’ouvre pas la vente aux particuliers sans médiateur de la consommation : c’est une décision à part, sur la même carte.");
     expect(r.succes).toContain("Cette décision est inscrite à l’historique des changements.");
     expect(r.succes).not.toMatch(/conforme/i);
   });
 
-  it("réactiver le blocage : le message dit que l'absence de médiateur referme la première souscription d'un particulier", async () => {
+  it("T4R-02 — réactiver le blocage : n'écrit que ce réglage, et ne parle plus du médiateur", async () => {
     const r = await reglerBlocageSouscription({}, blocage("activer"));
     expect(mocks.update).toHaveBeenCalledWith({ blocage_souscription_identite: true, revision: 5 });
-    expect(r.succes).toContain("l’absence de médiateur de la consommation empêche la première souscription d’un particulier");
+    expect(r.succes).toBe("Blocage réactivé : une identité du vendeur incomplète empêche à nouveau les augmentations payantes.");
   });
 
-  it("la levée est journalisée par la base (table d'historique lue par /admin/journaux), et l'écran la nomme", () => {
+  // Seconde reprise (T4R-02) : la ligne du journal écrivait « médiateur absent » en dur, même quand il était saisi. Les
+  // lignes sont désormais calculées (tests/vendeur-textes-seconde-reprise-t4.test.ts les éprouve une à une).
+  it("la levée est journalisée par la base (table d'historique lue par /admin/journaux), et l'écran la nomme sans rien affirmer du médiateur", () => {
     const journal = readFileSync("src/app/admin/journaux/preuves.tsx", "utf8");
-    expect(journal).toContain("Blocage des abonnements (identité du vendeur incomplète, médiateur absent) : {r.apres.blocage_souscription_identite?'réactivé':'levé'}.");
+    expect(journal).toContain("{r.objet==='supervision_identite'&&lignesJournalReglage(r.avant,r.apres).map(l=><p key={l}>{l}</p>)}");
+    expect(journal).not.toContain("médiateur absent");
     const carte = readFileSync("src/app/admin/parametres/blocage-souscription.tsx", "utf8");
     expect(carte).toContain('href="/admin/journaux?registre=supervision_identite"');
   });

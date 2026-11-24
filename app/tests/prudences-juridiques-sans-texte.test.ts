@@ -261,13 +261,16 @@ describe("P0-11 — facture établie depuis Gerimmo par l'artisan", () => {
 });
 
 describe("P0-09 — cautionnement demandé par un bailleur en société", () => {
-  it("la carte rappelle de vérifier, sans bloquer l'acte et sans citer de texte", async () => {
+  // Textes officiels, lot T2 (R03-A1) : ce test affirmait un simple rappel (« Gerimmo ne contrôle pas ce point »), faute
+  // d'avoir pu lire le texte. L'article 22-1 est maintenant lu dans le recueil : la carte donne la règle et l'acte est refusé
+  // par le serveur (textes-officiels-t2.test.ts).
+  it("la carte donne la règle lue dans l'article 22-1 et annonce le refus", async () => {
     const { CarteCautionnement } = await import("@/app/agence/[orgId]/baux/[bailId]/carte-cautionnement");
     const html = renderToStaticMarkup(createElement(CarteCautionnement, { orgId: "org", bailId: "b1", garants: [{ id: "g1", nom: "Paul Garant" }] }));
     const rappel = /<p[^>]*data-rappel-caution-societe[^>]*>([\s\S]*?)<\/p>/.exec(html)?.[1] ?? "";
-    expect(texteDe(rappel)).toContain("Bailleur en société (SCI, autre personne morale) : demander une caution n'est pas permis dans tous les cas.");
-    expect(texteDe(rappel)).toContain("Gerimmo ne contrôle pas ce point");
-    expect(texteDe(rappel)).not.toMatch(SANS_REFERENCE);
+    expect(texteDe(rappel)).toContain("Bailleur en société (SCI non familiale, autre personne morale) : la loi ne lui permet de demander la caution d'une personne que si le logement est loué à un étudiant qui ne bénéficie pas d'une bourse de l'enseignement supérieur.");
+    expect(texteDe(rappel)).toContain("Hors de ce cas, Gerimmo ne prépare pas l'acte.");
+    expect(texteDe(rappel)).not.toContain("Gerimmo ne contrôle pas");
     // L'acte reste proposé pour chaque garant.
     expect(texteDe(html)).toContain("Paul Garant");
   });

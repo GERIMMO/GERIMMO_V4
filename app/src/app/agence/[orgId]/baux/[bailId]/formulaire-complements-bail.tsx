@@ -110,7 +110,8 @@ export function FormulaireComplementsBail({
       ["Paiement du loyer", defauts.paiement_echeance === "echu" ? "À terme échu" : "À échoir"],
       ["Lieu de paiement", defauts.lieu_paiement ?? "—"],
       ["Valeur de l'IRL de référence", defauts.irl_valeur == null ? "—" : String(defauts.irl_valeur)],
-      ["Événement justifiant une durée réduite", defauts.duree_reduite_evenement ?? "—"],
+      // Lot T2 (R20-A1) : pas de durée réduite en location meublée.
+      ...(meuble ? [] : ([["Événement justifiant une durée réduite", defauts.duree_reduite_evenement ?? "—"]] as [string, string, string?][])),
       // Lot 48 (U03) : une première location sans travaux saisis renvoie aussi au contrat signé, sous la rubrique elle-même.
       ["Travaux récents du bailleur", travaux.travaux, travaux.renvoiContrat && !travaux.avecMontant ? RENVOI_SANS_TRAVAUX_PREMIERE_LOCATION : undefined],
       ...(travaux.avecMontant ? ([["Montant des travaux récents", montant(defauts.travaux_recents_montant), travaux.renvoiContrat ? RENVOI_TRAVAUX_PREMIERE_LOCATION : undefined]] as [string, string, string?][]) : []),
@@ -226,18 +227,23 @@ export function FormulaireComplementsBail({
             defaultValue={d("irl_valeur", defauts.irl_valeur)}
           />
         </div>
-        <div hidden={etape !== "tous" && etape !== "conditions"} data-complement="conditions" className="space-y-1.5 sm:col-span-2">
+        {/* Textes officiels, lot T2 (R20-A1, R17-A2) : pas de durée réduite en location meublée (champ absent : la valeur
+            enregistrée s'efface à l'enregistrement) ; en location nue, Gerimmo ne prépare pas encore ce contrat et le dit. */}
+        {!meuble && <div hidden={etape !== "tous" && etape !== "conditions"} data-complement="conditions" className="space-y-1.5 sm:col-span-2">
           <Label htmlFor="comp-duree-reduite">
-            Événement justifiant une durée réduite — Facultatif si durée normale
+            Événement justifiant une durée réduite — À laisser vide pour un bail de la durée normale
           </Label>
           <Input
             id="comp-duree-reduite"
             name="duree_reduite_evenement"
             maxLength={500}
-            placeholder="Raison familiale ou professionnelle précise du bailleur"
+            aria-describedby="comp-duree-reduite-aide"
             defaultValue={d("duree_reduite_evenement", defauts.duree_reduite_evenement)}
           />
-        </div>
+          <p id="comp-duree-reduite-aide" className="text-xs text-muted-foreground">
+            Gerimmo ne sait pas encore préparer un bail à durée réduite : si ce champ est rempli, le contrat n’est pas produit.
+          </p>
+        </div>}
         <div hidden={etape !== "tous" && etape !== "travaux"} data-complement="travaux" className="space-y-1.5 sm:col-span-2">
           <Label htmlFor="comp-travaux">Travaux récents du bailleur (nature) — Facultatif</Label>
           <textarea

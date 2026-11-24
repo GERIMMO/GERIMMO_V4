@@ -37,7 +37,7 @@ import {
   liensLocataires,
   coordonneesBancaires,
 } from "./communs";
-import { periodeConstruction, mentionsEnergie, destinationServitude, clauseResolutoire, honorairesLocation, encadrementLocation, fixationLoyer, dateConclusion, dureeReduiteSansObjet, travauxDepuisDernierContrat } from "./mentions-location";
+import { periodeConstruction, mentionsEnergie, destinationServitude, clauseResolutoire, honorairesLocation, encadrementLocation, fixationLoyer, dateConclusion, dureeReduiteSansObjet, travauxDepuisDernierContrat, premiereEcheanceLocation, mandataireLocation, reconductionEtConges, clauseSolidarite, REFUS_BAIL_DUREE_REDUITE } from "./mentions-location";
 import { designationIndividuelle } from "./designation-individuelle";
 import type { Assemblage } from "./index";
 import { dureeBailNuAnnees } from "@/lib/qualite-bailleur";
@@ -45,6 +45,9 @@ import { mentionCadreCautionBail } from "@/lib/textes-signature-actes";
 
 
 
+// Textes officiels, lot T2 (R08-A3) : ce calcul ne sert plus qu'à relire un bail déjà préparé pour la signature (typographie
+// archivée). Un nouveau contrat imprime le montant d'une période complète, puis le premier terme calculé comme l'appel de
+// loyer (premiereEcheanceLocation, mentions-location.ts).
 // Montant total dû à la première échéance : loyer + charges, proratisés quand
 // le bail ne prend pas effet un 1er du mois (jours restants jusqu'à la fin du
 // mois inclus / jours du mois). Sans loyer, charges ou date de début, le
@@ -119,13 +122,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
              .join(" ; ")}.</p>`
         : ""
     }
-    ${
-      ctx.organisation.type === "agence"
-        ? `<p>Le bailleur est représenté par son mandataire : ${echapper(ctx.organisation.name)},
-           ${f.champ(exp.adresse, "adresse du mandataire")} — carte professionnelle :
-           ${f.champ(ctx.organisation.carte_pro, "numéro de carte et CCI de délivrance")}.</p>`
-        : ""
-    }
+    ${mandataireLocation(ctx, f, exp.adresse, t)}
     ${sousSection(plusieursLocataires ? "Les locataires" : "Le locataire")}
     ${
       ctx.locataires.length > 0
@@ -167,7 +164,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
     Éléments d'équipement du logement : ${f.champ(ctx.lot.equipements.join(", "), "cuisine équipée, sanitaires, placards…", "équipements du logement")}<br/>
     Modalité de production de chauffage : ${f.champ(ctx.lot.chauffage, "individuel ou collectif, énergie", "chauffage du logement")} — Modalité de
     production d'eau chaude sanitaire : ${f.champ(ctx.lot.eau_chaude, "individuel ou collectif, énergie", "eau chaude du logement")}</p>
-    ${mentionsEnergie(ctx, options.dpeClasse, f)}
+    ${mentionsEnergie(ctx, options.dpeClasse, f, t)}
     ${sousSection("B. Destination des locaux")}
     <p>Le logement est loué à usage exclusif d'habitation, à titre de résidence principale du locataire.</p>
     ${destinationServitude(ctx, f)}
@@ -179,7 +176,9 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
       copro
         ? `<p>L'immeuble étant soumis au statut de la copropriété, le locataire est tenu de respecter le
            règlement de copropriété, dont les extraits relatifs à la destination de l'immeuble, à la
-           jouissance et à l'usage des parties privatives et communes lui sont remis en annexe.</p>`
+           jouissance et à l'usage des parties privatives et communes${
+             // Lot T2 (R05-A1) : les extraits précisent aussi la quote-part du lot (article 3 de la loi, annexe du contrat type).
+             t.archivee ? "" : ", et précisant la quote-part afférente au lot loué dans chacune des catégories de charges,"} lui sont remis en annexe.</p>`
         : ""
     }
 
@@ -191,8 +190,11 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
       // qu'une SCI familiale, 3 ans sinon — la règle de la base (audit 29/09).
       dureeBailNuAnnees(ctx.bailleurs.map((b) => b.qualite)) === 6 ? "six ans" : "trois ans",
       "durée applicable au régime du bail"
-    )}, reconduite tacitement aux mêmes conditions à défaut de congé donné dans les formes et délais légaux.</p>
+    )}${t.archivee ? ", reconduite tacitement aux mêmes conditions à défaut de congé donné dans les formes et délais légaux" : ""}.</p>${/* Lot T2 (R08-A5) : les phrases fixes de la rubrique III du contrat type remplacent l'ancienne fin de phrase. */
+      t.archivee ? "" : reconductionEtConges(ctx, false)}
     ${
+      // Lot T2 (R17-A2) : cette branche ne sert plus qu'au recalcul de l'empreinte d'un bail déjà préparé. Un nouveau contrat
+      // dont le champ est rempli est refusé avant d'arriver ici (refusBailDureeReduite).
       ctx.bail.duree_reduite_evenement
         ? `<p class="mentions">Un contrat d'une durée réduite (au moins un an) n'est possible que si un événement
            précis justifie la reprise du logement par le bailleur : ${f.champ(ctx.bail.duree_reduite_evenement, "événement précis justifiant la durée réduite")}${t.point(ctx.bail.duree_reduite_evenement)}</p>`
@@ -233,7 +235,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
       d'échéance (C50, C72) ; inconnu, l'IBAN du profil de l'espace est à renseigner. Un bail déjà préparé pour la signature
       garde son rendu (typographie archivée : « — »). */
       t.archivee ? facultatif(ctx.organisation.iban) : coordonneesBancaires(f, ctx.bail.lieu_paiement, ctx.organisation.iban)}.<br/>
-    Montant total dû à la première échéance : ${premiereEcheance(f, ctx.bail)}.</p>
+    ${t.archivee ? `Montant total dû à la première échéance : ${premiereEcheance(f, ctx.bail)}.` : premiereEcheanceLocation(ctx, f)}</p>
 
     ${section("V — Travaux")}
     <p>Travaux d'amélioration ou de mise en conformité effectués depuis la fin du dernier contrat :
@@ -250,15 +252,13 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
     }, soit au plus un mois de loyer hors charges.</p>
 
     ${plusieursLocataires ? `${section("VII — Clause de solidarité")}
-    <p>Les locataires sont tenus solidairement et indivisiblement de l'exécution du présent contrat.
-    En cas de congé de l'un d'eux, la solidarité s'éteint six mois après la date d'effet du congé, ou
-    dès qu'un nouveau locataire le remplace au bail.</p>` : ""}
+    ${clauseSolidarite(ctx, t)}` : ""}
 
     ${section(`${plusieursLocataires ? "VIII" : "VII"} — Clause résolutoire`)}
-    ${clauseResolutoire(ctx)}
+    ${clauseResolutoire(ctx, t)}
 
     ${section(`${plusieursLocataires ? "IX" : "VIII"} — Honoraires de location`)}
-    ${honorairesLocation(ctx, f)}
+    ${honorairesLocation(ctx, f, t)}
 
     ${section(`${plusieursLocataires ? "X" : "IX"} — Autres conditions particulières`)}
     <p>${ouNeant(ctx.bail.clauses_particulieres)}</p>
@@ -269,7 +269,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
     logement : plomb, amiante, électricité, gaz)<br/>
     ☐ La notice d'information relative aux droits et obligations des locataires et des bailleurs<br/>
     ☐ L'état des lieux d'entrée<br/>
-    ${copro ? "☐ Les extraits du règlement de copropriété<br/>" : ""}
+    ${copro ? `☐ Les extraits du règlement de copropriété${t.archivee ? "" : " (destination de l'immeuble, jouissance et usage des parties privatives et communes, quote-part afférente au lot loué dans chacune des catégories de charges)"}<br/>` : ""}
     ${ctx.garants.length > 0 ? "☐ L'acte de cautionnement<br/>" : ""}
     ☐ Le cas échéant, l'attestation d'assurance contre les risques locatifs<br/>
     ☐ Le cas échéant, la grille de vétusté applicable</p>
@@ -302,6 +302,16 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
   });
 }
 
+/**
+ * Textes officiels, lot T2 (R17-A2) : pas de contrat nu quand un événement de durée réduite est saisi (voir
+ * REFUS_BAIL_DUREE_REDUITE). Le recalcul de l'empreinte d'un bail DÉJÀ préparé (formats archivés) n'est pas refusé : il doit
+ * rendre le contrat tel qu'il a été signé.
+ */
+export function refusBailDureeReduite(ctx: ContexteBail, format: OptionsContrat): { erreur: string } | null {
+  if (format[presentationArchivee] || format[typographieArchivee]) return null;
+  return ctx.bail.duree_reduite_evenement?.trim() ? { erreur: REFUS_BAIL_DUREE_REDUITE } : null;
+}
+
 export async function assemblerBailNu(
   supabase: SupabaseClient,
   orgId: string,
@@ -314,6 +324,8 @@ export async function assemblerBailNu(
     return { erreur: "Choisissez le modèle correspondant au bail : nu, meublé ou colocation." };
   }
   if (ctx.bail.etat !== "brouillon") return { erreur: "Le contrat initial se prépare sur un brouillon. Pour un bail déjà engagé, utilisez un avenant." };
+  const refus = refusBailDureeReduite(ctx, format);
+  if (refus) return refus;
   // Phase 3, lot 46 (reprise, T21) : sans locataire principal, le contrat est INCOMPLET, plus refusé. Le catalogue proposait le
   // brouillon puis répondait « Renseignez d'abord le locataire principal du bail », sans lien ; « nom et prénom(s) » (le libellé
   // du contrôle du brouillon et du bloc du locataire) rejoint la liste « À renseigner », qui mène à la fiche du bail. Le PDF reste

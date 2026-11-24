@@ -59,6 +59,22 @@ export function mentionCadreCautionBail(nombreGarants: number): string {
 export const MENTION_PAGE_SIGNATURE_GARANT =
   "En signant cette page, la caution reconnaît avoir reçu un exemplaire du présent contrat. Elle ne s'engage comme caution que par l'acte de cautionnement signé séparément.";
 
+/**
+ * Textes officiels, lot T2 (R03-A1) — article 22-1 de la loi du 6 juillet 1989, lu dans le recueil fourni par le dirigeant :
+ * « Si le bailleur est une personne morale autre qu'une société civile constituée exclusivement entre parents et alliés
+ * jusqu'au quatrième degré inclus, le cautionnement ne peut être demandé que : - s'il est apporté par un des organismes dont
+ * la liste est fixée par décret en Conseil d'Etat ; - ou si le logement est loué à un étudiant ne bénéficiant pas d'une
+ * bourse de l'enseignement supérieur. » Gerimmo ne prépare que l'acte d'une personne (née le…, demeurant…) : pour un bailleur
+ * « SCI » (non familiale) ou « Personne morale », l'acte est REFUSÉ, sauf si le bailleur déclare le second cas.
+ */
+export const DECLARATION_ETUDIANT_NON_BOURSIER =
+  "Bailleur en société (autre qu'une SCI familiale) : je déclare que le logement est loué à un étudiant qui ne bénéficie pas d'une bourse de l'enseignement supérieur.";
+export const REFUS_CAUTION_BAILLEUR_SOCIETE =
+  "Gerimmo ne prépare pas cet acte : le bailleur est une société (autre qu'une SCI familiale). La loi ne lui permet de demander la caution d'une personne que si le logement est loué à un étudiant qui ne bénéficie pas d'une bourse de l'enseignement supérieur (article 22-1 de la loi du 6 juillet 1989). Si c'est le cas, cochez la case correspondante. Sinon, seule la caution d'un organisme habilité est possible, et elle ne se prépare pas dans Gerimmo.";
+/** Lot T2 (R17-A3) — article 8-1 VI : en colocation, l'acte identifie, « sous peine de nullité », le colocataire garanti. */
+export const REFUS_CAUTION_SANS_COLOCATAIRE =
+  "Gerimmo ne prépare pas cet acte : le bail a plusieurs locataires et ce garant n'est rattaché à aucun d'eux. L'acte doit nommer le locataire pour lequel la caution s'engage (article 8-1 de la loi du 6 juillet 1989). Sur la fiche du bail, dans les personnes du bail, indiquez pour qui ce garant se porte caution, puis préparez l'acte.";
+
 export const REFUS_SANS_GARANTIE_CUMULEE =
   "Confirmez l'absence d'assurance loyers impayés ou d'autre garantie avant de préparer l'acte.";
 

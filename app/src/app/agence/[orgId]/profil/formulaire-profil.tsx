@@ -246,14 +246,18 @@ function Formulaire({
             </p>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="pr-garantie">Garantie financière (organisme, montant) *</Label>
+            <Label htmlFor="pr-garantie">Garantie financière (nom et adresse du garant, montant) *</Label>
             <Input
               id="pr-garantie"
               name="garantie_financiere"
               required
               defaultValue={valeur("garantie_financiere")}
-              placeholder="ex. Galian, 120 000 €"
+              placeholder="ex. nom du garant, son adresse, 120 000 €"
             />
+            {/* Textes officiels, lot T2 (R08-A1) : le contrat type du bail demande le nom ET l'adresse du garant. */}
+            <p className="text-sm text-muted-foreground">
+              Reportée sur le bail (le contrat type demande le nom et l’adresse du garant) et sur le mandat de gestion.
+            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="pr-tva">N&deg; de TVA intracommunautaire</Label>

@@ -124,7 +124,6 @@ describe("Modèle 01 — bail nu", () => {
         bail: {
           ...base.bail,
           date_debut: "2026-09-15",
-          duree_reduite_evenement: "Reprise du logement pour retraite du bailleur en 2028",
           complement_loyer: 50,
           complement_justification: "Terrasse de 20 m² avec vue dégagée",
         },
@@ -133,16 +132,21 @@ describe("Modèle 01 — bail nu", () => {
     );
     // 15 → 30 septembre : 16 jours sur 30 → (650 + 90) × 16/30 = 394,67 €
     expect(doc.html).toMatch(/394,67\s€/);
-    expect(doc.html).toContain("(premier mois au prorata)");
+    // Textes officiels, lot T2 (R08-A3) : ce test affirmait « (premier mois au prorata) » à la place du montant d'une période
+    // complète, que demande le contrat type. Le bail donne maintenant la période complète, puis le premier terme au prorata.
+    const texte = doc.html.replace(/<[^>]+>/g, "").replace(/\s+/g, " ");
+    expect(texte).toContain("pour une période complète de location : 740,00 € (loyer 650,00 € + charges 90,00 €).");
+    expect(texte).toContain("(16 jours sur 30) : 394,67 € (loyer 346,67 € + charges 48,00 €).");
     // Agence : mandataire avec carte pro, honoraires chiffrés, plafond zone tendue calculé
     expect(doc.html).toContain("CPI 6901 2018 000 025 — CCI de Lyon");
     expect(doc.html).toMatch(/300,00\s€/);
     expect(doc.html).toMatch(/10,09\s€/);
-    // Durée réduite justifiée, complément de loyer motivé : plus aucun « Sans objet »
-    expect(doc.html).toContain("Reprise du logement pour retraite du bailleur en 2028");
+    // Complément de loyer motivé. (Lot T2, R17-A2 : la durée réduite, que ce test remplissait, n'est plus préparée par Gerimmo :
+    // voir textes-officiels-t2.test.ts.)
     expect(doc.html).toContain("Terrasse de 20 m² avec vue dégagée");
     expect(doc.html).not.toContain("Sans objet");
-    expect(doc.manquants).toEqual([]);
+    // Lot T2 (R08-A1) : le garant du mandataire est exigé par le contrat type ; ce contexte d'essai n'en a pas.
+    expect(doc.manquants).toEqual(["garantie financière du mandataire (nom et adresse du garant)"]);
   });
 });
 

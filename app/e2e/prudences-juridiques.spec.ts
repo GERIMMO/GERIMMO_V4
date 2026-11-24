@@ -109,12 +109,17 @@ test("pièces demandées, notice, cautionnement et congé : Gerimmo avertit et d
     await tientDansLEcran(page, notice);
     await notice.screenshot({ path: info.outputPath("prudences-notice.png") });
 
-    // ── 4. Le cautionnement : rappel pour le bailleur en société ; l'acte reste proposé.
+    // ── 4. Le cautionnement. Textes officiels, lot T2 (R03-A1, R17-A3) : ce parcours affirmait un simple rappel (« Gerimmo ne
+    // contrôle pas ce point »). L'article 22-1 a été lu : l'écran donne la règle, annonce les deux refus et propose la déclaration.
     await page.goto(`/espace/${ORG}/baux/${bail}#inventaire`);
     const rappelCaution = page.locator("[data-rappel-caution-societe]:visible");
-    await expect(rappelCaution).toContainText("Bailleur en société (SCI, autre personne morale) : demander une caution n’est pas permis dans tous les cas.");
-    await expect(rappelCaution).toContainText("Gerimmo ne contrôle pas ce point.");
+    await expect(rappelCaution).toContainText("Bailleur en société (SCI non familiale, autre personne morale) : la loi ne lui permet de demander la caution d’une personne que si le logement est loué à un étudiant qui ne bénéficie pas d’une bourse de l’enseignement supérieur.");
+    await expect(rappelCaution).toContainText("Hors de ce cas, Gerimmo ne prépare pas l’acte.");
     await tientDansLEcran(page, rappelCaution);
+    const rappelColocation = page.locator("[data-rappel-caution-colocation]:visible");
+    await expect(rappelColocation).toContainText("Bail à plusieurs locataires : l’acte nomme le locataire pour lequel la caution s’engage.");
+    await tientDansLEcran(page, rappelColocation);
+    await expect(page.locator("#inventaire:visible").getByLabel(/je déclare que le logement est loué à un étudiant qui ne bénéficie pas d'une bourse/)).not.toBeChecked();
     // Le garant rattaché au bail est proposé, sous son nom puis son prénom (comme partout dans l'espace).
     await expect(page.locator("#inventaire:visible")).toContainText("Garant Paul");
     await page.locator("#inventaire:visible").screenshot({ path: info.outputPath("prudences-cautionnement.png") });

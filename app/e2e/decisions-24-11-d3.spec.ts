@@ -56,6 +56,8 @@ test("Q46 et Q28 : notice à déposer, signature électronique bloquée sans ell
     await expect(carte.getByRole("heading", { name: "Notice d’information officielle" })).toBeVisible();
     await expect(carte).toContainText("À déposer");
     await expect(carte.locator("[data-notice-officielle]")).toContainText("Gerimmo ne fournit pas ce texte et ne vérifie pas le fichier déposé");
+    // Textes officiels, lot T2 (R06-A1) : l'écran dit quelle version déposer (recueil : annexe en vigueur depuis le 18/10/2026).
+    await expect(carte.locator("[data-notice-version]")).toContainText("Version à déposer pour un contrat conclu ou renouvelé depuis le 18 octobre 2026 : l’annexe de l’arrêté du 29 mai 2015 dans sa rédaction issue de l’arrêté du 9 octobre 2026.");
     await expect(carte.locator("[data-notice-effet]")).toHaveText("Sans elle, l’envoi du bail en signature électronique est bloqué. Pour une signature sur papier, annexez-la vous-même au contrat.");
     // Le résumé de Gerimmo garde sa carte, sous son nom de résumé.
     await expect(page.getByRole("heading", { name: "Résumé de la notice (document d’information)" })).toBeVisible();

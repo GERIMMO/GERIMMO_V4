@@ -38,7 +38,7 @@ import {
   liensLocataires,
   coordonneesBancaires,
 } from "./communs";
-import { periodeConstruction, mentionsEnergie, destinationServitude, clauseResolutoire, honorairesLocation, encadrementLocation, fixationLoyer, dateConclusion, dureeReduiteSansObjet, travauxDepuisDernierContrat } from "./mentions-location";
+import { periodeConstruction, mentionsEnergie, destinationServitude, clauseResolutoire, honorairesLocation, encadrementLocation, fixationLoyer, dateConclusion, dureeReduiteSansObjet, travauxDepuisDernierContrat, premiereEcheanceLocation, mandataireLocation, reconductionEtConges, clauseSolidarite } from "./mentions-location";
 import { designationIndividuelle } from "./designation-individuelle";
 import type { Assemblage } from "./index";
 import { mentionCadreCautionBail } from "@/lib/textes-signature-actes";
@@ -66,6 +66,7 @@ function blocLocataire(f: Fusion, p: PersonneDocument): string {
   ${facultatif(p.telephone)}.</p>`;
 }
 
+// Textes officiels, lot T2 (R08-A3) : ne sert plus qu'à relire un bail déjà préparé pour la signature (voir bail-nu.ts).
 // Montant dû à la première échéance : loyer + charges, proratisés lorsque le
 // bail ne démarre pas un 1er du mois (jours restants inclus / jours du mois).
 function montantPremiereEcheance(f: Fusion, bail: ContexteBail["bail"]): string {
@@ -107,7 +108,6 @@ export function construireBailMeuble(
     ? "neuf mois — bail étudiant, non reconductible tacitement (art. 25-7)"
     : "un an, reconduit tacitement";
   const echeanceLibelle = ctx.bail.paiement_echeance === "echu" ? "à terme échu" : "à échoir";
-  const estAgence = ctx.organisation.type === "agence";
 
   const tableauInventaire =
     options.inventaire.length > 0
@@ -157,13 +157,7 @@ export function construireBailMeuble(
              .join(" ; ")}.</p>`
         : ""
     }
-    ${
-      estAgence
-        ? `<p>Le bailleur est représenté par son mandataire : ${echapper(ctx.organisation.name)},
-           ${f.champ(exp.adresse, "adresse du mandataire")} — carte professionnelle :
-           ${f.champ(ctx.organisation.carte_pro, "numéro de carte et CCI de délivrance")}.</p>`
-        : ""
-    }
+    ${mandataireLocation(ctx, f, exp.adresse, t)}
     ${sousSection(plusieursLocataires ? "Les locataires" : "Le locataire")}
     ${
       ctx.locataires.length > 0
@@ -205,7 +199,7 @@ export function construireBailMeuble(
     Éléments d'équipement du logement : ${f.champ(ctx.lot.equipements.join(", "), "cuisine équipée, sanitaires, placards…", "équipements du logement")}<br/>
     Modalité de production de chauffage : ${f.champ(ctx.lot.chauffage, "individuel ou collectif, énergie", "chauffage du logement")} — Modalité de
     production d'eau chaude sanitaire : ${f.champ(ctx.lot.eau_chaude, "individuel ou collectif, énergie", "eau chaude du logement")}</p>
-    ${mentionsEnergie(ctx, options.dpeClasse, f)}
+    ${mentionsEnergie(ctx, options.dpeClasse, f, t)}
     ${sousSection("B. Destination des locaux")}
     <p>Le logement, loué meublé, est à usage exclusif d'habitation, à titre de résidence principale
     du locataire. Le mobilier mis à disposition est décrit dans l'inventaire annexé au présent contrat.</p>
@@ -218,7 +212,9 @@ export function construireBailMeuble(
       copro
         ? `<p>L'immeuble étant soumis au statut de la copropriété, le locataire est tenu de respecter le
            règlement de copropriété, dont les extraits relatifs à la destination de l'immeuble, à la
-           jouissance et à l'usage des parties privatives et communes lui sont remis en annexe.</p>`
+           jouissance et à l'usage des parties privatives et communes${
+             // Lot T2 (R05-A1) : les extraits précisent aussi la quote-part du lot (article 3 de la loi, annexe du contrat type).
+             t.archivee ? "" : ", et précisant la quote-part afférente au lot loué dans chacune des catégories de charges,"} lui sont remis en annexe.</p>`
         : ""
     }
 
@@ -226,7 +222,12 @@ export function construireBailMeuble(
     ${dateConclusion(ctx, f)}
     <p>Date de prise d'effet : ${f.date(ctx.bail.date_debut, "Date d’entrée")}.<br/>
     Durée du contrat : ${f.champ(dureeContrat, "durée applicable au régime du bail")}.</p>
-    ${
+    ${/* Textes officiels, lot T2 (R20-A1, R08-A6, R08-A5). La durée réduite pour un événement précis (article 11 de la loi du
+         6 juillet 1989) ne s'applique pas à la location meublée : l'article 25-3 ne le rend pas applicable et l'annexe 2 du
+         contrat type n'a pas cette rubrique. Un nouveau contrat meublé ne lit plus le champ et n'imprime plus la rubrique,
+         même « sans objet » ; il imprime les phrases de la rubrique III. L'ancien rendu ne sert qu'à relire un bail déjà
+         préparé pour la signature. */
+      !t.archivee ? reconductionEtConges(ctx, true) :
       ctx.bail.duree_reduite_evenement
         ? `<p class="mentions">Un contrat d'une durée réduite n'est possible que si un événement précis
            justifie la reprise du logement par le bailleur : ${f.champ(
@@ -267,7 +268,7 @@ export function construireBailMeuble(
       d'échéance (C50, C72) ; inconnu, l'IBAN du profil de l'espace est à renseigner. Un bail déjà préparé pour la signature
       garde son rendu (typographie archivée : « — »). */
       t.archivee ? facultatif(ctx.organisation.iban) : coordonneesBancaires(f, ctx.bail.lieu_paiement, ctx.organisation.iban)}.<br/>
-    Montant total dû à la première échéance : ${montantPremiereEcheance(f, ctx.bail)}.</p>
+    ${t.archivee ? `Montant total dû à la première échéance : ${montantPremiereEcheance(f, ctx.bail)}.` : premiereEcheanceLocation(ctx, f)}</p>
 
     ${section("V — Travaux")}
     <p>Travaux d'amélioration ou de mise en conformité effectués depuis la fin du dernier contrat :
@@ -285,15 +286,13 @@ export function construireBailMeuble(
     }, soit au plus deux mois de loyer hors charges (article 25-6 de la loi du 6 juillet 1989).</p>
 
     ${plusieursLocataires ? `${section("VII — Clause de solidarité")}
-    <p>Les locataires sont tenus solidairement et indivisiblement de l'exécution du présent contrat.
-    En cas de congé de l'un d'eux, la solidarité s'éteint six mois après la date d'effet du congé, ou
-    dès qu'un nouveau locataire le remplace au bail.</p>` : ""}
+    ${clauseSolidarite(ctx, t)}` : ""}
 
     ${section(`${plusieursLocataires ? "VIII" : "VII"} — Clause résolutoire`)}
-    ${clauseResolutoire(ctx)}
+    ${clauseResolutoire(ctx, t)}
 
     ${section(`${plusieursLocataires ? "IX" : "VIII"} — Honoraires de location`)}
-    ${honorairesLocation(ctx, f)}
+    ${honorairesLocation(ctx, f, t)}
 
     ${section(`${plusieursLocataires ? "X" : "IX"} — Autres conditions particulières`)}
     <p>${ouNeant(ctx.bail.clauses_particulieres)}</p>
@@ -305,7 +304,7 @@ export function construireBailMeuble(
     logement : plomb, amiante, électricité, gaz)<br/>
     ☐ La notice d'information relative aux droits et obligations des locataires et des bailleurs<br/>
     ☐ L'état des lieux d'entrée<br/>
-    ${copro ? "☐ Les extraits du règlement de copropriété<br/>" : ""}
+    ${copro ? `☐ Les extraits du règlement de copropriété${t.archivee ? "" : " (destination de l'immeuble, jouissance et usage des parties privatives et communes, quote-part afférente au lot loué dans chacune des catégories de charges)"}<br/>` : ""}
     ${ctx.garants.length > 0 ? "☐ L'acte de cautionnement<br/>" : ""}
     ☐ Le cas échéant, l'attestation d'assurance contre les risques locatifs<br/>
     ☐ Le cas échéant, la grille de vétusté applicable</p>

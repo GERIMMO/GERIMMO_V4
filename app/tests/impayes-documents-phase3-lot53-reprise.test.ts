@@ -173,18 +173,28 @@ describe("W33 — garde : le HTML des documents signés en ligne ne change pas (
   };
   const inventaire = [{ piece: "Salon", designation: "Table", quantite: 1, etat: "bon", observation: null }];
   // Empreintes relevées sur le code 651f7f64 (avant la reprise du lot 53).
+  // Textes officiels, lot T2 (25/11/2026) : six empreintes changent VOLONTAIREMENT. Les baux (nu, meublé, colocation, contrat
+  // individuel), l'acte de cautionnement et le résumé de la notice ont reçu les textes corrigés d'après le recueil
+  // (textes-officiels-t2.test.ts). Un bail déjà préparé pour la signature se relit toujours à l'identique par le rendu
+  // archivé (signature-empreinte-avant-g8.test.ts, inchangé). Anciennes empreintes :
+  //   bail_nu 154c4f7e321d4ffbd05908727375d52ec009ca1fe12289cd87d6b159d05ceb7d
+  //   bail_meuble 0c4a7adc4096de3362a1090b75659b596e0bb4b90722416d0eda14b10cfc2b88
+  //   bail_colocation aed3af5dd5e3a23dad87b6507188448d6d5a449f443ad4bcd536f52637f96111
+  //   bail_individuel c050239518810a2abc538d9a483c8157afbddb3d4d90abcd1ea538b176127304
+  //   notice 23f70583f1c11c540538fe8ac29c4e7cb6dc29fad487de257f6b534075985a89
+  //   cautionnement 29215ed449ecd868c147fec1121d43e9eb3fcf208879f1d5327dc8f6053e9a0c
   const ATTENDU: Record<string, string> = {
     autorisation_travaux: "a055b8eaea533fd24e5912def245cffef02fcd57cccc44983aa815b37904706f",
     avenant: "574e5d33716c8970cd60e45ff90f103c59a4b461497c60762969ce6b9b04f332",
     avenant_remplacement: "748025b2c70cd30b567d950747e521071274ac92e92c12ec81d0529f16f96179",
-    bail_colocation: "aed3af5dd5e3a23dad87b6507188448d6d5a449f443ad4bcd536f52637f96111",
-    bail_individuel: "c050239518810a2abc538d9a483c8157afbddb3d4d90abcd1ea538b176127304",
-    bail_meuble: "0c4a7adc4096de3362a1090b75659b596e0bb4b90722416d0eda14b10cfc2b88",
-    bail_nu: "154c4f7e321d4ffbd05908727375d52ec009ca1fe12289cd87d6b159d05ceb7d",
-    cautionnement: "29215ed449ecd868c147fec1121d43e9eb3fcf208879f1d5327dc8f6053e9a0c",
+    bail_colocation: "9e48131977f5d22a14f1ffbfab82fc0f06d5fb80248c6ac01addc6cbadc955c2",
+    bail_individuel: "c537685fd17f2514147186cba71d1c987f3f1d5ca1fc784e26247a4971290dce",
+    bail_meuble: "282b3ea7e5296794cd0c8805080586362e0d353475cb89f04a014a847dc86705",
+    bail_nu: "1879fd7a97f6e8bc9c8a966cec3973e17fb25ac2adf7e3d9f62d33c9490cd33c",
+    cautionnement: "7bd6bac8cc0599899c74c90ea0372b8402aa5b2ae9d45dedcdfb2d1898946b06",
     edl_entree: "200466aa191403c439ec7ba0aba70e9bc255f06cec214a3a70aac0c4f78cf6cf",
     edl_sortie: "7b7b1f541e38f105cd3ebd5addcb4b95a99e7a190338fea149000cb381ac8752",
-    notice: "23f70583f1c11c540538fe8ac29c4e7cb6dc29fad487de257f6b534075985a89",
+    notice: "41173fa67be66a45b3f10509968d7069f8286c2cffbdbd8aacb56b6124578452",
     // Relecture des reprises 52-53 : l'IBAN du contexte d'essai (« FR76 3000 4000 0500 0012 3456 789 ») est fictif et sa clé de
     // contrôle est fausse ; ibanLisible ne le regroupe plus, il s'imprime tel que saisi. Seul un protocole dont l'IBAN enregistré
     // a une clé fausse change donc d'empreinte ; avec un IBAN valide, son HTML est le même qu'avant (cas du banc, contrôlé au

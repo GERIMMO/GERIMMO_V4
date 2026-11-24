@@ -243,9 +243,15 @@ describe("C08, C12, C13, C20, C29 — clauses du bail", () => {
     const texte = texteDe(construireBailMeuble(c, { dpeClasse: "D", inventaire: [], f: new Fusion() }).html);
     expect(texte).toContain("neuf mois — bail étudiant");
     expect(texte).not.toContain("durée de droit commun");
-    expect(texte).toContain("Durée réduite pour un événement précis justifiant la reprise du logement : sans objet — le contrat est un bail étudiant de neuf mois.");
+    // Textes officiels, lot T2 (R20-A1) : ce test affirmait la rubrique « Durée réduite … : sans objet » dans le bail meublé.
+    // La durée réduite pour un événement précis ne s'applique pas à la location meublée et l'annexe 2 du contrat type n'a pas
+    // cette rubrique : le bail meublé ne l'imprime plus du tout (le bail nu la garde).
+    expect(texte).not.toContain("Durée réduite");
+    expect(texte).toContain("consenti à un étudiant pour une durée de neuf mois, n’est pas reconduit tacitement à son terme");
     const standard = texteDe(construireBailMeuble(contexte(), { dpeClasse: "D", inventaire: [], f: new Fusion() }).html);
-    expect(standard).toContain("sans objet — le contrat est conclu pour la durée de droit commun.");
+    expect(standard).not.toContain("Durée réduite");
+    expect(standard).toContain("reconduit tacitement à son terme pour une durée d’un an");
+    expect(texteDe(construireBailNu(contexte(), { dpeClasse: "D", f: new Fusion() }).html)).toContain("sans objet — le contrat est conclu pour la durée de droit commun.");
   });
   it("un bail déjà préparé pour la signature se relit avec ses anciennes phrases (empreinte inchangée)", () => {
     const c = contexte();

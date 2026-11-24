@@ -3,7 +3,7 @@ import { presentationArchivee, typographieArchivee, type OptionsContrat } from "
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Fusion } from "../gabarit";
 import { chargerContexteBail, liensLocataires, referenceCourte } from "./communs";
-import { construireBailNu } from "./bail-nu";
+import { construireBailNu, refusBailDureeReduite } from "./bail-nu";
 import { construireBailMeuble, type LigneInventaire } from "./bail-meuble";
 import type { Assemblage } from "./index";
 
@@ -12,6 +12,9 @@ export async function assemblerBailColocation(supabase: SupabaseClient, orgId: s
   if ("erreur" in ctx) return ctx;
   if (ctx.bail.type !== "colocation" || ctx.bail.chambre_id) return { erreur: "Ce modèle est réservé au contrat commun de colocation." };
   if (ctx.bail.etat !== "brouillon") return { erreur: "Le contrat initial se prépare en brouillon. Pour un bail signé, préparez un avenant." };
+  // Textes officiels, lot T2 (R17-A2) : régime nu seulement ; en meublé, le champ n'est plus lu (R20-A1).
+  const refus = ctx.lot.meuble ? null : refusBailDureeReduite(ctx, format);
+  if (refus) return refus;
   // Phase 3, lot 46 (reprise, T21) : un principal ou un second colocataire manquant rend le contrat INCOMPLET (« nom et
   // prénom(s) », « nom du colocataire 2 » : les libellés du contrôle du brouillon), plus refusé ; la liste « À renseigner » mène
   // à la fiche du bail. Le PDF reste bloqué tant qu'ils manquent. Un principal désigné mais illisible reste un refus : ce n'est

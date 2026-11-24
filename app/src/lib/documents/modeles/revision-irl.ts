@@ -352,7 +352,7 @@ export function construireRevisionIrl(d: DonneesRevisionIrl) {
       cette date ; demandée après, elle prend effet à la date de la demande, sans rétroactivité.
       Le bailleur dispose d'un an à compter de la date anniversaire pour en faire la demande —
       passé ce délai, il est réputé y avoir renoncé pour l'année écoulée (${ARTICLE_17_1_I} de la loi
-      du 6 juillet 1989, rédaction issue de la loi n° 2014-366 du 24 mars 2014).</p>`;
+      du 6 juillet 1989).</p>`;
 
   const corps = `
     ${enTete(f, d.exp, { libelle: "Contrat", reference: d.referenceBail, etabliLe })}

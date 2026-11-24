@@ -22,6 +22,7 @@ import { signatureEnEssai } from "@/lib/signature-essai";
 import { fermetureModeleSignature } from "@/lib/signature-interrupteurs";
 import { modeSelonReglages } from "@/lib/signature-ouverture";
 import { ERREUR_MENTION_CAUTION } from "@/lib/mention-caution";
+import { REFUS_BAIL_DUREE_REDUITE } from "@/lib/documents/modeles/mentions-location";
 import { REFUS_CONFIRMATION_EDL, controlerEnvoi, envoyerApresControle, estCircuitDeBail, garantsSansMobileConfirme, telephoneGarantConfirme } from "@/lib/signature-envoi";
 import { demanderConfirmationMobileCaution, echeanceLisible } from "@/lib/confirmation-mobile-caution";
 
@@ -312,7 +313,13 @@ export async function activerBailApresSignature(org:string,bail:string,id:string
     // donc pas l'empreinte du contrat déjà signé.
     const noticeDuCircuit = circuit.annexes.find(estNoticeDeposeeJointe)?.id ?? null;
     const idBail = circuit.bail_id ?? bail;
-    let empreinte = (await assemblerSignatureBail(supabase, org, idBail, { noticeDuCircuit })).empreinte;
+    // Textes officiels, lot T2 (R17-A2) : un contrat nu dont l'événement de durée réduite est rempli n'est plus préparé. Un bail
+    // signé AVANT ce refus doit rester activable : le rendu du jour est alors sauté, et les rendus archivés ci-dessous (ceux
+    // avec lesquels il a été préparé) sont comparés à l'empreinte du circuit. Tout autre refus reste une erreur.
+    let empreinte: string | null = await assemblerSignatureBail(supabase, org, idBail, { noticeDuCircuit }).then(r => r.empreinte, e => {
+      if (e instanceof Error && e.message === REFUS_BAIL_DUREE_REDUITE) return null;
+      throw e;
+    });
     // Les anciennes présentations restent vérifiables uniquement par correspondance
     // exacte avec l’empreinte conservée au moment de la signature.
     // Phase 3 (reprise du lot 35) : un bail préparé avec la présentation d’aujourd’hui avant la version g8 des documents

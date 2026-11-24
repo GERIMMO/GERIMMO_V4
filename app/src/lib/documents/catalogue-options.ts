@@ -1,9 +1,9 @@
-import { CERTIFICATION_SANS_GARANTIE_CUMULEE } from "@/lib/textes-signature-actes";
+import { CERTIFICATION_SANS_GARANTIE_CUMULEE, DECLARATION_ETUDIANT_NON_BOURSIER } from "@/lib/textes-signature-actes";
 
 // `montant` : un montant en euros saisi en texte décimal (« 2345,67 »), lu par `lireMontantFacultatif` côté serveur ; jamais `type="number"`,
 // dont la virgule est lue comme un séparateur de milliers par un navigateur non francophone (VER-TS-02).
 // `repli: "detail_enregistre"` : le champ n'est pas obligatoire quand le dossier choisi porte déjà cette information (D39).
-// `case` : une case à cocher obligatoire ; cochée, l'option vaut « oui » (constat R30 du 23/10, acte de cautionnement).
+// `case` : une case à cocher obligatoire (sauf `facultatif`) ; cochée, l'option vaut « oui » (constat R30 du 23/10, acte de cautionnement).
 // `facultatif` : le champ peut rester vide ; l'assembleur dit lui-même ce qui manque quand l'information est exigée (phase 3, S18).
 // `si` : le champ n'est demandé, affiché et envoyé que lorsque la liste de choix `cle` vaut l'une des `valeurs` (phase 3, S18 : le
 // prix de vente pour un congé pour vendre, le bénéficiaire pour une reprise…). Un champ masqué ne part pas dans les options.
@@ -29,7 +29,9 @@ export const CONGE_SANS_GARANTIE = "Un congé incomplet ou tardif peut être san
 export const CONGE_ACHETE_OCCUPE = "La loi limite le congé quand le bailleur a acheté le logement déjà loué : pour vendre, si le terme du bail arrive moins de trois ans après l’achat ; pour reprendre, moins de deux ans après. Dans ces cas, Gerimmo ne prépare pas la lettre.";
 export const OPTIONS_CATALOGUE: Record<string, ChampCatalogue[]> = {
   avenant:[{cle:"objet",libelle:"Objet de l’avenant"},modifications],
-  cautionnement:[{cle:"garant",libelle:"Garant du dossier",aide:"Choisissez un garant déjà rattaché au bail."},{cle:"forme",libelle:"Forme de caution",choix:[{valeur:"solidaire",libelle:"Solidaire"},{valeur:"simple",libelle:"Simple"}]},{cle:"montant_max",libelle:"Plafond de l’engagement (€)",type:"montant"},{cle:"sans_garantie_cumulee",libelle:CERTIFICATION_SANS_GARANTIE_CUMULEE,type:"case"}],
+  cautionnement:[{cle:"garant",libelle:"Garant du dossier",aide:"Choisissez un garant déjà rattaché au bail."},{cle:"forme",libelle:"Forme de caution",choix:[{valeur:"solidaire",libelle:"Solidaire"},{valeur:"simple",libelle:"Simple"}]},{cle:"montant_max",libelle:"Plafond de l’engagement (€)",type:"montant"},{cle:"sans_garantie_cumulee",libelle:CERTIFICATION_SANS_GARANTIE_CUMULEE,type:"case"},
+    // Textes officiels, lot T2 (R03-A1) : case FACULTATIVE ; sans elle, l'acte est refusé quand le bailleur est une société non familiale.
+    {cle:"etudiant_non_boursier",libelle:`${DECLARATION_ETUDIANT_NON_BOURSIER} (Ne cochez pas cette case si le bailleur est une personne ou une SCI familiale.)`,type:"case",facultatif:true}],
   // Phase 3 (S18) : les informations que demande l'écran du bail (generer-conge-bailleur.tsx), selon le motif : prix et conditions de
   // la vente, bénéficiaire de la reprise, motif invoqué. Plus de « date d'effet » : l'assembleur ne la lisait pas — l'effet est l'échéance
   // du bail calculée pour la date de réception prévue. Le prix et les conditions restent facultatifs à la saisie (meublé) ; en location

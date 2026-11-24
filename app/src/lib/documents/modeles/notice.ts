@@ -37,12 +37,28 @@ import { TITRE_GED_RESUME_NOTICE } from "@/lib/documents-bail";
 export const AVERTISSEMENT_RESUME_NOTICE =
   "Ce document est un résumé établi par Gerimmo. Il ne remplace pas la notice d'information officielle, dont le texte complet est fixé par arrêté : le bailleur la remet au locataire avec le bail.";
 
-// Rubriques de la notice (arrêté du 29 mai 2015, résumé fidèle rubrique par
-// rubrique). Servies telles quelles : zéro donnée à demander.
+/** Lot T2 : la version de la notice officielle à remettre, telle que le recueil la donne (l'écran du bail le dit aussi). */
+export const VERSION_NOTICE_OFFICIELLE =
+  "La notice officielle est l'annexe de l'arrêté du 29 mai 2015 ; pour un contrat conclu ou renouvelé depuis le 18 octobre 2026, dans sa rédaction issue de l'arrêté du 9 octobre 2026.";
+
+// Rubriques du résumé. Servies telles quelles : zéro donnée à demander.
+//
+// Textes officiels, lot T2 (R06-A2 = R11-A1, R06-A3) : phrases corrigées d'après le recueil fourni par le dirigeant (article 22
+// de la loi du 6 juillet 1989 ; annexe de l'arrêté du 29 mai 2015 dans sa rédaction en vigueur depuis le 18 octobre 2026 ;
+// source et version déclarées, non recontrôlées) :
+//  · rubrique 4 : un dépôt restitué en retard ne « produit » pas « intérêt » ; il est majoré de 10 % du loyer mensuel en
+//    principal par période mensuelle commencée en retard, et il ne porte pas intérêt (article 22) ;
+//  · rubrique 1 : trois ans aussi pour une société civile immobilière familiale ;
+//  · rubrique 5 : la présomption de bon état vaut à défaut d'état des lieux D'ENTRÉE, avec ses deux exceptions ;
+//  · rubrique 9 : préavis du locataire d'un mois en meublé ; le préavis réduit se demande et se justifie dans le congé ;
+//  · rubrique 11 : « tribunal judiciaire », les mots de la notice.
+// Ce document reste un RÉSUMÉ : il ne suit pas la notice rubrique par rubrique (la rubrique 10 n'y a pas d'équivalent ; la
+// notice traite en plus des nuisibles, du conjoint victime de violences, de la prévention des expulsions…). Un résumé déjà
+// rangé, ou déjà joint à un dossier de signature, garde son fichier : seuls les résumés générés à partir de maintenant changent.
 const RUBRIQUES: [string, string][] = [
   [
     "1 — Le contrat de location",
-    "Le bail est signé pour trois ans au moins lorsque le bailleur est une personne physique (six ans pour une personne morale), un an pour une location meublée (neuf mois pour un étudiant, sans reconduction). Il est conforme au contrat type réglementaire et remis en un exemplaire original à chaque partie. À l'échéance, il se reconduit tacitement aux mêmes conditions.",
+    "Le bail est signé pour trois ans au moins lorsque le bailleur est une personne physique ou une société civile immobilière familiale (six ans pour une autre personne morale), un an pour une location meublée (neuf mois pour un étudiant, sans reconduction). Il est conforme au contrat type réglementaire et remis en un exemplaire original à chaque partie. À l'échéance, il se reconduit tacitement aux mêmes conditions.",
   ],
   [
     "2 — Le loyer",
@@ -54,11 +70,11 @@ const RUBRIQUES: [string, string][] = [
   ],
   [
     "4 — Le dépôt de garantie",
-    "Le dépôt de garantie ne peut excéder un mois de loyer hors charges (deux mois en meublé). Il est restitué dans un délai maximal d'un mois après la remise des clés si l'état des lieux de sortie est conforme à celui d'entrée, deux mois sinon, déduction faite des sommes justifiées restant dues au bailleur. À défaut, il produit intérêt au profit du locataire.",
+    "Le dépôt de garantie ne peut excéder un mois de loyer hors charges (deux mois en meublé). Il est restitué dans un délai maximal d'un mois après la remise des clés si l'état des lieux de sortie est conforme à celui d'entrée, deux mois sinon, déduction faite des sommes justifiées restant dues au bailleur. À défaut de restitution dans ce délai, le montant restant dû au locataire est majoré d'une somme égale à 10 % du loyer mensuel hors charges pour chaque période mensuelle commencée en retard ; cette majoration n'est pas due si le retard vient de ce que le locataire n'a pas communiqué l'adresse de son nouveau domicile. Le dépôt de garantie ne porte pas intérêt au bénéfice du locataire.",
   ],
   [
     "5 — L'état des lieux",
-    "Un état des lieux contradictoire est établi à l'entrée et à la sortie, joint au contrat. Le locataire peut demander à le compléter dans les dix jours qui suivent son établissement pour tout élément, et pendant le premier mois de la période de chauffe pour le chauffage. À défaut d'état des lieux, le locataire est présumé avoir reçu le logement en bon état de réparations locatives.",
+    "Un état des lieux contradictoire est établi à l'entrée et à la sortie, joint au contrat. Le locataire peut demander à le compléter dans les dix jours qui suivent son établissement pour tout élément, et pendant le premier mois de la période de chauffe pour le chauffage. À défaut d'état des lieux d'entrée, le logement est présumé avoir été délivré en bon état, sauf si le locataire en apporte la preuve contraire ou si le bailleur a fait obstacle à l'établissement de l'état des lieux.",
   ],
   [
     "6 — Les réparations, l'entretien et les travaux",
@@ -74,7 +90,7 @@ const RUBRIQUES: [string, string][] = [
   ],
   [
     "9 — La fin du contrat et le congé",
-    "Le locataire peut donner congé à tout moment (préavis de trois mois, réduit à un mois en zone tendue et dans les cas prévus par la loi, sur justificatif). Le bailleur ne peut donner congé que pour l'échéance du bail, avec un préavis de six mois (trois mois en meublé), pour vendre, reprendre le logement ou pour motif légitime et sérieux ; des protections renforcées s'appliquent aux locataires âgés de plus de 65 ans aux ressources modestes.",
+    "Le locataire peut donner congé à tout moment. En location nue, le préavis est de trois mois ; il est réduit à un mois dans les cas prévus par la loi (zone tendue notamment), si le locataire précise le motif et le justifie dans sa lettre de congé. En location meublée, il est d'un mois. Le bailleur ne peut donner congé que pour l'échéance du bail, avec un préavis de six mois (trois mois en meublé), pour vendre, reprendre le logement ou pour motif légitime et sérieux ; des protections renforcées s'appliquent aux locataires âgés de plus de 65 ans aux ressources modestes.",
   ],
   [
     "10 — Les aides au logement",
@@ -82,7 +98,7 @@ const RUBRIQUES: [string, string][] = [
   ],
   [
     "11 — Les litiges et les voies de recours",
-    "En cas de litige, les parties recherchent d'abord une solution amiable, le cas échéant devant la commission départementale de conciliation, compétente et gratuite pour la plupart des différends locatifs. À défaut, le juge des contentieux de la protection peut être saisi. L'agence départementale d'information sur le logement (ADIL) renseigne gratuitement locataires et bailleurs.",
+    "En cas de litige, les parties recherchent d'abord une solution amiable, le cas échéant devant la commission départementale de conciliation, compétente et gratuite pour la plupart des différends locatifs. À défaut, le litige relève du tribunal judiciaire dans le ressort duquel se situe le logement. L'agence départementale d'information sur le logement (ADIL) renseigne gratuitement locataires et bailleurs.",
   ],
 ];
 
@@ -112,6 +128,7 @@ export async function assemblerNotice(
     <p class="mentions"><b>${echapper(AVERTISSEMENT_RESUME_NOTICE)}</b></p>
     <p>Ce résumé rappelle les droits et obligations respectifs des parties ainsi que les voies de
     recours ouvertes en cas de litige.</p>
+    <p class="mentions">${echapper(VERSION_NOTICE_OFFICIELLE)}</p>
     ${RUBRIQUES.map(([t, texte]) => `${section(t)}<p>${echapper(texte)}</p>`).join("")}
     ${section("Pour toute question")}
     <p>La commission départementale de conciliation et l'ADIL de votre département (coordonnées sur

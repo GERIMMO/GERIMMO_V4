@@ -2,7 +2,7 @@ import { presentationArchivee, typographieArchivee, type OptionsContrat } from "
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Fusion } from "../gabarit";
 import { chargerContexteBail, liensLocataires, referenceCourte } from "./communs";
-import { construireBailNu } from "./bail-nu";
+import { construireBailNu, refusBailDureeReduite } from "./bail-nu";
 import { construireBailMeuble, type LigneInventaire } from "./bail-meuble";
 import type { Assemblage } from "./index";
 
@@ -11,6 +11,9 @@ export async function assemblerBailIndividuel(supabase: SupabaseClient, orgId: s
   if ("erreur" in ctx) return ctx;
   if (ctx.bail.type !== "colocation" || !ctx.bail.chambre_id || !ctx.chambre) return { erreur: "Choisissez un contrat individuel rattaché à une chambre." };
   if (ctx.bail.etat !== "brouillon") return { erreur: "Le contrat initial se prépare en brouillon. Utilisez un avenant pour un contrat signé." };
+  // Textes officiels, lot T2 (R17-A2) : régime nu seulement ; en meublé, le champ n'est plus lu (R20-A1).
+  const refus = ctx.lot.meuble ? null : refusBailDureeReduite(ctx, format);
+  if (refus) return refus;
   // Phase 3, lot 46 (reprise, T21) : sans locataire principal, le contrat est INCOMPLET (« nom et prénom(s) », comme le contrôle
   // du brouillon), plus refusé. Plusieurs locataires, ou un principal désigné qui n'est pas le locataire lu, restent un refus :
   // aucune saisie ne complète un contrat individuel qui en désigne deux.

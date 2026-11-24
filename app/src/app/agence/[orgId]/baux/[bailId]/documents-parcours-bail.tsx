@@ -119,12 +119,16 @@ export async function DocumentsParcoursBail({ orgId, bailId, lotId, bienId, anne
     <section className={styles.section} aria-labelledby="annexes-attendues">
       <header className={styles.entete}><BookOpen size={20} aria-hidden="true"/><h3 id="annexes-attendues">À remettre avec le bail</h3></header>
       <div className={styles.annexes}>
-        {/* Décision du 24/11/2026 (Q46) : le bailleur dépose lui-même la notice officielle. Gerimmo ne fournit pas ce texte
-            (il n'a pas pu être lu) et ne dit pas quelle version est en vigueur : l'écran dit seulement où la chercher. */}
+        {/* Décision du 24/11/2026 (Q46) : le bailleur dépose lui-même la notice officielle. Gerimmo ne fournit pas ce texte.
+            Textes officiels, lot T2 (R06-A1) : l'écran dit quelle version déposer, d'après le recueil fourni par le dirigeant
+            (annexe de l'arrêté du 29 mai 2015 remplacée par l'arrêté du 9 octobre 2026, en vigueur depuis le 18 octobre 2026,
+            applicable aux contrats conclus ou renouvelés depuis cette date). Gerimmo ne l'imprime pas : la copie du recueil
+            vient d'un site miroir (adresses coupées, tableaux à reconstruire). */}
         <article id="notice-deposee" className={styles.carte} data-ton={tonNoticeDeposee}>
           <div className={styles.carteEntete}><h4>Notice d’information officielle</h4><span className={styles.etat} data-ton={tonNoticeDeposee}>{docsBail.error ? "Indisponible" : carteNotice.etat}</span></div>
           <p className={styles.obligation}>{carteNotice.obligation}</p>
           <p data-notice-officielle>Déposez ici le texte complet de la notice d’information, en PDF. Vous le trouverez sur le site officiel de l’administration (service-public.fr). Gerimmo ne fournit pas ce texte et ne vérifie pas le fichier déposé : assurez-vous qu’il s’agit bien de la version applicable à la date de signature.</p>
+          <p data-notice-version>Version à déposer pour un contrat conclu ou renouvelé depuis le 18 octobre 2026 : l’annexe de l’arrêté du 29 mai 2015 dans sa rédaction issue de l’arrêté du 9 octobre 2026. Une notice plus ancienne ne convient pas.</p>
           <p data-notice-effet>{carteNotice.effet}</p>
           {!docsBail.error && <div className={styles.actions}>{noticeDeposee && <ApercuPieceBail fichier={fichier(noticeDeposee.id)} titre="Notice d’information déposée" mime="application/pdf"/>}<FormulaireNoticeBail orgId={orgId} bailId={bailId} dejaDeposee={Boolean(noticeDeposee)}/></div>}
           {/* Reprise du lot D3 (M7) : « Déposer une autre version » ne fait pas disparaître les précédentes de la fiche. */}

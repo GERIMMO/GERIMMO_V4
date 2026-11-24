@@ -10,7 +10,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { lireMontantAvecEspaces } from "@/lib/saisie-montant";
 import { texteMentionCaution } from "@/lib/mention-caution";
-import { REFUS_SANS_GARANTIE_CUMULEE } from "@/lib/textes-signature-actes";
+import { REFUS_CAUTION_BAILLEUR_SOCIETE, REFUS_CAUTION_SANS_COLOCATAIRE, REFUS_SANS_GARANTIE_CUMULEE } from "@/lib/textes-signature-actes";
+import { normaliserQualiteBailleur } from "@/lib/qualite-bailleur";
+import { EXCEPTION_EPOUX_PACS, regleColocationSolidarite } from "./mentions-location";
 import {
   Fusion,
   assemblerPage,
@@ -76,6 +78,13 @@ export async function assemblerCautionnement(
   // Constat R30 : le bailleur certifie l'absence d'assurance ou d'autre garantie des obligations locatives (case de
   // la carte du bail et du catalogue). À relire par le juriste (source non ouverte le 23/10/2026) : art. 22-1.
   if (options?.sans_garantie_cumulee !== "oui") return { erreur: REFUS_SANS_GARANTIE_CUMULEE };
+  // Textes officiels, lot T2 (R03-A1) : bailleur société non familiale. Un refus vaut mieux qu'un acte nul. Qualité absente
+  // ou illisible : traitée comme une personne physique (même règle que la durée du bail, qualite-bailleur.ts).
+  const etudiantNonBoursier = options?.etudiant_non_boursier === "oui";
+  const bailleurSociete = ctx.bailleurs.some((b) => ["SCI", "Personne morale"].includes(normaliserQualiteBailleur(b.qualite) ?? ""));
+  if (bailleurSociete && !etudiantNonBoursier) return { erreur: REFUS_CAUTION_BAILLEUR_SOCIETE };
+  // Lot T2 (R17-A3) : bail à plusieurs locataires, garant rattaché à personne (ou à quelqu'un qui n'est plus au bail).
+  if (ctx.locataires.length > 1 && !ctx.locataires.some((l) => l.id === garant.garant_de)) return { erreur: REFUS_CAUTION_SANS_COLOCATAIRE };
 
   const solidaire = options?.forme !== "simple";
   const montantMax = montantMaxDepuisOptions(options?.montant_max);
@@ -142,6 +151,14 @@ export async function assemblerCautionnement(
         : ""
     }
 
+    ${
+      // Lot T2 (R03-A1) : la déclaration qui a permis l'acte y figure.
+      bailleurSociete
+        ? `<p>Le bailleur, personne morale, déclare que le logement est loué à un étudiant ne bénéficiant pas d'une bourse de
+           l'enseignement supérieur (article 22-1 de la loi du 6 juillet 1989).</p>`
+        : ""
+    }
+
     ${section("III — Le locataire cautionné")}
     <p>Le présent cautionnement garantit les obligations de ${nomsCouverts},
     locataire au titre du bail désigné ci-dessous, ci-après dénommé « le locataire ».</p>
@@ -154,8 +171,11 @@ export async function assemblerCautionnement(
     charges : ${f.montant(ctx.bail.charges, "charges mensuelles")} (${chargesMode}).<br/>
     ${
       ctx.bail.revision_irl
-        ? `Le loyer est révisé chaque année dans la limite de la variation de l'indice de référence
-           des loyers (IRL) — trimestre de référence : ${f.champ(ctx.bail.irl_trimestre, "trimestre IRL de référence")}.
+        ? /* Lot T2 (R03-A2) : les conditions de la révision « tel[le]s qu'[elles] figurent au contrat de location »
+             (article 22-1) : la date de révision et la valeur de l'indice, comme au bail, plus seulement le trimestre. */
+          `Le loyer est révisé chaque année à la date anniversaire du contrat, dans la limite de la variation de l'indice
+           de référence des loyers (IRL). Trimestre de référence : ${f.champ(ctx.bail.irl_trimestre, "trimestre IRL de référence")}
+           — valeur de l'indice : ${f.champ(ctx.bail.irl_valeur !== null ? Number(ctx.bail.irl_valeur).toLocaleString("fr-FR") : null, "valeur de l'indice")}.
            Le cautionnement s'étend au loyer ainsi révisé.`
         : `Le bail ne prévoit pas de clause de révision annuelle du loyer.`
     }</p>
@@ -175,18 +195,17 @@ export async function assemblerCautionnement(
     }
 
     ${section("VI — Étendue et durée de l'engagement")}
-    <p>La caution garantit le paiement des loyers, des charges, des réparations locatives, des
-    intérêts et, le cas échéant, des pénalités ou intérêts de retard dus par le locataire au titre du
+    <p>La caution garantit le paiement des loyers, des charges, des réparations locatives et des
+    intérêts de retard dus par le locataire au titre du
     bail. L'engagement vaut pour la durée du bail et celle de ses renouvellements, dans la limite
     d'un montant maximal, principal et accessoires compris, de ${montantMaxHtml}.</p>
     <p>L'engagement ne comporte pas de durée déterminée. Conformément à l'avant-dernier alinéa de
     l'article 22-1 de la loi n° 89-462 du 6 juillet 1989 : « ${RESILIATION_CAUTION_DUREE_INDETERMINEE} »</p>
     ${
       locataireCouvert && ctx.locataires.length > 1
-        ? `<p class="mentions">Colocation — cautionnement nominatif : l'engagement s'éteint à
-           l'expiration d'un délai de six mois après la date d'effet du congé du colocataire couvert,
-           ou dès qu'un nouveau colocataire le remplace au bail (article 8-1 de la loi du
-           6 juillet 1989).</p>`
+        ? /* Lot T2 (R17-A4, R17-A1) : la règle dans les mots de l'article 8-1 VI ; à deux locataires, l'exception des époux
+             et partenaires de PACS, que Gerimmo ne sait pas reconnaître (même texte qu'au bail). */
+          `<p class="mentions">Cautionnement nominatif, donné pour ${nomsCouverts}. ${regleColocationSolidarite("la solidarité du colocataire désigné ci-dessus et l'engagement de la caution prennent", "ils s'éteignent")}${ctx.locataires.length === 2 ? ` ${EXCEPTION_EPOUX_PACS}` : ""}</p>`
         : ""
     }
 

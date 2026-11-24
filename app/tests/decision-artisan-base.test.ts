@@ -58,7 +58,9 @@ describe("décision d'artisan notifiée — manifeste, retour, liste fermée et 
     expect(readFileSync("supabase/retours-arriere/LISEZ-MOI.md", "utf8")).toContain(`| \`${NOM}.retour.sql\` | \`${NOM}.sql\``);
     expect(readFileSync("tests/relais-migrations-manifeste.test.ts", "utf8")).toContain(`"${NOM}.sql",`);
     expect(readFileSync("vitest.config.ts", "utf8")).toContain('"tests/decision-artisan-base.test.ts"');
-    expect(MAILLONS_CHAINE_COURRIELS.at(-1)).toBe(NOM);
+    // Lot D4 du 24/11/2026 : ce maillon n'est plus le dernier (la migration 20261125110000 prolonge la chaîne au-dessus
+    // de lui). Ce que le test tient : il est dans la liste, juste après le maillon des envois automatiques.
+    expect(MAILLONS_CHAINE_COURRIELS[MAILLONS_CHAINE_COURRIELS.indexOf("20261122200000_envois_automatiques_reglage") + 1]).toBe(NOM);
   });
 
   it("la migration n'ouvre aucun droit à un compte et ne pose aucune garde ailleurs", () => {

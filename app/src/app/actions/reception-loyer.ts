@@ -11,7 +11,8 @@ import { bilanApresPaiement, type BilanReception } from "@/lib/bilan-reception-l
 import { eur } from "@/lib/ged";
 import { envoyerEmail } from "@/lib/email";
 import { piloteLimite } from "@/lib/perimetre-pilote";
-import { lireEnvoisProposes } from "@/lib/envois-suspendus";
+import { lireEnvoisProposes, montantDeContexte } from "@/lib/envois-suspendus";
+import type { ContexteEnvoiAutomatique } from "@/lib/finalisation-courriels";
 import { adresseDuSite } from "@/lib/site";
 import { aujourdhuiParis } from "@/lib/ged";
 import { cleRelanceLoyer } from "@/lib/cles-idempotence-courriels";
@@ -134,12 +135,21 @@ export async function envoyerRelanceReception(orgId: string, appelId: string, _e
   }
   const site = adresseDuSite();
   if (!site || !/^https?:\/\//.test(site)) return { erreur: "L’adresse du site doit être configurée avant d’envoyer une relance." };
+  // Décision du dirigeant du 24/11/2026 (Q24) : la relance envoyée à la main est ouverte elle aussi. Elle suit
+  // l'interrupteur « relance de loyer » du superviseur (fermé par défaut), sans exiger l'accord permanent de l'espace,
+  // qui ne vaut que pour les envois automatiques : ici, c'est ce clic qui décide. Interrupteur ouvert : le contexte
+  // désigne l'appel, le niveau, les montants et la personne qui clique, et la base refait la preuve juste avant
+  // l'envoi (migration 20261125110000). Fermé : aucun contexte, l'envoi reste suspendu exactement comme avant.
+  const resteTexte = montantDeContexte(reste), totalTexte = montantDeContexte(totalDu);
+  const contexteRelance: Extract<ContexteEnvoiAutomatique, { type: "relance_loyer_manuelle" }> | null = resteTexte !== null && totalTexte !== null && (await lireEnvoisProposes(supabase)).relance_loyer
+    ? { type: "relance_loyer_manuelle", id: appelId, niveau, reste: resteTexte, total: totalTexte, acteur: user.id }
+    : null;
   let envoyes = 0;const erreursEnvoi:string[]=[];
   for (const destinataire of destinataires.values()) {
     const message: RelanceLoyer = { niveau, prenom: destinataire.prenom, emetteur: organisation.name, lot: ligne.lot_nom, periode: ligne.periode, dateEcheance: ligne.date_echeance, reste, totalDu, lien: `${site}/locataire/${orgId}/loyers`,
       // Lot 47 : « votre bailleur » chez un propriétaire, « votre gestionnaire » seulement dans un espace d'agence.
       interlocuteur: interlocuteurLocataire(organisation.type) };
-    const envoi = await envoyerEmail({ circuit:"app/actions/reception-loyer", repriseAutonome: false, organisation: { db: supabase, id: orgId }, to: destinataire.email,
+    const envoi = await envoyerEmail({ circuit:"app/actions/reception-loyer", ...(contexteRelance ? { contexteMetier: contexteRelance } : { repriseAutonome: false }), organisation: { db: supabase, id: orgId }, to: destinataire.email,
       subject: sujetRelanceLoyer(message), html: corpsRelanceLoyer(message),
       cleIdempotence: cleRelanceLoyer({ bailId: ligne.bail_id, niveau, dateEcheance: ligne.date_echeance, destinataire: destinataire.email, role: "locataire", reste, totalDu }),
     });

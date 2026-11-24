@@ -14,7 +14,11 @@ export type ContexteEnvoiAutomatique =
  | {type:'avis_echeance';id:string}
  | {type:'relance_loyer';id:string;niveau:'relance_1'|'relance_2';echeance:string;reste:string;total:string|null;cible:'locataire'|'caution'}
  | {type:'rappel_rendez_vous';id:string;echeance:'veille'|'j7';role:'locataire'|'artisan'}
- | {type:'relance_invitation';id:string;rang:'1'|'2'};
+ | {type:'relance_invitation';id:string;rang:'1'|'2'}
+ // Décisions du 24/11/2026 (migration 20261125110000). Q37 : la relance d'une demande de report (`id` : la demande).
+ // Q24 : la relance de loyer envoyée à la main par le propriétaire (`id` : l'appel de loyer, `acteur` : son compte).
+ | {type:'relance_report_rdv';id:string}
+ | {type:'relance_loyer_manuelle';id:string;niveau:'relance_1'|'relance_2';reste:string;total:string;acteur:string};
 /** Audit palier 1 (P1-16) : les motifs d'un refus ou d'une suspension, envoyés à l'artisan. `id` : la décision (artisan_validations). */
 export type ContexteDecisionArtisan = {type:'decision_artisan';id:string};
 export type ContexteCourriel = (AvisCommercial | ContexteAlerteDirection | ContexteIncidentAbonnement | ContexteDecisionArtisan |{type:'confirmation_abonnement';id:string;montant:number;version:string|null;acceptee:string|null;formule:string|null;unites:number|null;periodicite:string;souscrit:string;organisation:string;document:boolean}|{type:'accuse_resiliation';id:string;fin:string;rang:number;chemin:'action'|'webhook';notification:string;organisation:string;formule:string|null}|{type:'reconduction';id:string;organisation:string;montant:number;formule:string|null;unites:number|null;suivante:string|null}|{type:'quittance';id:string;montant:number;est_quittance:boolean;automatique?:boolean}|{type:'bail_signe';id:string;document:string}|{type:'acces';id:string;usage:'signup'|'recovery';jeton_empreinte:string;invitation?:string}|{type:'invitation_artisan';id:string}|{type:'confirmation_mobile_garant';id:string;garant:string;jeton_empreinte:string}|ContexteEnvoiAutomatique|{type:'notification';id:string;evenement:string;role:'agence'|'locataire'|'artisan'}) & {destinataire?:string;acteur?:string;source?:string};

@@ -2,7 +2,7 @@
  * LES QUATRE INTERRUPTEURS D'ENVOI AUTOMATIQUE, CÔTÉ CONSOLE (audit palier 1 du 22/11/2026, P1-08).
  *
  * Le panneau des paramètres généraux et le geste du superviseur :
- *  - à la livraison, quatre envois « Fermé », chacun avec une confirmation obligatoire avant d'ouvrir ;
+ *  - à la livraison, cinq envois « Fermé » (quatre jusqu'au 24/11/2026 ; le cinquième vient de la décision Q37), chacun avec une confirmation obligatoire avant d'ouvrir ;
  *  - un envoi ouvert se referme sans confirmation ;
  *  - réglage illisible : aucun bouton, plutôt qu'un état supposé ;
  *  - l'action n'appelle la base que pour un superviseur permanent, et jamais pour ouvrir sans confirmation.
@@ -21,7 +21,7 @@ import { reglerEnvoiAutomatique } from "@/app/actions/envois-automatiques-reglag
 import { EnvoisAutomatiques } from "@/app/admin/parametres/envois-automatiques";
 import { envoisOuverts, FLUX_ENVOIS_AUTOMATIQUES, LIBELLES_ENVOIS_AUTOMATIQUES, phraseAccords, type EtatEnvoisAutomatiques } from "@/lib/envois-suspendus";
 
-const FERMES: EtatEnvoisAutomatiques = { avis_echeance: false, relance_loyer: false, rappel_rendez_vous: false, relance_invitation: false };
+const FERMES: EtatEnvoisAutomatiques = { avis_echeance: false, relance_loyer: false, rappel_rendez_vous: false, relance_invitation: false, relance_report_rdv: false };
 const rendre = (etat: EtatEnvoisAutomatiques | null) => renderToStaticMarkup(createElement(EnvoisAutomatiques, { etat }));
 /** Le bloc d'un envoi dans le panneau. */
 const bloc = (html: string, flux: string) => new RegExp(`<li[^>]*data-envoi-automatique="${flux}"[\\s\\S]*?</li>`).exec(html)?.[0] ?? "";
@@ -29,11 +29,14 @@ const bloc = (html: string, flux: string) => new RegExp(`<li[^>]*data-envoi-auto
 beforeEach(() => { m.createClient.mockReset(); m.revalidate.mockReset(); });
 
 describe("le panneau du superviseur", () => {
-  it("à la livraison : quatre envois fermés, chacun avec sa confirmation obligatoire avant d'ouvrir", () => {
+  // Décision du dirigeant du 24/11/2026 (Q37, lot D4) : ce test affirmait « quatre envois ». La relance d'une demande de report est le cinquième,
+  // avec son interrupteur, fermé par défaut comme les autres : le compte passe à cinq, rien d'autre ne change.
+  it("à la livraison : cinq envois fermés, chacun avec sa confirmation obligatoire avant d'ouvrir", () => {
     const html = rendre(FERMES);
     expect(html).toContain('data-envois-automatiques="0"');
     expect(html).toContain("Tous fermés");
-    expect(html.match(/data-envoi-automatique="/g)).toHaveLength(4);
+    expect(html.match(/data-envoi-automatique="/g)).toHaveLength(5);
+    expect(FLUX_ENVOIS_AUTOMATIQUES).toEqual(["avis_echeance", "relance_loyer", "rappel_rendez_vous", "relance_invitation", "relance_report_rdv"]);
     for (const flux of FLUX_ENVOIS_AUTOMATIQUES) {
       const b = bloc(html, flux);
       expect(b, flux).toContain('data-ouvert="non"');
@@ -56,14 +59,15 @@ describe("le panneau du superviseur", () => {
   it("un envoi ouvert se referme sans confirmation ; les autres restent à ouvrir", () => {
     const html = rendre({ ...FERMES, relance_loyer: true });
     expect(html).toContain('data-envois-automatiques="1"');
-    expect(html).toContain("1 ouvert sur 4");
+    // Q37 : « sur 5 » depuis le cinquième envoi.
+    expect(html).toContain("1 ouvert sur 5");
     const ouvert = bloc(html, "relance_loyer");
     expect(ouvert).toContain('data-ouvert="oui"');
     expect(ouvert).toContain("Fermer cet envoi");
     expect(ouvert).toContain('name="choix" value="fermer"');
     expect(ouvert).not.toContain('type="checkbox"');
-    for (const flux of ["avis_echeance", "rappel_rendez_vous", "relance_invitation"]) expect(bloc(html, flux), flux).toContain("Ouvrir cet envoi");
-    expect(rendre({ avis_echeance: true, relance_loyer: true, rappel_rendez_vous: true, relance_invitation: false })).toContain("3 ouverts sur 4");
+    for (const flux of ["avis_echeance", "rappel_rendez_vous", "relance_invitation", "relance_report_rdv"]) expect(bloc(html, flux), flux).toContain("Ouvrir cet envoi");
+    expect(rendre({ avis_echeance: true, relance_loyer: true, rappel_rendez_vous: true, relance_invitation: false, relance_report_rdv: false })).toContain("3 ouverts sur 5");
   });
 
   it("réglage illisible : le panneau le dit et n'offre aucun bouton", () => {

@@ -53,6 +53,29 @@ export function BoutonPortail({ orgId }: { orgId: string }) {
   );
 }
 
+/**
+ * La case de l'accord exprès à une nouvelle version des conditions, posée sous le bouton quand l'action l'a demandée
+ * (relecture adverse du 24/10 pour la reprise ; décision Q15 du 24/11/2026 pour la hausse et le changement de
+ * périodicité). Jamais cochée d'avance ; son libellé porte le lien vers le texte. Sans demande de l'action, rien.
+ */
+function CaseAccordConditions({ accord }: { accord?: { version: string; dateVersion: string } }) {
+  if (!accord) return null;
+  return (
+    <>
+      <input type="hidden" name="cgu_version" value={accord.version} />
+      <label className="flex min-h-11 items-start gap-3 text-sm">
+        <input type="checkbox" name="cgu" value="oui" required className="mt-0.5 size-6 shrink-0" />
+        <span>
+          J’ai lu et j’accepte la{" "}
+          <Link href="/conditions" target="_blank" rel="noopener" className="underline underline-offset-4">
+            version du {accord.dateVersion} des conditions générales
+          </Link>
+        </span>
+      </label>
+    </>
+  );
+}
+
 function Erreur({ texte }: { texte?: string }) {
   return texte ? (
     <p role="alert" className="text-sm text-destructive">
@@ -97,6 +120,7 @@ export function FormulaireHausse({
         <input id={id} type="checkbox" checked={confirme} onChange={(e) => setConfirme(e.target.checked)} className="mt-1" />
         <span>{libelleConfirmation}</span>
       </label>
+      <CaseAccordConditions accord={etat.accordConditions} />
       <BoutonEnvoi enCoursTexte="Application du changement…" disabled={!confirme}>
         Confirmer ce changement
       </BoutonEnvoi>
@@ -111,6 +135,7 @@ export function FormulairePeriodicite({ orgId, vers, libelle }: { orgId: string;
   return (
     <form data-saisie-confirmee action={action} className="space-y-2">
       <input type="hidden" name="periodicite" value={vers} />
+      <CaseAccordConditions accord={etat.accordConditions} />
       <BoutonEnvoi variant="outline" enCoursTexte="Enregistrement…">
         {libelle}
       </BoutonEnvoi>
@@ -128,20 +153,7 @@ export function BoutonResiliation({ orgId, resilier, libelle }: { orgId: string;
   return (
     <form data-saisie-confirmee action={action} className="space-y-2">
       <input type="hidden" name="resilier" value={resilier ? "oui" : "non"} />
-      {accord && (
-        <>
-          <input type="hidden" name="cgu_version" value={accord.version} />
-          <label className="flex min-h-11 items-start gap-3 text-sm">
-            <input type="checkbox" name="cgu" value="oui" required className="mt-0.5 size-6 shrink-0" />
-            <span>
-              J’ai lu et j’accepte la{" "}
-              <Link href="/conditions" target="_blank" rel="noopener" className="underline underline-offset-4">
-                version du {accord.dateVersion} des conditions générales
-              </Link>
-            </span>
-          </label>
-        </>
-      )}
+      <CaseAccordConditions accord={accord} />
       <BoutonEnvoi variant="outline" enCoursTexte="Enregistrement…">
         {libelle}
       </BoutonEnvoi>

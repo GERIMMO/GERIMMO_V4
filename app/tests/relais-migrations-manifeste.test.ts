@@ -310,6 +310,8 @@ const MISSION_OCTOBRE = [
   "20261125105000_archive_compte_apres_client_stripe.sql",
   // 24/11, lot D7 et textes T4, seconde reprise (T4R-02 à T4R-04) : type de vendeur choisi ; vente aux particuliers sans médiateur décidée à part, datée.
   "20261125106000_type_vendeur_et_vente_sans_mediateur.sql",
+  // 24/11, décisions du dirigeant, lot D4 (Q37, Q24) : cinquième envoi automatique (relance d'une demande de report) avec son interrupteur fermé ; relance de loyer à la main admise sous l'interrupteur de la relance.
+  "20261125110000_relance_report_rdv_et_relance_a_la_main.sql",
 
 
 ];

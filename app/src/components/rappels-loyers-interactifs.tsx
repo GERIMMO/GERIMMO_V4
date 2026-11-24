@@ -31,7 +31,7 @@ const dateLongue = new Intl.DateTimeFormat("fr-FR", {
 export function RappelsLoyersInteractifs({ orgId, aujourdHui, dus, totalEcheancesDues, lectureSeule, envoiRelanceDisponible = false, relanceAutomatiqueOuverte = false, recommandeElectroniqueDisponible = false, dansFenetre = false }: {
   orgId: string; aujourdHui: string; dus: RappelLoyer[]; prochaine: RappelLoyer | null; totalEcheancesDues: number; lectureSeule: boolean;
   envoiRelanceDisponible?: boolean; recommandeElectroniqueDisponible?: boolean; dansFenetre?: boolean;
-  /** Audit palier 1 (P1-08) : le superviseur a ouvert la relance automatique. L'envoi immédiat à la main, lui, suit `envoiRelanceDisponible`. */
+  /** Audit palier 1 (P1-08) : le superviseur a ouvert la relance automatique. Décision du 24/11/2026 (Q24) : le même interrupteur ouvre l'envoi immédiat à la main (`envoiRelanceDisponible`) ; les deux valeurs sont donc égales à l'écran. */
   relanceAutomatiqueOuverte?: boolean;
 }) {
   const session = useContext(SessionVerifications);
@@ -218,7 +218,7 @@ function ReceptionLoyer({ orgId, ligne, aujourdHui, lectureSeule, envoiRelanceDi
       {!lectureSeule && !choix && confirme && nonRecu && bilan?.statut !== "partiel" && <>
       {(courrier === "relance_1" || courrier === "relance_2") && <>
         <details className={styles.gestion}><summary>{courrier === "relance_1" ? "Gérer la première relance" : "Gérer la deuxième relance"}</summary>
-        {envoiRelanceDisponible ? <EnvoiRelance key={courrier} orgId={orgId} ligne={ligne} niveau={courrier} /> : <p>{relanceAutomatiqueOuverte && suivi?.active ? "La relance automatique part par e-mail à son délai, après votre confirmation. L’envoi immédiat à la main n’est pas proposé : vous pouvez préparer le PDF pour le transmettre vous-même." : "L’envoi de relances par e-mail est suspendu. Vous pouvez préparer le PDF pour le transmettre vous-même."}</p>}
+        {envoiRelanceDisponible ? <EnvoiRelance key={courrier} orgId={orgId} ligne={ligne} niveau={courrier} /> : <p>L’envoi de relances par e-mail est suspendu. Vous pouvez préparer le PDF pour le transmettre vous-même.</p>}
         <div className={styles.choix}><BoutonGenererDocument key={courrier} orgId={orgId} code={courrier === "relance_1" ? "relance_simple" : "seconde_relance"} cibleId={ligne.bail_id}
           cheminRetour={`/espace/${orgId}`} libelle={courrier === "relance_1" ? "Préparer la première relance en PDF" : "Préparer la deuxième relance en PDF"} /></div></details>
       </>}

@@ -6,7 +6,9 @@ import { connecterVers, debordementHorizontal, sansSyntheseAlertes } from "./aid
 // LES QUATRE ENVOIS AUTOMATIQUES, OUVERTS UN PAR UN PAR LE SUPERVISEUR (audit palier 1 du 22/11/2026, P1-08).
 //
 // Avis d'échéance, relance amiable, rappel de rendez-vous, relance d'invitation : prêts, mais fermés à la livraison.
-// Ici, dans le navigateur du superviseur : les quatre sont « Fermé » ; ouvrir demande une confirmation cochée ;
+// Décision du dirigeant du 24/11/2026 (Q37, lot D4) : un cinquième envoi (relance d'une demande de report) a rejoint le
+// panneau ; les comptes ci-dessous passent de quatre à cinq. NON REJOUÉ dans un navigateur depuis ce changement.
+// Ici, dans le navigateur du superviseur : les cinq sont « Fermé » ; ouvrir demande une confirmation cochée ;
 // l'envoi ouvert le reste après rechargement, les trois autres ne bougent pas ; il se referme d'un geste ; chaque
 // geste est au journal de la supervision.
 //
@@ -51,11 +53,11 @@ test("envois automatiques : tous fermés à la livraison, ouverts un par un avec
     const panneau = page.locator("[data-envois-automatiques]");
     await expect(panneau).toBeVisible();
 
-    // ── 1. À la livraison : quatre envois, tous fermés ; la carte de résumé le dit aussi.
+    // ── 1. À la livraison : cinq envois, tous fermés ; la carte de résumé le dit aussi.
     await expect(panneau).toHaveAttribute("data-envois-automatiques", "0");
     await expect(panneau.getByText("Tous fermés", { exact: true })).toBeVisible();
     const envois = panneau.locator("[data-envoi-automatique]");
-    await expect(envois).toHaveCount(4);
+    await expect(envois).toHaveCount(5);
     for (const flux of Object.keys(TOUT_FERME)) await expect(panneau.locator(`[data-envoi-automatique="${flux}"]`)).toHaveAttribute("data-ouvert", "non");
     await expect(page.locator('a[href="#envois-automatiques"]')).toContainText("Tous fermés");
     expect(await debordementHorizontal(page)).toBeLessThanOrEqual(1);
@@ -80,7 +82,7 @@ test("envois automatiques : tous fermés à la livraison, ouverts un par un avec
     await expect(rappel).toHaveAttribute("data-ouvert", "oui");
     await expect(rappel.getByRole("status")).toContainText("Ouvert : « Rappel d’un rendez-vous d’intervention »");
     await expect(panneau).toHaveAttribute("data-envois-automatiques", "1");
-    await expect(panneau.getByText("1 ouvert sur 4", { exact: true })).toBeVisible();
+    await expect(panneau.getByText("1 ouvert sur 5", { exact: true })).toBeVisible();
     expect(await reglage()).toEqual({ ...TOUT_FERME, rappel_rendez_vous: true });
     expect(await journal()).toEqual([{ flux: "rappel_rendez_vous", ouvert: true, precedent: false }]);
 
@@ -89,7 +91,7 @@ test("envois automatiques : tous fermés à la livraison, ouverts un par un avec
     await expect(rappel).toHaveAttribute("data-ouvert", "oui");
     for (const flux of ["avis_echeance", "relance_loyer", "relance_invitation"]) await expect(panneau.locator(`[data-envoi-automatique="${flux}"]`)).toHaveAttribute("data-ouvert", "non");
     await expect(rappel.getByRole("checkbox")).toHaveCount(0);
-    await expect(page.locator('a[href="#envois-automatiques"]')).toContainText("1 ouvert sur 4");
+    await expect(page.locator('a[href="#envois-automatiques"]')).toContainText("1 ouvert sur 5");
     expect(await debordementHorizontal(page)).toBeLessThanOrEqual(1);
     // Après une action, le panneau est rendu de nouveau : la capture attend qu'il soit en place (même remède que les repères fiscaux).
     await expect(async () => {

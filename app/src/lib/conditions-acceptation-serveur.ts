@@ -56,6 +56,16 @@ export async function derniereVersionAcceptee(
 }
 
 /**
+ * Cette version de ce document est-elle ARCHIVÉE (`versions_conditions`, geste du super-administrateur après la mise en
+ * ligne) ? L'archive porte l'empreinte du texte publié, que la base recopie sur chaque acceptation : sans elle,
+ * l'accord n'aurait ni texte de référence ni empreinte (décision Q15 du 24/11/2026). Une lecture en échec vaut « non ».
+ */
+export async function versionArchivee(db: SupabaseClient, document: "conditions_clients" | "conditions_artisans", version: string): Promise<boolean> {
+  const { data, error } = await db.from("versions_conditions").select("version").eq("document", document).eq("version", version).maybeSingle();
+  return !error && data !== null;
+}
+
+/**
  * L'abonnement de l'espace, tel que `mon_abonnement` le rend à son responsable (aucun identifiant Stripe) ; `null`
  * pour un autre compte, sans abonnement lisible, ou si la lecture échoue.
  */

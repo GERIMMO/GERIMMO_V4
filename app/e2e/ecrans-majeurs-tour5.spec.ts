@@ -9,6 +9,8 @@ import { CONFIDENTIALITE_DATE } from "../src/lib/editeur";
 // dans le même banc. L'outil IRL (E054 = E167) : e2e/outils.spec.ts ; la fiche d'un compte (E070 = E180) :
 // e2e/compte-supervision.spec.ts. Unitaires : tests/ecrans-majeurs-console.test.ts et les tests cités au commit.
 // Aucune écriture : la seule lecture en base cherche l'article du jeu d'essai (seed-parcours.mjs).
+// Décision du dirigeant du 25/11/2026 : hors Page Facebook « Relié », la diffusion est masquée (pas grisée) dans
+// l'éditeur d'article et sur « Marketing et contenus », avec un court texte qui dit pourquoi et où vérifier la Page.
 
 /** Un seul h1, pas de débordement horizontal (consignes des lots d'écrans). */
 async function tenue(page: Page) {
@@ -103,10 +105,40 @@ test.describe("console du super admin", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Modifier l’article" })).toBeVisible();
     if (relie) {
       await expect(page.getByText("La diffusion utilise la Page Facebook reliée à Gerimmo.", { exact: false })).toBeVisible();
+      await expect(page.getByLabel("Texte de la publication")).toBeVisible();
     } else {
       await expect(page.getByText("Page Facebook connectée", { exact: false })).toHaveCount(0);
       await expect(page.getByRole("button", { name: "Publier sur Facebook" })).toHaveCount(0);
-      await expect(page.getByRole("link", { name: "Vos canaux de diffusion" })).toHaveAttribute("href", "/admin/marketing#canaux");
+      // Décision du 25/11/2026 : le texte de la publication Facebook est masqué aussi ; l'illustration reste modifiable.
+      await expect(page.getByLabel("Texte de la publication")).toHaveCount(0);
+      await expect(page.getByLabel("Adresse de l’illustration de l’article")).toBeVisible();
+      await expect(page.getByText("la diffusion sur Facebook n’est", { exact: false }).first()).toBeVisible();
+      for (const lien of await page.getByRole("link", { name: "Vos canaux de diffusion" }).all()) {
+        await expect(lien).toHaveAttribute("href", "/admin/marketing#canaux");
+      }
+    }
+    await tenue(page);
+  });
+
+  test("Décision du 25/11 : « Marketing et contenus » masque la diffusion tant que la Page n'est pas « Relié »", async ({ page }) => {
+    await page.goto("/admin/marketing");
+    await expect(page.getByRole("heading", { level: 1, name: "Marketing et contenus" })).toBeVisible();
+    const relie = await page.locator("#canaux").getByText("Relié", { exact: true }).isVisible();
+    const atelier = page.locator("#publications");
+    await page.getByText("Réglages de préparation et de diffusion", { exact: true }).click();
+    if (relie) {
+      await expect(atelier.getByRole("heading", { level: 3, name: "À diffuser" })).toBeVisible();
+      await expect(page.getByLabel("Publier automatiquement")).toBeEnabled();
+    } else {
+      // Masqué, pas grisé : ni colonne « À diffuser », ni « Publier maintenant » / « Valider », ni case à cocher.
+      await expect(atelier.getByRole("heading", { level: 3, name: "À diffuser" })).toHaveCount(0);
+      await expect(page.locator("#veto").getByRole("button", { name: "Publier maintenant" })).toHaveCount(0);
+      await expect(page.locator("#veto").getByRole("button", { name: "Valider pour l’heure prévue" })).toHaveCount(0);
+      await expect(page.getByLabel("Publier automatiquement")).toHaveCount(0);
+      // Pourquoi, et où vérifier la Page.
+      await expect(atelier.getByText("la diffusion sur Facebook n’est", { exact: false })).toBeVisible();
+      await expect(page.locator("#reglages").getByText("la diffusion sur Facebook n’est", { exact: false })).toBeVisible();
+      await expect(atelier.getByRole("link", { name: "Vos canaux de diffusion" })).toHaveAttribute("href", "/admin/marketing#canaux");
     }
     await tenue(page);
   });

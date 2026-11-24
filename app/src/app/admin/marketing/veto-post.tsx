@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import Link from "next/link";
+import { DiffusionFacebookMasquee } from "@/components/diffusion-facebook-masquee";
+import type { EtatPageFacebook } from "@/lib/diffusion-facebook";
 import { deciderPostProgramme, type EtatCampagne } from "./actions";
 
 // LA FENÊTRE DE VETO (06/10/2026). Le post du lendemain, préparé la veille à
@@ -49,8 +51,12 @@ function Geste({ post, action, libelle, classe, motifRequis, enCours, dejaValide
   );
 }
 
-export function VetoPost({ post, validationObligatoire, quand, diffusionActive = true }: { post: PostProgramme; validationObligatoire: boolean; quand: string; diffusionActive?: boolean }) {
+// Décision du 25/11/2026 : tant que la Page Facebook n'est pas « Relié » (`pageFacebook`), « Publier maintenant » et
+// « Valider pour l'heure prévue », qui font paraître le post sur le site PUIS sur Facebook, sont masqués ; un court
+// texte dit pourquoi et où vérifier la Page. Relire, modifier, reporter et refuser restent possibles.
+export function VetoPost({ post, validationObligatoire, quand, diffusionActive = true, pageFacebook }: { post: PostProgramme; validationObligatoire: boolean; quand: string; diffusionActive?: boolean; pageFacebook: EtatPageFacebook }) {
   const texte = post.facebook_texte?.trim() || `${post.titre}\n\n${post.chapo ?? ""}`;
+  const diffusionMasquee = pageFacebook !== "relie";
   return (
     <article className="@container loc-carte border-l-4 border-l-[var(--warning)]">
       <div className="grid gap-5 @[650px]:grid-cols-[minmax(0,18rem)_1fr]">
@@ -66,18 +72,22 @@ export function VetoPost({ post, validationObligatoire, quand, diffusionActive =
           <p className="libelle-champ">{post.veille_source_id ? "Post de veille" : "Post éditorial"} · parution {quand}</p>
           <h3 className="mt-1 font-heading text-lg text-[var(--encre)]">{post.titre}</h3>
           <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[var(--corps)]">{texte}</p>
-          <p className="mt-3 text-xs text-[var(--texte-secondaire)]">
-            {!diffusionActive
-              ? "Diffusion automatique en pause ou connexion à vérifier. Le post reste disponible pour votre relecture."
-              : post.valide_le
-              ? "Validé : diffusion prévue à l’heure indiquée, sous réserve des contrôles du service."
-              : validationObligatoire
-                ? "Validation obligatoire : rien ne part sans « Valider » ou « Publier maintenant »."
-                : "Diffusion automatique prévue à l’heure indiquée, sous réserve des contrôles du service. Un report ou un refus l’empêche."}
-          </p>
+          {diffusionMasquee ? (
+            <DiffusionFacebookMasquee etat={pageFacebook} className="mt-3 text-xs leading-snug text-[var(--texte-secondaire)]" />
+          ) : (
+            <p className="mt-3 text-xs text-[var(--texte-secondaire)]">
+              {!diffusionActive
+                ? "Diffusion automatique en pause. Le post reste disponible pour votre relecture."
+                : post.valide_le
+                ? "Validé : diffusion prévue à l’heure indiquée, sous réserve des contrôles du service."
+                : validationObligatoire
+                  ? "Validation obligatoire : rien ne part sans « Valider » ou « Publier maintenant »."
+                  : "Diffusion automatique prévue à l’heure indiquée, sous réserve des contrôles du service. Un report ou un refus l’empêche."}
+            </p>
+          )}
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            <Geste post={post} action="publier_maintenant" libelle="Publier maintenant" classe="btn-or" enCours="Publication…" />
-            {validationObligatoire && !post.valide_le && <Geste post={post} action="valider" libelle="Valider pour l’heure prévue" classe="btn-secondaire" enCours="Validation…" />}
+            {!diffusionMasquee && <Geste post={post} action="publier_maintenant" libelle="Publier maintenant" classe="btn-or" enCours="Publication…" />}
+            {!diffusionMasquee && validationObligatoire && !post.valide_le && <Geste post={post} action="valider" libelle="Valider pour l’heure prévue" classe="btn-secondaire" enCours="Validation…" />}
             <Link href={`/admin/publications/${post.id}`} className="btn-secondaire">Modifier</Link>
             <Geste post={post} action="reporter" libelle="Reporter" classe="btn-secondaire" motifRequis enCours="Report…" />
             <Geste post={post} action="refuser" libelle="Refuser" classe="btn-secondaire text-[var(--destructive)]" motifRequis enCours="Refus…" />

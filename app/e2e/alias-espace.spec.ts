@@ -229,9 +229,13 @@ test.describe("Propriétaire direct : l'alias /espace", () => {
       const r = await sansSuivre(browser, "proprietaire", chemin);
       expect(r.statut, chemin).not.toBe(308);
       expect(r.lieu, chemin).not.toContain(`/espace/${AGENCE}`);
-      await page.goto(chemin);
+      // La garde renvoie vers « Mes espaces », qui redirige à son tour (côté navigateur) vers le seul espace du compte, parfois
+      // avant la fin du chargement de la première page : attendre le seul début de la navigation, puis l'adresse finale et son
+      // chargement complet, avant de lire la page (sinon « navigation interrompue », vu une fois sur la passe du 24/11).
+      await page.goto(chemin, { waitUntil: "commit" });
       // Avec une seule adhésion, « Mes espaces » l'envoie droit sur le sien.
       await expect(page, chemin).toHaveURL(new RegExp(`/(espaces|espace/${PD})$`));
+      await page.waitForLoadState("load");
       await expect(page.locator("body")).not.toContainText("Agence Alpha");
     }
   });
@@ -254,8 +258,10 @@ test.describe("Propriétaire direct : l'alias /espace", () => {
       // Par l'ancienne adresse : pas de redirection vers son alias, et la garde de la page le renvoie chez lui.
       const r = await sansSuivre(browser, "proprietaire", `/agence/${autre}/parc`);
       expect(r.statut).not.toBe(308);
-      await page.goto(`/agence/${autre}/parc`);
+      // Même double redirection que ci-dessus : début de navigation, adresse finale, chargement complet, puis lecture.
+      await page.goto(`/agence/${autre}/parc`, { waitUntil: "commit" });
       await expect(page).toHaveURL(new RegExp(`/(espaces|espace/${PD})$`));
+      await page.waitForLoadState("load");
       await expect(page.locator("body")).not.toContainText(nom);
     } finally {
       await db.query("delete from public.organizations where id = $1", [autre]);

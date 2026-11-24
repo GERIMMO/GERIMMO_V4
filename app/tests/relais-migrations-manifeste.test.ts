@@ -320,6 +320,8 @@ const MISSION_OCTOBRE = [
   "20261125111000_textes_officiels_t3.sql",
   // 24/11, décisions du dirigeant, lot D5 (Q21) : ancien parcours « télécharger, signer, redéposer » retiré ; les trois fonctions qui y écrivaient ne sont plus appelables par un compte connecté (rien n'est supprimé).
   "20261125140000_ancien_parcours_signature_manuelle_droits_retires.sql",
+  // 24/11, lot D4 (reprise, relecture D4R-01 et D4R-03) : l'accord d'un compte aux conditions clients exige une version archivée ; la relance de loyer à la main n'est jamais reprise d'elle-même.
+  "20261125150000_accord_conditions_version_archivee.sql",
   // 25/11, reprise du lot T3 (T3R-1) : la confirmation d'un complément de charges d'un exercice de plus de trois ans est
   // exigée par la base (`p_exercice_ancien`, seconde signature des deux fonctions et de leurs enveloppes).
   "20261125151000_textes_t3_reprise_exercice_ancien.sql",

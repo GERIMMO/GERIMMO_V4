@@ -74,13 +74,19 @@ export async function motifArchiveCommande(supabase: Client, editeur: Record<str
  * verrait toutes les lignes) et à la version exacte — une version antérieure
  * ne compte pas. Une lecture en échec vaut « non acceptée » : la case est
  * redemandée, et une ligne de plus est sans conséquence (ajout seul).
+ *
+ * Reprise du lot D4 (relecture D4R-01) : seule compte une ligne qui porte l'EMPREINTE du texte archivé (recopiée par la
+ * base). Une ligne sans empreinte — version non archivée au moment de l'accord, ouverture d'un espace propriétaire,
+ * inscription, ou appel direct de `accepter_cgu` avant la migration 20261125150000 — ne prouve pas quel texte a été
+ * accepté : la case est redemandée.
  */
 export async function preuveConditionsEnVigueur(supabase: Client, accountId: string): Promise<string | null> {
   const lire = (parDocument: boolean) => {
     let requete = supabase.from("acceptations_cgu").select("id").eq("account_id", accountId);
     // 24/10 : une acceptation porte sur un document (conditions clients, conditions de l'espace artisan, règles des
-    // espaces invités) ; seules les conditions clients ouvrent la souscription.
-    if (parDocument) requete = requete.eq("document", "conditions_clients");
+    // espaces invités) ; seules les conditions clients ouvrent la souscription. La colonne de l'empreinte vient de la
+    // même migration que celle du document : dans le repli ci-dessous (colonne absente), aucune ligne n'en a.
+    if (parDocument) requete = requete.eq("document", "conditions_clients").not("empreinte_sha256", "is", null);
     return requete.eq("version", CONDITIONS_VERSION).limit(1).maybeSingle();
   };
   let { data, error } = await lire(true);

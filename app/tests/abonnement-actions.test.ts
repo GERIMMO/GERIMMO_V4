@@ -33,6 +33,8 @@ vi.mock("@/lib/supabase/server", () => ({
       const q = {
         select: () => q,
         eq: () => q,
+        // Reprise D4 (D4R-01) : la preuve d'accord filtre les lignes à empreinte ; ce faux client les tient pour telles.
+        not: () => q,
         order: () => q,
         limit: () => q,
         maybeSingle: async () =>

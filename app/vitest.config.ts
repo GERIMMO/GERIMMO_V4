@@ -61,6 +61,7 @@ export const FICHIERS_EN_SERIE = [
   "tests/decision-artisan-base.test.ts",
   "tests/relances-d4-base.test.ts",
   "tests/ancien-parcours-signature-manuelle-base.test.ts",
+  "tests/accord-conditions-archivee-base.test.ts",
   // Audit palier 1, P1-19 : rejoue la migration et le retour de la déclaration d'incident depuis la fiche du bien.
   "tests/incident-bien-categorie-base.test.ts",
   // Audit palier 1, P0-03 : rejoue la migration et le retour de la validation des appels de charges.

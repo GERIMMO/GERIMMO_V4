@@ -248,8 +248,11 @@ describe("T19 — « À renseigner » suit l'en-tête effectivement imprimé", (
     // Phase 3, lot 48 (U04) : les deux écrans passent aussi les manquants de l'en-tête seul (dernier argument), que l'action
     // transmet de même ; l'origine de l'en-tête reste passée telle quelle.
     expect(readFileSync("src/app/actions/documents-generes.ts", "utf8")).toContain("...(assemblage.document.seulementEnTete ? { seulementEnTete: assemblage.document.seulementEnTete } : {})");
-    expect(readFileSync("src/app/agence/[orgId]/documents/catalogue/formulaire-catalogue.tsx", "utf8")).toContain("lienPourManquant(m,orgId,etat.liens??[],modeleId,racine,etat.emetteur,etat.seulementEnTete)");
-    expect(readFileSync("src/components/bouton-generer-document.tsx", "utf8")).toContain("lienPourManquant(m, orgId, affichage.liens ?? [], code, racine, affichage.emetteur, affichage.seulementEnTete)");
+    // Reprise du lot 48 (U04, U06) : ils passent en plus les manquants du bloc du bailleur (nouveau dernier argument), que
+    // l'action transmet de même ; les arguments d'avant restent passés tels quels.
+    expect(readFileSync("src/app/actions/documents-generes.ts", "utf8")).toContain("...(assemblage.document.videsBailleur ? { videsBailleur: assemblage.document.videsBailleur } : {})");
+    expect(readFileSync("src/app/agence/[orgId]/documents/catalogue/formulaire-catalogue.tsx", "utf8")).toContain("lienPourManquant(m,orgId,etat.liens??[],modeleId,racine,etat.emetteur,etat.seulementEnTete,etat.videsBailleur)");
+    expect(readFileSync("src/components/bouton-generer-document.tsx", "utf8")).toContain("lienPourManquant(m, orgId, affichage.liens ?? [], code, racine, affichage.emetteur, affichage.seulementEnTete, affichage.videsBailleur)");
   });
 });
 

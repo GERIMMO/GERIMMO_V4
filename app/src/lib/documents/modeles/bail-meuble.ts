@@ -128,6 +128,7 @@ export function construireBailMeuble(
         )
       : `<p>${f.champ(null, "inventaire du mobilier — au moins les 11 éléments du décret")}</p>`;
 
+  // Reprise du lot 48 (U04, U06) : le bloc du bailleur passe par `f.bailleur` (même texte, empreinte inchangée), comme au bail nu.
   const corps = `
     ${enTete(f, exp, { libelle: "Contrat", reference: referenceBail, etabliLe: new Date().toISOString() })}
     ${titre(individuel ? "Contrat individuel de colocation" : colocation ? "Contrat commun de colocation" : "Contrat de location", "Logement meublé · résidence principale", [
@@ -141,11 +142,11 @@ export function construireBailMeuble(
     ${section("I — Désignation des parties")}
     <p${t.classe("annonce")}>Le présent contrat est conclu entre les soussignés :</p>
     ${sousSection("Le bailleur")}
-    <p>Nom et prénom(s) ou dénomination : ${f.champ(nomPersonne(bailleurPrincipal), "nom et prénom(s), ou dénomination")}
+    ${f.bailleur(() => `<p>Nom et prénom(s) ou dénomination : ${f.champ(nomPersonne(bailleurPrincipal), "nom et prénom(s), ou dénomination")}
     — Qualité : ${f.champ(bailleurPrincipal?.qualite, "personne physique, SCI, indivision…")}<br/>
     ${!options.presentationAncienne && bailleurPrincipal?.siren ? `SIREN : ${echapper(bailleurPrincipal.siren)}<br/>` : ""}Domicile ou siège social : ${f.champ(adressePersonne(bailleurPrincipal), "domicile ou siège social")}<br/>
     Adresse électronique : ${f.champ(bailleurPrincipal?.email, "adresse électronique")} — Numéro de
-    téléphone portable : ${facultatif(bailleurPrincipal?.telephone)}</p>
+    téléphone portable : ${facultatif(bailleurPrincipal?.telephone)}</p>`)}
     ${
       indivision
         ? `<p>Le logement étant détenu en indivision, sont également parties au présent contrat :

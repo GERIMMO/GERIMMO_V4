@@ -107,6 +107,7 @@ export async function assemblerCautionnement(
       ? "forfait de charges"
       : "provisions sur charges avec régularisation annuelle";
 
+  // Reprise du lot 48 (U04, U06) : le bailleur passe par `f.bailleur` (même texte) : ses manques mènent à l'écran du détenteur.
   const corps = `
     ${enTete(f, exp, { libelle: "Acte", reference, etabliLe: new Date().toISOString() })}
     ${titre("Acte de cautionnement", solidaire ? "Engagement de caution solidaire" : "Engagement de caution simple", [
@@ -121,7 +122,7 @@ export async function assemblerCautionnement(
     ci-après dénommé(e) « la caution ».</p>
 
     ${section("II — Le bailleur")}
-    <p>${nomsBailleurs(f, ctx.bailleurs)}, ${f.champ(adressePersonne(bailleurPrincipal), "domicile ou siège social")},
+    <p>${f.bailleur(() => `${nomsBailleurs(f, ctx.bailleurs)}, ${f.champ(adressePersonne(bailleurPrincipal), "domicile ou siège social")}`)},
     ci-après dénommé${plusieursBailleurs ? "s" : ""} « le bailleur ».</p>
     ${
       ctx.organisation.type === "agence"

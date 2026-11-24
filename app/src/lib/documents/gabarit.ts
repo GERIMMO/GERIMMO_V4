@@ -63,6 +63,11 @@ export class Fusion {
   enTeteEnCours = false;
   private readonly videsEnTete = new Set<string>();
   private readonly videsAilleurs = new Set<string>();
+  // Reprise du lot 48 (U04, U06) : « adresse électronique » sert aussi au bailleur ET au locataire d'un contrat, et la qualité
+  // d'un bailleur vide ne dit pas s'il existe. Les champs vides du bloc du BAILLEUR (corps d'un contrat ou d'un acte, rendu
+  // par `bailleur`) sont notés à part : le lien mène à la fiche du détenteur, ou à la détention du lot s'il n'y en a aucun.
+  private blocBailleurEnCours = false;
+  private readonly videsBailleur = new Set<string>();
 
   // Une valeur présente s'imprime ; absente, le libellé de l'épreuve reste
   // en réserve et le champ est compté manquant (une seule fois par libellé).
@@ -76,7 +81,22 @@ export class Fusion {
     const manquant = nom ?? libelle;
     if (!this.manquants.includes(manquant)) this.manquants.push(manquant);
     (this.enTeteEnCours ? this.videsEnTete : this.videsAilleurs).add(manquant);
+    if (this.blocBailleurEnCours) this.videsBailleur.add(manquant);
     return `<span class="fusion">${echapper(libelle)}</span>`;
+  }
+
+  /**
+   * Le bloc du bailleur, rendu tel quel (même texte, mêmes champs, même ordre) : seuls ses manques sont notés à part
+   * (reprise du lot 48). Appelé dans le gabarit, à la place du bloc : l'ordre de la liste « À renseigner » ne change pas.
+   */
+  bailleur(rendu: () => string): string {
+    const avant = this.blocBailleurEnCours;
+    this.blocBailleurEnCours = true;
+    try {
+      return rendu();
+    } finally {
+      this.blocBailleurEnCours = avant;
+    }
   }
 
   date(iso: string | null | undefined, libelle = "jj/mm/aaaa"): string {
@@ -91,6 +111,11 @@ export class Fusion {
   /** Les manquants restés vides dans l'en-tête SEULEMENT (lot 48, U04) ; un libellé vide aussi ailleurs n'y figure pas. */
   get seulementEnTete(): string[] {
     return this.manquants.filter((m) => this.videsEnTete.has(m) && !this.videsAilleurs.has(m));
+  }
+
+  /** Les manquants restés vides dans le bloc du bailleur (reprise du lot 48), qu'ils manquent aussi ailleurs ou non. */
+  get auBailleur(): string[] {
+    return this.manquants.filter((m) => this.videsBailleur.has(m));
   }
 }
 
@@ -367,6 +392,8 @@ export type DocumentAssemble = {
   emetteur?: EmetteurEnTete;
   /** Les manquants vides dans l'en-tête seulement (Fusion.seulementEnTete, lot 48, U04). */
   seulementEnTete?: string[];
+  /** Les manquants vides dans le bloc du bailleur d'un contrat ou d'un acte (Fusion.auBailleur, reprise du lot 48). */
+  videsBailleur?: string[];
 };
 
 export function assemblerPage(params: {
@@ -393,6 +420,7 @@ export function assemblerPage(params: {
     manquants: params.f.manquants,
     ...(params.f.emetteur ? { emetteur: params.f.emetteur } : {}),
     ...(params.f.seulementEnTete.length ? { seulementEnTete: params.f.seulementEnTete } : {}),
+    ...(params.f.auBailleur.length ? { videsBailleur: params.f.auBailleur } : {}),
   };
 }
 

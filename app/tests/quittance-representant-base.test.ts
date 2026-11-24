@@ -45,7 +45,9 @@ describe.skipIf(!url)('SCI-3 : la quittance d’une société nomme son représe
   // Phase 3, lot 48 (U07, migration 20261123230000) : chez un propriétaire direct, chaque bailleur porte aussi l'adresse postale
   // de sa fiche (la quittance délivrée l'imprime, comme le PDF). Ces attentes, écrites avant, ne la portaient pas ; ce fichier
   // vérifie le représentant, l'adresse est vérifiée dans tests/quittance-adresse-bailleurs-base.test.ts.
-  const ADRESSE_SCI = { adresse: '5 rue des Lilas', code_postal: '69003', ville: 'Lyon' };
+  // Reprise du lot 48 (même migration) : aussi l'adresse électronique et le téléphone de sa fiche, que le PDF imprime en
+  // en-tête (vérifiés dans tests/quittance-adresse-bailleurs-base.test.ts). Le téléphone de la gérante (représentante), lui, n'est toujours pas rendu.
+  const ADRESSE_SCI = { adresse: '5 rue des Lilas', code_postal: '69003', ville: 'Lyon', email: 'camille@example.invalid', telephone: null };
 
   beforeAll(async () => { await db.connect(); });
   afterAll(async () => { await db.end(); });

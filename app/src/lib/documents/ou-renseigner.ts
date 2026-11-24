@@ -130,6 +130,8 @@ const MODELES_EN_TETE_ESPACE = new Set(["comparatif_devis", "recap_incident", "r
 // « ou dénomination ») ; l'en-tête devient alors le sien.
 const MODELES_BAILLEUR_AU_CORPS = new Set(["bail_nu", "bail_meuble", "bail_colocation", "bail_individuel", "cautionnement"]);
 const DETENTION: Regle = { motifs: [], cible: "lot", section: "detention" };
+// Le nom du bailleur au corps d'un contrat ou d'un acte : vide, le lot n'a aucun détenteur (reprise du lot 48).
+const NOM_BAILLEUR = "nom et prénom(s), ou dénomination";
 const MODELES_CONTRAT = new Set(["bail_nu", "bail_meuble", "bail_colocation", "bail_individuel"]);
 
 export function lienPourManquant(
@@ -142,7 +144,9 @@ export function lienPourManquant(
   /** L'origine de l'en-tête effectivement imprimé (document assemblé, lot 46) ; absente, elle est déduite des liens et du modèle. */
   emetteur?: EmetteurEnTete,
   /** Les manquants vides dans l'en-tête seulement (document assemblé, lot 48) ; absente, un libellé est réputé manquer au corps. */
-  seulementEnTete?: readonly string[]
+  seulementEnTete?: readonly string[],
+  /** Les manquants vides dans le bloc du bailleur d'un contrat ou d'un acte (document assemblé, reprise du lot 48). */
+  videsBailleur?: readonly string[]
 ): LienManquant | null {
   const base = `${racine}/${orgId}`;
   const l = libelle.toLowerCase();
@@ -201,8 +205,26 @@ export function lienPourManquant(
   // émis par les détenteurs des logements de l'immeuble et renvoyaient au profil de l'espace ; un document d'un lot sans
   // détenteur garde l'en-tête de l'espace et renvoyait à la fiche du propriétaire.
   const enTeteDesDetenteurs = emetteur ? emetteur === "detenteurs" : Boolean(bail || lot) && !MODELES_EN_TETE_ESPACE.has(modele ?? "");
+  // Reprise du lot 48 (U04, U06) : le document dit où le libellé est resté vide. Vide dans le BLOC DU BAILLEUR d'un contrat ou
+  // d'un acte (`videsBailleur`), il se complète sur l'écran du détenteur du lot, dans les deux types d'espace : la détention du
+  // lot quand il n'y en a aucun (son nom est alors vide aussi, et tout le bloc y mène), sa fiche dans Personnes sinon — c'est
+  // là que se corrigent sa qualité, son adresse et son adresse électronique ; la détention ne demande la qualité que d'un
+  // NOUVEAU propriétaire. Ces libellés menaient à la fiche du locataire, déjà complète (adresse électronique), à la liste
+  // Personnes pour un lot sans détenteur (agence), ou à la détention d'un lot déjà détenu (qualité).
+  if (MODELES_BAILLEUR_AU_CORPS.has(modele ?? "") && videsBailleur?.includes(libelle)) {
+    if (videsBailleur.includes(NOM_BAILLEUR)) return vers("lot", DETENTION);
+    return { href: `${base}/personnes`, ecran: "fiche du propriétaire, dans Personnes" };
+  }
+  // Reprise du lot 48 (U04) : l'adresse ou l'adresse électronique vide dans l'en-tête SEULEMENT, quand cet en-tête est celui de
+  // l'espace (agence, ou propriétaire sans détenteur) : le profil de l'espace, où elles se saisissent. En agence, l'adresse
+  // électronique de l'agence menait à la fiche du locataire. (Les autres champs de l'en-tête, référence et date, ne viennent
+  // pas du profil : ils gardent leurs règles.)
+  if (emetteur === "espace" && (l === "domicile ou siège social" || l === "adresse électronique") && seulementEnTete?.includes(libelle)) {
+    return vers("organisation");
+  }
   // Phase 3, lot 48 (U06) : le contrat d'un lot sans détenteur laisse vide tout le bloc du bailleur ; son adresse électronique
   // (« adresse électronique », qui menait à la fiche du bail ou du locataire) se complète aussi en ajoutant le détenteur.
+  // Reprise du lot 48 : cette règle et la suivante ne jouent plus que sans `videsBailleur` (état calculé avant la reprise).
   if (racine === RACINE_PROPRIETAIRE && emetteur === "espace" && MODELES_BAILLEUR_AU_CORPS.has(modele ?? "") &&
       (l === "domicile ou siège social" || (MODELES_CONTRAT.has(modele ?? "") && l === "adresse électronique"))) {
     return vers("lot", DETENTION);

@@ -51,8 +51,9 @@ beforeEach(() => {
 });
 
 /** Les liens « renseigner » de chaque manquant, tels que les écrans les calculent avec le document assemblé. */
+// Reprise du lot 48 : les écrans passent aussi les manquants du bloc du bailleur (`videsBailleur`) ; ces cas les passent de même.
 const liensDe = (r: Exclude<Assemblage, { erreur: string }>, modele: string, racine: string) =>
-  Object.fromEntries(r.document.manquants.map((m) => [m, lienPourManquant(m, "org", r.liens, modele, racine, r.document.emetteur, r.document.seulementEnTete)?.href ?? null]));
+  Object.fromEntries(r.document.manquants.map((m) => [m, lienPourManquant(m, "org", r.liens, modele, racine, r.document.emetteur, r.document.seulementEnTete, r.document.videsBailleur)?.href ?? null]));
 
 describe("U04 — espace d'agence : « domicile ou siège social » suit l'adresse qui manque (en-tête ou corps)", () => {
   const agence = (sur: { agenceSansAdresse?: boolean; mandantSansAdresse?: boolean }) => {
@@ -158,7 +159,12 @@ describe("U06 — contrat d'un lot sans détenteur : tout le bloc du bailleur m�
     expect(liensDe(r, "bail_meuble", "/espace")["adresse électronique"]).toBe(`/espace/org/lots/${ctx.lot.id}?vers=detention`);
   });
 
-  it("avec un détenteur, l'adresse électronique garde sa règle (fiche du locataire) ; la qualité vide mène à la détention", () => {
+  // Reprise du lot 48 : ce cas disait voulu que la qualité vide mène à la détention même AVEC un détenteur, où elle ne se saisit
+  // pas (la détention ne la demande qu'à un nouveau propriétaire ; elle se corrige sur sa fiche). Avec le document assemblé
+  // (`videsBailleur`), elle mène à la fiche du détenteur, et l'adresse électronique suit le bloc où elle manque
+  // (tests/lot48-reprise.test.ts). Ne restent ici que les règles appliquées SANS cette information (écran resté sur un état
+  // calculé avant la reprise), où l'on ne sait pas si le lot a un détenteur.
+  it("sans l'information du document (état d'avant la reprise) : les règles d'avant, faute de savoir si le lot a un détenteur", () => {
     const liens = [{ entite: "bail" as const, entiteId: "b1" }, { entite: "lot" as const, entiteId: "l1" }, { entite: "personne" as const, entiteId: "p1" }];
     expect(lienPourManquant("adresse électronique", "org", liens, "bail_nu", "/espace", "detenteurs")?.href).toBe("/espace/org/personnes/p1");
     expect(lienPourManquant("personne physique, indivision, SCI familiale, SCI, personne morale", "org", liens, "bail_nu", "/agence", "espace")?.href).toBe("/agence/org/lots/l1?vers=detention");

@@ -25,6 +25,8 @@ export type EtatGeneration = {
   emetteur?: EmetteurEnTete;
   // Phase 3, lot 48 (U04) : les manquants vides dans l'en-tête seulement (même libellé qu'au corps d'un contrat).
   seulementEnTete?: string[];
+  // Reprise du lot 48 (U04, U06) : les manquants vides dans le bloc du bailleur d'un contrat ou d'un acte.
+  videsBailleur?: string[];
 };
 
 // Les droits et l’assemblage sont vérifiés à chaque demande. Seul le rendu
@@ -74,6 +76,7 @@ export async function genererDocument(
         liens: assemblage.liens,
         ...(assemblage.document.emetteur ? { emetteur: assemblage.document.emetteur } : {}),
         ...(assemblage.document.seulementEnTete ? { seulementEnTete: assemblage.document.seulementEnTete } : {}),
+        ...(assemblage.document.videsBailleur ? { videsBailleur: assemblage.document.videsBailleur } : {}),
       };
     }
 

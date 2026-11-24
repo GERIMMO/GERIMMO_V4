@@ -1,5 +1,6 @@
 import { LectureImpossibleArtisan } from "../../ui";
 import { EchangesIntervention } from "@/components/echanges-intervention";
+import { lireInterlocuteurLocataire } from "@/lib/interlocuteur-locataire-serveur";
 import { AccuseAnnulation } from "./accuse-annulation";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -58,7 +59,7 @@ export const metadata = { title: "Ma mission" };
 export default async function PageMission(
   props: PageProps<"/artisan/missions/[interventionId]">
 ) {
-  await verifierAccesArtisan();
+  const { supabase } = await verifierAccesArtisan();
   const { interventionId } = await props.params;
   const { termine, de, raison } = await props.searchParams;
   // Le retour ramène d'où l'on vient : la même carte s'ouvre depuis
@@ -81,6 +82,10 @@ export default async function PageMission(
   if (agenda.erreur) return <LectureImpossibleArtisan href={`/artisan/missions/${interventionId}`} />;
   const mission = agenda.lignes.find((l) => l.intervention_id === interventionId);
   if (!mission) notFound();
+  // Reprise du lot 48 (U08) : l'en-tête de la discussion nommait le « Propriétaire » à l'artisan d'une mission d'agence, dont
+  // l'interlocuteur est le gestionnaire. Le type de l'espace client se lit dans `organisations_portail`, déjà ouverte à
+  // l'artisan membre de l'espace (aucun droit nouveau) ; illisible, l'en-tête reste celui d'avant (« Propriétaire »).
+  const interlocuteur = await lireInterlocuteurLocataire(supabase, mission.organization_id);
   // Audit palier 1 (P1-03) : la facture EN VIGUEUR de la mission ; une facture refusée se lit à part, tant qu'aucune
   // autre ne l'a remplacée (la plus récente d'abord).
   const factureReglement = reglements.lignes.find((r) => r.intervention_id === interventionId && r.etat !== "refusee");
@@ -548,7 +553,7 @@ export default async function PageMission(
           )}
         </Carte>
       )}
-      <EchangesIntervention intervention={interventionId} />
+      <EchangesIntervention intervention={interventionId} interlocuteur={interlocuteur} />
     </div>
   );
 }

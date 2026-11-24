@@ -22,6 +22,10 @@
 // « 5e et dernier étage », et les niveaux en lettres (« premier et deuxième ») se comparent à ceux en chiffres (« 1er et 2e
 // étages »). L'adresse imprimait « Duplex 1er et 2e étage, 1er et 2e étages » ou « T3 5e et dernier étage, 5e et dernier
 // étage ». Un nom qui ne dit que « 5e étage » ne couvre pas « 5e et dernier » : la mention reste.
+//
+// Reprise du lot 48 (U02) : un duplex dont le niveau bas est le rez-de-chaussée (« RDC et 1er », « rez-de-chaussée et 1er »)
+// se lit lui aussi comme deux niveaux, "0 et 1". Seul « RDC » était lu, et le nom du lot (« Duplex RDC et 1er étage ») était
+// lu « 1er étage » : l'adresse imprimait « Duplex RDC et 1er étage, RDC et 1er ». La saisie, elle, s'imprime telle quelle.
 
 const sansAccents = (texte: string) => texte.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
@@ -42,8 +46,10 @@ const DEUX_NIVEAUX = new RegExp(`^(${UN_NIVEAU}\\s+et\\s+(${UN_NIVEAU}|dernier))
 // « rez-de-chaussée ».
 // Lot 48 (U02) : aussi « 5e et dernier étage », les niveaux en lettres (« premier et deuxième étages », « premier étage ») et
 // « étage » au singulier après deux niveaux.
+// Reprise du lot 48 (U02) : « RDC et 1er » (avec ou sans « étage(s) ») en entier, avant « RDC » seul.
+const REZ_DE_CHAUSSEE = "(?:rdc|rez[\\s-]*de[\\s-]*chauss[eé]e)";
 const NIVEAU_EN_TETE = new RegExp(
-  `^(?:${UN_NIVEAU}\\s+et\\s+(?:${UN_NIVEAU}|dernier)\\s+[eé]tages?|\\d+\\s?(?:er|re|ère|ere|e|ème|eme|è|°)?\\s+[eé]tage|(?:${ORDINAUX_NUMEROTES})\\s+[eé]tage|[eé]tage\\s+-?\\d+|rdc|rez[\\s-]*de[\\s-]*chauss[eé]e)`,
+  `^(?:${REZ_DE_CHAUSSEE}\\s+et\\s+${UN_NIVEAU}(?:\\s+[eé]tages?)?${FIN_DE_MOT}|${UN_NIVEAU}\\s+et\\s+(?:${UN_NIVEAU}|dernier)\\s+[eé]tages?|\\d+\\s?(?:er|re|ère|ere|e|ème|eme|è|°)?\\s+[eé]tage|(?:${ORDINAUX_NUMEROTES})\\s+[eé]tage|[eé]tage\\s+-?\\d+|rdc|rez[\\s-]*de[\\s-]*chauss[eé]e)`,
   "i"
 );
 // Ce qui prolonge un niveau au lieu de le clore : « étage 1 et 2 », « 1er étage et 2e », « étage 1 à 3 », « étage 1/2 ».
@@ -65,6 +71,9 @@ function niveau(texte: string): string | null {
   const lu = sansAccents(texte).replace(new RegExp(`\\b(${Object.keys(EN_CHIFFRES).join("|")})\\b`, "g"), (mot) => EN_CHIFFRES[mot]);
   const deux = lu.match(/(-?\d+)\s?(?:er|re|ere|e|eme|°)\s+et\s+(-?\d+)\s?(?:er|re|ere|e|eme|°)\s+etages?\b/);
   if (deux) return `${Number(deux[1])} et ${Number(deux[2])}`;
+  // Reprise du lot 48 (U02) : le rez-de-chaussée et un étage (duplex bas), avec ou sans « étage(s) » : "0 et 1".
+  const bas = lu.match(/(?:\brdc|rez[\s-]*de[\s-]*chaussee)\s+et\s+(-?\d+)\s?(?:er|re|ere|e|eme|°)(?=$|[\s,;.:()/–—-])/);
+  if (bas) return `0 et ${Number(bas[1])}`;
   const dernier = lu.match(/(-?\d+)\s?(?:er|re|ere|e|eme|°)\s+et\s+dernier\s+etages?\b/);
   if (dernier) return `${Number(dernier[1])} et dernier`;
   const m = lu.match(/(-?\d+)\s?(?:er|re|ere|e|eme|°)\s+etage\b/) ?? lu.match(/\betage\s+(-?\d+)/) ?? lu.match(/(-?\d+)\s+etage\b/);

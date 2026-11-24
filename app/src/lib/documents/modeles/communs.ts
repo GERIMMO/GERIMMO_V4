@@ -257,7 +257,7 @@ export function nomPersonne(p: { nom: string; prenom: string | null } | null | u
   return [p.nom, p.prenom].filter(Boolean).join(" ");
 }
 
-export function adressePersonne(p: PersonneDocument | null | undefined): string | null {
+export function adressePersonne(p: Pick<PersonneDocument, "address_line1" | "postal_code" | "city"> | null | undefined): string | null {
   if (!p?.address_line1) return null;
   return [p.address_line1, [p.postal_code, p.city].filter(Boolean).join(" ")]
     .filter(Boolean)
@@ -310,12 +310,16 @@ export function adressePostaleLogement(
     .filter(Boolean);
 }
 
+// Les colonnes d'un bailleur que lit l'en-tête (`expediteur`) : la quittance délivrée au locataire, qui ne lit pas `persons`,
+// les reçoit de `quittance_document` (reprise du lot 48, U07).
+export type CoordonneesBailleur = Pick<PersonneDocument, "nom" | "prenom" | "email" | "telephone" | "address_line1" | "postal_code" | "city">;
+
 // L'expéditeur de l'en-tête : l'organisation qui génère (agence ou parc du
 // propriétaire) — le « Fait à » vient de sa ville. Type structurel minimal :
 // certains modèles chargent l'organisation avec leurs propres colonnes.
 export function expediteur(ctx: {
   organisation: { name:string; type?:string; address_line1:string|null; postal_code:string|null; city:string|null; telephone:string|null; email_contact:string|null };
-  bailleurs?: PersonneDocument[];
+  bailleurs?: CoordonneesBailleur[];
 }): EnTeteExpediteur & { ville: string | null } {
   // Un même espace peut gérer un patrimoine personnel et plusieurs SCI.
   // Les documents d'un bail sont émis par ses détenteurs, pas par le nom du parc.

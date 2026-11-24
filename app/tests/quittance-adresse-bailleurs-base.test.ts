@@ -6,13 +6,19 @@
  * rendait pas l'adresse des bailleurs ; la page l'empruntait au profil de l'espace, quand le PDF de la même quittance imprime
  * celle des détenteurs.
  *
+ * Reprise du lot 48 : la page gardait l'e-mail et le téléphone du profil de l'espace quand le PDF imprime ceux des détenteurs ;
+ * la migration (amendée, la même) rend aussi `email` et `telephone`, et complète une fonction convertie par sa première version.
+ *
  * Ces tests tiennent :
- *  1. chez un propriétaire direct, chaque bailleur porte `adresse`, `code_postal`, `ville` (sa fiche), rien d'autre de nouveau
- *     (ni e-mail, ni téléphone) ; le locataire le lit ; dans un espace d'agence, le bailleur est rendu comme avant ;
+ *  1. chez un propriétaire direct, chaque bailleur porte `adresse`, `code_postal`, `ville`, `email`, `telephone` (sa fiche,
+ *     ce que le PDF imprime en en-tête), rien d'autre de nouveau (ni naissance, ni identifiant) ; le locataire le lit ; dans
+ *     un espace d'agence, le bailleur est rendu comme avant ;
  *  2. les contrôles d'accès ne changent pas (compte étranger : rien ; anon : refusé), les droits non plus ;
  *  3. la migration se rejoue sans effet ; elle refuse une définition inattendue sans rien modifier ;
  *  4. le retour rend la définition d'avant mot pour mot, retire sa ligne d'historique, se rejoue, refuse une fonction réécrite
- *     depuis ; la migration se rejoue ensuite.
+ *     depuis ; la migration se rejoue ensuite ;
+ *  5. une fonction laissée par la première version du lot (adresse seule) est complétée par la migration, et ramenée à
+ *     avant par le retour.
  *
  * Nécessite SUPABASE_DB_URL. Transaction annulée à la fin de chaque test. Le fichier rejoue du DDL : il tourne en série
  * (FICHIERS_EN_SERIE de vitest.config.ts).
@@ -33,6 +39,10 @@ const lire = (chemin: string) => readFileSync(chemin, "utf8");
 const migration = () => lire(`supabase/migrations/${NOM}.sql`);
 const retour = () => lire(`supabase/retours-arriere/${NOM}.retour.sql`);
 const compter = (texte: string, motif: string) => texte.split(motif).length - 1;
+/** Le fragment de la première version du lot (adresse seule), tel que la migration le reconnaît. */
+const premiere = () => /c_premiere constant text := \$sql\$([\s\S]*?)\$sql\$;/.exec(migration())![1];
+const pose = () => /c_pose constant text := \$sql\$([\s\S]*?)\$sql\$;/.exec(migration())![1];
+const COORDONNEES = { email: "claire@example.invalid", telephone: "0611111111" };
 
 describe("adresse des bailleurs de la quittance délivrée — manifeste, retour et écriture de la migration (sans base)", () => {
   it("la migration est au manifeste une seule fois, après le plafond de la colocation, avec son retour listé", () => {
@@ -53,8 +63,12 @@ describe("adresse des bailleurs de la quittance délivrée — manifeste, retour
     expect(sql).not.toMatch(/create\s+(or\s+replace\s+)?function/i);
     expect(sql).toContain("pg_get_functiondef");
     expect(sql).toContain("select public.fermer_fonctions_a_anon();");
-    // Rien de plus que l'adresse postale : ni e-mail, ni téléphone, ni naissance.
-    expect(sql).not.toMatch(/p\.(email|telephone|date_naissance|commune_naissance)/);
+    // Reprise du lot 48 : l'en-tête du PDF imprime aussi l'e-mail et le téléphone des détenteurs ; ils sont rendus (fragment
+    // posé seulement), et rien d'autre de la fiche : ni naissance, ni identifiant, ni compte.
+    expect(sql).not.toMatch(/p\.(date_naissance|commune_naissance|siren|qualite|account_id)/);
+    expect(compter(pose(), "'email', p.email, 'telephone', p.telephone")).toBe(1);
+    expect(compter(sql, "p.email")).toBe(1);
+    expect(compter(sql, "p.telephone")).toBe(1);
   });
 
   it("le retour ne supprime ni table, ni colonne, ni fonction ; il retire sa ligne d'historique", () => {
@@ -127,20 +141,24 @@ describe.skipIf(!url)("adresse des bailleurs de la quittance délivrée (avec ba
     await dossier("proprietaire_direct");
   });
 
-  it("propriétaire direct : le locataire lit l'adresse postale de la bailleresse, et rien d'autre de sa fiche", async () => {
+  // Reprise du lot 48 : ce cas affirmait que ni l'e-mail ni le téléphone de la bailleresse n'étaient rendus ; la page les
+  // empruntait alors au profil de l'espace, quand le PDF de la même quittance imprime les siens. Ils sont rendus, comme
+  // l'adresse (même portée : propriétaire direct) ; le reste de sa fiche ne l'est toujours pas.
+  it("propriétaire direct : le locataire lit les coordonnées de la bailleresse que le PDF imprime, et rien d'autre de sa fiche", async () => {
+    await db.query("update public.persons set date_naissance = '1970-01-02', commune_naissance = 'Valence' where id = $1", [bailleur]);
     await agir(locataire);
     const d = (await document())!;
-    expect(d.bailleurs).toEqual([{ nom: "Moreau", prenom: "Claire", adresse: "3 rue du Domicile", code_postal: "69100", ville: "Villeurbanne" }]);
-    expect(JSON.stringify(d)).not.toContain("0611111111");
-    expect(JSON.stringify(d)).not.toContain("claire@example.invalid");
-    // L'en-tête de l'espace reste rendu tel quel (l'e-mail et le téléphone de la quittance délivrée en viennent toujours).
-    expect(d.organisation).toMatchObject({ adresse: "8 avenue des Tilleuls", ville: "Lyon" });
+    expect(d.bailleurs).toEqual([{ nom: "Moreau", prenom: "Claire", adresse: "3 rue du Domicile", code_postal: "69100", ville: "Villeurbanne", ...COORDONNEES }]);
+    expect(JSON.stringify(d)).not.toContain("1970-01-02");
+    expect(JSON.stringify(d)).not.toContain("Valence");
+    // L'en-tête de l'espace reste rendu tel quel (contact de gestion, à défaut d'e-mail des bailleurs).
+    expect(d.organisation).toMatchObject({ adresse: "8 avenue des Tilleuls", ville: "Lyon", email: "parc@example.invalid" });
   });
 
-  it("bailleresse sans adresse : les clés sont là, vides (la quittance délivrée la demande, comme le PDF)", async () => {
-    await db.query("update public.persons set address_line1 = null, postal_code = null, city = null where id = $1", [bailleur]);
+  it("bailleresse sans coordonnées : les clés sont là, vides (la quittance délivrée les demande, comme le PDF)", async () => {
+    await db.query("update public.persons set address_line1 = null, postal_code = null, city = null, email = null, telephone = null where id = $1", [bailleur]);
     await agir(locataire);
-    expect((await document())!.bailleurs).toEqual([{ nom: "Moreau", prenom: "Claire", adresse: null, code_postal: null, ville: null }]);
+    expect((await document())!.bailleurs).toEqual([{ nom: "Moreau", prenom: "Claire", adresse: null, code_postal: null, ville: null, email: null, telephone: null }]);
   });
 
   it("espace d'agence : le bailleur est rendu comme avant, sans adresse", async () => {
@@ -202,6 +220,30 @@ describe.skipIf(!url)("adresse des bailleurs de la quittance délivrée (avec ba
     expect(await empreinte()).toEqual(revenu);
     await db.query(migration());
     expect(await empreinte()).toEqual(migre);
+  });
+
+  it("une fonction de la première version du lot (adresse seule) est complétée ; le retour la ramène aussi à avant", async () => {
+    const migre = await empreinte();
+    const def = await definition();
+    expect(compter(def, pose())).toBe(1);
+    // La fonction telle que l'a laissée la première version (banc du 23/11) : adresse seule.
+    await db.query(def.replace(pose(), premiere()));
+    const ancienne = await empreinte();
+    expect(ancienne.def).not.toEqual(migre.def);
+    await agir(locataire);
+    expect((await document())!.bailleurs).toEqual([{ nom: "Moreau", prenom: "Claire", adresse: "3 rue du Domicile", code_postal: "69100", ville: "Villeurbanne" }]);
+    await db.query("reset role");
+    await db.query(migration());
+    expect(await empreinte()).toEqual(migre);
+    await agir(locataire);
+    expect((await document())!.bailleurs).toEqual([{ nom: "Moreau", prenom: "Claire", adresse: "3 rue du Domicile", code_postal: "69100", ville: "Villeurbanne", ...COORDONNEES }]);
+    await db.query("reset role");
+    // Le retour, depuis la première version, rend la liste d'avant.
+    await db.query(def.replace(pose(), premiere()));
+    await db.query(retour());
+    expect(compter(await definition(), MARQUE)).toBe(0);
+    await agir(locataire);
+    expect((await document())!.bailleurs).toEqual([{ nom: "Moreau", prenom: "Claire" }]);
   });
 
   it("le retour n'écrase pas une fonction réécrite depuis : il s'arrête et ne modifie rien", async () => {

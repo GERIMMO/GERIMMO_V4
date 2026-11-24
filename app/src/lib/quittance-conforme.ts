@@ -14,9 +14,9 @@
 // auteur n'a aucune valeur »).
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { Fusion, type DocumentAssemble } from "@/lib/documents/gabarit";
-import { construireQuittance, libelleMode, signataireQuittance, versementsDuTerme } from "@/lib/documents/modeles/quittance";
-import { mentionEtage } from "@/lib/documents/modeles/communs";
+import { Fusion, type DocumentAssemble, type EmetteurEnTete } from "@/lib/documents/gabarit";
+import { construireQuittance, libelleMode, ordreBailleursQuittance, signataireQuittance, versementsDuTerme } from "@/lib/documents/modeles/quittance";
+import { expediteur, mentionEtage } from "@/lib/documents/modeles/communs";
 import { refusDocumentIncomplet } from "@/lib/documents/completude";
 
 type Nom = { nom: string; prenom: string | null };
@@ -33,6 +33,12 @@ export type BailleurQuittanceDocument = Nom & {
   adresse?: string | null;
   code_postal?: string | null;
   ville?: string | null;
+  /**
+   * Reprise du lot 48 (U07, même migration) : l'adresse électronique et le téléphone de la fiche du bailleur, que le PDF imprime
+   * en en-tête. Mêmes conditions que l'adresse.
+   */
+  email?: string | null;
+  telephone?: string | null;
 };
 
 export type DonneesQuittanceDocument = {
@@ -121,7 +127,8 @@ export function parties(d: DonneesQuittanceDocument): {
   mandataire: string | null;
   identiteLegale: string | null;
 } {
-  const bailleurs = joindre(d.bailleurs);
+  // Reprise du lot 48 (U07) : dans l'ordre du PDF (nom, prénom), pour la page comme pour le nom repris dans les e-mails.
+  const bailleurs = joindre(ordreBailleursQuittance(d.bailleurs ?? []));
   if (estProprietaireDirect(d)) {
     return { emetteur: bailleurs, bailleur: bailleurs, mandataire: null, identiteLegale: null };
   }
@@ -141,8 +148,11 @@ function nombre(v: number | string | null | undefined): number | null {
 }
 
 /** Le document conforme, prêt à afficher ou à contrôler. */
-export function assemblerQuittanceDelivree(d: DonneesQuittanceDocument): DocumentAssemble {
+export function assemblerQuittanceDelivree(donnees: DonneesQuittanceDocument): DocumentAssemble {
   const f = new Fusion();
+  // Reprise du lot 48 (U07) : les bailleurs dans l'ordre du PDF de la même quittance (nom, prénom ; ordreBailleursQuittance),
+  // quelle que soit la collation de la base : leurs noms, l'en-tête, la signature et « Fait à » se suivent de même.
+  const d: DonneesQuittanceDocument = { ...donnees, bailleurs: ordreBailleursQuittance(donnees.bailleurs ?? []) };
   const { emetteur, bailleur, mandataire, identiteLegale } = parties(d);
   const adresseEmetteur = adresse(d.organisation.adresse, d.organisation.code_postal, d.organisation.ville);
   // Phase 3, lot 48 (U07) : chez un propriétaire qui gère lui-même, l'en-tête est celui des bailleurs, comme le PDF de la même
@@ -152,6 +162,32 @@ export function assemblerQuittanceDelivree(d: DonneesQuittanceDocument): Documen
   const parBailleurs = estProprietaireDirect(d) && d.bailleurs.length > 0 && d.bailleurs.every((b) => "adresse" in b);
   const adressesBailleurs = d.bailleurs.map((b) => adresse(b.adresse ?? null, b.code_postal ?? null, b.ville ?? null));
   const adresseBailleurs = adressesBailleurs.every(Boolean) ? [...new Set(adressesBailleurs)].join(" · ") : null;
+  // Reprise du lot 48 (U07) : la ligne de contact venait toujours du profil de l'espace (e-mail et téléphone), quand le PDF
+  // imprime ceux des détenteurs, ou « Contact de gestion : » et l'e-mail de l'espace s'ils n'en ont pas. Avec les clés de
+  // contact (même migration), l'en-tête est composé par la MÊME fonction que le PDF (`expediteur`), à partir des mêmes
+  // données ; sans elles, il reste celui de la première version du lot (adresse des bailleurs, contact de l'espace).
+  const enTeteDuPdf = parBailleurs && d.bailleurs.every((b) => "email" in b && "telephone" in b)
+    ? expediteur({
+        organisation: {
+          name: d.organisation.nom,
+          type: d.organisation.type,
+          address_line1: d.organisation.adresse,
+          postal_code: d.organisation.code_postal,
+          city: d.organisation.ville,
+          telephone: d.organisation.telephone,
+          email_contact: d.organisation.email,
+        },
+        bailleurs: d.bailleurs.map((b) => ({
+          nom: b.nom,
+          prenom: b.prenom,
+          email: b.email ?? null,
+          telephone: b.telephone ?? null,
+          address_line1: b.adresse ?? null,
+          postal_code: b.code_postal ?? null,
+          city: b.ville ?? null,
+        })),
+      })
+    : null;
   const logement = [
     adresse(d.logement.adresse, d.logement.code_postal, d.logement.ville),
     d.logement.lot_nom && d.logement.lot_nom !== "Lot unique" ? d.logement.lot_nom : null,
@@ -205,7 +241,7 @@ export function assemblerQuittanceDelivree(d: DonneesQuittanceDocument): Documen
     logementAdresse: logement,
     referenceBail: `BAIL-${d.bail_id.slice(0, 8).toUpperCase()}`,
     dateBail: d.bail_date_debut,
-    exp: {
+    exp: enTeteDuPdf ?? {
       nom: emetteur,
       // SIRET et carte professionnelle de l'agence sous son adresse, quand ils
       // sont renseignés — la signature, elle, ne porte que le nom.
@@ -249,9 +285,14 @@ export async function chargerQuittanceDocument(
  * Le motif d'un envoi refusé, en une phrase lisible par le gérant : ce qui
  * manque, et où le renseigner.
  */
-export function motifQuittanceIncomplete(manquants: string[], estQuittance = true): string {
+export function motifQuittanceIncomplete(manquants: string[], estQuittance = true, emetteur?: EmetteurEnTete): string {
   const [nature, e, pronom] = estQuittance ? ["La quittance", "e", "la"] : ["Le reçu", "", "le"];
-  return `${nature} n'est pas envoyé${e} : ${manquants.length > 1 ? "des informations obligatoires manquent" : "une information obligatoire manque"} (${manquants.join(" · ")}). Complétez le profil de l'organisation ou la fiche indiquée, puis renvoyez-${pronom}.`;
+  // Reprise du lot 48 (U07) : chez un propriétaire qui gère lui-même, l'en-tête est celui des détenteurs : leur adresse se
+  // complète sur leur fiche (Personnes), que le message ne nommait pas — compléter le profil ne débloquait pas l'envoi.
+  const ou = emetteur === "detenteurs"
+    ? "Complétez la fiche du propriétaire (Personnes) ou le profil de l'organisation"
+    : "Complétez le profil de l'organisation ou la fiche indiquée";
+  return `${nature} n'est pas envoyé${e} : ${manquants.length > 1 ? "des informations obligatoires manquent" : "une information obligatoire manque"} (${manquants.join(" · ")}). ${ou}, puis renvoyez-${pronom}.`;
 }
 
 export type DisponibiliteQuittance = "disponible" | "en_preparation" | "lecture_impossible";

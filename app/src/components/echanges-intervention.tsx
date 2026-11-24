@@ -5,8 +5,9 @@ import { MarqueurLectureEchange } from "./marqueur-lecture-echange";
 import { interlocuteurMajuscule, type InterlocuteurLocataire } from "@/lib/interlocuteur-locataire";
 const ROLES:Record<string,string>={gerant:"Propriétaire / gestionnaire",locataire:"Locataire",artisan:"Artisan"};
 // Phase 3, lot 48 (U08) : l'en-tête nommait le « Propriétaire » à tous, locataire d'une agence compris. L'écran qui connaît le
-// type d'espace le transmet (`interlocuteur`, comme la carte de Mes demandes au lot 47) : « Gestionnaire » en agence. Sans lui
-// (mission de l'artisan), l'en-tête reste celui d'avant.
+// type d'espace le transmet (`interlocuteur`, comme la carte de Mes demandes au lot 47) : « Gestionnaire » en agence. Sans lui,
+// l'en-tête reste celui d'avant. Reprise du lot 48 : la mission de l'artisan le transmet aussi (type lu dans
+// `organisations_portail`).
 export async function EchangesIntervention({intervention,interlocuteur}:{intervention:string;interlocuteur?:InterlocuteurLocataire}){
  const db=await createClient();const role=await db.rpc("contexte_echange_intervention",{p_intervention:intervention});
  if(role.error)return <p role="alert" className="text-sm text-destructive">La discussion de cette intervention est momentanément indisponible.</p>;

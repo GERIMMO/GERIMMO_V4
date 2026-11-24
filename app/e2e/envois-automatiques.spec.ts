@@ -59,7 +59,11 @@ test("envois automatiques : tous fermés à la livraison, ouverts un par un avec
     for (const flux of Object.keys(TOUT_FERME)) await expect(panneau.locator(`[data-envoi-automatique="${flux}"]`)).toHaveAttribute("data-ouvert", "non");
     await expect(page.locator('a[href="#envois-automatiques"]')).toContainText("Tous fermés");
     expect(await debordementHorizontal(page)).toBeLessThanOrEqual(1);
-    await panneau.screenshot({ path: info.outputPath("envois-automatiques-fermes.png") });
+    // Après une action, le panneau est rendu de nouveau : la capture attend qu'il soit en place (même remède que les repères fiscaux).
+    await expect(async () => {
+      await expect(panneau).toBeVisible();
+      await panneau.screenshot({ path: info.outputPath("envois-automatiques-fermes.png") });
+    }).toPass({ timeout: 15_000 });
 
     // ── 2. Ouvrir sans cocher la confirmation : le navigateur retient le geste, rien n'est enregistré.
     const rappel = panneau.locator('[data-envoi-automatique="rappel_rendez_vous"]');
@@ -87,7 +91,11 @@ test("envois automatiques : tous fermés à la livraison, ouverts un par un avec
     await expect(rappel.getByRole("checkbox")).toHaveCount(0);
     await expect(page.locator('a[href="#envois-automatiques"]')).toContainText("1 ouvert sur 4");
     expect(await debordementHorizontal(page)).toBeLessThanOrEqual(1);
-    await panneau.screenshot({ path: info.outputPath("envois-automatiques-un-ouvert.png") });
+    // Après une action, le panneau est rendu de nouveau : la capture attend qu'il soit en place (même remède que les repères fiscaux).
+    await expect(async () => {
+      await expect(panneau).toBeVisible();
+      await panneau.screenshot({ path: info.outputPath("envois-automatiques-un-ouvert.png") });
+    }).toPass({ timeout: 15_000 });
 
     // ── 5. Refermer : un geste, sans confirmation ; l'écran, la base et le journal le disent.
     await rappel.getByRole("button", { name: "Fermer cet envoi", exact: true }).click();

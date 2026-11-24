@@ -14,8 +14,11 @@ export const DOCUMENTS_SIGNATURE_ENREGISTREE = new Set([
   "quittance", "avis_echeance", "recu_depot", "revision_irl", "prorata", "rappel_assurance",
   "decompte_restitution", "conge_bailleur", "attestation_loyer", "attestation_caf", "relance_simple",
   "seconde_relance", "mise_en_demeure", "situation_dette", "accuse_conge", "decompte_retenues", "attestation_fin_bail",
-  // Phase 3, lot 54 (W39) : courriers de charges au locataire et ordre d'intervention à l'entreprise, émis seuls.
-  "regularisation_charges", "decompte_charges", "consultation_charges", "ordre_intervention",
+  // Phase 3, lot 54 (W39) : courriers de charges au locataire, émis seuls.
+  // Reprise du lot 54 (prudence) : l'ordre d'intervention n'en fait pas partie. Le consentement recueilli à l'enregistrement de
+  // la signature vise les quittances, reçus, attestations et courriers ; un ordre de travaux engage son donneur d'ordre : il
+  // se signe à la main (zone vierge, catalogue-gestion).
+  "regularisation_charges", "decompte_charges", "consultation_charges",
 ]);
 export function modeSignatureDocument(code: string): "zoho" | "enregistree" | "original" {
   if (Object.hasOwn(DOCUMENTS_ZOHO, code) || ["bail_nu", "bail_meuble", "bail_colocation", "bail_individuel"].includes(code)) return "zoho";

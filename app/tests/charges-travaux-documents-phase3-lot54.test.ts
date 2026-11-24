@@ -60,7 +60,10 @@ const organisation = (type = "proprietaire_direct") => ({ id: "org", type, name:
 // ——— Charges ———
 const regularisation = (sur: Ligne = {}, autres: Record<string, Ligne[]> = {}): Record<string, Ligne[]> => ({
   organizations: [organisation()],
-  regularisations_charges: [{ ...o, id: "reg", bail_id: "b1", annee: 2024, provisions: 240, charges_reelles: 336, ecart: -96, tardive: true, etalement_12_mois: null, justificatif_document: "doc", note: null, date_emission: "2026-11-24", ...sur }],
+  regularisations_charges: [{ ...o, id: "reg", bail_id: "b1", annee: 2024, provisions: 240, charges_reelles: 336, ecart: -96, tardive: true, etalement_12_mois: null, justificatif_document: "doc", note: null, date_emission: "2026-11-24",
+    // Reprise du lot 54 (W38) : la phrase de période n'est imprimée que pour une régularisation dont l'enregistrement est daté
+    // (après la fin de l'exercice et après le 09/09/2026) ; une vraie ligne porte toujours created_at.
+    created_at: "2026-11-24T03:18:41.476691+00:00", ...sur }],
   ...autres,
 });
 const optionsCharges = { consultation: "Sur rendez-vous au 12 rue des Essais", detail_depenses: "Eau froide : 120 € ; entretien : 216 €" };
@@ -133,10 +136,12 @@ function incidents(): Record<string, Ligne[]> {
       { ...o, id: "incB", numero: "INC-2026-0002", lot_id: "t2", bien_id: null, description: "Le radiateur ne chauffe plus.", piece: "Séjour", categorie: "chauffage_panne", etat: "en_cours", urgence: "urgente", date_signalement: "2026-11-20", imputation: "proprietaire", imputation_justification: "Panne.", clos_le: null },
       { ...o, id: "incC", numero: "INC-2026-0003", lot_id: null, bien_id: "avenue", description: "Infiltration au plafond de la cage d'escalier\nTrace d'humidité au plafond du palier du 2e étage.", piece: null, categorie: "humidite_infiltration", etat: "clos", urgence: "normale", date_signalement: "2026-11-10", imputation: null, imputation_justification: null, clos_le: "2026-11-14T10:00:00+00:00", cloture_motif: "transmis_syndic", cloture_commentaire: "" },
     ],
-    artisans: [{ id: "art1", raison_sociale: "Plomberie Fictive", siret: "12345678901234", telephone: "0600000000", email: "plomberie@exemple.invalid" }],
+    // Reprise du lot 54 (W42) : une « comparaison des offres » suppose deux entreprises ; le second devis de l'incident A venait
+    // de la même entreprise que le premier (ce qu'une consultation ne produit pas : un devis vivant par entreprise sollicitée).
+    artisans: [{ id: "art1", raison_sociale: "Plomberie Fictive", siret: "12345678901234", telephone: "0600000000", email: "plomberie@exemple.invalid" }, { id: "art2", raison_sociale: "Sanitaires Fictifs", siret: null, telephone: null, email: null }],
     incident_devis: [
       { ...o, id: "devA", incident_id: "incA", artisan_id: "art1", statut: "retenu", version: 1, montant_ttc_cents: 18700, depose_le: "2026-10-15T15:30:00+00:00", retenu_le: "2026-10-17T07:00:00+00:00", valide_jusqu_au: "2026-11-14", description: "Remplacement du siphon et des joints." },
-      { ...o, id: "devA2", incident_id: "incA", artisan_id: "art1", statut: "non_retenu", version: 1, montant_ttc_cents: 26180, depose_le: "2026-10-16T10:10:00+00:00", retenu_le: null, valide_jusqu_au: "2026-11-15", description: "Remplacement de la bonde." },
+      { ...o, id: "devA2", incident_id: "incA", artisan_id: "art2", statut: "non_retenu", version: 1, montant_ttc_cents: 26180, depose_le: "2026-10-16T10:10:00+00:00", retenu_le: null, valide_jusqu_au: "2026-11-15", description: "Remplacement de la bonde." },
       { ...o, id: "devB", incident_id: "incB", artisan_id: "art1", statut: "retenu", version: 1, montant_ttc_cents: 16170, depose_le: "2026-11-21T17:05:00+00:00", retenu_le: "2026-11-22T08:15:00+00:00", valide_jusqu_au: "2026-12-21", description: "Remplacement du thermostat." },
     ],
     incident_interventions: [
@@ -166,7 +171,7 @@ describe("W36 — l'ordre d'une mission terminée dit qu'il est établi après l
 });
 
 describe("W39 — courriers de charges et ordre d'intervention signés comme les autres courriers de l'émetteur", () => {
-  it.each(["regularisation_charges", "decompte_charges", "consultation_charges", "ordre_intervention"])("%s : signature enregistrée de l'émetteur", (code) => {
+  it.each(["regularisation_charges", "decompte_charges", "consultation_charges"])("%s : signature enregistrée de l'émetteur", (code) => {
     expect(modeSignatureDocument(code)).toBe("enregistree");
   });
   it.each(CODES_CHARGES)("%s : « Fait à » puis le bloc de signature au nom du bailleur (zone vierge sans image)", async (code) => {
@@ -174,10 +179,18 @@ describe("W39 — courriers de charges et ordre d'intervention signés comme les
     expect(html).toMatch(/<p class="fait-a">Fait à [\s\S]*?<\/p><div class="sig-emetteur">\s*<div class="sig-libelle">Signature<\/div>\s*<div class="sig-vide"><\/div>/);
     expect(html).toContain(`<div class="sig-nom">${ctx.bailleurs[0].nom} ${ctx.bailleurs[0].prenom}</div>`);
   });
-  it("ordre d'intervention : le bloc porte l'image enregistrée et le nom de l'émetteur de l'en-tête", async () => {
+  // Reprise du lot 54 (W39, prudence) : ce test exigeait l'image enregistrée sur l'ordre d'intervention. Le consentement
+  // recueilli avec la signature ne vise que quittances, reçus, attestations et courriers ; l'ordre, qui engage le donneur
+  // d'ordre, garde « Fait à » et le bloc au nom de l'émetteur, zone vierge à signer à la main, même si une image existe.
+  it("ordre d'intervention : « Fait à », zone de signature vierge et nom de l'émetteur de l'en-tête, jamais l'image enregistrée", async () => {
+    vi.mocked(signatureOrganisation).mockClear();
     vi.mocked(signatureOrganisation).mockResolvedValue("data:image/png;base64,AAAA");
+    expect(modeSignatureDocument("ordre_intervention")).toBe("original");
     const html = await gestion("ordre_intervention", "mB", { acces: "Clé chez la gardienne." });
-    expect(html).toContain('<img src="data:image/png;base64,AAAA" alt="" class="sig-image"/>');
+    expect(html).toMatch(/<p class="fait-a">Fait à [\s\S]*?<\/p><div class="sig-emetteur">\s*<div class="sig-libelle">Signature<\/div>\s*<div class="sig-vide"><\/div>/);
+    expect(html).not.toContain('class="sig-image"');
+    expect(html).not.toContain("data:image");
+    expect(signatureOrganisation).not.toHaveBeenCalled();
     expect(html).toContain('<div class="sig-nom">Parc de Jeanne Fictive</div>');
     expect(html).not.toContain('class="signatures"');
   });
@@ -226,7 +239,8 @@ describe("W46 — un incident clos sans qualification n'imprime plus « —. »"
     const texte = texteDe(await gestion("recap_incident", "incA"));
     expect(texte).toContain("Imputation enregistrée : Charge propriétaire.");
     expect(texte).toContain("Justification : Usure du joint.");
-    expect(texte).toContain("Clôturé le 24/10/2026 ; motif : Résolu. Fuite réparée.");
+    // Reprise du lot 54 (W46) : le commentaire de clôture est introduit (« Commentaire : ») au lieu de suivre le motif à nu.
+    expect(texte).toContain("Clôturé le 24/10/2026 ; motif : Résolu. Commentaire : Fuite réparée.");
   });
   it("dossier ouvert sans imputation : « pas encore décidée »", async () => {
     const t = incidents();

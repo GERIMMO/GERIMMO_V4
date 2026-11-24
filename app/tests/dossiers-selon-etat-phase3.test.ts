@@ -328,7 +328,10 @@ describe("C82 — incident des parties communes (sans lot)", () => {
     const texte = texteDe(succes(await assemblerComplementGestion("recap_incident", baseFiltrante(tables()).db, "org", "inc")).document.html);
     expect(texte).toContain("Incident INC-2026-0003");
     // Phase 3, lot 54 (W46) : le motif de clôture enregistré est dit ; l'absence d'imputation aussi (plus de « —. »).
-    expect(texte).toContain("Clôturé le 20/11/2026 ; motif : Transmis au syndic (parties communes). Transmis au syndic.");
+    // Reprise du lot 54 (W46) : cette attente figeait un doublon apparent (le commentaire suivait le motif sans rien qui
+    // l'annonce : « …(parties communes). Transmis au syndic. ») ; le commentaire est désormais introduit par « Commentaire : ».
+    expect(texte).toContain("Clôturé le 20/11/2026 ; motif : Transmis au syndic (parties communes). Commentaire : Transmis au syndic.");
+    expect(texte).not.toContain("(parties communes). Transmis au syndic.");
     expect(texte).toContain("Aucune imputation enregistrée : le dossier a été clos sans qualification.");
     expect(texte).not.toContain("Imputation enregistrée : —");
     expect(texte).not.toContain("Justification : —");

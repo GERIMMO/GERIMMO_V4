@@ -72,6 +72,26 @@ export function periodeOccupation(dateDebut: string | null, dateFin: string | nu
   return jours > 0 && jours < joursAnnee ? { debut, fin, jours, joursAnnee } : null;
 }
 
+// Phase 3, lot 54, reprise (W38) : la période imprimée est RELUE sur le bail tel qu'il est au jour de l'impression ; rien n'est
+// enregistré avec la régularisation (question au dirigeant). Elle n'est donc imprimée que lorsqu'elle est certainement celle
+// que regulariser_charges a appliquée :
+//  - la régularisation a été émise après la fin de son exercice (date d'émission ET jour d'enregistrement postérieurs au
+//    31 décembre) : pour un exercice en cours, la fin du bail peut encore bouger (congé posé ou annulé) ;
+//  - elle a été émise après le 9 septembre 2026, jour où le prorata des jours d'occupation est entré dans regulariser_charges
+//    (migration 20260909190000) : avant, aucun prorata n'était appliqué ; le jour même, on ne sait pas ;
+//  - aucun congé du bail n'a été posé ni annulé depuis son enregistrement (ce sont eux qui changent la fin du bail).
+// Une date absente ou illisible ne permet pas de le dire : mieux vaut ne rien imprimer qu'une phrase fausse.
+const PRORATA_EN_BASE_DEPUIS = "2026-09-09";
+export function periodeOccupationCertaine(annee: number, emission: unknown, enregistreeLe: unknown, conges: { created_at?: unknown; annule_le?: unknown }[]): boolean {
+  const emise = texte(emission).slice(0, 10), enregistree = texte(enregistreeLe), instant = Date.parse(enregistree);
+  if (!Number.isInteger(annee) || !/^\d{4}-\d{2}-\d{2}$/.test(emise) || Number.isNaN(instant)) return false;
+  const plusTot = emise < enregistree.slice(0, 10) ? emise : enregistree.slice(0, 10);
+  if (plusTot <= `${annee}-12-31` || plusTot <= PRORATA_EN_BASE_DEPUIS) return false;
+  // Un congé dont la date est illisible compte comme postérieur (doute).
+  const depuis = (quand: unknown) => texte(quand) !== "" && !(Date.parse(texte(quand)) <= instant);
+  return !conges.some(c => depuis(c.created_at) || depuis(c.annule_le));
+}
+
 // Phase 3, lot 42 (C79) : un rendez-vous est un INSTANT. Il s'imprime au jour et à l'heure de Paris, comme sur les écrans
 // (« le 26/11/2026 de 9 h à 11 h ») ; `f.date` n'en gardait que le jour (« 26/11/2026 au 26/11/2026 »). Un jour seul
 // (AAAA-MM-JJ, sans heure) s'imprime sans heure. Espaces insécables dans l'heure : « 11 h » ne se coupe pas en fin de ligne.
@@ -259,7 +279,13 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       // reprend des parts de factures déjà affectées au bail, « aucun nouveau prorata » : la phrase n'y est pas imprimée.
       const periode = periodeOccupation(texte(ctx.bail.date_debut) || null, texte(ctx.bail.date_fin) || null, Number(r.annee));
       const depuisFournitures = periode ? (await lireLignes(lire("brouillons_regularisation_fourniture").eq("regularisation_id",cibleId).limit(1))).length > 0 : false;
-      const phrasePeriode = periode && !depuisFournitures
+      // Reprise du lot 54 (W38) : la phrase affirmait un prorata relu sur le bail d'AUJOURD'HUI (« 349 jours sur 365 » après un
+      // congé posé depuis, alors qu'aucun prorata n'avait été appliqué). Elle n'est imprimée que si elle est certaine
+      // (periodeOccupationCertaine) ; les congés du bail ne sont lus que dans ce cas.
+      const periodeCertaine = Boolean(periode) && !depuisFournitures
+        && periodeOccupationCertaine(Number(r.annee), r.date_emission, r.created_at, [])
+        && periodeOccupationCertaine(Number(r.annee), r.date_emission, r.created_at, await lireLignes(lire("conges").eq("bail_id",texte(r.bail_id))));
+      const phrasePeriode = periode && periodeCertaine
         ? `<p>Période d’occupation sur l’exercice : du ${formaterDateFr(periode.debut)} au ${formaterDateFr(periode.fin)}, soit ${periode.jours}\u00a0jours sur ${periode.joursAnnee}.${r.quote_part_colocation != null ? "" : " Les charges réelles ci-dessus sont la part des charges récupérables de l’exercice ramenée à ces jours d’occupation."}</p>`
         : "";
       contenu = `${section(`Charges de l’exercice ${texte(r.annee)}`)}${lignesTableau(f,[r],[["Provisions versées","provisions","montant"],["Charges réelles","charges_reelles","montant"],["Écart enregistré","ecart","montant"]])}
@@ -384,10 +410,12 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
           // il « commandait » au jour de sa génération des travaux qu'il disait lui-même terminés. Il le dit, avec la date de fin
           // enregistrée, et ne commande plus rien ; il reste daté du jour où il est établi (jamais antidaté). La mission en cours
           // ou à venir garde l'ordre tel quel.
+          // Reprise du lot 54 (W36) : « Accès et personne à contacter » sert à commander l'intervention. Pour une mission terminée,
+          // il n'est plus exigé (il bloquait le PDF, « À renseigner ») ni imprimé, même saisi.
           const terminee = texte(intervention.statut) === "terminee";
           const termineeLe = texte(intervention.terminee_le);
           contenu += `<p>Créneau prévu : ${debut && fin ? creneauParis(debut, fin) : `${f.date(debut||null,"début prévu")} au ${f.date(fin||null,"fin prévue")}`}.</p>
-            <p>Accès et personne à contacter : ${champ("acces","modalités d’accès et contact sur place")}${pointFinal(options.acces)}</p>
+            ${terminee ? "" : `<p>Accès et personne à contacter : ${champ("acces","modalités d’accès et contact sur place")}${pointFinal(options.acces)}</p>`}
             ${section("Travaux commandés")}${terminee
               ? `<p class="annonce">Mission terminée${termineeLe ? ` le ${formaterDateFr(termineeLe)}` : ""} : ce document est établi après l’intervention, pour le dossier. Il ne commande aucun nouveau travail. Les travaux commandés étaient ceux du devis ci-dessous.</p>`
               : `<p class="annonce">Seuls les travaux du devis ci-dessous sont commandés. Aucun travail supplémentaire n’est autorisé par ce document sans accord préalable du donneur d’ordre.</p>`}${travaux}`;
@@ -419,7 +447,11 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
         // Phase 3, lot 54 (W42) : avec un seul devis, il n'y a rien à comparer ; « Comparaison des offres déposées » laissait croire à
         // plusieurs offres. Le devis unique assumé de la consultation reste signalé à l'écran et au rapport de gestion (décision
         // du 2026-07-25) ; l'écrire ici est une question au dirigeant.
-        contenu += `<p>${devis.length > 1 ? "Comparaison des offres déposées." : "Un seul devis a été déposé."} ${retenu
+        // Reprise du lot 54 (W42) : le compte portait sur les LIGNES ; une seule entreprise avec deux versions de son devis (la
+        // première « Révision demandée », la seconde qui la remplace) donnait encore « Comparaison des offres déposées ». On
+        // compte les entreprises : plusieurs devis d'une seule entreprise ne sont pas une comparaison d'offres.
+        const entreprises = new Set(devis.map(d=>texte(d.artisan_id))).size;
+        contenu += `<p>${entreprises > 1 ? "Comparaison des offres déposées." : devis.length > 1 ? "Les devis déposés viennent d’une seule entreprise." : "Un seul devis a été déposé."} ${retenu
           ? `Le devis de ${facultatif(texte(noms.get(retenu.artisan_id)))} (${eur(montant(retenu.montant_ttc_cents)/100)} TTC) a été retenu${retenu.retenu_le ? ` le ${f.date(texte(retenu.retenu_le))}` : ""}`
           : clos ? "Aucun devis n’a été retenu ; le dossier est clos"
           : devis.some(d=>d.statut==="depose") ? "Le choix reste à faire"
@@ -467,13 +499,15 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
         // n'a jamais d'imputation (contrainte de la base) ; il s'imprimait « Imputation enregistrée : —. », « Justification : —. ».
         // Le document dit qu'il n'y a pas d'imputation, et pourquoi (le motif de clôture enregistré, jamais imprimé jusqu'ici) ; la
         // justification et le commentaire de clôture ne s'impriment que s'ils sont saisis.
+        // Reprise du lot 54 (W46) : le commentaire suivait le motif sans rien qui l'annonce (« motif : Transmis au syndic (parties
+        // communes). Transmis au syndic de l'immeuble… », lu comme un doublon) : il est introduit par « Commentaire : ».
         const justification = texte(incident.imputation_justification), commentaireCloture = texte(incident.cloture_commentaire);
         const motifCloture = texte(incident.cloture_motif) ? libelleDe(MOTIFS_CLOTURE, incident.cloture_motif) : "";
         contenu += `${section("Décision et clôture")}<p>${imputation ? `Imputation enregistrée : ${facultatif(imputation)}${pointFinal(imputation)}`
             : incident.clos_le ? "Aucune imputation enregistrée : le dossier a été clos sans qualification."
             : "Imputation : pas encore décidée."}</p>
           ${justification ? `<p>Justification : ${facultatif(justification)}${pointFinal(justification)}</p>` : ""}
-          <p>${incident.clos_le ? `Clôturé le ${f.date(texte(incident.clos_le))}${motifCloture ? ` ; motif : ${facultatif(motifCloture)}` : ""}.${commentaireCloture ? ` ${facultatif(commentaireCloture)}${pointFinal(commentaireCloture)}` : ""}` : "Le dossier est toujours ouvert."}</p>`;
+          <p>${incident.clos_le ? `Clôturé le ${f.date(texte(incident.clos_le))}${motifCloture ? ` ; motif : ${facultatif(motifCloture)}` : ""}.${commentaireCloture ? ` Commentaire : ${facultatif(commentaireCloture)}${pointFinal(commentaireCloture)}` : ""}` : "Le dossier est toujours ouvert."}</p>`;
       }
     } else if (["recap_fiscal_nu","recap_fiscal_meuble"].includes(code)) {
       const lot = await lotConcerne(cibleId);
@@ -588,10 +622,22 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
     // ou par l'agence dans son espace) finissaient sur « Fait à …, le … » sans signature ni nom, au contraire des autres courriers
     // que l'émetteur envoie seul (relances, rappel d'assurance, décomptes). Ils portent le même bloc (signature enregistrée de
     // l'espace, sinon zone vierge à signer à la main) au nom de l'émetteur de l'en-tête. Les documents à deux cadres n'en ont pas.
-    const signatureEmetteur = !signatures && modeSignatureDocument(code) === "enregistree" ? blocSignatureEmetteur(exp.nom, await signatureOrganisation(db, orgId)) : "";
+    // Reprise du lot 54 (W39, prudence) : l'image de signature enregistrée n'est PAS apposée sur l'ordre d'intervention. Le
+    // consentement recueilli à son enregistrement vise les quittances, reçus, attestations et courriers ; un ordre de travaux
+    // engage son donneur d'ordre. L'ordre garde « Fait à » et le même bloc au nom de l'émetteur, zone vierge à signer à la main
+    // (l'image n'est même pas lue). Les trois courriers de charges, qui sont des courriers, gardent l'image.
+    const signatureEmetteur = signatures ? ""
+      : modeSignatureDocument(code) === "enregistree" ? blocSignatureEmetteur(exp.nom, await signatureOrganisation(db, orgId))
+      : code === "ordre_intervention" ? blocSignatureEmetteur(exp.nom, null) : "";
+    // Reprise du lot 54 (W48) : le titre équilibré (text-wrap:balance, plus bas) se coupait AVANT le point médian
+    // (« RÉCAPITULATIF ANNUEL / · LOCATION NUE »). Dans le titre imprimé, ce qui précède « · » ne se coupe plus (espaces
+    // insécables, point médian compris) : la coupure se fait après lui (« RÉCAPITULATIF ANNUEL · / LOCATION NUE »). Rendre
+    // insécable la seule espace devant « · » donnait « RÉCAPITULATIF / ANNUEL · LOCATION NUE » (rendu réel). Le nom du modèle
+    // (pied de page, classement) n'est pas modifié ; un titre sans point médian non plus.
+    const titreImprime = meta.nom.replace(/^(.*?) · /, (_, debut: string) => `${debut.replaceAll(" ", "\u00a0")}\u00a0· `);
     // C83 : un document interne sans destinataire (comparatif, récapitulatif, journal, récapitulatif fiscal) n'imprime plus la case
     // « Destinataire » : le mot de repli « Organisation » ne désignait personne.
-    const corps = `${enTete(f,exp,{libelle:"Dossier",reference,etabliLe:dateDocument})}${titre(meta.nom,"Document de gestion",[])}
+    const corps = `${enTete(f,exp,{libelle:"Dossier",reference,etabliLe:dateDocument})}${titre(titreImprime,"Document de gestion",[])}
       ${cartouches([["Dossier",reference],...(destinataire ? [["Destinataire",destinataire] as [string,string]] : []),...(logement ? [[libelleLieu,logement] as [string,string]] : [])])}${contenu}${dateALaSignature ? faitALaSignature(f,exp.ville) : faitA(f,exp.ville,dateDocument)}${signatureEmetteur}
       ${signatures?`<div class="signatures">${cadreSignature(code === "restitution_cles" ? libelleSignataireBailleur(organisation.type) : "Le mandataire",f.champ(exp.nom,"nom et prénom(s), ou dénomination"))}${cadreSignature(qualiteAutrePartie,destinataire)}</div>`:""}`;
     // Phase 3, lot 54 (W48) : un titre trop long pour une ligne se répartit en lignes équilibrées (text-wrap:balance) ; « NUE »

@@ -3,8 +3,8 @@ type: process
 tags: [irl, revision, loyer, prescription]
 status: draft
 created: 2026-07-24
-updated: 2026-10-16
-sources: ["[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[2026-08-05-bailpdf-contrat-de-bail]]"]
+updated: 2026-11-24
+sources: ["[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
 ---
 
 # Révision annuelle IRL
@@ -100,3 +100,22 @@ dépend du [[Diagnostic]] DPE du lot.
 > La date de demande par défaut et le refus d'une demande « future » se comptent au **jour
 > de Paris** (PR #189) : avant, une révision datée d'aujourd'hui, saisie après minuit à
 > Paris, était refusée comme « Révision anticipée ». Voir [[Le jour de référence est le jour de Paris]].
+
+## État dans l'application au 24/11/2026 (préproduction, non publié) — le mois de l'effet (mission palier 1, phase 3)
+
+Relu dans le code après le lot 39 ([[Mission palier 1 — audit du 22 novembre 2026]] ; `QUESTIONS.md`, Q43 ;
+`JURISTE.md`, partie 5, point 6). **Le calcul n'est pas modifié** ; la lettre de révision dit désormais ce qui se passe :
+- Gerimmo ne change que le loyer du [[Bail]] ; les termes appelés **ensuite** portent le loyer révisé, chacun pour le
+  mois entier. La lettre dit à partir de quel terme (« Le loyer révisé est appelé à compter du terme de … »), et ajoute
+  « pour le mois entier, y compris du … au …, avant la date d'effet » quand ce terme commence avant la date d'effet.
+- Un terme **déjà appelé** avant l'enregistrement de la révision reste à l'ancien loyer : la lettre dit « aucun
+  complément n'est appelé pour la période du … au … » en cas de hausse, « aucune déduction n'est appliquée » en cas de
+  baisse.
+- Un loyer révisé égal au précédent : la lettre dit que la révision ne modifie le montant d'aucun terme.
+
+> [!warning] Points à trancher / contradictions (24/11/2026)
+> - **« Jamais rétroactive » (section ci-dessus) et mois entier** : quand le terme est appelé après la révision, le mois
+>   entier est au nouveau loyer, jours d'avant l'effet compris. Est-ce compatible avec l'absence de rétroactivité ? Et
+>   écrire « aucun complément n'est appelé » vaut-il renonciation du bailleur à la différence ? (juriste, point 6). À
+>   trancher par le dirigeant : complément ou avoir au prorata de la date d'effet, ou révision appliquée au terme
+>   suivant (Q43).

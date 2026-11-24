@@ -3,8 +3,8 @@ type: concept
 tags: [signature, zoho-sign, yousign, demande-de-signature]
 status: in-progress
 created: 2026-07-24
-updated: 2026-10-24
-sources: ["[[2026-07-24-gerimmo-v3-module-13-signature-electronique]]", "app/docs/signature-electronique-bail.md (dossier technique Zoho Sign, 18-19/10/2026, complété le 24/10/2026)", "log.md — entrées « decision » et « deploy » des 18 et 19/10/2026 (Zoho Sign, PR #203 à #210)", "log.md — entrées « decision » du 23/10/2026 (« Cautionnement et état des lieux signés dans Gerimmo ») et du 24/10/2026 (choix délégués n° 1 et 8), « deploy » du 24/10/2026 (PR #246)", "[[Notification et valeur probante]]"]
+updated: 2026-11-24
+sources: ["[[2026-07-24-gerimmo-v3-module-13-signature-electronique]]", "app/docs/signature-electronique-bail.md (dossier technique Zoho Sign, 18-19/10/2026, complété le 24/10/2026)", "log.md — entrées « decision » et « deploy » des 18 et 19/10/2026 (Zoho Sign, PR #203 à #210)", "log.md — entrées « decision » du 23/10/2026 (« Cautionnement et état des lieux signés dans Gerimmo ») et du 24/10/2026 (choix délégués n° 1 et 8), « deploy » du 24/10/2026 (PR #246)", "[[Notification et valeur probante]]", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
 ---
 
 # Signature électronique
@@ -159,3 +159,21 @@ courriers générés — jamais sur un bail ni un EDL.
 ## Relecture avant publication du 24 octobre
 
 Voir [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] pour les sources officielles consultées, les corrections retenues et les réserves encore ouvertes. Les mentions « non publié » ci-dessus décrivent l’état avant la mise en ligne ; seule une entrée `deploy` du journal en atteste l’achèvement.
+
+## État dans l'application au 24/11/2026 (préproduction, non publié) — documents dans le circuit (mission palier 1, phase 3)
+
+Relu dans le code après les lots 35, 40, 43 et 45 ([[Mission palier 1 — audit du 22 novembre 2026]] ; `QUESTIONS.md`,
+Q40 et Q46 ; `JURISTE.md`, partie 5, point 9).
+- **Empreintes** : l'envoi d'un circuit et l'activation d'un bail signé comparent une empreinte du document. Les
+  corrections des lots 35 à 49 changent la mise en page : pour l'activation d'un [[Bail]] signé, l'ancienne mise en page
+  est gardée (même empreinte sur 70 dossiers variés) ; un circuit **préparé mais pas encore envoyé** (bail, état des
+  lieux, cautionnement, avenant, protocole, autorisation de travaux) est refusé à l'envoi avec « Le dossier a changé
+  depuis la préparation » et se prépare de nouveau. Les circuits déjà envoyés ou signés ne sont pas touchés (Q40).
+- **Résumé de la notice** : joint sous le nom « resume-notice-information.pdf », listé à part sur la page de garde
+  (« Document d'information joint », « n'est pas une annexe du contrat ») ; le texte officiel n'est pas joint (Q46).
+- **Datés à la signature** : l'avenant, les inventaires, le protocole d'apurement et l'autorisation de travaux ne sont
+  plus datés du jour de leur génération au-dessus de cadres vides.
+
+> [!warning] Points à trancher / contradictions (24/11/2026)
+> - Le bail déclare la notice « annexée au présent contrat » ; l'enveloppe ne contient qu'un résumé qui « n'est pas une
+>   annexe du contrat » (juriste, point 9 ; [[Mentions obligatoires du bail]]).

@@ -3,7 +3,7 @@ type: concept
 tags: [devis, incident, artisan]
 status: in-progress
 created: 2026-07-21
-updated: 2026-11-22
+updated: 2026-11-24
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-9-devis-et-facturation]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Propositions de fonctions majeures — version candidate du 13 octobre 2026]]", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
 ---
 
@@ -132,3 +132,10 @@ Trois lots de la mission touchent le devis ([[Mission palier 1 — audit du 22 n
 >   partie 4, point 9) : elle n'est pas présentée comme validée. Étendre les repères à d'autres métiers demande des
 >   sources vérifiables (`QUESTIONS.md`, Q35).
 > - **Garantie** : texte libre de l'artisan, sans lien avec les garanties légales, que cette page ne décrit pas.
+
+## État dans l'application au 24/11/2026 (préproduction, non publié) — le devis dans les documents
+
+L'ordre d'intervention décrit les travaux du devis rattaché à la mission (auteur, version, dates, montant TTC, travaux)
+et n'en cite aucune référence, parce qu'un même devis en a deux : celle de son PDF et celle de son fichier d'archive
+(`QUESTIONS.md`, Q51). Les prix des devis ne s'impriment plus avec seize décimales (lot 36). Voir
+[[Intervention et clôture]] et [[Mission palier 1 — audit du 22 novembre 2026]] (phase 3).

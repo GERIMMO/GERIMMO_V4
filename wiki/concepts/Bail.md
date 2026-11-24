@@ -3,8 +3,8 @@ type: concept
 tags: [bail, contrat, alur, signature, colocation, preavis]
 status: in-progress
 created: 2026-07-22
-updated: 2026-11-22
-sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]"]
+updated: 2026-11-24
+sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
 ---
 
 # Bail
@@ -351,3 +351,31 @@ Recette : 8 essais SQL ciblés (double activation, plafond, chevauchement, dépa
 > Remplace, pour les honoraires, la phrase « Un barème futur inconnu n'est pas
 > projeté » (réalisation du 14/09) : le dernier barème connu s'applique désormais aux
 > années suivantes, à réviser à chaque arrêté. Source : [[Audit complet du 29 septembre 2026]].
+
+## État dans l'application au 24/11/2026 (préproduction, non publié) — documents du bail (mission palier 1, phase 3)
+
+Relu dans le code après les lots 35, 38, 40, 45 et 46 ([[Mission palier 1 — audit du 22 novembre 2026]] ;
+`QUESTIONS.md`, Q40, Q46 et Q47 ; `JURISTE.md`, partie 5, points 3, 4, 8, 10 et 12).
+- **Chaque document ne propose que les baux qu'il accepte** : l'avenant seulement pour un bail actif ou en préavis (un
+  brouillon se modifie directement ; un bail terminé « ne se modifie plus par avenant ») ; pas de congé du bailleur sur
+  un bail terminé, ni quand un congé du locataire est enregistré (juriste, point 4) ; l'accusé de réception d'un congé
+  seulement pendant le préavis ; l'acte de cautionnement en préparation du bail ou pendant la location, pas pendant le
+  préavis (juriste, point 3).
+- **Avenant** : daté par les parties à la signature ; sa référence est tirée du bail et de son contenu, et reste la
+  même dans le PDF préparé pour la signature (deux avenants identiques sur un même bail ont donc la même référence :
+  Q47, point 3). L'avenant de remplacement d'un colocataire ne vaut que pour un contrat commun, choisit le sortant parmi
+  les titulaires et prévoit les signatures du bailleur, du sortant, de l'entrant et des colocataires restants ; faut-il
+  aussi celles des cautions ? (juriste, point 12).
+- **Colocation** : un colocataire parti n'est plus traité comme locataire dans les documents. Le contrat individuel
+  parle du « loyer maximal applicable au logement entier » (voir [[Mentions obligatoires du bail]]).
+- **Attestations d'un bail en préavis** : elles donnent la date de fin (« Un congé est enregistré : le contrat prend fin
+  le … ») ; faut-il dire qui a donné le congé ? (juriste, point 8).
+- **Notice** : un résumé joint à part, pas la notice officielle (Q46 ; [[Mentions obligatoires du bail]]).
+- **Baux préparés avant la publication** : l'ancienne mise en page est gardée pour contrôler l'empreinte d'un bail signé
+  à son activation (même empreinte vérifiée sur 70 dossiers) ; un circuit de signature préparé mais pas encore envoyé
+  sera refusé à l'envoi et à préparer de nouveau (Q40 ; [[Signature électronique]]).
+
+> [!warning] Points à trancher / contradictions (24/11/2026)
+> - La section « Contrats individuels de colocation » (14/09) parle du « loyer applicable au logement entier » : c'est un
+>   **plafond** du total des contrats individuels, désormais nommé « loyer maximal applicable au logement entier ».
+>   Vaut-il en toute zone, ou seulement par renvoi aux zones d'encadrement ? (`JURISTE.md`, partie 5, point 10).

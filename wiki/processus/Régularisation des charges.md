@@ -3,8 +3,8 @@ type: process
 tags: [charges, regularisation, loyer]
 status: draft
 created: 2026-07-22
-updated: 2026-10-16
-sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-0c-copropriete]]", "[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]"]
+updated: 2026-11-24
+sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-0c-copropriete]]", "[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
 ---
 
 # Régularisation des charges
@@ -116,3 +116,24 @@ Le module 3 confirme et précise les décisions du 2026-07-22 :
 > L'exercice « commencé », la prescription, la régularisation « tardive », le premier mois
 > de l'étalement et la date d'émission se comptent au **jour de Paris** (PR #189). Voir
 > [[Le jour de référence est le jour de Paris]].
+
+## État dans l'application au 24/11/2026 (préproduction, non publié) — étalement et courrier (mission palier 1, phase 3)
+
+Relu dans le code après le lot 42 ([[Mission palier 1 — audit du 22 novembre 2026]] ; `QUESTIONS.md`, Q50 ;
+`JURISTE.md`, partie 5, point 15).
+- **Première mensualité au moins un mois après l'émission** (migration 20261123150000) : une régularisation tardive
+  étalée sur douze mois fixait sa première mensualité au 1er du mois suivant (émise le 23/11, première mensualité le
+  01/12, huit jours plus tard). C'est désormais le premier 1er du mois qui tombe au moins un mois après l'émission, au
+  jour de Paris (émise le 23/11 : le 01/01 ; émise le 1er novembre : le 01/12), comme pour l'échéancier de charges. Les
+  montants, l'arrondi et les refus ne changent pas.
+- **Régularisations déjà émises** : non modifiées (une régularisation émise ne se modifie pas, RM-3.9.7) ; leur
+  courrier n'annonce plus le délai d'un mois quand les dates le contredisent.
+- **Le courrier** n'imprime « Le décompte par nature de charges et le mode de répartition sont communiqués un mois avant
+  la régularisation. » que si les dates du dossier la rendent vraie. Chez un [[Propriétaire bailleur]] qui gère
+  lui-même, il est émis par le bailleur (lot 37).
+
+> [!warning] Points à trancher / contradictions (24/11/2026)
+> - Le délai d'un mois est la règle que l'application appliquait déjà à l'échéancier, pas un délai confirmé : est-ce le
+>   bon, et court-il jusqu'à l'enregistrement de la régularisation, jusqu'à l'exigibilité du solde ou jusqu'à la
+>   première mensualité ? (juriste, point 15, qui complète le point 7 de la partie 2). Après la publication, lister en
+>   lecture seule les régularisations déjà émises concernées ? (Q50).

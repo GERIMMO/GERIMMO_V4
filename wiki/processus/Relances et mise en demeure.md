@@ -3,8 +3,8 @@ type: process
 tags: [loyer, impaye, relance, mise-en-demeure]
 status: in-progress
 created: 2026-07-21
-updated: 2026-11-02
-sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]"]
+updated: 2026-11-24
+sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
 ---
 
 # Relances et mise en demeure
@@ -140,3 +140,61 @@ fonde ensuite un recours. L'escalade reste donc un geste du gérant, tracé dans
 > termes échus, colocataires encore solidaires) et la relance consignée (un courrier par
 > jour) se comptent au **jour de Paris** (lot « fuseau-paris », PR #186) : avant, un loyer
 > échu la veille à Paris restait « attendu » entre minuit et 2 h. Voir [[Le jour de référence est le jour de Paris]].
+
+## État dans l'application au 24/11/2026 (préproduction, non publié) — plan d'apurement, protocole, avis et virement
+
+Relu dans le code de la branche de préproduction après les lots 39 et 44 de la phase 3
+([[Mission palier 1 — audit du 22 novembre 2026]] ; `QUESTIONS.md`, Q44 et Q45 ; `JURISTE.md`, partie 5, points 1, 5
+et 7). Rien n'est publié en production ; aucun courrier n'est présenté comme conforme.
+
+- **Sous un [[Plan d'apurement]] actif ou en défaut, aucune relance n'est proposée ni préparée.** Le suivi des loyers et
+  la fenêtre du lot n'affichent plus le bouton « Relancer » ni le palier suivant ; ils disent « Plan d'apurement en
+  cours : les relances sont suspendues jusqu'à sa fin (dette soldée, plan caduc ou annulé). » « Loyers & charges »
+  (agence) et Finances (propriétaire) mènent au plan (« Suivre le plan d'apurement dans le bail → ») au lieu de
+  « Relancer sur le bail ». La préparation d'une relance simple, d'une seconde relance ou d'une mise en demeure est
+  refusée. Plan **illisible** : rien n'est proposé non plus. En agence, la carte « Impayés à relancer » devient
+  « Impayés du mois » quand l'un des termes est sous plan. Pour relancer, on annule le plan (Q44, points 1 et 4). Les
+  relances automatiques, elles, sont suspendues en base depuis le 02/11 (section ci-dessus).
+- **Enregistrement d'une relance (rubrique « Relances » du bail)** : refusé pour toute relance datée du **jour de
+  l'activation du plan ou après** (sans date saisie, la relance est du jour). Une relance **envoyée avant
+  l'activation** — une mise en demeure et sa date de première présentation, par exemple — peut encore être consignée ;
+  la rubrique « Relances » du bail le dit. Voir l'avertissement ci-dessous.
+- **Le protocole d'apurement ne se produit que depuis un plan enregistré** et vivant (proposé, actif ou en défaut). Il
+  reprend la dette arrêtée, l'acompte, les tranches, la tolérance et le seuil de caducité que Gerimmo suit ; sans plan,
+  il n'est pas produit et « À renseigner » mène au plan du bail ; sur un plan caduc, soldé ou annulé, il est refusé. Il
+  imprime « Les relances de loyer sont suspendues dès l'activation du plan, après l'accord du locataire, et jusqu'à sa
+  fin : dette soldée, plan devenu caduc ou annulé. » et « Le bailleur ne renonce à aucun droit, ni à la clause
+  résolutoire du bail. » Il est daté à la signature. La clause de caducité est posée au juriste (juriste, point 7).
+- **L'avis d'échéance d'un terme déjà échu se présente comme un rappel** : « Avis établi après la date d'échéance : il
+  rappelle un terme restant à régler. » Il dit au passé que le terme est arrivé à échéance, donne ce qui est déjà reçu
+  et ce qui reste à régler, et annonce le **total réellement dû à sa date** (« pour solder votre compte à la date du
+  présent avis »), termes suivants déjà échus compris : 1 890,50 € au lieu de 1 120 € dans le jeu d'essai (lot 44). Il
+  ne contient pas de mise en demeure. Peut-il être adressé tel quel ? (juriste, point 5). Voir
+  [[Quittancement des loyers]].
+- **L'IBAN du profil est requis quand un virement est demandé** : l'avis et les courriers de recouvrement dont les
+  modalités de règlement du bail mentionnent un virement impriment l'IBAN du profil de l'espace ; s'il manque, le PDF
+  est refusé, avec un lien vers le profil, au lieu d'un tiret. Un seul IBAN par espace, même pour plusieurs SCI ; les
+  baux impriment encore « Coordonnées bancaires : — » sans IBAN saisi (Q45).
+- **Émetteur et destinataire** : chez un [[Propriétaire bailleur]] qui gère lui-même, les courriers sont émis par le
+  bailleur et invitent à contacter « votre bailleur » ; « gestionnaire » seulement en agence (Q42, point 2). Ils portent
+  l'adresse postale du [[Locataire]] : le logement loué tant qu'il l'occupe ; après sa sortie, l'adresse laissée à
+  l'[[État des lieux]] de sortie ; sinon son nom seul, sans adresse inventée (juriste, point 1). Pour la mise en
+  demeure, le délai de règlement se saisit entre 1 et 90 jours ; elle précise : « Ce courrier est à notifier avec preuve
+  de réception. Il ne constitue ni un commandement de payer ni une décision de résiliation du bail. » Quand le décompte
+  de sortie est finalisé, ces courriers ne sont plus préparés : le solde figure dans le décompte.
+
+> [!warning] Points à trancher / contradictions (24/11/2026)
+> - **Relance datée d'avant le plan** : `QUESTIONS.md`, Q44 (2), dit qu'aucune relance ne s'enregistre pendant un plan,
+>   « même datée d'avant son activation », et `JOURNAL.md`, lot 39, qu'aucune relance n'est « proposée ni enregistrée
+>   pendant un plan d'apurement » ; le code (reprise du lot 44) accepte l'enregistrement d'une relance (rubrique
+>   « Relances » du bail) datée d'avant l'activation. Aucun écran ne propose de relance, mais l'enregistrement d'une
+>   relance antérieure reste ouvert. Ce wiki décrit le code ; la
+>   décision revient au dirigeant (Q44).
+> - **Cible V3 ≠ application** : le référentiel (RM-3.6.6, section « Cible V3 » ci-dessus) prévoit la reprise des
+>   relances « au premier manquement » ; l'application les suspend aussi quand le plan est **en défaut**, jusqu'à sa
+>   caducité ou son annulation (Q44, point 1).
+> - **L'avis « annonce », il ne relance pas** (section du 18/09 de [[Quittancement des loyers]]) : établi après
+>   l'échéance, il « rappelle » désormais un terme restant à régler. La frontière avec la relance est posée au juriste
+>   (partie 5, point 5).
+> - Les envois automatiques des relances et de l'avis restent **fermés** (lot 15) : rien de ce qui précède ne part par
+>   e-mail sans ouverture par le [[Super Admin]] et accord de l'espace.

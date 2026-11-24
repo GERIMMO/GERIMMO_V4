@@ -3,8 +3,8 @@ type: concept
 tags: [impaye, loyer, relance, plan-apurement]
 status: in-progress
 created: 2026-11-02
-updated: 2026-11-02
-sources: ["[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[Audit complet du 29 septembre 2026]]"]
+updated: 2026-11-24
+sources: ["[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[Audit complet du 29 septembre 2026]]", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
 ---
 
 # Plan d'apurement
@@ -59,3 +59,22 @@ ses droits ni à la clause résolutoire.
 >   non implémenté, la soutenabilité reste à l'appréciation du gérant.
 > - Rappel du locataire à J-3 de chaque tranche par e-mail : non implémenté (le plan est visible
 >   dans son espace).
+
+## État dans l'application au 24/11/2026 (préproduction, non publié)
+
+Relu dans le code après les lots 39 et 44 de la phase 3 ([[Mission palier 1 — audit du 22 novembre 2026]] ;
+`QUESTIONS.md`, Q44 ; `JURISTE.md`, partie 5, point 7). Détail dans [[Relances et mise en demeure]].
+- **Relances** : pendant un plan actif **ou en défaut**, aucun écran ne propose de relance et aucun courrier de relance
+  ne se prépare ; une relance datée du jour de l'activation ou après ne s'enregistre pas. Pour relancer, on annule le
+  plan.
+- **Protocole** : il se produit seulement depuis un plan enregistré et vivant (proposé, actif ou en défaut), dont il
+  reprend la dette arrêtée, les tranches, la tolérance et le seuil de caducité ; il est daté à la signature et ne promet
+  que ce que Gerimmo applique (suspension « dès l'activation du plan, après l'accord du locataire, et jusqu'à sa fin »).
+
+> [!warning] Points à trancher / contradictions (24/11/2026)
+> - La définition ci-dessus dit que le plan suspend les relances « tant qu'il est respecté » (RM-3.6.6) : l'application
+>   les suspend aussi quand il est en défaut, jusqu'à sa caducité ou son annulation (Q44, point 1).
+> - Une relance envoyée avant l'activation peut encore être consignée (code, reprise du lot 44), alors que Q44 (2) et
+>   `JOURNAL.md`, lot 39, disent le contraire : à aligner dans un sens ou dans l'autre, décision du dirigeant (Q44).
+> - La clause de caducité imprimée est-elle suffisante et opposable pour un accord amiable ? Faut-il mentionner les
+>   délais de paiement que le juge peut accorder ? (juriste, point 7).

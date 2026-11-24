@@ -3,8 +3,8 @@ type: concept
 tags: [depot-de-garantie, bail, encaissement, restitution, plafond]
 status: draft
 created: 2026-07-24
-updated: 2026-10-16
-sources: ["[[2026-09-14-service-public-depot-colocation]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]", "[[Le jour de référence est le jour de Paris]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]"]
+updated: 2026-11-24
+sources: ["[[2026-09-14-service-public-depot-colocation]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]", "[[Le jour de référence est le jour de Paris]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
 ---
 
 # Dépôt de garantie
@@ -111,3 +111,10 @@ deux mois ne constituent pas un nouveau parcours implémenté.
 > de restitution, date d'envoi du décompte) ; c'est une **interprétation** de la décision
 > du 15/10, **à faire ratifier par le dirigeant**. Les alertes du délai de restitution
 > restent au jour de la session. Voir [[Le jour de référence est le jour de Paris]].
+
+## État dans l'application au 24/11/2026 (préproduction, non publié)
+
+Le chiffrage des retenues n'est plus imprimé dans l'[[État des lieux]] de sortie signé : il est dans le décompte de
+restitution et dans le décompte des retenues, datés de leur émission ([[Restitution du dépôt de garantie]] ;
+`QUESTIONS.md`, Q49 ; `JURISTE.md`, partie 5, point 14). Source : [[Mission palier 1 — audit du 22 novembre 2026]],
+phase 3 (lot 41).

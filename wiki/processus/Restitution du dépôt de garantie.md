@@ -3,8 +3,8 @@ type: process
 tags: [restitution, depot-de-garantie, retenue, decompte, delai-legal, vetuste]
 status: draft
 created: 2026-07-24
-updated: 2026-10-16
-sources: ["[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[Le jour de référence est le jour de Paris]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]"]
+updated: 2026-11-24
+sources: ["[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[Le jour de référence est le jour de Paris]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
 ---
 
 # Restitution du dépôt de garantie
@@ -136,3 +136,22 @@ Voir [[Agenda et échéances]] (alerte liée à son événement d'origine).
 > de Paris ») étendue à la restitution : **à faire ratifier par le dirigeant**. Les alertes
 > de restitution (seuils J-7 et J+0 du délai légal) lisent encore le jour de la session.
 > Voir [[Le jour de référence est le jour de Paris]].
+
+## État dans l'application au 24/11/2026 (préproduction, non publié) — décomptes et sortie (mission palier 1, phase 3)
+
+Relu dans le code après les lots 37, 41 et 45 ([[Mission palier 1 — audit du 22 novembre 2026]] ; `QUESTIONS.md`,
+Q49 ; `JURISTE.md`, partie 5, points 1 et 14).
+- **Les retenues ne figurent que dans les deux décomptes** (décompte de restitution et décompte des retenues), chacun
+  daté de son émission ; l'[[État des lieux]] de sortie signé ne les imprime plus.
+- **Une retenue sans justificatif** : le décompte de restitution imprime « Non fourni » (« Une retenue marquée « Non
+  fourni » n'est appuyée d'aucune pièce. ») ; le décompte des retenues, lui, **reste bloqué** tant qu'une retenue n'a
+  pas de justificatif (Q49, point 2).
+- **Adresse de l'ancien locataire** : après sa sortie, les relances et la mise en demeure portent l'adresse qu'il a
+  donnée à l'état des lieux de sortie pour la restitution du dépôt ; sinon son nom seul, sans adresse inventée
+  (juriste, point 1). Le décompte de restitution, lui, n'imprime pas d'adresse du locataire, seulement celle du
+  logement. Voir [[Relances et mise en demeure]].
+
+> [!warning] Points à trancher / contradictions (24/11/2026)
+> - Les deux décomptes ne traitent pas de la même façon une retenue sans pièce (« Non fourni » d'un côté, refus de
+>   l'autre) : faut-il aligner ? (Q49, point 2). Le chiffrage doit-il rester visible avec l'état des lieux, dans un
+>   document distinct ? (Q49 ; juriste, point 14).

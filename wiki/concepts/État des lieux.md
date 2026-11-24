@@ -3,8 +3,8 @@ type: concept
 tags: [edl, etat-des-lieux, bail, depot-de-garantie, mobile]
 status: draft
 created: 2026-07-24
-updated: 2026-11-22
-sources: ["[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]", "[[Notification et valeur probante]]", "log.md — entrées « decision » du 23/10/2026 (« Cautionnement et état des lieux signés dans Gerimmo ») et du 24/10/2026 (choix délégué n° 8), « deploy » du 24/10/2026 (PR #246)", "app/docs/signature-electronique-bail.md", "app/src/lib/textes-signature-actes.ts"]
+updated: 2026-11-24
+sources: ["[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]", "[[Notification et valeur probante]]", "log.md — entrées « decision » du 23/10/2026 (« Cautionnement et état des lieux signés dans Gerimmo ») et du 24/10/2026 (choix délégué n° 8), « deploy » du 24/10/2026 (PR #246)", "app/docs/signature-electronique-bail.md", "app/src/lib/textes-signature-actes.ts", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
 ---
 
 # État des lieux
@@ -192,3 +192,37 @@ sur gerimmo directement ! ») ; code livré par la PR #246 (migration
 Voir [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] pour les sources officielles consultées, les corrections retenues et les réserves encore ouvertes. Les mentions « non publié » ci-dessus décrivent l’état avant la mise en ligne ; seule une entrée `deploy` du journal en atteste l’achèvement.
 
 Point vérifié sur l’article 3-2 : les dix jours courent depuis l’établissement, pas depuis une signature tardive. Une signature ultérieure ne suspend pas ce droit.
+
+## État dans l'application au 24/11/2026 (préproduction, non publié) — le document imprimé (mission palier 1, phase 3)
+
+Relu dans le code après les lots 36, 37, 40, 41 et 45 ([[Mission palier 1 — audit du 22 novembre 2026]] ;
+`QUESTIONS.md`, Q47 et Q49 ; `JURISTE.md`, partie 5, points 13, 14, 16 et 17).
+- **L'état des lieux de sortie n'imprime plus les retenues.** Le coût, la vétusté et le montant retenu sont décidés
+  après sa signature, à la [[Restitution du dépôt de garantie]] : imprimés au-dessus des signatures, ils paraissaient
+  acceptés par le locataire le jour du constat. Ils figurent dans le décompte de restitution et dans le décompte des
+  retenues, chacun daté de son émission. Le document garde la synthèse des écarts avec l'entrée, avec **la pièce de
+  chaque écart** (six lignes « Murs » ne se distinguaient pas). C'est la règle « le module 1 constate, il ne juge pas »
+  (RM-1.13.3, ci-dessus). La recette D0.4 et le plan de livraison ne promettent plus le comparatif chiffré dans l'état
+  des lieux de sortie.
+- **Daté du jour du constat** (« Fait à …, le »), même enregistré ou signé plus tard dans Gerimmo ; la date de signature
+  ne sert que si celle du constat manque (juriste, point 13). La date de l'état des lieux d'entrée reste rappelée en
+  sortie (lot 18).
+- **Index « non relevé » et clés « non compté » après la signature.** Avant la signature, l'index de chaque compteur
+  et le nombre de chaque clé restent demandés (« À renseigner ») ; une fois l'état des lieux signé, plus rien ne se
+  complète : le PDF n'est plus bloqué pour toujours, il imprime « non relevé » ou « non compté » (juriste, point 16).
+  Un numéro de compteur ou une référence de clé non saisis s'impriment « — ». Une lecture des données en échec refuse
+  le document (reprise du lot 45).
+- **Libellés** : l'état d'un élément s'imprime avec les mots de l'écran (« Usagé », « Absent »), plus avec les codes de
+  la base (lot 36).
+- **Inventaire du mobilier** (bail meublé, [[Bail]]) : daté à la signature ; l'inventaire de sortie a ses colonnes
+  propres. Pour la date du constat, seules les dates impossibles sont refusées (Q47, point 1). « Établi
+  contradictoirement » est imprimé sur un inventaire préparé à l'avance (juriste, point 17).
+- **Bordereau de remise des clés** : daté du jour de la remise ; émis par le bailleur chez un propriétaire direct
+  ([[Quittance conforme]]).
+
+> [!warning] Points à trancher / contradictions (24/11/2026)
+> - L'encadré du 01/08 (« Ce qui manque à la grille réelle ») range le **chiffrage des dégradations** parmi ce qu'exige
+>   un état des lieux de sortie conforme ; l'application le réserve désormais aux décomptes. Le chiffrage peut-il
+>   figurer dans l'état des lieux signé par les deux parties ? (Q49, point 1 ; juriste, point 14).
+> - « Non relevé » et « non compté » sur la reproduction d'un état des lieux signé, ou faut-il exiger l'index et les
+>   clés avant d'enregistrer une signature ? (Q49, point 3 ; juriste, point 16). Rien n'est présenté comme conforme.

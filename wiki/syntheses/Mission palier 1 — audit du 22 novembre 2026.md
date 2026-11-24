@@ -1,9 +1,9 @@
 ---
 type: synthesis
-tags: [audit, palier-1, conformite, securite, ia, plan-de-correction]
+tags: [audit, palier-1, conformite, securite, ia, plan-de-correction, documents]
 status: in-progress
 created: 2026-11-22
-updated: 2026-11-23
+updated: 2026-11-24
 sources: []
 ---
 
@@ -165,6 +165,80 @@ si la base confirme, juste avant, qu'il est toujours dû. Aucun e-mail réel n'a
 **En attente du dirigeant** : « ok pour la copie de base » (Q1) et « ok pour les sites officiels » (Q5). Sans le
 second, les corrections qui touchent une règle de droit (P0-03 à P0-09, P0-11, P1-09 à P1-12, P1-15) restent en
 attente ou partent dans `JURISTE.md`.
+
+## Phase 3 — documents générés (état au 24/11/2026, lots 35 à 49)
+
+**État dans l'application au 24/11/2026 (préproduction, non publié).** Le détail, lot par lot, est dans `JOURNAL.md`
+(entrées du 23 et du 24/11, à partir de « Phase 3, vérification des documents »). **Aucun document n'est présenté comme
+conforme** : les points de droit sont posés au juriste (`JURISTE.md`, partie 5, points 1 à 19) et les choix du
+dirigeant dans `QUESTIONS.md` (Q40 à Q53) ; dans les deux cas, l'option la plus prudente est appliquée en attendant.
+
+- **Ce qui a été produit** : six espaces de propriétaire fictifs complets (baux, colocation, dépôt et sortie, loyers,
+  impayés, charges et travaux), aux données inventées, chaque geste passant par l'application ; les **46 modèles** de
+  documents du palier 1 avec leurs variantes, soit environ 150 PDF, relus page par page, en texte et en image.
+- **Relecture contradictoire** : chaque défaut relevé a été soumis à trois contradicteurs chargés de prouver qu'il n'en
+  était pas un ; seuls ceux qui ont résisté sont gardés : **97 défauts confirmés**, dont 1 bloquant (un prorata faux)
+  et une trentaine de majeurs.
+- **Correction** : un lot par cause commune. Chaque lot est relu par deux relecteurs indépendants (l'un défaut par
+  défaut, l'autre à la recherche de régressions), repris sur leurs constats, puis contre-relu ; les lots 43 à 49
+  traitent ce que les contre-relectures ont encore trouvé. Chaque défaut a son test, qui échouait avant la correction.
+- **Rendu des six espaces après les lots 48 et 49** (`JOURNAL.md`, entrée « Lots 48 et 49 ») : 108 documents au même
+  état, textes et 148 images identiques, hors ce qui était visé.
+- **Vérification complète** (24/11, base d'essai remise à neuf, commit 5f8cf977 ; `JOURNAL.md`, entrée « Entre deux
+  lots : la vérification complète après les lots 35 à 49 ») : compilation, types et style sans erreur ; 14 961 tests
+  réussis (31 mis de côté par conception) ; 309 parcours navigateur réussis du premier coup, 3 mis de côté par
+  conception et 1 réussi au second essai (expliqué, corrigé). Poussé sur la branche de préproduction (d43eb1a0) ;
+  **rien n'est publié en production**.
+
+| Lot | Thème | Ce qui change pour l'utilisateur |
+|---|---|---|
+| 35 | Mise en forme commune | L'étage écrit une fois (« 2e étage »), surfaces et index à la française (« 45 m² », « 4 521,3 »), signatures et « Fait à » jamais seuls sur une page, « le 1er du mois » ; les baux préparés avant la publication gardent leur ancienne mise en page pour s'activer (Q40, Q41) |
+| 36 | Libellés lisibles | Les mots des écrans au lieu des codes de la base (« Usagé », « Absent », mode de règlement, période d'un terme au prorata) ; documents d'[[Incident]] sans consignes internes |
+| 37 | Émetteur et destinataire | Chez un [[Propriétaire bailleur]] qui gère lui-même, les documents d'un [[Bail]] sont émis et signés par le bailleur ; « gestionnaire » seulement en agence ; courriers de recouvrement à l'adresse postale du [[Locataire]], ou à son nom seul (Q42 ; juriste, partie 5, point 1) |
+| 38 | Dossiers proposés | Plus d'avenant ni de congé du bailleur sur un bail terminé, d'avis d'échéance sur un terme payé, d'acte de cautionnement pendant le préavis ; l'avis d'un terme passé le dit au passé (juriste, points 3 à 5) |
+| 39 | Loyers et impayés | Le prorata imprime le loyer du mois concerné (défaut bloquant) ; IBAN du profil exigé quand un virement est demandé (Q45) ; protocole tiré du plan enregistré ; aucune relance proposée ni préparée sous [[Plan d'apurement]] (enregistrement : voir l'encadré ; Q44) ; la lettre de révision dit ce qui se passe pour le mois de l'effet (Q43) ([[Relances et mise en demeure]], [[Révision annuelle IRL]]) |
+| 40 | Baux, notice, inventaires, avenants | Notice présentée comme un résumé ; inventaires datés à la signature ; « Sans objet — première location » ; avenant de remplacement d'un colocataire avec ses vraies signatures ; référence d'avenant stable ; plafond de la colocation dit « loyer maximal applicable au logement entier » (migration 20261123170000) ([[Mentions obligatoires du bail]], Q47, Q53) |
+| 41 | Dépôt, états des lieux, clés, congé | L'[[État des lieux]] de sortie imprime la pièce de chaque écart et **n'imprime plus les retenues** (elles sont dans les décomptes) ; daté du jour du constat ; bordereau des clés daté de la remise ; « — » pour un numéro non saisi (Q49 ; juriste, points 13 et 14) ([[Restitution du dépôt de garantie]]) |
+| 42 | Charges, travaux, comptabilité | Ordre d'intervention avec les heures du créneau et les travaux du devis, refusé sans devis (Q51) ; première mensualité d'une régularisation étalée au moins un mois après l'émission (migration 20261123150000, Q50) ([[Intervention et clôture]], [[Régularisation des charges]]) |
+| 43 | Contre-relectures | « non déposé » pour une mission terminée sans compte rendu (récapitulatif d'incident) ; dates des documents de mandat en clair ; protocole et autorisation de travaux datés à la signature |
+| 44 | Avis et relances (majeur) | L'avis d'un terme passé annonce le total vrai à sa date (1 890,50 € au lieu de 1 120 € dans le jeu d'essai) ; plus aucun écran ne propose de relance sous plan d'apurement ([[Quittancement des loyers]]) |
+| 45 | Notice et état des lieux signé (majeur) | Le même résumé de notice, le plus récent, sur la fiche, le récapitulatif et la signature (Q46) ; un état des lieux signé sans index ni nombre de clés imprime « non relevé » / « non compté » (Q49 ; juriste, point 16) ([[Signature électronique]]) |
+| 46 | Catalogue | Plus aucun document proposé puis refusé pour l'état du dossier ; un colocataire parti n'est plus traité comme locataire ; chaque « À renseigner » mène à l'écran qui corrige ([[Document]]) |
+| 47 | Mots du locataire (majeur) | Chez un propriétaire, les e-mails et les écrans du locataire disent « votre bailleur » ; « gestionnaire » reste en agence. Aucun e-mail réel envoyé |
+| 48 et 49 | Derniers constats, un retrait | Tests figés dans le temps ; « Gestionnaire » dans le fil d'une intervention en agence ; étage d'un duplex non redit ; contrat signé de première location renvoyé au texte du contrat (Q53) ; **alignement de la quittance en ligne (lot 48) retiré au lot 49** : elle reste comme en production (Q52 ; juriste, point 19) ([[Quittance conforme]]) |
+
+**Règles posées par la phase 3** (prudences de l'agent ; aucune n'affirme une conformité) :
+
+- *Un document ne dit que ce que fait l'application* : le protocole d'apurement promettait une suspension des relances
+  que l'application n'appliquait qu'aux relances automatiques (écrans et courriers en proposaient encore) ; écrans et
+  courriers la respectent désormais (Q44). La lettre de révision et le courrier de régularisation ne disent un délai
+  ou un montant que si les dates du dossier le rendent vrai.
+- *Le bon émetteur* : hors agence, les documents d'un bail partent des détenteurs du lot ; « gestionnaire » est réservé
+  à l'agence. Une adresse inconnue n'est jamais inventée : le courrier porte le nom seul (Q42).
+- *Ce qui est signé reste ce qui a été constaté* : l'état des lieux de sortie ne porte plus les retenues décidées après
+  sa signature ; un état des lieux signé incomplet dit « non relevé », au lieu d'être bloqué pour toujours (Q49).
+- *Alignement de la quittance en ligne retiré par prudence (lot 49)* : chez un propriétaire direct, la quittance
+  consultée en ligne et son PDF n'ont pas la même adresse de bailleur. L'alignement du lot 48 (une modification de la
+  base) faisait lire à un locataire, même ancien colocataire, l'adresse, l'e-mail et le téléphone des propriétaires
+  **actuels**, même après une vente, et rendait inaccessibles des quittances déjà émises tant que la fiche du
+  propriétaire n'avait pas d'adresse. Il a été retiré, le retour arrière joué sur le banc ; la version complète reste
+  dans l'historique de la branche. Choix laissé au dirigeant (Q52) et question posée au juriste (partie 5, point 19).
+- *Signature électronique* : un circuit préparé mais **pas encore envoyé** avant la publication sera refusé à l'envoi
+  (« Le dossier a changé depuis la préparation ») et à préparer de nouveau ; les circuits envoyés ou signés ne sont pas
+  touchés ; une vérification en lecture seule est prévue au plan de publication (Q40).
+
+> [!warning] Points à trancher / contradictions (phase 3, 24/11/2026)
+> - **Relance datée d'avant le plan d'apurement** : `QUESTIONS.md`, Q44 (2), écrit qu'« aucune relance ne s'enregistre
+>   pendant un plan, même datée d'avant son activation », et `JOURNAL.md`, lot 39, qu'aucune relance n'est « proposée
+>   ni enregistrée pendant un plan d'apurement ». Le code de la préproduction (reprise du lot 44, enregistrement d'une
+>   relance) ne refuse qu'une relance datée du jour de l'activation ou après ; une relance envoyée avant (une mise en
+>   demeure et sa date de première présentation) peut encore être consignée. Ces deux textes et le code divergent ; à
+>   aligner dans un sens ou dans l'autre, décision du dirigeant (Q44). Voir [[Relances et mise en demeure]].
+> - **Limites connues laissées ouvertes** : le décompte des retenues reste bloqué sans justificatif, alors que le
+>   décompte de restitution imprime « Non fourni » (Q49) ; un même devis a deux références (Q51) ; un seul IBAN par
+>   espace, pas par bailleur (Q45) ; des saisies rares d'un duplex répètent encore un niveau (Q41).
+> - La synthèse [[Etat des lieux generation de documents]] décrit le catalogue d'août et de septembre ; elle n'est pas
+>   réécrite et renvoie ici.
 
 ## Liens
 

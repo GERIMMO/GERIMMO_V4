@@ -3,7 +3,7 @@ type: process
 tags: [intervention, cloture, rapport, incident]
 status: in-progress
 created: 2026-07-21
-updated: 2026-11-22
+updated: 2026-11-24
 sources: ["[[Dépôt Gerimmo-V3]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Propositions de fonctions majeures — version candidate du 13 octobre 2026]]", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
 ---
 
@@ -122,3 +122,35 @@ la mission, eux, ne sont **pas publiés**.
 >   le rapport PDF est attendu pour le palier 1 : il ne figure pas au plan fermé de la mission.
 > - **Score de recommandation** : cette page dit que la note « alimente le score de recommandation des futurs
 >   devis ». Le nombre de rendez-vous manqués imputés à l'artisan (lot 26) n'entre pas dans sa note (Q32).
+
+## État dans l'application au 24/11/2026 (préproduction, non publié) — ordre et compte rendu d'intervention
+
+Relu dans le code après les lots 36, 37, 38, 42, 43 et 48 de la phase 3
+([[Mission palier 1 — audit du 22 novembre 2026]] ; `QUESTIONS.md`, Q42 et Q51 ; `JURISTE.md`, partie 5, point 2).
+- **Émis par le donneur d'ordre** : l'agence dans son espace ; ailleurs les détenteurs du [[Lot]] (pour les parties
+  communes, ceux des logements de l'immeuble). L'ordre partait au nom technique de l'espace. Une lecture des détenteurs
+  en échec refuse le document. Chez un propriétaire, l'ordre est refusé tant que le domicile ou le siège du bailleur
+  n'est pas renseigné (juriste, point 2).
+- **L'ordre d'intervention** est adressé à l'entreprise ; il donne le créneau avec ses heures (« le 26/11/2026 de 9 h à
+  11 h », heure de Paris) et décrit les travaux commandés : le [[Devis]] rattaché, désigné par son auteur, sa version,
+  ses dates, son montant TTC et ses travaux, sans référence (un même devis en a deux : Q51). Il imprime « Seuls les
+  travaux du devis ci-dessous sont commandés. Aucun travail supplémentaire n'est autorisé par ce document sans accord
+  préalable du donneur d'ordre. » Il est **refusé** pour une mission annulée ou refusée, et pour une mission sans devis
+  (cas de données saisies directement en base seulement).
+- **Le compte rendu d'intervention** (document du catalogue) est la pièce du donneur d'ordre qui consigne ce que
+  l'[[Artisan]] a déclaré ; il n'a pas de destinataire. Il est refusé tant que l'artisan n'a pas déposé son compte
+  rendu.
+- **Documents d'[[Incident]]** : états neutres pour l'entreprise (« Signalé », « Terminé », « Refusée »…), sans les
+  consignes internes de l'écran du gestionnaire ; un incident des parties communes produit ses documents avec
+  l'immeuble. Le comparatif de devis et le récapitulatif d'incident, documents internes, gardent l'en-tête de l'espace
+  (Q42, point 3). Dans le récapitulatif d'incident (tableau « Suivi des travaux », colonne « Compte rendu »), une
+  mission terminée sans compte rendu se lit « non déposé ».
+- **Mots des écrans** : en agence, le fil d'une intervention dit « Gestionnaire » ; chez un propriétaire, les écrans de
+  l'intervention disent « Votre propriétaire » (Q42, point 4).
+
+> [!warning] Points à trancher / contradictions (24/11/2026)
+> - La section du 22/11 ci-dessus dit qu'« aucun rapport PDF officiel n'est produit » : c'est vrai du rapport à cycle de
+>   validation du cahier V3. Le catalogue produit pourtant un **compte rendu d'intervention** en PDF, qui reprend la
+>   déclaration de l'artisan sans la valider. Précision, pas correction du constat.
+> - Faut-il que l'ordre imprime la référence du PDF du devis ? Il faudrait une petite fonction de lecture en base
+>   (Q51, point 2).

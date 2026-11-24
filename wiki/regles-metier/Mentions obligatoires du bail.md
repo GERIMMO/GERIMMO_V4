@@ -3,7 +3,7 @@ type: business-rule
 tags: [bail, mentions-obligatoires, alur, dpe, identifiant-fiscal, modele-type]
 status: draft
 created: 2026-08-05
-updated: 2026-11-23
+updated: 2026-11-24
 sources: ["[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
 ---
 
@@ -84,3 +84,29 @@ En préproduction, **non publié** ([[Mission palier 1 — audit du 22 novembre 
 > Ni la notice officielle, ni les textes à reproduire dans un congé n'ont pu être relus par l'agent. Les questions
 > (le résumé peut-il rester joint à la signature électronique ? quels textes reproduire mot pour mot ? les quatre
 > mentions de la reprise suffisent-elles ?) sont posées au juriste (`JURISTE.md`, partie 1, points 37 et 38).
+
+## État dans l'application au 24/11/2026 (préproduction, non publié) — notice, travaux, durée, colocation (mission palier 1, phase 3)
+
+Relu dans le code après les lots 40, 45 et 48 ([[Mission palier 1 — audit du 22 novembre 2026]] ; `QUESTIONS.md`, Q46
+et Q53 ; `JURISTE.md`, partie 5, points 9 à 12).
+- **Notice = résumé joint à part dans la signature électronique.** Le résumé établi par Gerimmo est joint à l'enveloppe
+  sous le nom « resume-notice-information.pdf » ; la page de garde le liste à part comme « Document d'information
+  joint », qui « n'est pas une annexe du contrat » ; les autres pièces restent « annexe-N.pdf ». Le texte officiel n'est
+  pas joint. La fiche du bail, le récapitulatif et la signature retiennent tous le même résumé, le plus récent (lot 45).
+  Voir [[Signature électronique]].
+- **Travaux d'une première location** : le contrat imprime « Sans objet — première location. » dans la rubrique des
+  travaux effectués depuis la fin du dernier contrat ; les contrats préparés avant cette mise à jour impriment « Néant »
+  quand rien n'est saisi. La vue en lecture seule d'un bail signé renvoie au contrat signé, en citant les deux
+  formulations (Q53 ; juriste, point 11).
+- **Bail étudiant** : il n'est plus décrit avec une « durée de droit commun ». La rubrique « durée réduite justifiée par
+  un événement précis », prévue pour le bail nu, reste imprimée au meublé : question au juriste (point 12).
+- **Colocation à contrats individuels** : le montant saisi pour le logement entier s'appelle « Loyer maximal applicable
+  au logement entier », à l'écran, dans le contrat et dans le message de la base (migration 20261123170000). Règle
+  légale en toute zone, ou plafond retenu par le bailleur ? (juriste, point 10). Voir [[Bail]].
+
+> [!warning] Points à trancher / contradictions (24/11/2026)
+> - Le bail nu et le bail meublé déclarent la notice « annexée au présent contrat et en faisant partie », alors que
+>   l'enveloppe de signature ne contient qu'un résumé présenté comme « pas une annexe du contrat », et que l'écran
+>   demande au bailleur de remettre lui-même la notice officielle. Remise séparée suffisante, ou faut-il bloquer l'envoi
+>   tant qu'elle n'est pas jointe ? (Q46 ; juriste, point 9). L'avertissement du 23/11 ci-dessus (« le résumé peut-il
+>   rester joint à la signature électronique ? ») est précisé, pas tranché.

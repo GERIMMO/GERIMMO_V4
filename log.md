@@ -8038,3 +8038,28 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
 - **Correction de l'agent avant publication** : la première rédaction du lot 33 annonçait que la lettre de reprise
   s'imprimerait avec des blancs ; c'était faux (elle est refusée). Corrigé dans l'écran avant d'être poussé ; la page
   [[Mentions obligatoires du bail]] décrit le comportement vérifié.
+
+## [2026-11-24] ingest | Mission palier 1, phase 3 : documents générés (lots 35 à 49, préproduction)
+
+- **Source** : `JOURNAL.md` (entrées du 23 et du 24/11 à partir de « Phase 3, vérification des documents », et la
+  vérification complète du 24/11), `QUESTIONS.md` (Q40 à Q53), `JURISTE.md` (partie 5, points 1 à 19), et le code de la
+  branche de préproduction (lots 35 à 49, d43eb1a0), relu pour chaque affirmation ; aucune source déposée dans `raw/`.
+- **Pages mises à jour** : [[Mission palier 1 — audit du 22 novembre 2026]] (section « Phase 3 — documents générés » :
+  méthode de relecture contradictoire, tableau des lots 35 à 49, règles, alignement de la quittance en ligne retiré au
+  lot 49), [[Relances et mise en demeure]] (relances sous plan d'apurement, protocole, avis d'un terme échu, IBAN,
+  destinataire), [[Quittancement des loyers]], [[Quittance conforme]], [[État des lieux]],
+  [[Restitution du dépôt de garantie]], [[Dépôt de garantie]], [[Mentions obligatoires du bail]], [[Bail]],
+  [[Signature électronique]], [[Révision annuelle IRL]], [[Régularisation des charges]], [[Intervention et clôture]],
+  [[Devis]], [[Plan d'apurement]], [[Document]], [[Lot]] (sections « État dans l'application au 24/11/2026
+  (préproduction, non publié) » et avertissements), [[Etat des lieux generation de documents]] (avertissement en tête :
+  page d'août, non réécrite), `index.md`.
+- **Ce que le wiki n'affirme pas** : qu'un document est conforme. Chaque point de droit renvoie à `JURISTE.md`
+  (partie 5) et chaque choix à `QUESTIONS.md` ; l'option prudente appliquée en attendant est décrite comme telle. Rien
+  n'est publié en production ; la quittance consultée en ligne reste celle de la production (Q52).
+- **Contradiction relevée en rédigeant** : `QUESTIONS.md`, Q44 (2), dit qu'aucune relance ne s'enregistre pendant un
+  plan d'apurement, « même datée d'avant son activation », et `JOURNAL.md`, lot 39, qu'aucune relance n'est « proposée
+  ni enregistrée pendant un plan d'apurement » ; le code (reprise du lot 44, enregistrement d'une relance) accepte une
+  relance datée d'avant l'activation et ne refuse que celles datées de l'activation ou après. Le wiki décrit le code et
+  signale l'écart (pages [[Relances et mise en demeure]], [[Plan d'apurement]],
+  [[Mission palier 1 — audit du 22 novembre 2026]]) ; ni `QUESTIONS.md` ni `JOURNAL.md` ne sont modifiés par l'agent du
+  wiki.

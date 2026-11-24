@@ -43,7 +43,8 @@ import { buttonVariants } from "@/components/ui/button";
 import { ConversationProprietaire } from "../../messages/conversation-proprietaire";
 import { GestionJustificatifsPersonne } from "./gestion-justificatifs";
 import { CartePiecesDemandees } from "./carte-pieces-demandees";
-import { regimePieces } from "@/lib/pieces-decret-2015";
+// Reprise T3R-2 : la même lecture que l'action qui enregistre la demande (locataire sorti, propriétaire mandant : nom libre).
+import { lireRegimePieces } from "@/lib/pieces-regime";
 import { EchecLecture, PageEchecLecture } from "../../documents/echec-lecture";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { exigerUuids } from "@/lib/identifiants";
@@ -426,6 +427,9 @@ export default async function PagePersonne(
   const lotsIllisibles = Boolean(erreurLots || erreurCouvrantes || erreurDetentions);
 
   const afficherAcces = !estSaFiche && (estLocataire || locataireEnPreparation || (roles.length === 0 && (detentions ?? []).length === 0));
+  // Pièces demandables (lot T3, R19-A1 ; reprise T3R-2) : liste du décret ou nom libre, selon la place de la personne. Une
+  // lecture en échec affiche la liste des candidats (la plus étroite) ; l'action, elle, refuse alors la demande.
+  const regimeDesPieces = await lireRegimePieces(supabase, orgId, personId);
   const afficherMessages = !estSaFiche && (messages.length > 0 || Boolean(personne.account_id));
   // FL-08 (audit PR #264) : un locataire sans espace ne peut pas recevoir de
   // message. « Nouveau message » menait à sa fiche, où rien ne disait pourquoi
@@ -716,7 +720,7 @@ export default async function PagePersonne(
             <summary className="min-h-10 cursor-pointer py-2 text-sm font-medium">Ajouter ou demander un justificatif{demandesEnAttente > 0 ? ` · ${demandesEnAttente} en attente` : ""}</summary>
           <GestionJustificatifsPersonne
             depot={<FormulairePiece orgId={orgId} personId={personId} />}
-            demandes={!estSaFiche && (personne.account_id || estLocataire || locataireEnPreparation || (roles.length === 0 && (detentions ?? []).length === 0) || demandesPieces.length > 0) ? <CartePiecesDemandees orgId={orgId} personId={personId} demandes={demandesPieces} tronquees={demandesTronquees} aUnAcces={Boolean(personne.account_id)} annexes={regimePieces({ locataireBailSigne: estLocataire, caution: estGarant || garantEnPreparation, locataireEnPreparation }).annexes} /> : undefined}
+            demandes={!estSaFiche && (personne.account_id || estLocataire || locataireEnPreparation || (roles.length === 0 && (detentions ?? []).length === 0) || demandesPieces.length > 0) ? <CartePiecesDemandees orgId={orgId} personId={personId} demandes={demandesPieces} tronquees={demandesTronquees} aUnAcces={Boolean(personne.account_id)} annexes={"erreur" in regimeDesPieces ? ["I"] : regimeDesPieces.annexes} /> : undefined}
             enAttente={demandesPieces.filter(d=>!d.satisfaite_le).length}
           />
           </details>

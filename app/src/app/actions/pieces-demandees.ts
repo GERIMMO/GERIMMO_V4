@@ -13,35 +13,9 @@ import { detecterMimeReel, pdfComplet, EXTENSIONS } from "@/lib/file-type";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 // 25/09 : le locataire est prévenu par e-mail de la demande et de la relance.
 import { notifierPieceDemandee } from "@/lib/notifications";
-import { REFERENCE_PIECES_DECRET, demandeUniqueDejaFaite, noteDecret, pieceDecret, regimePieces, type RegimePieces } from "@/lib/pieces-decret-2015";
-import { aujourdhuiParis } from "@/lib/ged";
-
-// Lot T3 (R19-A1) : la place de la personne, relue en base avec les mêmes règles que sa fiche (page de la personne) :
-// locataire d'un bail signé (titulaire, ou colocataire non parti), caution d'un bail vivant, bail en préparation.
-// Une lecture qui échoue ne laisse rien passer : la demande est refusée.
-async function lireRegimePieces(supabase: Awaited<ReturnType<typeof verifierGerant>>["supabase"], orgId: string, personId: string): Promise<RegimePieces | { erreur: string }> {
-  const echec = { erreur: "Impossible de vérifier la situation de cette personne (bail signé ou non). Réessayez." };
-  const [liens, principal] = await Promise.all([
-    supabase.from("bail_personnes").select("bail_id, role").eq("organization_id", orgId).eq("person_id", personId)
-      .or(`date_depart.is.null,date_depart.gte.${aujourdhuiParis()}`),
-    supabase.from("baux").select("id, etat").eq("organization_id", orgId).eq("locataire_principal", personId).in("etat", ["brouillon", "actif", "preavis"]),
-  ]);
-  if (liens.error || principal.error) return echec;
-  const lignes = (liens.data ?? []) as { bail_id: string; role: string }[];
-  const ids = [...new Set(lignes.map((l) => l.bail_id))];
-  const lies = ids.length
-    ? await supabase.from("baux").select("id, etat").eq("organization_id", orgId).in("id", ids).in("etat", ["brouillon", "actif", "preavis"])
-    : { data: [], error: null };
-  if (lies.error) return echec;
-  const etat = new Map(((lies.data ?? []) as { id: string; etat: string }[]).map((b) => [b.id, b.etat]));
-  const titulaires = (principal.data ?? []) as { etat: string }[];
-  const sur = (role: string, signe: boolean) => lignes.some((l) => l.role === role && etat.has(l.bail_id) && (etat.get(l.bail_id) !== "brouillon") === signe);
-  return regimePieces({
-    locataireBailSigne: titulaires.some((b) => b.etat !== "brouillon") || sur("colocataire", true),
-    caution: sur("garant", true) || sur("garant", false),
-    locataireEnPreparation: titulaires.some((b) => b.etat === "brouillon") || sur("colocataire", false),
-  });
-}
+import { REFERENCE_PIECES_DECRET, demandeUniqueDejaFaite, noteDecret, pieceDecret } from "@/lib/pieces-decret-2015";
+// Reprise T3R-2 : la place de la personne se lit dans un module commun à l'action et à la fiche de la personne.
+import { lireRegimePieces } from "@/lib/pieces-regime";
 
 export type EtatPieceDemandee = {
   erreur?: string;
@@ -90,13 +64,15 @@ export async function demanderPieceLocataire(
         valeurs,
       };
     if (piece.unique) {
-      // « Une pièce », « une seule pièce » : pas de seconde demande de la même rubrique, en cours ou déjà reçue.
+      // « Une pièce », « une seule pièce » : pas de seconde demande de la même rubrique tant que la première est en cours.
+      // Reprise T3R-6 : une pièce déjà reçue (identité périmée, illisible) peut être redemandée.
       const { data: existantes, error: erreurExistantes } = await supabase.from("pieces_demandees")
-        .select("libelle").eq("organization_id", orgId).eq("person_id", personId);
+        .select("libelle, satisfaite_le").eq("organization_id", orgId).eq("person_id", personId);
       if (erreurExistantes) return { erreur: "Impossible de vérifier les demandes déjà faites. Réessayez.", valeurs };
-      if (demandeUniqueDejaFaite(piece, (existantes ?? []).map((d) => String(d.libelle))))
+      const enCours = ((existantes ?? []) as { libelle: string; satisfaite_le?: string | null }[]).filter((d) => !d.satisfaite_le).map((d) => String(d.libelle));
+      if (demandeUniqueDejaFaite(piece, enCours))
         return {
-          erreur: `Cette demande est déjà faite pour cette personne (« ${piece.libelle} ») : le décret ne permet d’exiger qu’une pièce de cette rubrique. Annulez la demande en cours pour la refaire.`,
+          erreur: `Cette demande est déjà faite pour cette personne et toujours en cours (« ${piece.libelle} ») : le décret ne permet d’exiger qu’une pièce de cette rubrique. Annulez la demande en cours pour la refaire.`,
           valeurs,
         };
     }

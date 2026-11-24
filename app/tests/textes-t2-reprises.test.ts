@@ -60,9 +60,13 @@ describe("T2R-1 — la règle des six mois est dite sous condition, aux deux end
     expect(action).toContain("return { erreur: REFUS_RETRAIT_BAIL_SIGNE };");
     expect(action).not.toContain("courent encore six mois (art. 8-1");
   });
-  it("le calcul de la base n'est pas touché par ce lot : aucune migration nouvelle après celle du lot T3", () => {
+  it("le calcul de la base n'est pas touché par ce lot : aucune migration après celle du lot T3 ne redéfinit enregistrer_depart_colocataire", () => {
+    // Reprise du lot T3 (T3R-1) : ce test exigeait que la migration du lot T3 reste la dernière ; la reprise en ajoute une
+    // (régularisation des charges). Ce qu'il tient, c'est que le calcul de la fin de solidarité n'a pas bougé avec ce lot.
     const ordre = readFileSync("e2e/local/ordre-migrations.txt", "utf8").trim().split(/\r?\n/);
-    expect(ordre.at(-1)).toBe("20261125111000_textes_officiels_t3.sql");
+    const suivantes = ordre.slice(ordre.indexOf("20261125111000_textes_officiels_t3.sql") + 1);
+    expect(suivantes).toEqual(["20261125151000_textes_t3_reprise_exercice_ancien.sql"]);
+    for (const m of suivantes) expect(readFileSync(`supabase/migrations/${m}`, "utf8"), m).not.toMatch(/enregistrer_depart_colocataire/);
   });
 });
 

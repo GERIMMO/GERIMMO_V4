@@ -56,7 +56,10 @@ export function construireRecuDepot(d: DonneesRecuDepot) {
   const corps = `
     ${enTete(f, d.exp, { libelle: "Contrat", reference: d.referenceBail, etabliLe: d.dateVersement })}
     ${titre("Reçu de dépôt de garantie", `Versement du ${f.date(d.dateVersement)}`, [
-      "Article 22 de la loi n° 89-462 du 6 juillet 1989",
+      // Reprise T3R-7 : l'article 22 fixe le plafond d'un mois (location nue). Le plafond de deux mois d'un bail meublé
+      // relève d'un autre article, absent du recueil : sous ce seul en-tête, « deux mois » semblait venir de l'article 22.
+      // Bail meublé : la loi est citée sans article.
+      d.meuble ? "Loi n° 89-462 du 6 juillet 1989" : "Article 22 de la loi n° 89-462 du 6 juillet 1989",
     ])}
     ${cartouches([
       ["Bailleur", `<div>${d.bailleurNom}</div>`],

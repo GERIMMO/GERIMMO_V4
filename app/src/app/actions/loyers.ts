@@ -288,8 +288,11 @@ export async function regulariserCharges(
   // départ du délai de l'article 7-1 n'est pas la fin de l'exercice, et Gerimmo ne le connaît pas). Il s'enregistre sur
   // confirmation explicite, vérifiée ICI comme pour l'exercice non terminé. Le sens du solde n'est pas encore connu (la base
   // le calcule) : la confirmation est demandée pour tout exercice ancien, le texte dit qu'elle ne concerne qu'un complément.
+  // Reprise T3R-1 : la base l'exige aussi (migration 20261125151000) : sans `p_exercice_ancien`, elle refuse un complément
+  // ancien (« confirmation nécessaire ») ; la case cochée lui est transmise ci-dessous.
   const exerciceAncien = exerciceDePlusDeTroisAns(annee, aujourdhuiParis());
-  if (exerciceAncien && String(formData.get("confirmer_exercice_ancien") ?? "") !== "oui")
+  const exerciceAncienConfirme = String(formData.get("confirmer_exercice_ancien") ?? "") === "oui";
+  if (exerciceAncien && !exerciceAncienConfirme)
     return { erreur: `${avertissementExerciceAncien(annee)} Cochez la confirmation pour l’enregistrer malgré tout.`, valeurs };
   // Audit agence 27/09 : le décompte n'existe en GED que si la régularisation
   // existe. Déposé avant la fonction, chaque refus (exercice déjà régularisé,
@@ -313,6 +316,8 @@ export async function regulariserCharges(
     // l'année suivant l'exercice) — le locataire peut demander de régler le
     // complément par douzièmes (art. 23 loi 89-462).
     p_etaler: formData.get("etaler") === "on",
+    // Reprise T3R-1 : la confirmation d'un exercice clos depuis plus de trois ans, exigée aussi par la base.
+    p_exercice_ancien: exerciceAncien && exerciceAncienConfirme,
   });
   if (error) {
     await abandonnerPieceGed(supabase, piece);

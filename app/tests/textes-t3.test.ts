@@ -10,6 +10,11 @@
  *  - R24-A1 : la date à ne pas dépasser pour informer la caution d'un loyer impayé (article 2303 du code civil).
  *  - R16-A2, R11-A3, T1R-3, T1R-6 : textes.
  * La régularisation de charges (R16-A1) est dans textes-t3-regularisation.test.ts et textes-t3-base.test.ts.
+ *
+ * Reprise du lot T3 (relecture T3R) : T3R-2 (nom libre rendu au locataire sorti et au propriétaire mandant), T3R-3 (le
+ * refus du nom libre est tenu par l'action serveur, pas par la base : le titre le dit), T3R-4 (texte du décret entier dans
+ * l'e-mail), T3R-5 (noms mot pour mot), T3R-6 (pièce reçue redemandable ; candidat et caution distingués), T3R-7 (en-tête
+ * du reçu de dépôt d'un bail meublé). T3R-1 et T3R-8 : textes-t3-reprise-base.test.ts.
  */
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -24,7 +29,7 @@ vi.mock("@/lib/documents/modeles/communs", async (importOriginal) => ({
   signatureOrganisation: vi.fn(async () => null),
 }));
 vi.mock("@/lib/ged-acces", () => ({ verifierGerant: m.acces }));
-vi.mock("@/lib/notifications", () => ({ notifierPieceDemandee: m.notifier }));
+vi.mock("@/lib/notifications", async (importOriginal) => ({ ...(await importOriginal<object>()), notifierPieceDemandee: m.notifier }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import { chargerContexteBail } from "@/lib/documents/modeles/communs";
@@ -33,7 +38,8 @@ import { construireEdl, type DonneesEdl } from "@/lib/documents/modeles/edl";
 import { construireRappelAssurance } from "@/lib/documents/modeles/rappel-assurance";
 import { Fusion } from "@/lib/documents/gabarit";
 import { moisDepotGarantie } from "@/lib/depot-garantie";
-import { PIECES_DECRET, RUBRIQUES_DECRET, demandeUniqueDejaFaite, noteDecret, pieceDecret, regimePieces } from "@/lib/pieces-decret-2015";
+import { PIECES_DECRET, RUBRIQUES_DECRET, demandeUniqueDejaFaite, estTexteDecret, noteDecret, pieceDecret, regimePieces } from "@/lib/pieces-decret-2015";
+import { messagePieceDemandee } from "@/lib/notifications";
 import { rappelInformationCaution } from "@/lib/information-caution";
 import { demanderPieceLocataire } from "@/app/actions/pieces-demandees";
 
@@ -86,6 +92,16 @@ describe("R11-A2 — reçu de dépôt de garantie : le plafond imprimé suit le 
       expect(texte).toMatch(/Dépôt de garantie convenu au bail\s+1 200,00 €/);
       expect(texte).toMatch(/Total encaissé à ce jour\s+600,00 €/);
       expect(texte).toMatch(/Reste à percevoir\s+600,00 €/);
+    }
+  });
+  it("T3R-7 — en-tête : « Article 22 » pour un plafond d'un mois ; pour deux mois (bail meublé), la loi sans article", async () => {
+    for (const [type, meuble, entete] of [["nu", true, "un"], ["meuble", false, "deux"], ["colocation", true, "deux"], ["colocation", false, "un"]] as const) {
+      const texte = await recu(type, meuble);
+      if (entete === "un") expect(texte, `${type} ${meuble}`).toContain("Article 22 de la loi n° 89-462 du 6 juillet 1989");
+      else {
+        expect(texte, `${type} ${meuble}`).not.toContain("Article 22");
+        expect(texte, `${type} ${meuble}`).toContain("Loi n° 89-462 du 6 juillet 1989");
+      }
     }
   });
 });
@@ -155,11 +171,17 @@ describe("R19-A1 — pièces demandables : les listes du décret n° 2015-1437",
   });
 
   it("qui reçoit quelle liste : locataire d'un bail signé → libre ; candidat → annexe I ; caution → annexe II ; caution qui prépare son bail → les deux", () => {
-    expect(regimePieces({ locataireBailSigne: true, caution: false, locataireEnPreparation: false })).toEqual({ libre: true, annexes: [] });
-    expect(regimePieces({ locataireBailSigne: false, caution: false, locataireEnPreparation: false })).toEqual({ libre: false, annexes: ["I"] });
-    expect(regimePieces({ locataireBailSigne: false, caution: false, locataireEnPreparation: true })).toEqual({ libre: false, annexes: ["I"] });
-    expect(regimePieces({ locataireBailSigne: false, caution: true, locataireEnPreparation: false })).toEqual({ libre: false, annexes: ["II"] });
-    expect(regimePieces({ locataireBailSigne: false, caution: true, locataireEnPreparation: true })).toEqual({ libre: false, annexes: ["I", "II"] });
+    const sans = { ancienLocataireOuProprietaire: false };
+    expect(regimePieces({ locataireBailSigne: true, caution: false, locataireEnPreparation: false, ...sans })).toEqual({ libre: true, annexes: [] });
+    expect(regimePieces({ locataireBailSigne: false, caution: false, locataireEnPreparation: false, ...sans })).toEqual({ libre: false, annexes: ["I"] });
+    expect(regimePieces({ locataireBailSigne: false, caution: false, locataireEnPreparation: true, ...sans })).toEqual({ libre: false, annexes: ["I"] });
+    expect(regimePieces({ locataireBailSigne: false, caution: true, locataireEnPreparation: false, ...sans })).toEqual({ libre: false, annexes: ["II"] });
+    expect(regimePieces({ locataireBailSigne: false, caution: true, locataireEnPreparation: true, ...sans })).toEqual({ libre: false, annexes: ["I", "II"] });
+    // Reprise T3R-2 : locataire sorti ou propriétaire (mandant) → libre, s'il n'est ni caution ni candidat d'un bail en préparation.
+    const ancien = { ancienLocataireOuProprietaire: true };
+    expect(regimePieces({ locataireBailSigne: false, caution: false, locataireEnPreparation: false, ...ancien })).toEqual({ libre: true, annexes: [] });
+    expect(regimePieces({ locataireBailSigne: false, caution: true, locataireEnPreparation: false, ...ancien })).toEqual({ libre: false, annexes: ["II"] });
+    expect(regimePieces({ locataireBailSigne: false, caution: false, locataireEnPreparation: true, ...ancien })).toEqual({ libre: false, annexes: ["I"] });
     expect(pieceDecret("II-C", ["I"])).toBeNull();
     expect(pieceDecret("I-D-2", ["I"])?.libelle).toBe("Trois derniers bulletins de salaires");
     expect(pieceDecret("inconnu", ["I", "II"])).toBeNull();
@@ -171,29 +193,49 @@ describe("R19-A1 — pièces demandables : les listes du décret n° 2015-1437",
     const domicile = pieceDecret("I-B", ["I"])!;
     expect(demandeUniqueDejaFaite(domicile, ["Justificatif de domicile", "Trois derniers bulletins de salaires"])).toBeNull(); // ancienne demande libre : non comptée
     expect(demandeUniqueDejaFaite(domicile, ["Une seule pièce justificative de domicile"])).toBe("Une seule pièce justificative de domicile");
+    // Reprise T3R-6 : le domicile de la caution ne se confond plus avec celui du candidat.
+    expect(demandeUniqueDejaFaite(pieceDecret("II-C", ["II"])!, ["Une seule pièce justificative de domicile"])).toBeNull();
     expect(demandeUniqueDejaFaite(pieceDecret("I-D-2", ["I"])!, ["Trois derniers bulletins de salaires"])).toBeNull(); // « un ou plusieurs documents »
   });
 
-  describe("le serveur refuse toute autre pièce (requête directe comprise)", () => {
+  // Reprise T3R-3 : le titre disait « requête directe comprise ». C'est vrai pour une requête adressée à l'ACTION serveur
+  // (formulaire forgé) ; la base, elle, ne contrôle pas le nom d'une pièce demandée : une écriture directe dans la table
+  // par le gérant de l'espace (son droit sur ses propres demandes) n'est pas refusée (sonde T3R/tmp/sonde2.sql). Ce n'est
+  // pas une élévation de droits ; un contrôle en base demanderait de recopier en SQL toute la lecture de la place de la
+  // personne (baux, départs, cautions, lots, mandats) : non fait, noté pour le dirigeant.
+  describe("l'action serveur refuse toute autre pièce (formulaire forgé compris ; la base ne contrôle pas le nom)", () => {
     /** La personne : `liens` = ses lignes bail_personnes, `baux` = l'état des baux concernés, `demandes` = noms déjà demandés. */
-    function situation(s: { liens?: { bail_id: string; role: string }[]; baux?: { id: string; etat: string }[]; titulaire?: { id: string; etat: string }[]; demandes?: string[]; panne?: string }) {
+    function situation(s: { liens?: { bail_id: string; role: string; date_depart?: string }[]; baux?: { id: string; etat: string }[]; titulaire?: { id: string; etat: string }[]; demandes?: (string | { libelle: string; satisfaite_le: string })[]; detentions?: { id: string }[]; mandats?: { id: string }[]; panne?: string }) {
       // Les deux lectures de `baux` se distinguent par leur filtre : `locataire_principal` (baux dont elle est titulaire) ou
       // `id in (…)` (baux où elle est colocataire ou caution).
+      // Reprise T3R-2 : les filtres d'état des baux (`in("etat", …)`) et de départ (`or("date_depart…")`) sont appliqués,
+      // comme la base le ferait : sans eux, un bail terminé ou un départ passé passait pour un bail en cours.
       const lecture = (table: string, lignes: (titulaire: boolean) => unknown[]) => {
         const l: Record<string, unknown> = {};
         let titulaire = false;
-        for (const k of ["select", "or", "in", "is"]) l[k] = () => l;
+        const filtres: ((x: Record<string, unknown>) => boolean)[] = [];
+        for (const k of ["select", "is"]) l[k] = () => l;
         l.eq = (colonne: string) => { if (colonne === "locataire_principal") titulaire = true; return l; };
-        l.then = (ok: (v: unknown) => unknown) => Promise.resolve(s.panne === table ? { data: null, error: { message: "panne" } } : { data: lignes(titulaire), error: null }).then(ok);
+        l.in = (colonne: string, valeurs: unknown[]) => { if (colonne === "etat") filtres.push((x) => x.etat === undefined || valeurs.includes(x.etat)); return l; };
+        l.or = (expression: string) => {
+          const depart = /^date_depart\.is\.null,date_depart\.gte\.(\S+)$/.exec(expression);
+          if (depart) filtres.push((x) => !x.date_depart || String(x.date_depart) >= depart[1]);
+          return l;
+        };
+        l.then = (ok: (v: unknown) => unknown) => Promise.resolve(s.panne === table ? { data: null, error: { message: "panne" } }
+          : { data: (lignes(titulaire) as Record<string, unknown>[]).filter((x) => filtres.every((f) => f(x))), error: null }).then(ok);
         l.maybeSingle = async () => ({ data: { id: "personne", account_id: null }, error: null });
         return l;
       };
-      const ecriture = { insert: m.insert, select: () => ecriture, single: async () => ({ data: { id: "demande" }, error: null }), eq: () => ecriture, then: (ok: (v: unknown) => unknown) => Promise.resolve({ data: (s.demandes ?? []).map((libelle) => ({ libelle })), error: null }).then(ok) };
+      const ecriture = { insert: m.insert, select: () => ecriture, single: async () => ({ data: { id: "demande" }, error: null }), eq: () => ecriture, then: (ok: (v: unknown) => unknown) => Promise.resolve({ data: (s.demandes ?? []).map((d) => (typeof d === "string" ? { libelle: d } : d)), error: null }).then(ok) };
       m.insert.mockReturnValue(ecriture);
       m.acces.mockResolvedValue({ user: { id: "proprietaire" }, supabase: { from: (table: string) =>
         table === "persons" ? lecture(table, () => [])
         : table === "bail_personnes" ? lecture(table, () => s.liens ?? [])
         : table === "baux" ? lecture(table, (titulaire) => (titulaire ? s.titulaire ?? [] : s.baux ?? []))
+        // Reprise T3R-2 : lots détenus et mandats de la personne.
+        : table === "detentions" ? lecture(table, () => s.detentions ?? [])
+        : table === "mandats" ? lecture(table, () => s.mandats ?? [])
         : ecriture } });
     }
     const form = (champs: Record<string, string>) => { const f = new FormData(); for (const [k, v] of Object.entries(champs)) f.set(k, v); return f; };
@@ -243,21 +285,105 @@ describe("R19-A1 — pièces demandables : les listes du décret n° 2015-1437",
       expect((await demanderPieceLocataire("org", "personne", {}, form({ libelle: "Attestation", type: "justificatif" }))).erreur).toBeUndefined();
     });
     it("situation illisible : la demande est refusée, rien n'est enregistré", async () => {
-      situation({ panne: "bail_personnes" });
-      const r = await demanderPieceLocataire("org", "personne", {}, form({ libelle: "Avis d'imposition" }));
-      expect(r.erreur).toContain("Impossible de vérifier la situation");
+      for (const panne of ["bail_personnes", "baux", "detentions", "mandats"]) {
+        situation({ panne });
+        const r = await demanderPieceLocataire("org", "personne", {}, form({ libelle: "Avis d'imposition" }));
+        expect(r.erreur, panne).toContain("Impossible de vérifier la situation");
+      }
       expect(m.insert).not.toHaveBeenCalled();
+    });
+    // Reprise T3R-2 — avant : le lot T3 ne lisait que les baux brouillon, actif ou préavis ; ces personnes n'avaient plus
+    // que la liste des candidats (plus de RIB pour restituer le dépôt, plus d'attestation du propriétaire).
+    it("T3R-2 — locataire sorti (bail terminé, ou départ enregistré d'un bail signé) : le nom reste libre", async () => {
+      situation({ titulaire: [{ id: "b", etat: "termine" }] });
+      expect((await demanderPieceLocataire("org", "personne", {}, form({ libelle: "RIB pour la restitution du dépôt de garantie", type: "justificatif" }))).erreur).toBeUndefined();
+      expect(m.insert).toHaveBeenLastCalledWith(expect.objectContaining({ libelle: "RIB pour la restitution du dépôt de garantie", note: null }));
+      situation({ liens: [{ bail_id: "b", role: "colocataire", date_depart: "2026-06-30" }], baux: [{ id: "b", etat: "actif" }] });
+      expect((await demanderPieceLocataire("org", "personne", {}, form({ libelle: "RIB", type: "justificatif" }))).erreur).toBeUndefined();
+      situation({ liens: [{ bail_id: "b", role: "colocataire" }], baux: [{ id: "b", etat: "termine" }] });
+      expect((await demanderPieceLocataire("org", "personne", {}, form({ libelle: "RIB", type: "justificatif" }))).erreur).toBeUndefined();
+      expect(m.insert).toHaveBeenCalledTimes(3);
+    });
+    it("T3R-2 — propriétaire d'un lot, ou mandant : le nom reste libre", async () => {
+      situation({ detentions: [{ id: "d" }] });
+      expect((await demanderPieceLocataire("org", "personne", {}, form({ libelle: "Attestation d'assurance du propriétaire non occupant", type: "attestation_assurance" }))).erreur).toBeUndefined();
+      situation({ mandats: [{ id: "m" }] });
+      expect((await demanderPieceLocataire("org", "personne", {}, form({ libelle: "Relevé d'identité bancaire du mandant", type: "justificatif" }))).erreur).toBeUndefined();
+      expect(m.insert).toHaveBeenCalledTimes(2);
+    });
+    it("T3R-2 — mais une caution, ou un candidat d'un bail en préparation, reste sur la liste du décret même s'il a été locataire ou est propriétaire", async () => {
+      situation({ titulaire: [{ id: "a", etat: "termine" }, { id: "b", etat: "brouillon" }], detentions: [{ id: "d" }] });
+      expect((await demanderPieceLocataire("org", "personne", {}, form({ libelle: "RIB" }))).erreur).toContain("Choisissez la pièce dans la liste");
+      situation({ liens: [{ bail_id: "g", role: "garant" }], baux: [{ id: "g", etat: "actif" }], mandats: [{ id: "m" }] });
+      expect((await demanderPieceLocataire("org", "personne", {}, form({ libelle: "RIB" }))).erreur).toContain("Choisissez la pièce dans la liste");
+      // Un colocataire encore présent sur un bail signé reste libre, comme avant (départ à venir : encore au bail).
+      situation({ liens: [{ bail_id: "b", role: "colocataire", date_depart: "2099-12-31" }], baux: [{ id: "b", etat: "preavis" }] });
+      expect((await demanderPieceLocataire("org", "personne", {}, form({ libelle: "Attestation" }))).erreur).toBeUndefined();
+      expect(m.insert).toHaveBeenCalledTimes(1);
+    });
+    it("T3R-6 — une pièce « unique » déjà reçue se redemande (identité périmée) ; en cours, non", async () => {
+      situation({ demandes: [{ libelle: "Une pièce justificative d'identité en cours de validité, comportant la photographie du titulaire", satisfaite_le: "2026-10-01T10:00:00Z" }] });
+      expect((await demanderPieceLocataire("org", "personne", {}, form({ piece_decret: "I-A" }))).erreur).toBeUndefined();
+      situation({ demandes: ["Une pièce justificative d'identité en cours de validité, comportant la photographie du titulaire"] });
+      expect((await demanderPieceLocataire("org", "personne", {}, form({ piece_decret: "I-A" }))).erreur).toContain("déjà faite pour cette personne et toujours en cours");
+      expect(m.insert).toHaveBeenCalledTimes(1);
+    });
+    it("T3R-6 — une personne à la fois candidate et caution : une demande de domicile pour chaque liste", async () => {
+      situation({ titulaire: [{ id: "b", etat: "brouillon" }], liens: [{ bail_id: "g", role: "garant" }], baux: [{ id: "g", etat: "actif" }], demandes: ["Une seule pièce justificative de domicile"] });
+      expect((await demanderPieceLocataire("org", "personne", {}, form({ piece_decret: "II-C" }))).erreur).toBeUndefined();
+      expect(m.insert).toHaveBeenCalledWith(expect.objectContaining({ libelle: "Une seule pièce justificative de domicile (caution)" }));
+      expect((await demanderPieceLocataire("org", "personne", {}, form({ piece_decret: "I-B" }))).erreur).toContain("déjà faite pour cette personne et toujours en cours");
     });
   });
 
   it("isolation : l'action n'ouvre aucune lecture de plus — elle passe par la session du gérant (verifierGerant), sans clé de service", () => {
     const action = source("src/app/actions/pieces-demandees.ts");
     expect(action).not.toMatch(/service_role|createAdminClient|supabaseAdmin|creerClientService/);
+    // Reprise T3R-2 : la lecture de la place de la personne reçoit le client de la session, et rien d'autre.
+    expect(source("src/lib/pieces-regime.ts")).not.toMatch(/service_role|createAdminClient|supabaseAdmin|creerClientService|createClient/);
     expect(source("src/lib/pieces-decret-2015.ts")).not.toMatch(/supabase/i);
     // Aucune migration du lot ne touche la table ni ses règles de lecture.
     expect(source("supabase/migrations/20261125111000_textes_officiels_t3.sql")).not.toMatch(/pieces_demandees|policy|row level/i);
   });
 });
+describe("reprise T3R-5, T3R-4, T3R-7 — noms mot pour mot, texte du décret entier dans l'e-mail, en-tête du reçu meublé", () => {
+  it("T3R-5 — chaque nom enregistré est le début du texte du décret, mot pour mot (« (caution) » mis à part)", () => {
+    for (const p of PIECES_DECRET) {
+      const nom = p.libelle.replace(/ \(caution\)$/, "");
+      // Seule la capitale initiale d'un nom pris après « Pour les cautions personnes physiques, » diffère du texte.
+      const debut = p.texte.startsWith("Pour les cautions personnes physiques, ") ? p.texte.slice("Pour les cautions personnes physiques, ".length).replace(/^u/, "U") : p.texte;
+      expect(debut.startsWith(nom), p.code).toBe(true);
+    }
+    // Les deux noms relevés : plus de « pièce équivalente » (mot absent du décret), plus de reformulation.
+    expect(pieceDecret("II-B-1", ["II"])!.libelle).toBe("Extrait K bis original de moins de trois mois de la société ou les statuts");
+    expect(pieceDecret("I-D-6", ["I"])!.libelle).toBe("Attestation de simulation établie par l'organisme payeur ou simulation établie par le locataire");
+    expect(PIECES_DECRET.some((p) => /équivalente/.test(p.libelle) && !/équivalente/.test(p.texte))).toBe(false);
+    // T3R-6 : plus deux rubriques « une pièce » au même nom (les autres pièces, qui se demandent librement une par une,
+    // peuvent figurer dans les deux annexes sous le même nom, comme dans le décret).
+    const noms = PIECES_DECRET.filter((p) => p.unique).map((p) => p.libelle);
+    expect(new Set(noms).size).toBe(noms.length);
+    expect(PIECES_DECRET.filter((p) => p.annexe === "II" && p.unique).map((p) => p.libelle)).toEqual([
+      "Une pièce justificative d'identité en cours de validité, comportant la photographie du titulaire (caution)",
+      "Une seule pièce justificative de domicile (caution)",
+    ]);
+  });
+  it("T3R-4 — l'e-mail reproduit le texte du décret en entier (avant : coupé à 300 caractères) ; une précision libre reste abrégée", () => {
+    const longues = PIECES_DECRET.filter((p) => noteDecret(p) && p.texte.length > 300);
+    expect(longues.map((p) => p.code)).toEqual(["I-A", "I-B", "I-D-1", "II-A", "II-B-1", "II-C", "II-E-1"]);
+    for (const p of longues) {
+      const html = messagePieceDemandee({ emetteur: "Claire Moreau", prenom: "Awa", libelle: p.libelle, note: noteDecret(p), relance: false, lien: null }).html;
+      const texte = html.replace(/<[^>]+>/g, " ").replace(/&#x27;|&#39;|&apos;/g, "'").replace(/&amp;/g, "&").replace(/\s+/g, " ");
+      expect(texte, p.code).toContain(p.texte);
+      expect(estTexteDecret(noteDecret(p)), p.code).toBe(true);
+    }
+    const libre = "Précision libre ".repeat(30).trim();
+    const html = messagePieceDemandee({ emetteur: "Claire Moreau", libelle: "Attestation", note: libre, relance: false, lien: null }).html;
+    expect(html).not.toContain(libre);
+    expect(html).toContain("…");
+    expect(estTexteDecret(libre)).toBe(false);
+  });
+});
+
 const EMPREINTE_LISTES = "3eb69ee1d5e138f6f985e0a64348fab2d667f124a1c731ca0532768bf8d89ec5";
 
 describe("R24-A1 — information de la caution : la date à ne pas dépasser", () => {

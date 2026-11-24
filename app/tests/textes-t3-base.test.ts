@@ -10,6 +10,11 @@
  * T1R-2 — avant : un bail commencé un 29 février finissait le 27 février (un jour trop tôt). Après : le 28 ; tous les
  * autres baux gardent leur terme.
  *
+ * Reprise T3R-1 (migration 20261125151000) : ce complément ne s'enregistre plus sans la confirmation explicite
+ * (`p_exercice_ancien`), exigée aussi par la base. Les essais ci-dessous la donnent (ils mesurent le montant, pas la
+ * confirmation, qui est tenue par tests/textes-t3-reprise-base.test.ts) ; le bloc « rejeu » joue les retours dans l'ordre
+ * de la chaîne (celui de la reprise avant celui-ci) et vérifie qu'un appel sans confirmation est refusé.
+ *
  * Le dernier bloc rejoue la migration et son retour dans la transaction du test : le fichier tourne en série
  * (FICHIERS_EN_SERIE de vitest.config.ts). Nécessite SUPABASE_DB_URL ; transaction annulée après chaque test.
  */
@@ -21,6 +26,8 @@ import { verifierBaseDeTest } from "./garde-base";
 import { ajouterMois } from "@/lib/delai-conge-bailleur";
 
 const NOM = "20261125111000_textes_officiels_t3";
+/** Reprise T3R-1 : sa migration se joue après celle-ci, son retour avant celui-ci (ordre de la chaîne des retours). */
+const REPRISE = "20261125151000_textes_t3_reprise_exercice_ancien";
 const REGULARISER = "public.regulariser_charges(uuid,integer,numeric,uuid,text,boolean)";
 const FOURNITURE = "consommations_interne.emettre_regularisation(uuid,uuid,text,boolean,boolean,boolean,text,text,bigint,text)";
 const TERME = "public.terme_bail_calcule(uuid,date)";
@@ -77,11 +84,17 @@ describe.skipIf(!url)("lot T3 — complément de charges d'un exercice ancien, t
     return String((await un(`insert into public.documents(organization_id,type,titre,storage_path,mime_type,taille_octets,empreinte)
       values($1::uuid,'justificatif','Décompte',$1::uuid::text||'/'||gen_random_uuid()||'.pdf','application/pdf',10,gen_random_uuid()::text) returning id`, [org])).id);
   }
-  /** Régularise sous la session du propriétaire : rend l'écart (provisions − charges réelles) ou le refus. */
-  async function regulariser(bailId: string, annee: number, charges: number, etaler = false) {
+  /**
+   * Régularise sous la session du propriétaire : rend l'écart (provisions − charges réelles) ou le refus.
+   * Reprise T3R-1 : par défaut AVEC la confirmation d'un exercice ancien (seconde signature, `p_exercice_ancien`), que la
+   * base exige depuis 20261125151000 ; `confirmer = false` fait l'appel à six paramètres d'avant (sans confirmation).
+   */
+  async function regulariser(bailId: string, annee: number, charges: number, etaler = false, confirmer = true) {
     const doc = await justificatif();
     await agir(compte);
-    const r = await essai(async () => Number((await un("select public.regulariser_charges($1,$2,$3,$4,null,$5) as ecart", [bailId, annee, charges, doc, etaler])).ecart));
+    const r = await essai(async () => Number((await un(confirmer
+      ? "select public.regulariser_charges($1,$2,$3,$4,null,$5,true) as ecart"
+      : "select public.regulariser_charges($1,$2,$3,$4,null,$5) as ecart", [bailId, annee, charges, doc, etaler])).ecart));
     await base();
     return r;
   }
@@ -109,7 +122,7 @@ describe.skipIf(!url)("lot T3 — complément de charges d'un exercice ancien, t
   afterEach(async () => { await db.query("rollback"); });
   afterAll(async () => { await db?.end(); });
 
-  it("R16-A1 — un complément de 1 234,56 € sur un exercice de plus de trois ans s'enregistre, au centime, comme sur un exercice récent", async () => {
+  it("R16-A1 — un complément de 1 234,56 € sur un exercice de plus de trois ans s'enregistre (confirmé), au centime, comme sur un exercice récent", async () => {
     const b = await bail("2018-01-01");
     // 2022 et avant : le 31/12 a plus de trois ans au 24/11/2026 (l'ancien refus). 2023 et 2024 : exercices récents.
     const ecarts: Record<number, unknown> = {};
@@ -117,6 +130,10 @@ describe.skipIf(!url)("lot T3 — complément de charges d'un exercice ancien, t
     expect(ecarts).toEqual({ 2020: -1234.56, 2022: -1234.56, 2023: -1234.56, 2024: -1234.56 });
     const lignes = (await db.query("select annee, charges_reelles::float8 reel, provisions::float8 prov, ecart::float8 ecart, etalement_12_mois is null sans_etalement from public.regularisations_charges where bail_id=$1 order by annee", [b])).rows;
     expect(lignes).toEqual([2020, 2022, 2023, 2024].map((annee) => ({ annee, reel: 1234.56, prov: 0, ecart: -1234.56, sans_etalement: true })));
+    // Reprise T3R-1 : sans la confirmation, l'exercice ancien est refusé par la base ; l'exercice récent, non.
+    const b2 = await bail("2018-01-01");
+    expect(await regulariser(b2, 2022, 1234.56, false, false)).toMatchObject({ refus: expect.stringMatching(/confirmation nécessaire/) });
+    expect(await regulariser(b2, 2023, 1234.56, false, false)).toBe(-1234.56);
   });
 
   it("R16-A1 — exercice ancien : étalement en douze mensualités dont la somme est le complément ; trop-perçu rendu ; les autres refus tiennent", async () => {
@@ -206,6 +223,9 @@ describe.skipIf(!url)("lot T3 — complément de charges d'un exercice ancien, t
     await db.query(migration);
     expect(await empreintes()).toEqual(apres);
 
+    // Reprise T3R-1 : son retour se joue d'abord (ordre de la chaîne des retours) ; il rend la ligne de ce lot.
+    const repriseMigration = readFileSync(`supabase/migrations/${REPRISE}.sql`, "utf8");
+    await db.query(readFileSync(`supabase/retours-arriere/${REPRISE}.retour.sql`, "utf8"));
     await db.query(retour);
     const avant = await empreintes();
     for (const s of [REGULARISER, FOURNITURE, TERME]) {
@@ -218,14 +238,16 @@ describe.skipIf(!url)("lot T3 — complément de charges d'un exercice ancien, t
     expect(await temoin()).toEqual(enregistre);
     // L'ancien comportement est bien revenu : complément ancien refusé, 29 février un jour trop tôt.
     const b2 = await bail("2018-01-01");
-    expect(await regulariser(b2, 2021, 100)).toMatchObject({ refus: expect.stringMatching(/prescrit/) });
+    expect(await regulariser(b2, 2021, 100, false, false)).toMatchObject({ refus: expect.stringMatching(/prescrit/) });
     const fevrier = await bail("2024-02-29");
     expect((await un("select public.terme_bail_calcule($1,'2024-03-01')::text t", [fevrier])).t).toBe("2027-02-27");
     await db.query(retour); // rejouable
     expect(await empreintes()).toEqual(avant);
 
     await db.query(migration);
+    await db.query(repriseMigration); // puis la reprise, dans l'ordre du manifeste
     expect(await empreintes()).toEqual(apres);
+    expect(await regulariser(b2, 2021, 100, false, false)).toMatchObject({ refus: expect.stringMatching(/confirmation nécessaire/) });
     expect(await regulariser(b2, 2021, 100)).toBe(-100);
     expect((await un("select public.terme_bail_calcule($1,'2024-03-01')::text t", [fevrier])).t).toBe("2027-02-28");
     expect(await temoin()).toEqual(enregistre);

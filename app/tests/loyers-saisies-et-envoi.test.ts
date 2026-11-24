@@ -164,6 +164,8 @@ describe("Régularisation : une absence de montant ne crée pas de remboursement
       p_taille: 18,
       p_empreinte: "e".repeat(64),
       p_etaler: false,
+      // Reprise du lot T3 (T3R-1) : la confirmation d'un exercice ancien est transmise à la base (2025 : exercice récent).
+      p_exercice_ancien: false,
     });
     expect(banc.abandon).not.toHaveBeenCalled();
   });

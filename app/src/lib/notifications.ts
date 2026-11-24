@@ -1,3 +1,4 @@
+import { estTexteDecret } from "@/lib/pieces-decret-2015";
 import { palierRappelReleve } from "./rappels-releves";
 import { ArretSupervision } from "./controle-effets";
 // Les e-mails qui préviennent quelqu'un qu'un geste l'attend (25/09).
@@ -562,7 +563,9 @@ export function messagePieceDemandee(p: {
   const lignes = p.relance
     ? [`${p.emetteur} attend toujours la pièce suivante : ${p.libelle}.`]
     : [`${p.emetteur} vous demande une pièce : ${p.libelle}.`];
-  if (p.note) lignes.push(`Précision : ${extrait(p.note, 300)}`);
+  // Reprise T3R-4 : le texte du décret n° 2015-1437 joint à une pièce de la liste s'imprime en entier (coupé à 300
+  // caractères, il taisait une partie des documents admis, ex. pour le domicile) ; une précision libre reste abrégée.
+  if (p.note) lignes.push(`Précision : ${estTexteDecret(p.note) ? p.note : extrait(p.note, 300)}`);
   lignes.push("Une photo lisible ou un PDF suffit. Le dépôt se fait depuis votre espace, en une minute.");
   return {
     sujet: p.relance ? `Rappel — pièce attendue : ${p.libelle}` : `Pièce demandée : ${p.libelle}`,

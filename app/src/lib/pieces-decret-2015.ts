@@ -13,7 +13,13 @@
 // DEUX FORMES DE CHOIX, selon les mots du décret :
 //  - « Une pièce justificative d'identité … parmi les documents suivants », « Une seule pièce justificative de domicile
 //    parmi les documents suivants » : UNE demande pour la rubrique entière (`unique`), la personne fournit l'un des
-//    documents listés. Une seconde demande de la même rubrique est refusée tant que la première est en cours ou reçue.
+//    documents listés. Une seconde demande de la même rubrique est refusée tant que la première est EN COURS (reprise
+//    T3R-6 : une pièce déjà reçue — une identité périmée ou illisible — peut être redemandée).
+//
+// NOMS ENREGISTRÉS (reprise T3R-5, T3R-6) : chaque nom est le début, mot pour mot, du texte du décret (le texte entier
+// est joint à la demande quand le nom ne le contient pas). Les rubriques « une pièce » de l'annexe II portent en plus
+// « (caution) » : sans cette marque, l'identité et le domicile d'un candidat et ceux d'une caution avaient le même nom,
+// et une personne à la fois candidate et caution n'avait droit qu'à une seule demande pour les deux.
 //  - « Un ou plusieurs documents … parmi les documents suivants » : une demande par document.
 //
 // DOUTE NOTÉ (pour le juriste) : dans le recueil, la liste d'identité de la caution (annexe II, A) s'arrête au permis de
@@ -109,7 +115,7 @@ export const PIECES_DECRET: PieceDecret[] = [
   un("I", "D", 3, "Justificatif de versement des indemnités de stage."),
   un("I", "D", 4, "Les deux derniers bilans ou, à défaut, une attestation de ressources pour l'exercice en cours délivré par un comptable pour les professions non salariées.", "Les deux derniers bilans ou, à défaut, une attestation de ressources pour l'exercice en cours"),
   un("I", "D", 5, "Justificatif de versement des indemnités, retraites, pensions, prestations sociales et familiales et allocations perçues lors des trois derniers mois ou justificatif de l'ouverture des droits, établis par l'organisme payeur.", "Justificatif de versement des indemnités, retraites, pensions, prestations sociales et familiales et allocations"),
-  un("I", "D", 6, "Attestation de simulation établie par l'organisme payeur ou simulation établie par le locataire relative aux aides au logement.", "Attestation de simulation ou simulation relative aux aides au logement"),
+  un("I", "D", 6, "Attestation de simulation établie par l'organisme payeur ou simulation établie par le locataire relative aux aides au logement.", "Attestation de simulation établie par l'organisme payeur ou simulation établie par le locataire"),
   un("I", "D", 7, "Avis d'attribution de bourse pour les étudiants boursiers."),
   un("I", "D", 8, "Titre de propriété d'un bien immobilier ou dernier avis de taxe foncière."),
   un("I", "D", 9, "Justificatif de revenus fonciers, de rentes viagères ou de revenus de valeurs et capitaux mobiliers."),
@@ -117,18 +123,18 @@ export const PIECES_DECRET: PieceDecret[] = [
   // ── Annexe II — cautions
   {
     code: "II-A", annexe: "II", rubrique: "A", unique: true, type: "piece_identite",
-    libelle: "Une pièce justificative d'identité en cours de validité, comportant la photographie du titulaire",
+    libelle: "Une pièce justificative d'identité en cours de validité, comportant la photographie du titulaire (caution)",
     texte:
       "Pour les cautions personnes physiques, une pièce justificative d'identité en cours de validité, comportant la photographie du titulaire parmi les documents suivants : " +
       "1. Carte nationale d'identité française ou étrangère ; " +
       "2. Passeport français ou étranger ; " +
       "3. Permis de conduire français ou étranger ;",
   },
-  un("II", "B", 1, "Extrait K bis original de moins de trois mois de la société ou les statuts ou toute autre pièce justifiant de l'existence légale de la personne, faisant apparaître le nom du responsable et l'adresse de l'organisme ainsi que la preuve qu'une déclaration a été effectuée auprès d'une administration, une juridiction ou un organisme professionnel.", "Extrait K bis original de moins de trois mois de la société ou les statuts ou toute autre pièce équivalente"),
+  un("II", "B", 1, "Extrait K bis original de moins de trois mois de la société ou les statuts ou toute autre pièce justifiant de l'existence légale de la personne, faisant apparaître le nom du responsable et l'adresse de l'organisme ainsi que la preuve qu'une déclaration a été effectuée auprès d'une administration, une juridiction ou un organisme professionnel.", "Extrait K bis original de moins de trois mois de la société ou les statuts"),
   un("II", "B", 2, "Justificatif d'identité du représentant de la personne morale figurant sur l'extrait K bis ou les statuts."),
   {
     code: "II-C", annexe: "II", rubrique: "C", unique: true, type: "justificatif",
-    libelle: "Une seule pièce justificative de domicile",
+    libelle: "Une seule pièce justificative de domicile (caution)",
     texte:
       "Une seule pièce justificative de domicile parmi les documents suivants : " +
       "1. Dernière quittance de loyer. " +
@@ -152,15 +158,25 @@ export const PIECES_DECRET: PieceDecret[] = [
 
 /**
  * Ce que Gerimmo laisse demander à une personne, selon sa place :
- *  - `libre` : elle a un bail signé comme locataire (le décret vise le candidat) → nom de pièce libre, comme avant ;
+ *  - `libre` : elle a un bail signé comme locataire en cours (le décret vise le candidat) → nom de pièce libre, comme avant ;
  *  - sinon, les annexes à proposer : II si elle est caution d'un bail (signé ou en préparation), I si elle est candidate
- *    (aucun bail signé comme locataire, et pas seulement caution). Une caution qui prépare aussi son propre bail a les deux.
+ *    (un bail en préparation comme locataire). Une caution qui prépare aussi son propre bail a les deux.
+ *  - Reprise T3R-2 : `libre` aussi pour une personne qui n'est ni caution ni locataire d'un bail en préparation mais qui a
+ *    eu un bail signé, même terminé (locataire sorti : RIB pour restituer le dépôt…), ou qui détient un lot ou a un
+ *    mandat (propriétaire, propriétaire mandant) : ce n'est pas un candidat. Le lot T3 lui retirait le nom libre.
+ *  - Personne d'autre (aucun bail, aucun lot, aucun mandat : un candidat dont le bail n'est pas encore créé) : annexe I.
  */
 export type RegimePieces = { libre: true; annexes: [] } | { libre: false; annexes: AnnexeDecret[] };
 
-export function regimePieces(p: { locataireBailSigne: boolean; caution: boolean; locataireEnPreparation: boolean }): RegimePieces {
+export function regimePieces(p: {
+  locataireBailSigne: boolean; caution: boolean; locataireEnPreparation: boolean;
+  /** Bail signé terminé (titulaire), départ enregistré d'un bail signé (colocataire), lot détenu ou mandat. */
+  ancienLocataireOuProprietaire: boolean;
+}): RegimePieces {
   if (p.locataireBailSigne) return { libre: true, annexes: [] };
   if (p.caution) return { libre: false, annexes: p.locataireEnPreparation ? ["I", "II"] : ["II"] };
+  if (p.locataireEnPreparation) return { libre: false, annexes: ["I"] };
+  if (p.ancienLocataireOuProprietaire) return { libre: true, annexes: [] };
   return { libre: false, annexes: ["I"] };
 }
 
@@ -174,12 +190,18 @@ export function noteDecret(piece: PieceDecret): string | null {
 }
 
 /**
- * « Une pièce », « une seule pièce » : la demande déjà faite (en cours ou reçue) de la même rubrique, s'il y en a une.
- * Reconnue à son nom, celui que ce fichier enregistre : une ancienne demande au nom libre n'est pas comptée.
+ * « Une pièce », « une seule pièce » : la demande de la même rubrique déjà EN COURS, s'il y en a une (`libellesEnCours` :
+ * les noms des demandes non satisfaites). Reconnue à son nom, celui que ce fichier enregistre : une ancienne demande au
+ * nom libre n'est pas comptée. Reprise T3R-6 : une demande déjà satisfaite ne bloque plus (pièce périmée, illisible).
  */
-export function demandeUniqueDejaFaite(piece: PieceDecret, libellesExistants: readonly string[]): string | null {
+export function demandeUniqueDejaFaite(piece: PieceDecret, libellesEnCours: readonly string[]): string | null {
   if (!piece.unique) return null;
-  return libellesExistants.find((l) => l === piece.libelle) ?? null;
+  return libellesEnCours.find((l) => l === piece.libelle) ?? null;
 }
 
 export const REFERENCE_PIECES_DECRET = "décret n° 2015-1437 du 5 novembre 2015";
+
+/** Reprise T3R-4 : la note d'une demande est-elle le texte d'une pièce de la liste (à reproduire en entier) ? */
+export function estTexteDecret(note: string | null | undefined): boolean {
+  return Boolean(note) && PIECES_DECRET.some((p) => p.texte === note);
+}

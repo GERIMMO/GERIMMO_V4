@@ -100,7 +100,12 @@ describe("P0-04 — pièces demandées", () => {
   });
 
   it("la fiche de la personne tire les annexes à proposer de sa place : locataire d'un bail signé, caution, candidat", () => {
-    expect(source("src/app/agence/[orgId]/personnes/[personId]/page.tsx")).toContain("annexes={regimePieces({ locataireBailSigne: estLocataire, caution: estGarant || garantEnPreparation, locataireEnPreparation }).annexes}");
+    // Reprise du lot T3 (T3R-2) : la fiche calculait sa place elle-même, l'action autrement (le locataire sorti et le
+    // propriétaire mandant n'y étaient pas). Elles lisent maintenant la même chose (lib/pieces-regime.ts).
+    const page = source("src/app/agence/[orgId]/personnes/[personId]/page.tsx");
+    expect(page).toContain("const regimeDesPieces = await lireRegimePieces(supabase, orgId, personId);");
+    expect(page).toContain('annexes={"erreur" in regimeDesPieces ? ["I"] : regimeDesPieces.annexes}');
+    expect(source("src/app/actions/pieces-demandees.ts")).toContain("const regime = await lireRegimePieces(supabase, orgId, personId);");
   });
 });
 

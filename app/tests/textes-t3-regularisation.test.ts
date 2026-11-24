@@ -6,6 +6,9 @@
  * dirigeant) fait courir le délai du jour où le bailleur a connu les dépenses. Après : la base ne refuse plus
  * (textes-t3-base.test.ts) ; l'action avertit et exige une confirmation explicite, vérifiée ICI ; le montant enregistré est
  * celui que rend la base, sans retouche.
+ *
+ * Reprise T3R-1 : la base exige aussi la confirmation (migration 20261125151000, textes-t3-reprise-base.test.ts) ; l'action
+ * la lui transmet (`p_exercice_ancien` : vrai seulement pour un exercice ancien confirmé, faux sinon).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -91,7 +94,7 @@ describe("R16-A1 — régularisation saisie à la main (regulariserCharges)", ()
   it("exercice 2021 confirmé : la base reçoit 1 234,56 € tels que saisis ; le message annonce le complément rendu par la base et sa réserve", async () => {
     const r = await regulariserCharges("org-test", BAIL, {}, saisie("2021", { confirmer_exercice_ancien: "oui" }));
     expect(r.erreur).toBeUndefined();
-    expect(banc.rpc).toHaveBeenCalledWith("regulariser_charges_avec_justificatif", expect.objectContaining({ p_bail: BAIL, p_annee: 2021, p_charges_reelles: 1234.56, p_etaler: false }));
+    expect(banc.rpc).toHaveBeenCalledWith("regulariser_charges_avec_justificatif", expect.objectContaining({ p_bail: BAIL, p_annee: 2021, p_charges_reelles: 1234.56, p_etaler: false, p_exercice_ancien: true }));
     expect(net(r.succes)).toContain("Complément de 1 234,56 € dû par le locataire.");
     expect(r.succes).toContain("Exercice clos depuis plus de trois ans : ce complément est peut-être prescrit (article 7-1 de la loi du 6 juillet 1989).");
   });
@@ -104,7 +107,7 @@ describe("R16-A1 — régularisation saisie à la main (regulariserCharges)", ()
   it("exercice récent (2024) : rien de changé — ni confirmation demandée, ni réserve, même montant", async () => {
     const r = await regulariserCharges("org-test", BAIL, {}, saisie("2024"));
     expect(r.erreur).toBeUndefined();
-    expect(banc.rpc).toHaveBeenCalledWith("regulariser_charges_avec_justificatif", expect.objectContaining({ p_annee: 2024, p_charges_reelles: 1234.56 }));
+    expect(banc.rpc).toHaveBeenCalledWith("regulariser_charges_avec_justificatif", expect.objectContaining({ p_annee: 2024, p_charges_reelles: 1234.56, p_exercice_ancien: false }));
     expect(net(r.succes)).toContain("Complément de 1 234,56 € dû par le locataire.");
     expect(r.succes).not.toContain("prescrit");
   });
@@ -129,6 +132,8 @@ describe("R16-A1 — régularisation tirée des factures (emettreRegularisationF
       poserBase({ brouillons_regularisation_fourniture: [b], organizations: [{ id: "org-test", type: "proprietaire_direct" }] });
       const r = await emettreRegularisationFournitures("org-test", BAIL, BROUILLON, {}, form());
       expect(r.erreur ?? "").not.toContain("plus de trois ans");
+      // Reprise T3R-1 : la base reçoit l'absence de confirmation telle quelle (elle n'en exige pas ici).
+      expect(banc.rpc).toHaveBeenLastCalledWith("emettre_regularisation_fourniture", expect.objectContaining({ p_exercice_ancien: false }));
     }
   });
   it("complément de 2021 confirmé : le contrôle laisse passer, le PDF est produit puis la base appelée avec le brouillon inchangé", async () => {
@@ -137,6 +142,6 @@ describe("R16-A1 — régularisation tirée des factures (emettreRegularisationF
     const r = await emettreRegularisationFournitures("org-test", BAIL, BROUILLON, {}, form({ exercice_ancien: "on" }));
     expect(r.erreur ?? "").not.toContain("plus de trois ans");
     expect(banc.pdf).toHaveBeenCalledTimes(1);
-    expect(banc.rpc).toHaveBeenCalledWith("emettre_regularisation_fourniture", expect.objectContaining({ p_org: "org-test", p_brouillon: BROUILLON, p_empreinte: "empreinte-1", p_etaler: false }));
+    expect(banc.rpc).toHaveBeenCalledWith("emettre_regularisation_fourniture", expect.objectContaining({ p_org: "org-test", p_brouillon: BROUILLON, p_empreinte: "empreinte-1", p_etaler: false, p_exercice_ancien: true }));
   });
 });

@@ -20,7 +20,10 @@
 --    mois ; en retirant encore un jour, un bail commencé le 29 février 2024 pour trois ans finissait le 27 février 2027
 --    au lieu du 28 (l'anniversaire serait le 1er mars). La date limite du congé du bailleur tombait alors au 27 août au
 --    lieu du 31 août. Maintenant : quand l'addition a ramené le jour en arrière, ce jour EST le dernier jour du bail.
---    Tous les autres baux gardent exactement le même terme.
+--    La règle est générale : elle avance aussi d'un jour le terme d'un bail étudiant de neuf mois commencé un 30/05, un
+--    31/05, un 31/07, un 31/12, ou un 29/05 quand le mois d'arrivée n'a pas de 29 (ex. 31/05/2025 : 28/02/2026 au lieu du
+--    27/02 ; 31/07/2025 : 30/04/2026 au lieu du 29/04). [Phrase ajoutée par la reprise T3R-8, commentaire seul.]
+--    Tous les autres baux (dont ceux d'un, trois ou six ans commencés un 30 ou un 31) gardent exactement le même terme.
 --
 -- CE QUI NE CHANGE PAS. Aucune donnée n'est écrite, modifiée ni supprimée : régularisations, montants, congés enregistrés
 -- et dates d'effet restent ce qu'ils sont. Aucun droit n'est ouvert, aucune règle de lecture (RLS) n'est touchée.

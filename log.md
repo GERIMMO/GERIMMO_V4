@@ -8125,3 +8125,27 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
   sans médiateur, et la réponse reçue dit l'information due dès la vente à des particuliers ; (4) évaluation retirée —
   la décision Q20 dit « le client qui a noté lit le motif », le choix appliqué est « seul l'auteur de la note » :
   l'espace ne lit plus le motif de la note de son locataire ; (5) quittance — toujours ouverte (Q52, Q74).
+
+## [2026-11-24] query | Référentiel unique du palier 1 (décision Q2)
+
+Demande du dirigeant (décision Q2 du 24/11/2026) : « on remet à plat. Produis UN seul référentiel en fusionnant le
+cahier V3 et le wiki (sans autre document). La décision la plus récente l'emporte ; note chaque contradiction. »
+
+- **Page créée** : [[Référentiel du palier 1]] (`wiki/syntheses/`), ajoutée à `index.md`. Ligne Q2 de `QUESTIONS.md`
+  mise à jour. Aucun autre fichier touché ; `raw/` intact.
+- **Contenu** : 337 règles numérotées, par public (propriétaire bailleur, locataire, artisan, incidents, gestion
+  administrative, super admin) et par domaine (bail, loyers et charges, révision, impayés, dépôt de garantie et sortie,
+  états des lieux, documents, signature, rendez-vous et interventions, devis, factures et évaluations, comptabilité et
+  fiscalité, données personnelles, abonnement, intelligence artificielle). Chaque règle porte sa source datée et son
+  statut : en vigueur, remplacée par…, palier 2, à trancher ; 18 portent la mention « cahier V3 seul ».
+- **Sources de fond** : le cahier V3 (toutes les règles numérotées des 23 modules et des 6 annexes, datées du
+  24/07/2026) et le wiki. Les décisions du 24/11 et `QUESTIONS.md` n'ont servi qu'à dater et à départager.
+- **Registre** : 53 contradictions relevées ; 23 réglées par la décision la plus récente, 11 qui ne dépendent plus que
+  d'un point de droit (`JURISTE.md`), **19 à trancher par le dirigeant**.
+- **Limites de lecture** : le texte courant des modules du cahier et les synthèses d'audit du wiki n'ont pas été relus
+  ligne à ligne (catalogue, encadrés « à trancher » et sections datées seulement) ; une règle écrite seulement dans le
+  texte courant d'une page peut manquer.
+- **Ce que la page n'affirme pas** : qu'une règle est conforme à la loi.
+- **Pages en retard relevées, non modifiées** : [[Révision annuelle IRL]] (date d'effet du 29/09 et saisie de l'indice,
+  remplacées par Q43 et par le lot 14), [[Super Admin]] (« impersonation » du 22/07, contredite par la décision du
+  25/09), [[Incident]], [[Artisan]] (note à trois sources), [[Signature électronique]] (historique Yousign).

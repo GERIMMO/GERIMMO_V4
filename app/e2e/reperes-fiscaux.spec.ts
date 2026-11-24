@@ -82,7 +82,11 @@ test("repères fiscaux : livrés sans date, réglés et datés par le superviseu
     await expect(panneau.locator("[data-phrase-affichee]")).toContainText(/n’excèdent pas 15\s000\s€/);
     await expect(panneau.locator("[data-phrase-affichee]")).toContainText("Aucune date de vérification n’est enregistrée");
     expect(await debordementHorizontal(page)).toBeLessThanOrEqual(1);
-    await panneau.screenshot({ path: info.outputPath("reperes-fiscaux-livraison.png") });
+    // Même précaution que la capture après rechargement (plus bas).
+    await expect(async () => {
+      await expect(panneau).toBeVisible();
+      await panneau.screenshot({ path: info.outputPath("reperes-fiscaux-livraison.png") });
+    }).toPass({ timeout: 15_000 });
 
     // ── 2. Le propriétaire lit ces valeurs dans son récapitulatif, sans qu'elles soient présentées comme vérifiées.
     const proprietaire = await ouvrirSession(browser, "proprietaire");
@@ -132,7 +136,13 @@ test("repères fiscaux : livrés sans date, réglés et datés par le superviseu
     await expect(confirmation).not.toBeChecked();
     await expect(page.locator('a[href="#reperes-fiscaux"]')).toContainText(`Vérifiés le ${jourFr}`);
     expect(await debordementHorizontal(page)).toBeLessThanOrEqual(1);
-    await panneau.screenshot({ path: info.outputPath("reperes-fiscaux-verifies.png") });
+    // Après un rechargement, la page se met encore en place quand les vérifications ci-dessus ont abouti : le panneau a pu
+    // être remplacé dans la page pendant la capture (« élément détaché », vu une fois sur la passe 1 du 24/11). La capture
+    // attend un panneau visible et se reprend si elle tombe sur ce remplacement ; les vérifications ne changent pas.
+    await expect(async () => {
+      await expect(panneau).toBeVisible();
+      await panneau.screenshot({ path: info.outputPath("reperes-fiscaux-verifies.png") });
+    }).toPass({ timeout: 15_000 });
 
     // ── 7. Le propriétaire recharge : les nouvelles valeurs, et la date de leur vérification.
     await proprietaire.reload();

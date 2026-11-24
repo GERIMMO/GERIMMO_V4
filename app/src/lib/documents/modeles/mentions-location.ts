@@ -225,6 +225,12 @@ export function clauseSolidarite(ctx: ContexteBail, t: Typographie): string {
   if (t.archivee) return `<p>Les locataires sont tenus solidairement et indivisiblement de l'exécution du présent contrat.
     En cas de congé de l'un d'eux, la solidarité s'éteint six mois après la date d'effet du congé, ou
     dès qu'un nouveau locataire le remplace au bail.</p>`;
+  // Décision du dirigeant du 24/11/2026 (case « mariés ou pacsés ») : la location est déclarée consentie exclusivement à
+  // deux époux ou partenaires de PACS. La règle de la colocation n'est pas imprimée ; le bail dit pourquoi, dans les mots
+  // de l'article 8-1 (I et VI). Case non cochée (ou absente) : le texte d'avant, à l'identique (empreinte des baux signés).
+  // Le rendu archivé ci-dessus (baux préparés avant g8) ne change pas.
+  if (ctx.bail.locataires_epoux_pacses) return `<p>Les locataires sont tenus solidairement et indivisiblement de l’exécution du présent contrat.</p>
+    <p${t.insecable}>${CLAUSE_EPOUX_PACS}</p>`;
   return `<p>Les locataires sont tenus solidairement et indivisiblement de l’exécution du présent contrat.</p>
     <p${t.insecable}>${regleColocationSolidarite('la solidarité de celui des colocataires qui donne congé prend', 'elle s’éteint')}${ctx.locataires.length === 2 ? ` ${EXCEPTION_EPOUX_PACS}` : ''}</p>`;
 }
@@ -232,6 +238,19 @@ export const regleColocationSolidarite = (sujet: string, aDefaut: string) =>
   `En colocation (article 8-1 de la loi du 6 juillet 1989), ${sujet} fin à la date d’effet du congé régulièrement délivré et lorsqu’un nouveau colocataire figure au bail. À défaut, ${aDefaut} au plus tard à l’expiration d’un délai de six mois après la date d’effet du congé.`;
 export const EXCEPTION_EPOUX_PACS =
   'Cette règle ne s’applique pas si la location est consentie exclusivement à des époux ou à des partenaires liés par un pacte civil de solidarité au moment de la conclusion initiale du contrat : une telle location n’est pas une colocation au sens de cet article.';
+/** Case « mariés ou pacsés » cochée : ce que le bail imprime à la place de la règle de la colocation. */
+export const CLAUSE_EPOUX_PACS =
+  'La location est consentie exclusivement à des époux ou à des partenaires liés par un pacte civil de solidarité au moment de la conclusion initiale du contrat : elle n’est pas une colocation au sens de l’article 8-1 de la loi du 6 juillet 1989, et la règle de cet article sur la fin de la solidarité d’un colocataire qui donne congé, et de celle de sa caution, ne s’applique pas.';
+/**
+ * Case « mariés ou pacsés » cochée sur un bail qui n'a pas exactement deux locataires : la location ne peut pas être
+ * « consentie exclusivement à des époux ou à des partenaires » d'un même couple. Le contrat n'est pas produit (Gerimmo
+ * refuse plutôt que d'imprimer une clause fausse) ; le message dit quoi corriger.
+ */
+export function refusEpouxPacs(ctx: ContexteBail, archive = false): { erreur: string } | null {
+  // Le recalcul de l'empreinte d'un bail déjà préparé (formats archivés) n'est pas refusé : il rend le contrat tel quel.
+  if (archive || !ctx.bail.locataires_epoux_pacses || ctx.locataires.length === 2) return null;
+  return { erreur: `Ce bail est déclaré consenti à deux époux ou partenaires de PACS (case « mariés ou pacsés », étape Personnes), mais il compte ${ctx.locataires.length} locataire${ctx.locataires.length > 1 ? "s" : ""} : la case ne vaut que pour deux personnes, mariées ou pacsées l’une à l’autre. Décochez-la, ou corrigez les locataires, avant de générer le contrat.` };
+}
 
 /**
  * Lot T2 (R17-A2). Un bail nu à durée réduite (article 11 de la loi du 6 juillet 1989) doit dire sa durée, les raisons et

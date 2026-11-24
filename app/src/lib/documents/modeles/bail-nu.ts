@@ -37,7 +37,7 @@ import {
   liensLocataires,
   coordonneesBancaires,
 } from "./communs";
-import { periodeConstruction, mentionsEnergie, destinationServitude, clauseResolutoire, honorairesLocation, encadrementLocation, fixationLoyer, dateConclusion, dureeReduiteSansObjet, travauxDepuisDernierContrat, premiereEcheanceLocation, mandataireLocation, reconductionEtConges, clauseSolidarite, REFUS_BAIL_DUREE_REDUITE } from "./mentions-location";
+import { periodeConstruction, mentionsEnergie, destinationServitude, clauseResolutoire, honorairesLocation, encadrementLocation, fixationLoyer, dateConclusion, dureeReduiteSansObjet, travauxDepuisDernierContrat, premiereEcheanceLocation, mandataireLocation, reconductionEtConges, clauseSolidarite, refusEpouxPacs, REFUS_BAIL_DUREE_REDUITE } from "./mentions-location";
 import { designationIndividuelle } from "./designation-individuelle";
 import type { Assemblage } from "./index";
 import { dureeBailNuAnnees } from "@/lib/qualite-bailleur";
@@ -84,7 +84,12 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
   const bailleurPrincipal = ctx.bailleurs[0] ?? null;
   const indivision = ctx.bailleurs.length > 1;
   const individuel = Boolean(ctx.chambre);
-  const colocation = ctx.bail.type === "colocation" && !individuel;
+  // Case « mariés ou pacsés » (décision du 24/11/2026) : une location consentie exclusivement à deux époux ou partenaires de
+  // PACS n'est pas une colocation (article 8-1, I) : le contrat porte alors le titre, le pied et les cadres de signature d'un
+  // contrat de location, et non « colocation » (la clause de solidarité le dit : clauseSolidarite). Le rendu archivé, qui
+  // recalcule l'empreinte d'un circuit déjà préparé, n'en tient pas compte.
+  const epouxPacs = Boolean(ctx.bail.locataires_epoux_pacses) && !(options.presentationAncienne || options.typographieArchivee);
+  const colocation = ctx.bail.type === "colocation" && !individuel && !epouxPacs;
   const plusieursLocataires = ctx.locataires.length > 1;
   const copro = ctx.bien.copropriete;
   const depot = ctx.bail.depot_garantie === null ? null : Number(ctx.bail.depot_garantie);
@@ -283,7 +288,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
       ${options.presentationAncienne || !indivision
         ? cadreSignature("Le bailleur", f.champ(nomPersonne(bailleurPrincipal), "nom et prénom(s), ou dénomination"))
         : ctx.bailleurs.map((p, i) => cadreSignature(`Bailleur ${i + 1}`, f.champ(nomPersonne(p), "nom et prénom(s), ou dénomination"))).join("")}
-      ${colocation ? ctx.locataires.map((l, i) => cadreSignature(`Colocataire ${i + 1}`, f.champ(nomPersonne(l), `nom du colocataire ${i + 1}`))).join("") : cadreSignature(
+      ${colocation || (epouxPacs && plusieursLocataires) ? ctx.locataires.map((l, i) => cadreSignature(`${colocation ? "Colocataire" : "Locataire"} ${i + 1}`, f.champ(nomPersonne(l), `nom du colocataire ${i + 1}`))).join("") : cadreSignature(
         plusieursLocataires ? "Les locataires" : "Le locataire",
         ctx.locataires.map((l) => echapper(nomPersonne(l) ?? "")).join("<br/>") ||
           f.champ(null, "nom et prénom(s) du ou des locataires")
@@ -325,7 +330,7 @@ export async function assemblerBailNu(
     return { erreur: "Choisissez le modèle correspondant au bail : nu, meublé ou colocation." };
   }
   if (ctx.bail.etat !== "brouillon") return { erreur: "Le contrat initial se prépare sur un brouillon. Pour un bail déjà engagé, utilisez un avenant." };
-  const refus = refusBailDureeReduite(ctx, format);
+  const refus = refusBailDureeReduite(ctx, format) ?? refusEpouxPacs(ctx, Boolean(format[presentationArchivee] || format[typographieArchivee]));
   if (refus) return refus;
   // Phase 3, lot 46 (reprise, T21) : sans locataire principal, le contrat est INCOMPLET, plus refusé. Le catalogue proposait le
   // brouillon puis répondait « Renseignez d'abord le locataire principal du bail », sans lien ; « nom et prénom(s) » (le libellé

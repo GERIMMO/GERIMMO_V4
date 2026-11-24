@@ -5,6 +5,7 @@ import { Fusion } from "../gabarit";
 import { chargerContexteBail, liensLocataires, referenceCourte } from "./communs";
 import { construireBailNu, refusBailDureeReduite } from "./bail-nu";
 import { construireBailMeuble, type LigneInventaire } from "./bail-meuble";
+import { refusEpouxPacs } from "./mentions-location";
 import type { Assemblage } from "./index";
 
 export async function assemblerBailColocation(supabase: SupabaseClient, orgId: string, bailId: string, format: OptionsContrat = {}): Promise<Assemblage> {
@@ -13,7 +14,7 @@ export async function assemblerBailColocation(supabase: SupabaseClient, orgId: s
   if (ctx.bail.type !== "colocation" || ctx.bail.chambre_id) return { erreur: "Ce modèle est réservé au contrat commun de colocation." };
   if (ctx.bail.etat !== "brouillon") return { erreur: "Le contrat initial se prépare en brouillon. Pour un bail signé, préparez un avenant." };
   // Textes officiels, lot T2 (R17-A2) : régime nu seulement ; en meublé, le champ n'est plus lu (R20-A1).
-  const refus = ctx.lot.meuble ? null : refusBailDureeReduite(ctx, format);
+  const refus = (ctx.lot.meuble ? null : refusBailDureeReduite(ctx, format)) ?? refusEpouxPacs(ctx, Boolean(format[presentationArchivee] || format[typographieArchivee]));
   if (refus) return refus;
   // Phase 3, lot 46 (reprise, T21) : un principal ou un second colocataire manquant rend le contrat INCOMPLET (« nom et
   // prénom(s) », « nom du colocataire 2 » : les libellés du contrôle du brouillon), plus refusé ; la liste « À renseigner » mène
@@ -39,7 +40,8 @@ export async function assemblerBailColocation(supabase: SupabaseClient, orgId: s
   const regime = ctx.lot.meuble ? "meublé" : "nu";
   return {
     document,
-    titreGed: `Colocation — bail commun ${regime} (à faire signer)`,
+    // Case « mariés ou pacsés » : pas une colocation (article 8-1, I), le classement le dit aussi.
+    titreGed: ctx.bail.locataires_epoux_pacses ? `Contrat de location — logement ${regime} (à faire signer)` : `Colocation — bail commun ${regime} (à faire signer)`,
     nomFichier: `colocation-${ctx.lot.meuble ? "meuble" : "nu"}-${referenceCourte("BAIL", bailId).toLowerCase()}`,
     liens: [{ entite: "bail", entiteId: bailId }, { entite: "lot", entiteId: ctx.lot.id }, ...liensLocataires(ctx)],
   };

@@ -127,6 +127,10 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   // alors comme avant et n'annonce rien que la base ne ferait pas.
   const { data: bascule, error: basculeIndisponible } = await supabase.from("baux").select("loyers_suivis_depuis").eq("id", bailId).eq("organization_id", orgId).maybeSingle();
   const loyersSuivisDepuis = basculeIndisponible ? null : ((bascule as { loyers_suivis_depuis?: string | null } | null)?.loyers_suivis_depuis ?? null);
+  // Case « mariés ou pacsés » (décision du 24/11/2026, migration 20261125152000) : lecture À PART et tolérante, comme la date de
+  // bascule ; tant que la colonne n'existe pas, la case est vue non cochée (règle de la colocation, l'affichage d'avant).
+  const { data: lectureEpouxPacs, error: epouxPacsIndisponible } = await supabase.from("baux").select("locataires_epoux_pacses").eq("id", bailId).eq("organization_id", orgId).maybeSingle();
+  const epouxPacs = !epouxPacsIndisponible && (lectureEpouxPacs as { locataires_epoux_pacses?: boolean | null } | null)?.locataires_epoux_pacses === true;
   const suiviSignature = await lirePresentationSignatures(orgId, { baux: [bailId] });
   const documentSigne = bail.document_signe ?? archiveSignee(signatureDuBail(suiviSignature.circuits, bailId));
   const signeNonActif = bail.etat === "brouillon" && Boolean(documentSigne);
@@ -843,6 +847,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               }}
               colocation
               etatBail={bail.etat}
+              epouxPacs={epouxPacs}
             />
             {rappelConseilsLocataire}
           </CardContent>
@@ -1340,7 +1345,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         orgId={orgId} bailId={bailId} controleInitial={await verifierDossierBail(orgId, bailId)}
         contenus={[
           null,
-          <EtapePersonnesBail key="personnes" orgId={orgId} bailId={bailId} lotId={bail.lot_id} principalId={bail.locataire_principal} colocation={bail.type === "colocation" && !bail.chambre_id} />,
+          <EtapePersonnesBail key="personnes" orgId={orgId} bailId={bailId} lotId={bail.lot_id} principalId={bail.locataire_principal} colocation={bail.type === "colocation" && !bail.chambre_id} epouxPacs={epouxPacs} />,
           <CompleterSurPlace key="logement" orgId={orgId} bailId={bailId} lotId={bail.lot_id} individuel={Boolean(bail.chambre_id)} />,
           bail.chambre_id && lot ? <div key="plafond" id="loyer-plafond-colocation"><ChambresLogement orgId={orgId} lotId={bail.lot_id} bienId={lot.bien_id} chambres={[]} plafond={lot.colocation_loyer_reference} mode="plafond" /></div> : null,
           lot ? <DocumentsParcoursBail key="documents" orgId={orgId} bailId={bailId} lotId={bail.lot_id} bienId={lot.bien_id} copropriete={premier(lot.bien)?.copropriete ?? null} reglementId={bail.reglement_copropriete} annexes={annexesContrat} dateDebut={bail.date_debut} edlEntree={(edls ?? []).find(e => e.type === "entree") ?? null} erreurEdl={Boolean(erreurEdls)} /> : <p key="documents">Le logement est indisponible.</p>,

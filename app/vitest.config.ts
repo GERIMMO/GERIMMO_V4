@@ -110,6 +110,9 @@ export const FICHIERS_EN_SERIE = [
   // Reprise du lot T3 (T3R-1, 25/11) : rejoue 20261125151000 et son retour, puis le retour du lot T3, dans sa transaction
   // (mêmes fonctions que tests/textes-t3-base.test.ts).
   "tests/textes-t3-reprise-base.test.ts",
+  // Case « mariés ou pacsés » (décision du 24/11, 25/11) : rejoue 20261125152000 et son retour, retire et rajoute la colonne
+  // de `baux` dans sa transaction (verrou sur la table des baux).
+  "tests/bail-epoux-pacses-base.test.ts",
   // Réserve du relecteur du lot D2 : ces trois fichiers figent le jour de Paris (`create or replace` de
   // `aujourdhui_paris()` dans leur transaction, tests/fixtures/jour-de-paris-fige.ts) : le verrou pris sur la fonction
   // ferait attendre les fichiers lancés en parallèle.

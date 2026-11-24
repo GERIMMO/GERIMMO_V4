@@ -311,6 +311,9 @@ const MISSION_OCTOBRE = [
   // 25/11, reprise du lot T3 (T3R-1) : la confirmation d'un complément de charges d'un exercice de plus de trois ans est
   // exigée par la base (`p_exercice_ancien`, seconde signature des deux fonctions et de leurs enveloppes).
   "20261125151000_textes_t3_reprise_exercice_ancien.sql",
+  // 25/11, décision du dirigeant du 24/11 : case « mariés ou pacsés » au bail (colonne de `baux`) ; pas de fin de solidarité à
+  // six mois au départ de l'un des époux ou partenaires de PACS (`enregistrer_depart_colocataire`).
+  "20261125152000_bail_locataires_epoux_pacses.sql",
 
 
 ];

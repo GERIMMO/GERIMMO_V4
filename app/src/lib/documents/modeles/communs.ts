@@ -89,6 +89,8 @@ export type ContexteBail = {
     precedente_location?: string | null;
     precedent_loyer_revise?: boolean | null;
     meuble_etudiant: boolean;
+    /** Case « mariés ou pacsés » (décision du 24/11/2026) : absente ou fausse, la clause de solidarité est celle d'avant. */
+    locataires_epoux_pacses?: boolean | null;
   };
   lot: {
     id: string;
@@ -156,7 +158,7 @@ export async function chargerContexteBail(
          dernier_loyer_versement, dernier_loyer_revision, precedente_location, precedent_loyer_revise, meuble_etudiant,
          date_conclusion_prevue, servitude_residence_principale, encadrement_loyer, zone_honoraires,
          honoraires_edl_bailleur, honoraires_edl_locataire, dpe_depenses_min, dpe_depenses_max, dpe_annees_reference,
-         clause_resolutoire_assurance, clause_resolutoire_troubles, clause_resolutoire_servitude,
+         clause_resolutoire_assurance, clause_resolutoire_troubles, clause_resolutoire_servitude, locataires_epoux_pacses,
          lot:lots!baux_lot_meme_org_fk(id, nom, surface_m2, pieces, etage, meuble,
            identifiant_fiscal, description, chauffage, eau_chaude, locaux_privatifs,
            bien:biens!lots_bien_id_fkey(id, nom, type, address_line1, postal_code, city,

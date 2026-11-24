@@ -1,5 +1,8 @@
 "use client";
-import { AIDE_DEPART_COLOCATAIRE, OPTION_SANS_REMPLACANT } from "@/lib/solidarite-colocation";
+import {
+  AIDE_DEPART_COLOCATAIRE, AIDE_DEPART_EPOUX_PACS, AIDE_GARANTS_COLOCATION, AIDE_GARANTS_EPOUX_PACS, OPTION_SANS_REMPLACANT,
+  OPTION_SANS_REMPLACANT_EPOUX_PACS, SOLIDAIRE_SANS_FIN_EPOUX_PACS,
+} from "@/lib/solidarite-colocation";
 import { useActionStateSuivi } from "@/lib/suivi-enregistrement";
 
 import { useState } from "react";
@@ -54,16 +57,19 @@ function BoutonRetirer({ orgId, bailId, ligneId }: { orgId: string; bailId: stri
 // Bail signé : un colocataire ne se retire plus, son départ s'enregistre
 // (audit 29/09, art. 8-1) — la solidarité et le garant qui le couvre courent
 // encore six mois, sauf remplacement par un nouveau colocataire au bail.
+// Case « mariés ou pacsés » (décision du 24/11/2026) : ni six mois ni remplacement, aucune fin enregistrée ; les textes le disent.
 function DepartColocataire({
   orgId,
   bailId,
   ligneId,
   remplacants,
+  epouxPacs = false,
 }: {
   orgId: string;
   bailId: string;
   ligneId: string;
   remplacants: Personne[];
+  epouxPacs?: boolean;
 }) {
   const [ouvert, setOuvert] = useState(false);
   const [etat, formAction] = useActionStateSuivi<EtatBail, FormData>(
@@ -105,7 +111,7 @@ function DepartColocataire({
           className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
         >
           {/* Reprises du lot T2 (T2R-1) : « Personne — solidarité 6 mois » l'affirmait sans condition (lib/solidarite-colocation.ts). */}
-          <option value="">{OPTION_SANS_REMPLACANT}</option>
+          {epouxPacs ? <option value="">{OPTION_SANS_REMPLACANT_EPOUX_PACS}</option> : <option value="">{OPTION_SANS_REMPLACANT}</option>}
           {remplacants.map((p) => (
             <option key={p.id} value={p.id}>
               {p.nom}
@@ -123,7 +129,7 @@ function DepartColocataire({
       </div>
       {etat.erreur && <p className="text-sm text-destructive sm:col-span-3">{etat.erreur}</p>}
       <p className="text-xs text-muted-foreground sm:col-span-3" data-aide-depart-colocataire>
-        {AIDE_DEPART_COLOCATAIRE}
+        {epouxPacs ? <>{AIDE_DEPART_EPOUX_PACS}</> : <>{AIDE_DEPART_COLOCATAIRE}</>}
       </p>
     </form>
   );
@@ -137,6 +143,7 @@ export function FormulaireColocation({
   principal,
   colocation,
   etatBail = "brouillon",
+  epouxPacs = false,
 }: {
   orgId: string;
   bailId: string;
@@ -149,6 +156,8 @@ export function FormulaireColocation({
   colocation: boolean;
   /** État du bail : hors brouillon, on n'efface plus une personne, on enregistre son départ. */
   etatBail?: string;
+  /** Case « mariés ou pacsés » cochée à la préparation du bail (décision du 24/11/2026). */
+  epouxPacs?: boolean;
 }) {
   const brouillon = etatBail === "brouillon";
   const colocataires = lignes.filter((l) => l.role === "colocataire");
@@ -177,6 +186,7 @@ export function FormulaireColocation({
           Bail unique : un seul appel de loyer, jamais fractionné. Les
           quotes-parts servent à la répartition interne et aux attestations CAF.
           Locataire principal (référent) : <span className="font-medium">{principal.nom}</span>.
+          {epouxPacs && " Bail consenti à deux époux ou partenaires de PACS (case cochée à sa préparation) : ce n’est pas une colocation au sens de l’art. 8-1 de la loi du 6 juillet 1989."}
         </p>
       )}
 
@@ -210,6 +220,7 @@ export function FormulaireColocation({
                   <span className="w-full text-xs text-muted-foreground sm:w-auto">
                     parti le {formaterDate(c.date_depart)}
                     {c.date_solidarite_fin && ` · solidaire jusqu'au ${formaterDate(c.date_solidarite_fin)}`}
+                    {!c.date_solidarite_fin && epouxPacs && ` · ${SOLIDAIRE_SANS_FIN_EPOUX_PACS}`}
                   </span>
                 ) : brouillon ? (
                   <BoutonRetirer orgId={orgId} bailId={bailId} ligneId={c.id} />
@@ -221,6 +232,7 @@ export function FormulaireColocation({
                     remplacants={colocataires
                       .filter((r) => r.id !== c.id && !r.date_depart)
                       .map((r) => ({ id: r.person_id, nom: r.person_nom }))}
+                    epouxPacs={epouxPacs}
                   />
                 )}
               </li>
@@ -358,9 +370,7 @@ export function FormulaireColocation({
         </form>
         {colocation ? (
           <p className="text-sm text-muted-foreground">
-            Garant nominatif (couvre un colocataire) ; avec clause de solidarité, il
-            peut être appelé au-delà de sa part. Engagement plafonné à 6 mois après le
-            départ du colocataire couvert (loi ALUR).
+            {epouxPacs ? AIDE_GARANTS_EPOUX_PACS : AIDE_GARANTS_COLOCATION}
           </p>
         ) : (
           <p className="text-sm text-muted-foreground">

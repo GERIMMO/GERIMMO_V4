@@ -14,6 +14,8 @@ import { QUALITES_BAILLEUR, estPersonnePhysique } from "@/lib/qualite-bailleur";
 import { formaterDate } from "@/lib/ged";
 import { correspond } from "@/lib/roles-personnes";
 import { nouvelleCleEnvoi } from "@/lib/cle-envoi";
+import { enregistrerLocatairesEpouxPacs, type EtatBail } from "@/app/actions/baux";
+import { AIDE_CASE_EPOUX_PACS, LIBELLE_CASE_EPOUX_PACS } from "@/lib/solidarite-colocation";
 
 export type PersonneBail = {
   id: string; nom: string; prenom: string | null; email: string | null; telephone: string | null;
@@ -169,9 +171,28 @@ function ChoisirPersonne({ orgId, bailId, role, personnes, principalId, couvrabl
   </form>;
 }
 
-export function PersonnesBail({ orgId, bailId, personnes, detentions, participants, principalId, personneConnecteeId, colocation, proprietairesHref, conseils = null }: {
+// Case « mariés ou pacsés » (décision du dirigeant du 24/11/2026) : proposée dès que le bail commun compte deux locataires.
+// Le serveur refuse de la cocher si le bail n'en compte pas exactement deux (enregistrerLocatairesEpouxPacs).
+function CaseEpouxPacs({ orgId, bailId, coche, nombre, actualiser }: { orgId: string; bailId: string; coche: boolean; nombre: number; actualiser: () => void }) {
+  const { etat, enCours, soumettre } = useActionFormulaire<EtatBail>(async (precedent, donnees) => {
+    const retour = await enregistrerLocatairesEpouxPacs(orgId, bailId, precedent, donnees);
+    if (retour.succes) actualiser();
+    return retour;
+  });
+  return <form data-saisie-confirmee data-case-epoux-pacs onSubmit={soumettre} className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
+    <label className="flex items-start gap-2 text-sm"><input type="checkbox" name="locataires_epoux_pacses" defaultChecked={coche} className="mt-1" />{LIBELLE_CASE_EPOUX_PACS}</label>
+    <p className="text-xs text-muted-foreground">{AIDE_CASE_EPOUX_PACS}</p>
+    {nombre > 2 && <p className="text-xs text-muted-foreground">Ce bail compte {nombre} locataires : la case ne vaut que pour deux personnes.</p>}
+    <Retour etat={etat} />
+    <Button type="submit" variant="outline" size="sm" disabled={enCours}>{enCours ? "Enregistrement…" : "Enregistrer ce choix"}</Button>
+  </form>;
+}
+
+export function PersonnesBail({ orgId, bailId, personnes, detentions, participants, principalId, personneConnecteeId, colocation, epouxPacs = false, proprietairesHref, conseils = null }: {
   orgId: string; bailId: string; personnes: PersonneBail[]; detentions: DetentionBail[]; participants: ParticipantBail[];
   principalId: string | null; personneConnecteeId: string | null; colocation: boolean; proprietairesHref: string;
+  /** Case « mariés ou pacsés » enregistrée au bail. */
+  epouxPacs?: boolean;
   /** Les conseils pour choisir son locataire, déjà rendus côté serveur : posés sous le titre de la section, avant le choix. */
   conseils?: ReactNode;
 }) {
@@ -237,6 +258,7 @@ export function PersonnesBail({ orgId, bailId, personnes, detentions, participan
       {selecteur("principal")}
       {colocation && principalId && ouvert !== "colocataire" && <Button type="button" variant="outline" onClick={() => setOuvert("colocataire")}><Plus size={15} />Ajouter un colocataire</Button>}
       {selecteur("colocataire")}
+      {colocation && locataires.length >= 2 && <CaseEpouxPacs orgId={orgId} bailId={bailId} coche={epouxPacs} nombre={locataires.length} actualiser={actualiser} />}
       {!colocation && <p className="text-xs text-muted-foreground">Plusieurs locataires sur ce bail ? <a className="underline underline-offset-2" href="#etape-bail-1">Choisir un contrat de colocation à l’étape Le bail.</a></p>}
     </section>
     <section className="bail-personnes-section bail-personnes-garants" aria-labelledby="titre-garants-bail">

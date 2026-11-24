@@ -7,8 +7,10 @@ import { PersonnesBail, type PersonneBail, type DetentionBail, type ParticipantB
 import { racineEspace } from "@/lib/racine-espace";
 import { estBailleurSociete } from "@/lib/qualite-bailleur";
 
-export async function EtapePersonnesBail({ orgId, bailId, lotId, principalId, colocation }: {
+export async function EtapePersonnesBail({ orgId, bailId, lotId, principalId, colocation, epouxPacs = false }: {
   orgId: string; bailId: string; lotId: string; principalId: string | null; colocation: boolean;
+  /** Case « mariés ou pacsés » (décision du 24/11/2026), proposée dès deux locataires. */
+  epouxPacs?: boolean;
 }) {
   const { supabase, user, estProprietaire } = await verifierAccesEspace(orgId);
   const [annuaire, detentions, participants, lot] = await Promise.all([
@@ -41,7 +43,7 @@ export async function EtapePersonnesBail({ orgId, bailId, lotId, principalId, co
       pieces={(pieces.data??[]).map(p=>({id:p.id,libelle:p.titre??"PDF"}))} fiche={`${racineEspace(estProprietaire)}/${orgId}/personnes/${s.id}#pieces`}/>;
   }));
   return <><PersonnesBail orgId={orgId} bailId={bailId} personnes={personnes} detentions={(detentions.data as DetentionBail[]).map(d => ({ ...d, quote_part: Number(d.quote_part) }))}
-    participants={participants.data as ParticipantBail[]} principalId={principalId} personneConnecteeId={moi} colocation={colocation} proprietairesHref={lienLotDepuisBail(orgId, lot.data.bien_id, lotId, bailId, "proprietaires", 2, racineEspace(estProprietaire))}
+    participants={participants.data as ParticipantBail[]} principalId={principalId} personneConnecteeId={moi} colocation={colocation} epouxPacs={epouxPacs} proprietairesHref={lienLotDepuisBail(orgId, lot.data.bien_id, lotId, bailId, "proprietaires", 2, racineEspace(estProprietaire))}
     // Les conseils pour choisir son locataire s'adressent au propriétaire en gestion directe ; l'agence ne les voit pas (V1 publique).
     conseils={estProprietaire && CONSEILS_LOCATAIRE_VALIDES ? <ConseilsChoixLocataire emplacement="creation-bail" /> : null} />{formulaires}</>;
 }

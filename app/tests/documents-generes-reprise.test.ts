@@ -99,3 +99,21 @@ describe("document incomplet : l'origine de l'en-tête accompagne les manquants"
     expect(await generer()).toEqual({ erreur: "PDF non généré", manquants: ["commune"], liens });
   });
 });
+
+// Reprise du lot 53 (W35) : un titre de classement daté se lisait « Mise en demeure de payer — 24/11/2026 généré — tous les
+// champs… », le mot « généré » collé à la date. Le message sépare le titre de ce qui est arrivé au PDF.
+describe("message de génération après un titre daté", () => {
+  it("« <titre> : PDF généré — … », quel que soit le titre", async () => {
+    m.assembler.mockResolvedValue({ document: {}, liens, titreGed: "Mise en demeure de payer — 24/11/2026", nomFichier: "mise_en_demeure-b1" });
+    expect((await generer()).succes).toBe("Mise en demeure de payer — 24/11/2026 : PDF généré — tous les champs sont renseignés et le PDF est rangé dans Documents.");
+  });
+  it("un titre qui dit déjà « (généré, … ) » ne le redit pas (lot 50, reprise)", async () => {
+    m.assembler.mockResolvedValue({ document: {}, liens, titreGed: "Bail meublé (généré, à faire signer) — Leblanc Julie", nomFichier: "bail" });
+    expect((await generer()).succes).toBe("Bail meublé (généré, à faire signer) — Leblanc Julie : tous les champs sont renseignés et le PDF est rangé dans Documents.");
+  });
+  it("un PDF déjà rangé : « <titre> : déjà disponible… »", async () => {
+    m.assembler.mockResolvedValue({ document: {}, liens, titreGed: "Mise en demeure de payer — 24/11/2026", nomFichier: "mise_en_demeure-b1" });
+    m.depot.mockResolvedValue({ doublonId: "doc-1", erreur: "doublon" });
+    expect((await generer()).succes).toBe("Mise en demeure de payer — 24/11/2026 : déjà disponible, le PDF existant est rattaché à ce dossier.");
+  });
+});

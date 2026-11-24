@@ -80,9 +80,13 @@ describe("W33 — le solde reste sous le tableau qu'il totalise", () => {
   /** Le paragraphe « Solde échu » tel qu'émis (balise ouvrante comprise). */
   const paragrapheSolde = (html: string) => /<p[^>]*><strong>Solde échu au /.exec(html)?.[0] ?? "";
 
-  it.each(["situation_dette", "relance_simple", "seconde_relance", "mise_en_demeure"] as const)("%s : le solde ne se sépare pas du tableau (pas de saut avant lui)", async (code) => {
+  // Reprise du lot 53 : ce test affirmait un paragraphe de solde « gardé » sous le tableau (break-before:avoid). Les rendus
+  // réels l'ont montré insuffisant (solde seul en tête de page à 40 lignes, clôture coupée de 36 à 39) : le solde est
+  // désormais la dernière rangée du tableau, insécable avec la dernière échéance (impayes-documents-phase3-lot53-reprise).
+  it.each(["situation_dette", "relance_simple", "seconde_relance", "mise_en_demeure"] as const)("%s : le solde ne se sépare pas du tableau (dernière section insécable du tableau)", async (code) => {
     const html = (await courrier(code)).document.html;
-    expect(paragrapheSolde(html)).toMatch(/break-before:avoid-page/);
+    expect(paragrapheSolde(html)).toBe("");
+    expect(html).toMatch(/<tbody style="break-inside:avoid-page;page-break-inside:avoid"><tr>(?:(?!<\/tbody>)[\s\S])*<tr><td colspan="5" style="padding:4pt 0 0;border-bottom:0"><strong>Solde échu au /);
     // Les règles de coupure communes ne sont pas défaites : un long paragraphe peut toujours se couper.
     expect(html).toContain("p { break-inside:auto; page-break-inside:auto; }");
   });
@@ -105,7 +109,9 @@ describe("W34 — la mise en demeure ne donne plus de consigne d'envoi au locata
   it("la consigne reste à l'écran, pour l'expéditeur (aide du délai au catalogue et préparation du recommandé)", () => {
     expect(OPTIONS_CATALOGUE.mise_en_demeure[0].aide).toContain("à notifier avec preuve de réception");
     const ecran = readFileSync(join(__dirname, "../src/components/rappels-loyers-interactifs.tsx"), "utf8");
-    expect(ecran).toContain("Gerimmo n’envoie pas ce PDF : ce courrier est à notifier avec preuve de réception.");
+    // Reprise du lot 53 : la consigne a quitté le réglage replié du délai pour suivre le bouton du PDF, formulée pour le seul
+    // PDF (le même bloc sert au recommandé AR24, que Gerimmo envoie) — voir impayes-documents-phase3-lot53-reprise.
+    expect(ecran).toContain("Ce PDF n’est pas envoyé par Gerimmo : à notifier avec preuve de réception.");
   });
 });
 

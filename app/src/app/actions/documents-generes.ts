@@ -132,8 +132,10 @@ export async function genererDocument(
       manquants: [],
       liens: assemblage.liens,
       succes: reutilise
-        ? `${assemblage.titreGed} déjà disponible : le PDF existant est rattaché à ce dossier.`
-        : `${assemblage.titreGed}${/\(généré/.test(assemblage.titreGed) ? "" : " généré"} — tous les champs sont renseignés et le PDF est rangé dans Documents.${
+        // Reprise du lot 53 (W35) : « <titre> : … ». Un titre de classement daté (« Mise en demeure de payer — 24/11/2026 »)
+        // se lisait « … — 24/11/2026 généré — … ». Un titre qui dit déjà « (généré, … » ne le redit pas (lot 50, reprise).
+        ? `${assemblage.titreGed} : déjà disponible, le PDF existant est rattaché à ce dossier.`
+        : `${assemblage.titreGed} : ${/\(généré/.test(assemblage.titreGed) ? "" : "PDF généré — "}tous les champs sont renseignés et le PDF est rangé dans Documents.${
         assemblage.avertissement ? ` Attention : ${assemblage.avertissement}` : ""
       }`,
     };

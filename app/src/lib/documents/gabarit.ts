@@ -330,14 +330,20 @@ export function cartouches(paires: [string, string][]): string {
   return `<div class="cartouches">${cases}</div>`;
 }
 
-export function tableau(colonnes: { libelle: string; droite?: boolean }[], lignes: string[][]): string {
+// `fin` (phase 3, reprise du lot 53, W33) : des rangées déjà assemblées (un solde, une clôture) posées après la dernière ligne,
+// avec elle, dans une dernière section insécable. Chrome ne revient pas dans un tableau terminé pour y couper plus tôt : ce
+// qui suivait le tableau en le « gardant avec lui » (break-before:avoid) partait quand même seul en tête de page, ou se
+// coupait (« Fait à » sans signature, image sans son libellé). Dans le tableau, la coupure se fait entre ses sections.
+// Sans `fin`, le HTML est inchangé.
+export function tableau(colonnes: { libelle: string; droite?: boolean }[], lignes: string[][], fin = ""): string {
   const tetes = colonnes
     .map((c) => `<th${c.droite ? ' class="d"' : ""}>${echapper(c.libelle)}</th>`)
     .join("");
-  const corps = lignes
+  const rangees = (ls: string[][]) => ls
     .map((l) => `<tr>${l.map((cell, i) => `<td${colonnes[i]?.droite ? ' class="d"' : ""}>${cell}</td>`).join("")}</tr>`)
     .join("");
-  return `<table><thead><tr>${tetes}</tr></thead><tbody>${corps}</tbody></table>`;
+  if (!fin) return `<table><thead><tr>${tetes}</tr></thead><tbody>${rangees(lignes)}</tbody></table>`;
+  return `<table><thead><tr>${tetes}</tr></thead><tbody>${rangees(lignes.slice(0, -1))}</tbody><tbody style="break-inside:avoid-page;page-break-inside:avoid">${rangees(lignes.slice(-1))}${fin}</tbody></table>`;
 }
 
 // Cartouche de signature à bandeau encre

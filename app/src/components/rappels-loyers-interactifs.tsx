@@ -262,9 +262,12 @@ function PreparationRecommande({ orgId, ligne, electronique }: { orgId: string; 
       <RecommandeElectronique orgId={orgId} bailId={ligne.bail_id} delai={Number(delai)} libelle="Préparer l’envoi du recommandé AR24" />
     </>}
     <div className={styles.choix}>{valide ? <BoutonGenererDocument key={delai} orgId={orgId} code="mise_en_demeure" cibleId={ligne.bail_id} cheminRetour={`/espace/${orgId}`} libelle="Générer le recommandé en PDF" options={{ delai }} /> : <p role="alert">Indiquez un nombre entier de 1 à 90 jours.</p>}</div>
+    {/* Reprise du lot 53 (W34) : la consigne d'envoi suit le bouton du PDF, visible ; repliée dans « Délai de règlement », elle
+        passait inaperçue et semblait valoir aussi pour le recommandé AR24, que Gerimmo envoie. */}
+    <p>Ce PDF n’est pas envoyé par Gerimmo : à notifier avec preuve de réception.</p>
     <details><summary>Délai de règlement · {delai} jours</summary>
     <label htmlFor={`${uid}-delai`}>Délai de règlement (jours)<input id={`${uid}-delai`} type="number" min="1" max="90" step="1" value={delai} onChange={event => setDelai(event.target.value)} aria-describedby={`${uid}-aide`} /></label>
-    <p id={`${uid}-aide`}>De 1 à 90 jours. Le PDF récapitule toutes les échéances impayées du bail. Gerimmo n’envoie pas ce PDF : ce courrier est à notifier avec preuve de réception.</p></details>
+    <p id={`${uid}-aide`}>De 1 à 90 jours. Le PDF récapitule toutes les échéances impayées du bail.</p></details>
 
 
   </div>;

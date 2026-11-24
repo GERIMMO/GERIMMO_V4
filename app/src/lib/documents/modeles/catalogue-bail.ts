@@ -52,9 +52,12 @@ export async function lireLignes(requete: PromiseLike<{ data: unknown; error: un
 // « lignes » : un texte de plusieurs lignes (description d'un devis) garde ses sauts de ligne, posés APRÈS l'échappement (phase 3, C78).
 // « facultatif » : une cellule que l'écran de saisie dit facultative s'imprime « — » quand elle est vide, sans bloquer le PDF
 // (phase 3, C04 : une ligne d'inventaire sans observation refusait tout l'inventaire).
-export function lignesTableau(f: Fusion, lignes: LigneDocument[], colonnes: [string, string, "texte" | "lignes" | "date" | "montant" | "facultatif"][]): string {
-  return tableau(colonnes.map(([libelle,, type]) => ({ libelle, droite: type === "montant" })), lignes.map(l => colonnes.map(([libelle, cle, type]) => type === "montant" ? f.montant(l[cle] as string | number | null, libelle) : type === "date" ? f.date(texte(l[cle]) || null, libelle) : type === "lignes" ? f.champ(texte(l[cle]).trim() || null, libelle).replace(/\r?\n/g, "<br>") : type === "facultatif" ? facultatif(texte(l[cle]).trim() || null) : f.champ(texte(l[cle]) || null, libelle))));
+export function lignesTableau(f: Fusion, lignes: LigneDocument[], colonnes: [string, string, "texte" | "lignes" | "date" | "montant" | "facultatif"][], fin = ""): string {
+  return tableau(colonnes.map(([libelle,, type]) => ({ libelle, droite: type === "montant" })), lignes.map(l => colonnes.map(([libelle, cle, type]) => type === "montant" ? f.montant(l[cle] as string | number | null, libelle) : type === "date" ? f.date(texte(l[cle]) || null, libelle) : type === "lignes" ? f.champ(texte(l[cle]).trim() || null, libelle).replace(/\r?\n/g, "<br>") : type === "facultatif" ? facultatif(texte(l[cle]).trim() || null) : f.champ(texte(l[cle]) || null, libelle))), fin);
 }
+// Reprise du lot 53 (W33) : la place de la clôture (« Fait à » et signature) du relevé de situation, dans la dernière section
+// de son tableau ; remplacée à l'assemblage final.
+const CLOTURE_DANS_TABLEAU = "<!--cloture-->";
 // L'année par défaut d'un document est celle du jour de PARIS : l'année du serveur (UTC) est encore la précédente le
 // 1er janvier entre minuit et 1 h (audit du 23/10, TST-5).
 export function anneeDocument(options?: Record<string,string>): number {
@@ -204,12 +207,20 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
       // C73 : ce qui reste dû sur les échéances du tableau qui ne sont pas encore échues (relevé de situation seulement) : la somme
       // de la colonne « Reste dû » est le solde échu, plus ce montant.
       const aVenirCentimes = lignesSituation.filter(l => !echus.includes(l)).reduce((s,l)=>s+resteCentimes(l),0);
+      const colonnesSituation: Parameters<typeof lignesTableau>[2] = [["Période","periode","texte"],["Échéance","date_echeance","date"],["Appelé","montant_du","montant"],["Couvert","montant_couvert","montant"],["Reste dû","reste","montant"]];
+      const solde = `<strong>Solde échu au ${f.date(aujourdhui)} : ${eur(soldeEchuCentimes/100)}.</strong> Les échéances à venir sont exclues de ce solde${aVenirCentimes > 0 ? ` : il reste ${eur(aVenirCentimes/100)} sur les échéances du tableau qui ne sont pas encore échues` : ""}.`;
       contenu = `${section(code === "situation_dette" ? "Situation des échéances" : "Échéances restant dues")}
-        ${lignesTableau(f,avecPeriodeLisible(lignesSituation),[["Période","periode","texte"],["Échéance","date_echeance","date"],["Appelé","montant_du","montant"],["Couvert","montant_couvert","montant"],["Reste dû","reste","montant"]])}
-        ${/* Phase 3, lot 53 (W33, même défaut que C45) : le solde, qui tient lieu de total du tableau, reste sous ses dernières
-             lignes ; avec « Fait à » et la signature (.fait-a), il partait seul en tête de la page 2, le tableau sans total en page 1.
-             Pas pour le protocole d'apurement, dont le HTML est l'empreinte de son circuit de signature (et où le solde est
-             suivi des modalités de règlement, pas de la signature). */ ""}<p${code === "protocole_apurement" ? "" : ` style="break-before:avoid-page;page-break-before:avoid"`}><strong>Solde échu au ${f.date(aujourdhui)} : ${eur(soldeEchuCentimes/100)}.</strong> Les échéances à venir sont exclues de ce solde${aVenirCentimes > 0 ? ` : il reste ${eur(aVenirCentimes/100)} sur les échéances du tableau qui ne sont pas encore échues` : ""}.</p>`;
+        ${/* Phase 3, lot 53 (W33, même défaut que C45) puis sa reprise : le solde, qui tient lieu de total du tableau, est sa
+             dernière rangée, dans une dernière section insécable avec la dernière échéance (tableau(…, fin)). Un paragraphe
+             « gardé » sous le tableau (break-before:avoid) partait seul en tête de page dès que le tableau remplissait la page
+             (relevé de 40 lignes), et la clôture du relevé de situation se coupait (36 à 39 lignes : image de signature sans son
+             libellé, « Fait à » sans signature, clôture seule). Le relevé de situation, que la clôture suit directement, la
+             range aussi dans cette section : elle part avec la dernière échéance et le solde. Les courriers la gardent après
+             leurs paragraphes, entre lesquels la coupure se fait. Pas pour le protocole d'apurement, dont le HTML est
+             l'empreinte de son circuit de signature : son tableau et son paragraphe de solde ne changent pas. */ ""}${code === "protocole_apurement"
+          ? `${lignesTableau(f,avecPeriodeLisible(lignesSituation),colonnesSituation)}
+        <p>${solde}</p>`
+          : lignesTableau(f,avecPeriodeLisible(lignesSituation),colonnesSituation,`<tr><td colspan="${colonnesSituation.length}" style="padding:4pt 0 0;border-bottom:0">${solde}</td></tr>${code === "situation_dette" ? CLOTURE_DANS_TABLEAU : ""}`)}`;
       if (code === "relance_simple") contenu += `<p>Sauf règlement intervenu depuis l’établissement de ce décompte, nous vous invitons à régulariser les sommes échues. En cas de difficulté ou de désaccord, contactez votre ${interlocuteur} afin d’examiner votre situation.</p>`;
       if (code === "mise_en_demeure" && (!/^\d+$/.test(options.delai ?? "") || Number(options.delai) < 1 || Number(options.delai) > 90)) return { erreur: "Indiquez un délai de règlement de 1 à 90 jours." };
       if (code === "relance_simple" || code === "seconde_relance" || code === "mise_en_demeure") {
@@ -379,9 +390,13 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
     // produit. La GED détecte les doublons par l'empreinte du contenu du fichier, pas par le titre : rien n'y change.
     const titreGed = code === "protocole_apurement" && datePlanProtocole ? `${meta.nom} — dette arrêtée au ${formaterDateFr(datePlanProtocole)}`
       : (CODES_RECOUVREMENT as readonly string[]).includes(code) && code !== "protocole_apurement" ? `${meta.nom} — ${formaterDateFr(aujourdhui)}` : meta.nom;
+    // Évaluée à sa place dans le corps (après l'en-tête et les cartouches) : l'ordre des informations « À renseigner » ne change pas.
+    const cloture = () => avenant ? `${faitALaSignature(f,exp.ville)}${avenant.signatures}` : `${dateALaSignature ? faitALaSignature(f,exp.ville) : faitA(f,exp.ville,aujourdhui)}${signatureEmetteur ?? (signatures ? `<div class="signatures">${cadreSignature(libelleSignataireBailleur(ctx.organisation.type),nomsBailleurs(f,ctx.bailleurs))}${cadreSignature(plusieurs ? "Les locataires" : "Le locataire",nomsLocataires(f,ctx.locataires))}</div>` : "")}`;
+    // Reprise du lot 53 (W33) : la clôture du relevé de situation se range dans la dernière section de son tableau (cinq colonnes).
+    const clotureDansTableau = contenu.includes(CLOTURE_DANS_TABLEAU);
     const corps = `${enTete(f,exp,avenant ? {libelle:"Avenant",reference:avenant.reference,etabliLe:aujourdhui} : {libelle:"Contrat",reference:referenceCourte("BAIL",bailId),etabliLe:aujourdhui})}${titre(meta.nom,avenant ? "Modification du contrat commun de location" : sousTitre,[])}
       ${cartouches([["Bailleur",nomsBailleurs(f,ctx.bailleurs)],adresseDestinataire === undefined ? [caseLocataires,nomsLocataires(f,ctx.locataires)] : [`${caseLocataires} (${plusieurs ? "destinataires" : "destinataire"})`,`${nomsLocataires(f,ctx.locataires)}${adresseDestinataire.map(ligne => `<div>${facultatif(ligne)}</div>`).join("")}`],["Locaux concernés",f.champ(adresseLogement(ctx.lot,ctx.bien),"adresse du logement")],["Contrat",avenant?.contrat ?? contratDesigne]])}
-      ${contenu}${avenant ? `${faitALaSignature(f,exp.ville)}${avenant.signatures}` : `${dateALaSignature ? faitALaSignature(f,exp.ville) : faitA(f,exp.ville,aujourdhui)}${signatureEmetteur ?? (signatures ? `<div class="signatures">${cadreSignature(libelleSignataireBailleur(ctx.organisation.type),nomsBailleurs(f,ctx.bailleurs))}${cadreSignature(plusieurs ? "Les locataires" : "Le locataire",nomsLocataires(f,ctx.locataires))}</div>` : "")}`}`;
+      ${clotureDansTableau ? contenu.replace(CLOTURE_DANS_TABLEAU, () => `<tr><td colspan="5" style="border-bottom:0;padding:0">${cloture()}</td></tr>`) : `${contenu}${cloture()}`}`;
     return { document:assemblerPage({f,titreDocument:meta.nom,nomPied:meta.nom,reference,corps:`<style>.bloc-titre{padding:10pt 0;margin-bottom:8pt}h1{font-size:19pt;letter-spacing:.2em}h2{margin:14pt 0 8pt}.cartouches{margin:10pt 0}p{margin:4pt 0}</style>${corps}`}),titreGed,nomFichier:`${code}-${bailId.slice(0,8)}`,liens:[{entite:"bail",entiteId:bailId},{entite:"lot",entiteId:ctx.lot.id},...liensLocataires(ctx)] };
   } catch(e) { if(e instanceof RefusDocument) return {erreur:e.message}; throw e; }
 }

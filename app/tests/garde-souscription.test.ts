@@ -20,7 +20,7 @@
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { offreParticulier } from "@/lib/tarifs";
-import { CONDITIONS_VERSION } from "@/lib/editeur";
+import { CONDITIONS_DATE, CONDITIONS_VERSION } from "@/lib/editeur";
 
 /** Pendant l'essai : la phrase complète (celle que la recette de production lit, compte en essai). */
 const MOTIF_IDENTITE =
@@ -142,6 +142,7 @@ vi.mock("@/lib/stripe-offres", async (importer) => ({
 
 import { accepterConditionsGenerales, confirmerHausse, demarrerAbonnement } from "@/app/actions/abonnement";
 import { GRILLE } from "@/lib/stripe-offres";
+import { messageActeSansAccord } from "@/lib/nouvelle-version-conditions";
 
 const PIED = "TVA non applicable, article 293 B du CGI.";
 
@@ -600,7 +601,7 @@ describe("souscription : la version en vigueur des conditions générales, accep
   });
 });
 
-describe("hausse de capacité : l'identité de l'éditeur seulement", () => {
+describe("hausse de capacité : l'identité de l'éditeur, puis l'accord à une nouvelle version des conditions (Q15)", () => {
   it("refuse une hausse quand l'identité manque, avant tout calcul de prorata — sans « Votre essai continue » : le client est abonné", async () => {
     etat(GRILLE, true);
     identite(EDITEUR_VIDE);
@@ -612,14 +613,75 @@ describe("hausse de capacité : l'identité de l'éditeur seulement", () => {
     expect(mocks.appliquerHausse).not.toHaveBeenCalled();
   });
 
-  it("laisse passer une identité complète, sans exiger l'acceptation des conditions (périmètre arbitré)", async () => {
+  // Décision du dirigeant du 24/11/2026 (Q15, « nouvelle version des conditions, accord exprès du client »). Ce test
+  // affirmait qu'une hausse n'exige JAMAIS l'acceptation des conditions (arbitrage du 19/10 : le contrat est déjà
+  // formé). C'est toujours vrai des conditions déjà acceptées. Ce ne l'est plus quand une NOUVELLE version, archivée,
+  // attend l'accord du Client : la hausse est un acte contractuel, et l'accord est demandé à ce moment-là. Les cinq
+  // tests qui suivent tiennent les deux moitiés de la règle.
+  it("le compte a accepté la version en vigueur : la hausse passe sans redemander les conditions (arbitrage du 19/10, inchangé)", async () => {
     etat(GRILLE, true);
-    mocks.versionsAcceptees = [];
     const r = await confirmerHausse("org-1", {}, hausse());
     expect(appelsRpc()).toContain("ma_souscription_stripe");
     expect(mocks.apercu).toHaveBeenCalledOnce();
     expect(r.erreur).toBe("arrêt du test");
-    expect(mocks.lecturesCgu).toHaveLength(0);
+    expect(r.accordConditions).toBeUndefined();
+    expect(appelsRpc()).not.toContain("accepter_cgu");
+  });
+
+  it("Q15 — nouvelle version archivée, pas encore acceptée : la hausse demande l'accord exprès, rien ne part chez Stripe", async () => {
+    etat(GRILLE, true);
+    mocks.versionsAcceptees = ["2026-11-15"];
+    const r = await confirmerHausse("org-1", {}, hausse());
+    expect(r.erreur).toBe(messageActeSansAccord(CONDITIONS_DATE));
+    // Aucune menace de non-reconduction : cette version n'en prévoit pas.
+    expect(r.erreur).not.toMatch(/reconduit/);
+    expect(r.accordConditions).toEqual({ version: VERSION_EN_VIGUEUR, dateVersion: CONDITIONS_DATE });
+    expect(appelsRpc()).not.toContain("ma_souscription_stripe");
+    expect(appelsRpc()).not.toContain("accepter_cgu");
+    expect(mocks.apercu).not.toHaveBeenCalled();
+    expect(mocks.appliquerHausse).not.toHaveBeenCalled();
+    // La lecture est bornée au compte qui clique, au document et à la version en vigueur.
+    expect(mocks.lecturesCgu.at(-1)).toEqual(expect.arrayContaining([["account_id", "compte-1"], ["document", "conditions_clients"], ["version", VERSION_EN_VIGUEUR]]));
+  });
+
+  it("Q15 — case cochée sur la version affichée : l'accord est enregistré (compte, document, version), puis la hausse se poursuit", async () => {
+    etat(GRILLE, true);
+    mocks.versionsAcceptees = ["2026-11-15"];
+    const fd = hausse();
+    fd.set("cgu", "oui");
+    fd.set("cgu_version", VERSION_EN_VIGUEUR);
+    const r = await confirmerHausse("org-1", {}, fd);
+    expect(mocks.rpc).toHaveBeenCalledWith("accepter_cgu", { p_version: VERSION_EN_VIGUEUR, p_source: "compte", p_document: "conditions_clients" });
+    expect(appelsRpc().indexOf("accepter_cgu")).toBeLessThan(appelsRpc().indexOf("ma_souscription_stripe"));
+    expect(mocks.apercu).toHaveBeenCalledOnce();
+    expect(r.erreur).toBe("arrêt du test");
+  });
+
+  it("Q15 — case cochée sur une version qui n'est plus celle du serveur, ou valeur autre que « oui » : refus, rien d'enregistré", async () => {
+    etat(GRILLE, true);
+    mocks.versionsAcceptees = [];
+    const perimee = hausse();
+    perimee.set("cgu", "oui");
+    perimee.set("cgu_version", "2026-11-15");
+    expect((await confirmerHausse("org-1", {}, perimee)).erreur).toBe(ERREUR_CONDITIONS_PERIMEES);
+    const autre = hausse();
+    autre.set("cgu", "on");
+    autre.set("cgu_version", VERSION_EN_VIGUEUR);
+    expect((await confirmerHausse("org-1", {}, autre)).erreur).toBe(messageActeSansAccord(CONDITIONS_DATE));
+    expect(appelsRpc()).not.toContain("accepter_cgu");
+    expect(appelsRpc()).not.toContain("ma_souscription_stripe");
+  });
+
+  it("Q15 — version pas encore archivée : aucune preuve possible, la hausse passe comme avant, sans rien demander", async () => {
+    etat(GRILLE, true);
+    mocks.versionsAcceptees = [];
+    mocks.archive = null;
+    // Sans archive, la garde de l'identité lit l'identité en vigueur (complète ici) : seule la question de l'accord change.
+    const r = await confirmerHausse("org-1", {}, hausse());
+    expect(r.accordConditions).toBeUndefined();
+    expect(appelsRpc()).toContain("ma_souscription_stripe");
+    expect(appelsRpc()).not.toContain("accepter_cgu");
+    expect(r.erreur).toBe("arrêt du test");
   });
 });
 

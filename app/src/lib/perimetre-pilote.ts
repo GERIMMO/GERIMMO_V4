@@ -57,6 +57,16 @@ export function circuitAdmisPilote(p:ChargeCourriel):boolean {
   if(c.type==='rappel_rendez_vous') return !!p.organisationId && ['veille','j7'].includes(c.echeance) && ['locataire','artisan'].includes(c.role);
   return ['1','2'].includes(c.rang);
  }
+ // Décisions du dirigeant du 24/11/2026 (Q37 et Q24 ; migration 20261125110000). Admis ICI par leur seule forme, comme
+ // les quatre envois ci-dessus ; c'est la base qui décide juste avant l'envoi. La relance d'une demande de report suit
+ // son propre interrupteur (fermé par défaut). La relance de loyer envoyée à la main suit l'interrupteur de la relance
+ // de loyer, sans l'accord permanent de l'espace : le propriétaire clique, la base revérifie le loyer dû et l'adresse.
+ if(c?.type==='relance_report_rdv'||c?.type==='relance_loyer_manuelle') {
+  const uuid=/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i, montant=/^\d{1,9}(\.\d{1,2})?$/;
+  if(!p.organisationId || !uuid.test(c.id) || p.piecesJointes?.length) return false;
+  if(c.type==='relance_report_rdv') return true;
+  return ['relance_1','relance_2'].includes(c.niveau) && uuid.test(c.acteur??'') && montant.test(c.reste) && montant.test(c.total);
+ }
  // Audit palier 1 du 22/11/2026 (P1-16) : les motifs d'un refus ou d'une suspension, que les conditions de l'espace
  // artisan promettent par courriel. Admis ICI par sa seule forme (une décision, aucun espace, aucune pièce) ; c'est
  // la base qui décide, juste avant l'envoi : décision la plus récente de cet artisan, motivée, pas encore notifiée,

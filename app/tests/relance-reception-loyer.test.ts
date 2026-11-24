@@ -110,3 +110,38 @@ it("dit la dette échue totale du bail quand plusieurs termes restent dus (audit
 it("n'envoie rien si la dette totale du bail ne peut pas être lue",async()=>{
   m.erreurs.dette={message:"indisponible"};expect((await envoyerRelanceReception("org","appel",{},f())).erreur).toContain("dette totale");expect(m.envoyer).not.toHaveBeenCalled();
 });
+
+// Décision du dirigeant du 24/11/2026 (Q24, lot D4) : « ouvre aussi la relance à la main ». La relance envoyée d'un clic
+// suit l'interrupteur « relance de loyer » du superviseur (fermé par défaut), sans l'accord permanent de l'espace.
+const interrupteurRelance=(reponse:unknown)=>{const base=m.rpc.getMockImplementation()!;
+  m.rpc.mockImplementation((nom:string,...reste:unknown[])=>nom==="envois_automatiques_proposes"?Promise.resolve(reponse):(base as (...a:unknown[])=>unknown)(nom,...reste));};
+const CINQ={avis_echeance:false,relance_loyer:true,rappel_rendez_vous:false,relance_invitation:false,relance_report_rdv:false};
+it("Q24 — interrupteur ouvert : l'envoi porte le contexte que la base revérifie (appel, niveau, montants, personne qui clique)",async()=>{
+  interrupteurRelance({data:CINQ,error:null});
+  expect((await envoyerRelanceReception("org","appel",{},f())).succes).toContain("enregistrée");
+  const envoi=m.envoyer.mock.calls[0][0];
+  expect(envoi.contexteMetier).toEqual({type:"relance_loyer_manuelle",id:"appel",niveau:"relance_1",reste:"600",total:"600",acteur:"moi"});
+  // Avec un contexte, l'e-mail suit le circuit conservé et prouvé : il ne porte plus « sans reprise ».
+  expect(envoi).not.toHaveProperty("repriseAutonome");
+  expect(envoi).toMatchObject({to:"locataire@example.invalid",circuit:"app/actions/reception-loyer",organisation:{id:"org"}});
+});
+it("Q24 — l'accord permanent de l'espace n'est pas exigé : un espace qui ne l'a pas donné envoie quand même sa relance à la main",async()=>{
+  interrupteurRelance({data:CINQ,error:null});
+  m.tables.organizations={name:"Claire",relance_1_jours:5,relance_2_jours:15,relances_envoi_auto:false};
+  expect((await envoyerRelanceReception("org","appel",{},f())).succes).toContain("enregistrée");
+  expect(m.envoyer).toHaveBeenCalledTimes(1);
+  expect(m.envoyer.mock.calls[0][0].contexteMetier.type).toBe("relance_loyer_manuelle");
+});
+it.each([
+  ["fermé",{data:{...CINQ,relance_loyer:false},error:null}],
+  ["illisible",{data:CINQ,error:{message:"refus"}}],
+  ["incomplet (migration non appliquée : quatre réponses)",{data:{avis_echeance:true,relance_loyer:true,rappel_rendez_vous:true,relance_invitation:true},error:null}],
+])("Q24 — interrupteur %s : aucun contexte, l'envoi reste suspendu comme avant",async(_libelle,reponse)=>{
+  interrupteurRelance(reponse);
+  m.envoyer.mockResolvedValue({erreur:"Envoi suspendu dans le périmètre validé : intervention humaine requise.",interventionRequise:true});
+  expect((await envoyerRelanceReception("org","appel",{},f())).erreur).toContain("Envoi suspendu");
+  const envoi=m.envoyer.mock.calls[0][0];
+  expect(envoi).not.toHaveProperty("contexteMetier");
+  expect(envoi.repriseAutonome).toBe(false);
+  expect(m.trace).not.toHaveBeenCalled();
+});

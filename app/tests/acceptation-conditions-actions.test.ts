@@ -37,6 +37,7 @@ import { definirNouveauMotDePasse } from "../src/app/actions/auth";
 import { accepterConditionsArtisans, accepterNouvelleVersionConditions } from "../src/app/actions/acceptation-conditions";
 import { CONDITIONS_VERSION } from "../src/lib/editeur";
 import { ERREUR_CONDITIONS_PERIMEES } from "../src/lib/garde-souscription";
+import { REFUS_CASE_NOUVELLE_VERSION, REFUS_VERSION_NON_ARCHIVEE } from "../src/lib/nouvelle-version-conditions";
 import { MESSAGE_CASE_A_REVOIR } from "../src/lib/conditions-acceptation";
 import { FormulaireNouveauMotDePasse } from "../src/app/nouveau-mot-de-passe/formulaire-nouveau-mot-de-passe";
 import { AcceptationConditionsArtisans } from "../src/app/artisan/acceptation-conditions-artisans";
@@ -152,11 +153,48 @@ describe("premier choix du mot de passe : le document suit l'usage (R10, R60)", 
 });
 
 describe("« J'accepte la nouvelle version » (R19)", () => {
-  const envoi = (version: string) => {
+  // Décision du dirigeant du 24/11/2026 (Q15, « accord exprès du client ») : ces tests envoyaient le formulaire sans
+  // case, et l'accord s'enregistrait d'un simple clic. L'accord se donne désormais par une case non cochée par défaut,
+  // et seulement sur une version archivée (l'archive porte l'empreinte recopiée sur l'acceptation). Le formulaire des
+  // tests coche donc la case, et la version est archivée ; les deux refus nouveaux ont leurs tests plus bas.
+  const envoi = (version: string, coche = true) => {
     const f = new FormData();
     f.set("cgu_version", version);
+    if (coche) f.set("cgu", "oui");
     return f;
   };
+  /** L'archive des versions telle que l'action la lit : une ligne (archivée), aucune (non archivée), ou une erreur. */
+  const archive = (reponse: { data: unknown; error: unknown }) => {
+    const lectures: [string, ...unknown[]][] = [];
+    const q = {
+      select: vi.fn(() => q),
+      eq: vi.fn((...args: unknown[]) => { lectures.push(["eq", ...args]); return q; }),
+      limit: vi.fn(() => q),
+      maybeSingle: vi.fn(async () => reponse),
+    };
+    const from = vi.fn((table: string) => { lectures.push(["from", table]); return q; });
+    mocks.client.mockResolvedValue({ auth, rpc, from });
+    return lectures;
+  };
+  beforeEach(() => { archive({ data: { version: CONDITIONS_VERSION }, error: null }); });
+
+  it("Q15 — sans la case cochée : refus, rien d'enregistré (l'accord exprès ne se déduit pas d'un clic)", async () => {
+    expect(await accepterNouvelleVersionConditions(ORG, {}, envoi(CONDITIONS_VERSION, false))).toEqual({ erreur: REFUS_CASE_NOUVELLE_VERSION });
+    const autre = envoi(CONDITIONS_VERSION, false);
+    autre.set("cgu", "on");
+    expect(await accepterNouvelleVersionConditions(ORG, {}, autre)).toEqual({ erreur: REFUS_CASE_NOUVELLE_VERSION });
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["non archivée", { data: null, error: null }],
+    ["dont l'archive ne peut pas être lue", { data: { version: CONDITIONS_VERSION }, error: { message: "indisponible" } }],
+  ])("Q15 — version %s : refus, rien d'enregistré (pas d'accord sans empreinte de référence)", async (_libelle, reponse) => {
+    const lectures = archive(reponse);
+    expect(await accepterNouvelleVersionConditions(ORG, {}, envoi(CONDITIONS_VERSION))).toEqual({ erreur: REFUS_VERSION_NON_ARCHIVEE });
+    expect(acceptation()).toBeUndefined();
+    expect(lectures).toEqual([["from", "versions_conditions"], ["eq", "document", "conditions_clients"], ["eq", "version", CONDITIONS_VERSION]]);
+  });
 
   it("version affichée périmée : refus, rien d'enregistré", async () => {
     expect(await accepterNouvelleVersionConditions(ORG, {}, envoi("2026-09-29"))).toEqual({ erreur: ERREUR_CONDITIONS_PERIMEES });

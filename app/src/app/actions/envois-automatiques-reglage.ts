@@ -6,8 +6,9 @@ import { FLUX_ENVOIS_AUTOMATIQUES, LIBELLES_ENVOIS_AUTOMATIQUES, type FluxEnvoiA
 export type RetourEnvoiAutomatique = { erreur?: string; succes?: string; flux?: FluxEnvoiAutomatique };
 
 /**
- * Audit palier 1 (P1-08) : le superviseur permanent ouvre ou ferme, un par un, les quatre envois automatiques prévus
- * et suspendus (avis d'échéance, relance amiable, rappel de rendez-vous, relance d'invitation). Tout est fermé à la
+ * Audit palier 1 (P1-08) : le superviseur permanent ouvre ou ferme, un par un, les envois automatiques prévus
+ * et suspendus (avis d'échéance, relance amiable, rappel de rendez-vous, relance d'invitation ; depuis la décision Q37
+ * du 24/11/2026, la relance d'une demande de report de rendez-vous). Tout est fermé à la
  * livraison. La base refait le contrôle d'accès et journalise le geste (supervision_operations, action
  * « envoi_automatique ») dans la même transaction.
  *

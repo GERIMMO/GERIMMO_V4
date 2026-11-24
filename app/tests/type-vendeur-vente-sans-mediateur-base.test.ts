@@ -37,7 +37,10 @@ describe("type de vendeur et vente sans médiateur — manifeste et droits (sans
   it("la migration est au manifeste une seule fois, après celles des réglages de l'identité, avec son retour listé et son test en série", () => {
     const manifeste = readFileSync("e2e/local/ordre-migrations.txt", "utf8").trim().split(/\r?\n/);
     expect(manifeste.filter((l) => l === `${NOM}.sql`)).toHaveLength(1);
-    expect(manifeste.at(-1)).toBe(`${NOM}.sql`);
+    // Lot D4 du 24/11/2026 : cette migration n'est plus la dernière du manifeste (20261125110000 la suit). Ce que le test
+    // tient : elle clôt les quatre migrations des lots D7 et T4, et seule celle du lot D4 vient après elle.
+    expect(manifeste.slice(manifeste.indexOf(`${NOM}.sql`) + 1)).toEqual(["20261125110000_relance_report_rdv_et_relance_a_la_main.sql"]);
+    expect(manifeste[manifeste.indexOf(`${NOM}.sql`) - 1]).toBe("20261125105000_archive_compte_apres_client_stripe.sql");
     for (const avant of ["20261019123000_identite_editeur_prestataires.sql", "20261022210326_reglage_blocage_souscription_identite.sql", "20261114001320_ouverture_souscriptions_payantes.sql"]) {
       expect(manifeste.indexOf(`${NOM}.sql`), avant).toBeGreaterThan(manifeste.indexOf(avant));
     }

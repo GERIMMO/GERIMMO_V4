@@ -32,13 +32,14 @@ import { FormulaireProfilOrganisation } from "@/app/agence/[orgId]/profil/formul
 import { texteInformationEnvois } from "@/components/information-envois-proprietaire";
 import { AUCUN_ENVOI_PROPOSE, lireEnvoisProposes } from "@/lib/envois-suspendus";
 
-const TOUT_OUVERT = { avis_echeance: true, relance_loyer: true, rappel_rendez_vous: true, relance_invitation: true };
+// Décision du dirigeant du 24/11/2026 (Q37, lot D4) : la lecture rend cinq oui/non (quatre jusque-là).
+const TOUT_OUVERT = { avis_echeance: true, relance_loyer: true, rappel_rendez_vous: true, relance_invitation: true, relance_report_rdv: true };
 const reponse = (r: unknown) => ({ rpc: async () => r }) as unknown as Pick<SupabaseClient, "rpc">;
 
 describe("la lecture de ce qui est proposé", () => {
-  it("rend les quatre oui/non que la base donne", async () => {
+  it("rend les cinq oui/non que la base donne", async () => {
     expect(await lireEnvoisProposes(reponse({ data: TOUT_OUVERT, error: null }))).toEqual(TOUT_OUVERT);
-    const mixte = { avis_echeance: true, relance_loyer: false, rappel_rendez_vous: false, relance_invitation: true };
+    const mixte = { avis_echeance: true, relance_loyer: false, rappel_rendez_vous: false, relance_invitation: true, relance_report_rdv: false };
     expect(await lireEnvoisProposes(reponse({ data: { ...mixte, autre: "ignoré" }, error: null }))).toEqual(mixte);
   });
 

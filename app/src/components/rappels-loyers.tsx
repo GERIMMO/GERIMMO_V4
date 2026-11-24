@@ -1,7 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { aujourdhuiParis } from "@/lib/ged";
 import { enrichirRappelsLoyers, lireRappelsLoyers, organiserRappelsLoyers } from "@/lib/rappels-loyers";
-import { piloteLimite } from "@/lib/perimetre-pilote";
 import { courrierDisponible } from "@/lib/paliers-reception-loyer";
 import { preparerMoteurPdfLocal } from "@/lib/documents/rendu";
 import { recommandeElectroniqueDisponible } from "@/lib/recommande-disponible";
@@ -22,6 +21,7 @@ export async function RappelsLoyers({ supabase, orgId, lectureSeule = false, dan
   // Audit palier 1 (P1-18) : le recommandé électronique n'est proposé que s'il est réellement relié pour cet espace.
   const recommandeElectronique = !lectureSeule && await recommandeElectroniqueDisponible(supabase, orgId);
   // Audit palier 1 (P1-08) : la relance automatique n'est annoncée que si le superviseur l'a ouverte.
+  // Décision du 24/11/2026 (Q24) : le même interrupteur ouvre l'envoi immédiat à la main ; fermé, seul le PDF est proposé.
   const relanceOuverte = relanceAutomatiqueOuverte ?? (await lireEnvoisProposes(supabase)).relance_loyer;
-  return <RappelsLoyersInteractifs envoiRelanceDisponible={!piloteLimite()} relanceAutomatiqueOuverte={relanceOuverte} recommandeElectroniqueDisponible={recommandeElectronique} key={orgId} orgId={orgId} aujourdHui={aujourdHui} lectureSeule={lectureSeule} {...rappels} dus={dus} dansFenetre={dansFenetre} />;
+  return <RappelsLoyersInteractifs envoiRelanceDisponible={relanceOuverte} relanceAutomatiqueOuverte={relanceOuverte} recommandeElectroniqueDisponible={recommandeElectronique} key={orgId} orgId={orgId} aujourdHui={aujourdHui} lectureSeule={lectureSeule} {...rappels} dus={dus} dansFenetre={dansFenetre} />;
 }

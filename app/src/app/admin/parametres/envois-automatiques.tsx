@@ -9,7 +9,8 @@ import {
 } from "@/lib/envois-suspendus";
 
 /**
- * Les quatre envois automatiques prévus et suspendus (audit palier 1, P1-08), chacun avec son interrupteur.
+ * Les cinq envois automatiques prévus et suspendus (audit palier 1, P1-08 ; cinquième envoi : décision Q37 du
+ * 24/11/2026), chacun avec son interrupteur.
  * `etat` : le réglage enregistré (null = illisible). Tout est fermé à la livraison ; seul le superviseur permanent
  * ouvre, envoi par envoi, après une confirmation explicite. Fermé, rien ne change par rapport à avant ce réglage.
  */
@@ -24,7 +25,7 @@ export function EnvoisAutomatiques({ etat, accords }: { etat: EtatEnvoisAutomati
         </span>
       </div>
       <p className="text-sm">
-        Quatre e-mails automatiques sont prêts mais ne partent pas tant que vous ne les ouvrez pas, un par un. Fermé,
+        Cinq e-mails automatiques sont prêts mais ne partent pas tant que vous ne les ouvrez pas, un par un. Fermé,
         rien n’est envoyé et rien n’est perdu : chaque loyer, relance ou rendez-vous reste visible dans les espaces, et
         se traite à la main.
       </p>
@@ -38,7 +39,7 @@ export function EnvoisAutomatiques({ etat, accords }: { etat: EtatEnvoisAutomati
       <p className="text-sm text-[var(--texte-secondaire)]">
         Ouvert, un envoi ne part que si la base confirme, juste avant, qu’il est toujours dû à cette adresse ; un arrêt
         d’urgence le retient aussi. Les deux premiers ne concernent que les espaces qui ont demandé l’envoi automatique
-        dans leurs réglages. Chaque ouverture ou fermeture est inscrite au journal de la supervision.
+        dans leurs réglages ; la relance qu’un propriétaire envoie lui-même, d’un clic, ne demande pas ce réglage. Chaque ouverture ou fermeture est inscrite au journal de la supervision.
       </p>
     </section>
   );

@@ -35,7 +35,7 @@ export default async function PageParametres() {
   const reglageIA = await db.from("ia_plafond_reglage").select("ia_active").eq("singleton", true).maybeSingle();
   const iaActive = reglageIA.error || !reglageIA.data ? null : reglageIA.data.ia_active === true;
   const etatDeLIA = await etatIA(db);
-  // Envois automatiques (audit palier 1, P1-08) : quatre interrupteurs, fermés à la livraison. Illisible = on n'affiche
+  // Envois automatiques (audit palier 1, P1-08 ; Q37 du 24/11) : cinq interrupteurs, fermés à la livraison. Illisible = on n'affiche
   // aucun bouton plutôt qu'un état supposé.
   const reglageEnvois = await db.rpc("lire_envois_automatiques");
   const lu = reglageEnvois.error || !reglageEnvois.data || typeof reglageEnvois.data !== "object" ? null : reglageEnvois.data as Record<string, unknown>;

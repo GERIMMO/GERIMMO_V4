@@ -72,7 +72,12 @@ describe("envois automatiques — manifeste, retour et liste fermée (sans base)
 
   it("tout est fermé à la livraison, rien n'est ouvert à un compte, et aucune garde n'est posée sur la table des autres", () => {
     const sql = readFileSync(`supabase/migrations/${NOM}.sql`, "utf8").replace(/^\s*--.*$/gm, "");
-    for (const flux of FLUX_ENVOIS_AUTOMATIQUES) expect(sql, flux).toContain(`${flux} boolean not null default false`);
+    // Décision du dirigeant du 24/11/2026 (Q37, lot D4) : le cinquième interrupteur est posé par la migration 20261125110000, fermé lui aussi.
+    const QUATRE = FLUX_ENVOIS_AUTOMATIQUES.filter((f) => f !== "relance_report_rdv");
+    expect(QUATRE).toHaveLength(4);
+    for (const flux of QUATRE) expect(sql, flux).toContain(`${flux} boolean not null default false`);
+    expect(readFileSync("supabase/migrations/20261125110000_relance_report_rdv_et_relance_a_la_main.sql", "utf8"))
+      .toContain("add column if not exists relance_report_rdv boolean not null default false;");
     expect(sql).toContain("revoke all on public.envois_automatiques_reglage from public, anon, authenticated, service_role;");
     expect(sql).toContain("alter table public.envois_automatiques_reglage enable row level security;");
     expect(sql).not.toMatch(/grant[^;]*\bto\b[^;]*\b(anon|public)\b/i);
@@ -301,7 +306,8 @@ describe.skipIf(!url)("envois automatiques (avec base)", () => {
   it("à la livraison tout est fermé : valeurs par défaut de la table, lecture du traitement, flux inconnu", async () => {
     const defauts = await q<{ c: string; d: string }>(`select column_name c, column_default d from information_schema.columns
       where table_schema='public' and table_name='envois_automatiques_reglage' and column_name = any($1) order by 1`, [[...FLUX_ENVOIS_AUTOMATIQUES]]);
-    expect(defauts.map((d) => d.d)).toEqual(["false", "false", "false", "false"]);
+    // Décision du dirigeant du 24/11/2026 (Q37, lot D4) : cinq interrupteurs, tous fermés par défaut.
+    expect(defauts.map((d) => d.d)).toEqual(["false", "false", "false", "false", "false"]);
     expect(await q("select singleton from public.envois_automatiques_reglage")).toHaveLength(1);
     for (const flux of [...FLUX_ENVOIS_AUTOMATIQUES, "autre", ""]) {
       expect((await q<{ o: boolean }>("select public.envoi_automatique_ouvert($1) o", [flux]))[0].o, flux).toBe(false);
@@ -376,9 +382,10 @@ describe.skipIf(!url)("envois automatiques (avec base)", () => {
     ]);
   });
 
-  it("les écrans des espaces lisent quels envois sont ouverts — quatre oui/non, pour tout compte connecté, jamais pour un visiteur", async () => {
+  // Décision du dirigeant du 24/11/2026 (Q37, lot D4) : cinq oui/non (quatre jusque-là).
+  it("les écrans des espaces lisent quels envois sont ouverts — cinq oui/non, pour tout compte connecté, jamais pour un visiteur", async () => {
     const ordinaire = await compte(), superviseur = await compte(true);
-    const TOUT_FERME = { avis_echeance: false, relance_loyer: false, rappel_rendez_vous: false, relance_invitation: false };
+    const TOUT_FERME = { avis_echeance: false, relance_loyer: false, rappel_rendez_vous: false, relance_invitation: false, relance_report_rdv: false };
     await en(ordinaire);
     expect((await q<{ e: unknown }>("select public.envois_automatiques_proposes() e"))[0].e).toEqual(TOUT_FERME);
     await en(superviseur);
@@ -802,17 +809,31 @@ describe.skipIf(!url)("envois automatiques (avec base)", () => {
         from pg_proc p join pg_namespace n on n.oid = p.pronamespace and n.nspname = 'public'
        where p.proname = any($1) order by 1`, [NOMS]);
     const corps = async (nom: string) => (await q<{ c: string }>("select md5(p.prosrc) c from pg_proc p join pg_namespace n on n.oid=p.pronamespace and n.nspname='public' where p.proname=$1", [nom]))[0]?.c;
-    const reglage = async () => (await q<Record<FluxEnvoiAutomatique, boolean>>("select avis_echeance, relance_loyer, rappel_rendez_vous, relance_invitation from public.envois_automatiques_reglage"))[0];
+    const reglage = async () => (await q<Record<FluxEnvoiAutomatique, boolean>>("select avis_echeance, relance_loyer, rappel_rendez_vous, relance_invitation, relance_report_rdv from public.envois_automatiques_reglage"))[0];
 
     const d = await decorLoyer();
     await ouvrir("avis_echeance");
     const avec = await etat();
     expect(avec).toHaveLength(8);
     await db.query(migration);
+    // Lot D4 du 24/11/2026 : ce test affirmait « rejouée, rien ne change » pour les huit fonctions. C'est toujours vrai
+    // des deux têtes de chaîne et de leurs maillons. Ce ne l'est plus des quatre fonctions du réglage, que la migration
+    // 20261125110000 a réécrites pour un cinquième envoi : rejouer celle-ci leur rend leur texte à quatre envois. Entre
+    // les deux, le cinquième envoi se lit « fermé » (rien ne part) et les quatre autres gardent leur état ; rejouer
+    // ensuite les migrations plus récentes rend l'état exact d'avant. Les deux temps sont tenus ci-dessous.
+    const CHAINE = (f: { f: string }) => /^(empreinte|finaliser)_/.test(f.f);
+    expect((await etat()).filter(CHAINE)).toEqual(avec.filter(CHAINE));
+    expect(await maillonsEnAttente(db)).toEqual([]);
+    await enService();
+    expect(await envoiAutomatiqueOuvert(service, "avis_echeance")).toBe(true);
+    if (maillonsPlusRecents(NOM).includes("20261125110000_relance_report_rdv_et_relance_a_la_main")) {
+      expect(await envoiAutomatiqueOuvert(service, "relance_report_rdv")).toBe(false);
+    }
+    await reposerMaillonsPlusRecents(db, NOM);
     expect(await etat()).toEqual(avec);
     expect(await maillonsEnAttente(db)).toEqual([]);
     // Rejouer la migration ne referme pas ce que le superviseur a ouvert, et n'ouvre rien d'autre.
-    expect(await reglage()).toEqual({ avis_echeance: true, relance_loyer: false, rappel_rendez_vous: false, relance_invitation: false });
+    expect(await reglage()).toEqual({ avis_echeance: true, relance_loyer: false, rappel_rendez_vous: false, relance_invitation: false, relance_report_rdv: false });
 
     // Un avis attend une reprise au moment du retour.
     const p = chargeAvis(d);
@@ -856,7 +877,7 @@ describe.skipIf(!url)("envois automatiques (avec base)", () => {
     const denouveau = await etat();
     expect(denouveau.map((f) => [f.f, f.e, f.d])).toEqual(avec.map((f) => [f.f, f.e, f.d]));
     // Reposée, la migration livre tout fermé : l'ouverture d'avant le retour n'est pas rendue.
-    expect(await reglage()).toEqual({ avis_echeance: false, relance_loyer: false, rappel_rendez_vous: false, relance_invitation: false });
+    expect(await reglage()).toEqual({ avis_echeance: false, relance_loyer: false, rappel_rendez_vous: false, relance_invitation: false, relance_report_rdv: false });
     expect(await preuve(d.org, ctxAvis(d.appel))).toBeNull();
     await ouvrir("avis_echeance");
     expect(await preuve(d.org, ctxAvis(d.appel))).toMatch(HEX64);

@@ -13,7 +13,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { contexte, personne } from "./fixtures/contexte-document";
 
 vi.mock("@/lib/documents/modeles/communs", async (importOriginal) => ({
@@ -458,6 +458,15 @@ describe("lot 43 — T04 (C07) et T07 : phrase de la sortie, accord de travaux d
 });
 
 describe("reprise du lot 40 — C01 : le résumé n'est ni la notice annexée au contrat, ni joint sous son ancien texte", () => {
+  // Phase 3, lot 48 (U01) : l'ERP de la base simulée expire le 05/05/2027 et la signature compare cette échéance au jour
+  // réel : après cette date, « ERP : le diagnostic est expiré » s'ajoutait aux manquants. Horloge figée.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-23T12:00:00Z"));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
   type Table = { data: unknown; error: null };
   /** Base simulée de `annexesSignatureBail` : chaque table rend ses lignes, `single` la première. */
   const baseAnnexes = (documents: Record<string, unknown>[]) => {

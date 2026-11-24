@@ -57,6 +57,12 @@ export class Fusion {
   manquants: string[] = [];
   /** Phase 3, lot 46 (T19) : l'origine de l'en-tête imprimé (enTete), que la liste « À renseigner » suit. */
   emetteur?: EmetteurEnTete;
+  // Phase 3, lot 48 (U04) : un même libellé sert à l'en-tête et au corps (« domicile ou siège social » : l'agence en en-tête, le
+  // bailleur au corps d'un contrat) et la liste n'en garde qu'une entrée. Les champs vides de l'en-tête sont notés à part
+  // (`enTeteEnCours`, posé par enTete), pour que le lien « renseigner » suive l'information qui manque vraiment.
+  enTeteEnCours = false;
+  private readonly videsEnTete = new Set<string>();
+  private readonly videsAilleurs = new Set<string>();
 
   // Une valeur présente s'imprime ; absente, le libellé de l'épreuve reste
   // en réserve et le champ est compté manquant (une seule fois par libellé).
@@ -69,6 +75,7 @@ export class Fusion {
     if (v !== "") return `<span class="v">${echapper(v)}</span>`;
     const manquant = nom ?? libelle;
     if (!this.manquants.includes(manquant)) this.manquants.push(manquant);
+    (this.enTeteEnCours ? this.videsEnTete : this.videsAilleurs).add(manquant);
     return `<span class="fusion">${echapper(libelle)}</span>`;
   }
 
@@ -79,6 +86,11 @@ export class Fusion {
   montant(n: number | string | null | undefined, libelle = "montant"): string {
     if (n === null || n === undefined || n === "") return this.champ(null, libelle);
     return this.champ(eur(Number(n)), libelle);
+  }
+
+  /** Les manquants restés vides dans l'en-tête SEULEMENT (lot 48, U04) ; un libellé vide aussi ailleurs n'y figure pas. */
+  get seulementEnTete(): string[] {
+    return this.manquants.filter((m) => this.videsEnTete.has(m) && !this.videsAilleurs.has(m));
   }
 }
 
@@ -240,18 +252,29 @@ export function enTete(
   cartouche: { libelle: string; reference: string | null | undefined; etabliLe: string }
 ): string {
   if (exp.emetteur) f.emetteur = exp.emetteur;
-  return `<header class="entete">
+  // Lot 48 (U04) : mêmes champs, dans le même ordre ; seuls leurs manques sont notés comme venant de l'en-tête.
+  f.enTeteEnCours = true;
+  try {
+    const nom = f.champ(exp.nom, "nom et prénom(s), ou dénomination");
+    const adresse = f.champ(exp.adresse, "domicile ou siège social");
+    const email = f.champ(exp.email, "adresse électronique");
+    const reference = f.champ(cartouche.reference, "référence");
+    const etabli = f.date(cartouche.etabliLe);
+    return `<header class="entete">
     <div class="exp">
-      <div class="exp-nom">${f.champ(exp.nom, "nom et prénom(s), ou dénomination")}</div>
-      <div>${f.champ(exp.adresse, "domicile ou siège social")}</div>
-      <div>${exp.contactGestion ? "Contact de gestion : " : ""}${f.champ(exp.email, "adresse électronique")}&nbsp;&nbsp;·&nbsp;&nbsp;${facultatif(exp.telephone)}</div>
+      <div class="exp-nom">${nom}</div>
+      <div>${adresse}</div>
+      <div>${exp.contactGestion ? "Contact de gestion : " : ""}${email}&nbsp;&nbsp;·&nbsp;&nbsp;${facultatif(exp.telephone)}</div>
     </div>
     <div class="cartouche-ref">
       <div>${echapper(cartouche.libelle)} <span class="mini">n°</span></div>
-      <div class="exp-nom">${f.champ(cartouche.reference, "référence")}</div>
-      <div>Établi le ${f.date(cartouche.etabliLe)}</div>
+      <div class="exp-nom">${reference}</div>
+      <div>Établi le ${etabli}</div>
     </div>
   </header>`;
+  } finally {
+    f.enTeteEnCours = false;
+  }
 }
 
 // Titre du document entre deux filets encre + sous-titre laiton + base légale.
@@ -342,6 +365,8 @@ export type DocumentAssemble = {
   manquants: string[];
   /** L'origine de l'en-tête imprimé, quand il vient d'`expediteur` (lot 46, T19). */
   emetteur?: EmetteurEnTete;
+  /** Les manquants vides dans l'en-tête seulement (Fusion.seulementEnTete, lot 48, U04). */
+  seulementEnTete?: string[];
 };
 
 export function assemblerPage(params: {
@@ -367,6 +392,7 @@ export function assemblerPage(params: {
     empreinte,
     manquants: params.f.manquants,
     ...(params.f.emetteur ? { emetteur: params.f.emetteur } : {}),
+    ...(params.f.seulementEnTete.length ? { seulementEnTete: params.f.seulementEnTete } : {}),
   };
 }
 

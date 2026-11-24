@@ -3,7 +3,7 @@
  * et règles miroirs. Les corrections en base sont couvertes par
  * `audit-baux-documents-2026-09-29-base.test.ts` (parité TS/SQL comprise).
  */
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { contexte, personne } from "./fixtures/contexte-document";
 import { Fusion } from "@/lib/documents/gabarit";
@@ -169,6 +169,15 @@ describe("acte de cautionnement", () => {
 // Constats 8 et 20 — congé pour vente : prix et terme calculé
 // ---------------------------------------------------------------------------
 describe("congé du bailleur (PDF)", () => {
+  // Phase 3, lot 48 (U01) : la lettre est datée du jour de sa génération (heure réelle). La date saisie à la main
+  // (25/12/2026), qui ne doit pas être imprimée, l'aurait été le 25/12/2026 comme date de la lettre : horloge figée.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-23T12:00:00Z"));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
   const client = (termes: string[]) => {
     const rpc = vi.fn(async () => ({ data: termes.shift() ?? null, error: null }));
     return { client: { rpc } as unknown as SupabaseClient, rpc };

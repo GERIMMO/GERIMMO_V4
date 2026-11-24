@@ -245,8 +245,11 @@ describe("T19 — « À renseigner » suit l'en-tête effectivement imprimé", (
   });
   it("l'action de génération transmet l'origine de l'en-tête à l'écran, qui la passe au résolveur", () => {
     expect(readFileSync("src/app/actions/documents-generes.ts", "utf8")).toContain("...(assemblage.document.emetteur ? { emetteur: assemblage.document.emetteur } : {})");
-    expect(readFileSync("src/app/agence/[orgId]/documents/catalogue/formulaire-catalogue.tsx", "utf8")).toContain("lienPourManquant(m,orgId,etat.liens??[],modeleId,racine,etat.emetteur)");
-    expect(readFileSync("src/components/bouton-generer-document.tsx", "utf8")).toContain("lienPourManquant(m, orgId, affichage.liens ?? [], code, racine, affichage.emetteur)");
+    // Phase 3, lot 48 (U04) : les deux écrans passent aussi les manquants de l'en-tête seul (dernier argument), que l'action
+    // transmet de même ; l'origine de l'en-tête reste passée telle quelle.
+    expect(readFileSync("src/app/actions/documents-generes.ts", "utf8")).toContain("...(assemblage.document.seulementEnTete ? { seulementEnTete: assemblage.document.seulementEnTete } : {})");
+    expect(readFileSync("src/app/agence/[orgId]/documents/catalogue/formulaire-catalogue.tsx", "utf8")).toContain("lienPourManquant(m,orgId,etat.liens??[],modeleId,racine,etat.emetteur,etat.seulementEnTete)");
+    expect(readFileSync("src/components/bouton-generer-document.tsx", "utf8")).toContain("lienPourManquant(m, orgId, affichage.liens ?? [], code, racine, affichage.emetteur, affichage.seulementEnTete)");
   });
 });
 

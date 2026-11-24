@@ -34,7 +34,9 @@ const REGLES: Regle[] = [
   // L'identité du bailleur : le nom de l'organisation n'est jamais vide, donc
   // ce libellé ne peut venir que du bloc bailleur — les détenteurs se
   // renseignent sur la fiche du lot (détentions du bien)
-  { motifs: ["ou dénomination", "personne physique, sci"], cible: "lot", section: "detention" },
+  // Phase 3, lot 48 (U06) : la qualité du bailleur du bail nu (« personne physique, indivision, SCI familiale, … ») n'avait aucun
+  // lien, « personne physique, sci » ne couvrant que le libellé du bail meublé.
+  { motifs: ["ou dénomination", "personne physique, sci", "personne physique, indivision"], cible: "lot", section: "detention" },
   // Phase 3 (C50, C72) : le compte qui reçoit les loyers est l'IBAN du profil de l'espace (celui des avis d'échéance) —
   // avant la règle des conditions financières du bail, dont le motif « iban » enverrait à la fiche du bail.
   { motifs: ["coordonnées bancaires"], cible: "organisation" },
@@ -138,7 +140,9 @@ export function lienPourManquant(
   /** « /espace » pour le propriétaire direct, « /agence » par défaut (décision D27, lib/racine-espace.ts). */
   racine: string = RACINE_AGENCE,
   /** L'origine de l'en-tête effectivement imprimé (document assemblé, lot 46) ; absente, elle est déduite des liens et du modèle. */
-  emetteur?: EmetteurEnTete
+  emetteur?: EmetteurEnTete,
+  /** Les manquants vides dans l'en-tête seulement (document assemblé, lot 48) ; absente, un libellé est réputé manquer au corps. */
+  seulementEnTete?: readonly string[]
 ): LienManquant | null {
   const base = `${racine}/${orgId}`;
   const l = libelle.toLowerCase();
@@ -197,19 +201,29 @@ export function lienPourManquant(
   // émis par les détenteurs des logements de l'immeuble et renvoyaient au profil de l'espace ; un document d'un lot sans
   // détenteur garde l'en-tête de l'espace et renvoyait à la fiche du propriétaire.
   const enTeteDesDetenteurs = emetteur ? emetteur === "detenteurs" : Boolean(bail || lot) && !MODELES_EN_TETE_ESPACE.has(modele ?? "");
-  if (racine === RACINE_PROPRIETAIRE && emetteur === "espace" && MODELES_BAILLEUR_AU_CORPS.has(modele ?? "") && l === "domicile ou siège social") {
+  // Phase 3, lot 48 (U06) : le contrat d'un lot sans détenteur laisse vide tout le bloc du bailleur ; son adresse électronique
+  // (« adresse électronique », qui menait à la fiche du bail ou du locataire) se complète aussi en ajoutant le détenteur.
+  if (racine === RACINE_PROPRIETAIRE && emetteur === "espace" && MODELES_BAILLEUR_AU_CORPS.has(modele ?? "") &&
+      (l === "domicile ou siège social" || (MODELES_CONTRAT.has(modele ?? "") && l === "adresse électronique"))) {
     return vers("lot", DETENTION);
   }
   // Reprise du lot 46 (T19) : dans un espace d'agence, l'en-tête est toujours celui de l'agence, et son adresse manquante est
   // AUSSI signalée au corps, sous « adresse du mandataire » (profil). « Domicile ou siège social » y désigne donc le bailleur du
   // corps, c'est-à-dire le propriétaire mandant (détenteur du lot) : il menait au profil de l'agence, déjà complet, et le PDF
   // restait bloqué. Sa fiche est dans Personnes ; un lot sans détenteur signale en outre « ou dénomination » (détention).
+  // Phase 3, lot 48 (U04) : quand c'est seulement l'adresse de l'agence qui manque (en-tête), le libellé mène au profil, où
+  // elle se saisit. Si l'adresse du mandant manque aussi, il mène à sa fiche ; celle de l'agence reste signalée sous
+  // « adresse du mandataire » (profil).
   if (racine !== RACINE_PROPRIETAIRE && MODELES_BAILLEUR_AU_CORPS.has(modele ?? "") && l === "domicile ou siège social") {
+    if (seulementEnTete?.includes(libelle)) return vers("organisation");
     return { href: `${base}/personnes`, ecran: "fiche du propriétaire, dans Personnes" };
   }
   // Reprise du lot 46 (T21) : un contrat sans locataire principal est incomplet (« nom et prénom(s) », libellé du bloc du
   // locataire) ; il se désigne sur la fiche du bail.
   if (MODELES_CONTRAT.has(modele ?? "") && l === "nom et prénom(s)") return vers("bail");
+  // Phase 3, lot 48 (U05) : même règle pour la liste des pièces, qui ne signale ce libellé que sans locataire principal ; il
+  // menait à la fiche d'un colocataire, où le principal ne se désigne pas.
+  if (modele === "liste_dossier" && l === "nom et prénom(s) du ou des locataires") return vers("bail");
   // Reprise du lot 46 (T21) : une attestation d'assurance sans personne se rattache depuis Documents (« Rattacher à une autre
   // fiche » de la pièce).
   if (modele === "rappel_assurance" && libelle === MANQUE_LOCATAIRE_ATTESTATION) return { href: `${base}/documents`, ecran: "Documents" };

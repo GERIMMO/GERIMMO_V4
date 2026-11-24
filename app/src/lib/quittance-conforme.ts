@@ -24,7 +24,16 @@ type Nom = { nom: string; prenom: string | null };
  * Un bailleur du document. `representant` (SCI-3, migration 20261119200200) : pour une société dotée d'un pouvoir
  * actif au bail, le nom et le prénom de la personne physique qui signe pour elle ; clé absente sinon.
  */
-export type BailleurQuittanceDocument = Nom & { representant?: Nom | null };
+export type BailleurQuittanceDocument = Nom & {
+  representant?: Nom | null;
+  /**
+   * Phase 3, lot 48 (U07, migration 20261123230000) : chez un propriétaire qui gère lui-même, l'adresse postale de la fiche du
+   * bailleur. Clés absentes dans un espace d'agence, ou tant que la migration n'est pas appliquée.
+   */
+  adresse?: string | null;
+  code_postal?: string | null;
+  ville?: string | null;
+};
 
 export type DonneesQuittanceDocument = {
   quittance_id: string;
@@ -136,6 +145,13 @@ export function assemblerQuittanceDelivree(d: DonneesQuittanceDocument): Documen
   const f = new Fusion();
   const { emetteur, bailleur, mandataire, identiteLegale } = parties(d);
   const adresseEmetteur = adresse(d.organisation.adresse, d.organisation.code_postal, d.organisation.ville);
+  // Phase 3, lot 48 (U07) : chez un propriétaire qui gère lui-même, l'en-tête est celui des bailleurs, comme le PDF de la même
+  // quittance (`expediteur`, documents/modeles/communs.ts) : leur nom ET leur adresse (toutes, ou aucune, à renseigner sur leur
+  // fiche), et leur commune pour « Fait à ». La page imprimait leur nom avec l'adresse du profil de l'espace. Sans les clés
+  // d'adresse (migration 20261123230000 pas encore appliquée, ou espace d'agence), l'en-tête reste celui d'avant.
+  const parBailleurs = estProprietaireDirect(d) && d.bailleurs.length > 0 && d.bailleurs.every((b) => "adresse" in b);
+  const adressesBailleurs = d.bailleurs.map((b) => adresse(b.adresse ?? null, b.code_postal ?? null, b.ville ?? null));
+  const adresseBailleurs = adressesBailleurs.every(Boolean) ? [...new Set(adressesBailleurs)].join(" · ") : null;
   const logement = [
     adresse(d.logement.adresse, d.logement.code_postal, d.logement.ville),
     d.logement.lot_nom && d.logement.lot_nom !== "Lot unique" ? d.logement.lot_nom : null,
@@ -193,19 +209,16 @@ export function assemblerQuittanceDelivree(d: DonneesQuittanceDocument): Documen
       nom: emetteur,
       // SIRET et carte professionnelle de l'agence sous son adresse, quand ils
       // sont renseignés — la signature, elle, ne porte que le nom.
-      adresse: adresseEmetteur && identiteLegale ? `${adresseEmetteur} · ${identiteLegale}` : adresseEmetteur,
+      adresse: parBailleurs ? adresseBailleurs : adresseEmetteur && identiteLegale ? `${adresseEmetteur} · ${identiteLegale}` : adresseEmetteur,
       email: d.organisation.email,
       telephone: d.organisation.telephone,
-      ville: d.organisation.ville,
-      // Phase 3, lot 46 (second passage, T19) : l'adresse et la commune imprimées viennent du profil de l'espace
-      // (quittance_document : organisation), même quand les bailleurs émettent. La liste « à renseigner » de la page y mène ;
-      // elle envoyait, par déduction du lien au bail, vers la fiche du propriétaire, que cette quittance ne lit pas.
-      // POINT OUVERT (reprise du lot 46, signalé, non tranché) : chez un propriétaire qui gère lui-même, cette page associe le
-      // NOM des bailleurs à l'ADRESSE de l'espace, alors que le PDF de la même quittance (modeles/quittance.ts, expediteur)
-      // imprime le nom ET l'adresse des détenteurs ; une SCI y paraît à l'adresse de l'espace. Aligner suppose que
-      // quittance_document (lisible par le locataire, et source de l'empreinte des courriels de quittance) rende l'adresse
-      // des bailleurs : migration et choix de données laissés au dirigeant (questions du lot 46) et au juriste.
-      emetteur: "espace",
+      ville: parBailleurs ? d.bailleurs[0].ville ?? null : d.organisation.ville,
+      // Phase 3, lot 46 (second passage, T19) : la liste « à renseigner » de la page suit l'origine de l'adresse et de la
+      // commune imprimées ; elle envoyait, par déduction du lien au bail, vers une fiche que la quittance ne lisait pas.
+      // Phase 3, lot 48 (U07) : le point laissé ouvert par la reprise du lot 46 (nom des bailleurs, adresse de l'espace) est
+      // fermé : avec l'adresse des bailleurs, l'en-tête est le leur (« detenteurs »), et la liste mène à leur fiche ; sans
+      // elle (agence, ou migration pas encore appliquée), c'est le profil de l'espace (« espace »).
+      emetteur: parBailleurs ? "detenteurs" : "espace",
     },
     // La signature préenregistrée vit dans le stockage privé de
     // l'organisation, que le locataire ne lit pas : la zone reste à signer.

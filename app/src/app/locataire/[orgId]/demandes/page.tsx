@@ -190,7 +190,7 @@ export default async function PageDemandesLocataire(
         rappelPromis={rappelPromis}
         interlocuteur={interlocuteur}
       />
-      {!eSuivis && [...new Set(suivis.flatMap(s=>s.intervention_id?[s.intervention_id]:[]))].map(id=><EchangesIntervention key={id} intervention={id} />)}
+      {!eSuivis && [...new Set(suivis.flatMap(s=>s.intervention_id?[s.intervention_id]:[]))].map(id=><EchangesIntervention key={id} intervention={id} interlocuteur={interlocuteur} />)}
     </div>
   );
 }

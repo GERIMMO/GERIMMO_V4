@@ -17,7 +17,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { contexte, personne } from "./fixtures/contexte-document";
 
 vi.mock("@/lib/documents/modeles/communs", async (importOriginal) => ({
@@ -393,6 +393,17 @@ describe("C65 — suivi des courriers : aucune relance préparée pendant un pla
 describe("C65 (reprise) — le suivi du tableau de bord ne propose plus de relance pendant un plan d'apurement en cours", () => {
   // Deux baux impayés depuis le 05/10/2026, non-réception confirmée le 22/11 ; le bail b1 est sous plan actif.
   const jour = "2026-11-23";
+  // Phase 3, lot 48 (U01) : le suivi lit l'heure réelle (enrichirRappelsLoyers, Date.now()) et une confirmation qui n'a
+  // déclenché aucun envoi expire 36 h après le signalement (paliers-reception-loyer.ts). Sans horloge figée, ce bloc
+  // devenait rouge le 23/11/2026 à 21 h UTC. L'horloge est donc figée au jour du suivi, 27 h après le signalement : la
+  // confirmation est encore valable, comme le jour où le cas a été écrit. Les assertions ne changent pas.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-23T12:00:00Z"));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
   const ligne = (bail: string): RappelsLoyers.RappelLoyer => ({ appel_id: "appel-" + bail, bail_id: bail, lot_nom: "Lot " + bail, locataire: "Fictif Hugo",
     periode: "2026-10-01", date_echeance: "2026-10-05", montant_du: 980, montant_couvert: 0, non_recu_signale_le: "2026-11-22T09:00:00Z" });
   const tables = (plans: Ligne[]) => ({ organizations: [{ relances_envoi_auto: true, relance_1_jours: 5, relance_2_jours: 15 }], relances: [], recommandes_ar24: [], plans_apurement: plans });

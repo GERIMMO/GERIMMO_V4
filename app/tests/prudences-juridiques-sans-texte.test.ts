@@ -21,7 +21,7 @@ import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { contexte } from "./fixtures/contexte-document";
 
 vi.mock("@/lib/documents/modeles/communs", async (importOriginal) => ({
@@ -133,6 +133,15 @@ describe("P0-07 — notice d'information", () => {
 });
 
 describe("P0-08 — congé du bailleur pour vente ou pour reprise", () => {
+  // Phase 3, lot 48 (U01) : le congé compare le terme du bail (31/08/2029, rendu par la doublure) au jour réel ; après
+  // cette date, la lettre serait refusée (« a pris fin »). L'horloge est figée au jour où le cas a été écrit.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-23T12:00:00Z"));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
   // Phase 3 (C31, C32) : le congé du bailleur se délivre sur un bail actif (le contexte d'essai par défaut est un brouillon).
   const bailActif = () => {
     const ctx = contexte();

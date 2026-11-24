@@ -105,7 +105,7 @@ import { estResumeNoticeJoint, plusRecentDAbord, resumeNoticeRetenu, TITRE_GED_R
 import { ajouterPagesSignature } from "@/lib/signature-bail";
 import { construireBailNu } from "@/lib/documents/modeles/bail-nu";
 import { construireBailMeuble } from "@/lib/documents/modeles/bail-meuble";
-import { RENVOI_TRAVAUX_PREMIERE_LOCATION } from "@/lib/travaux-dernier-contrat";
+import { RENVOI_SANS_TRAVAUX_PREMIERE_LOCATION, RENVOI_TRAVAUX_PREMIERE_LOCATION } from "@/lib/travaux-dernier-contrat";
 import { rubriquesRecapBail } from "@/lib/presentation-recapitulatif-bail";
 import { travauxDepuisDernierContrat } from "@/lib/documents/modeles/mentions-location";
 import { Fusion } from "@/lib/documents/gabarit";
@@ -152,6 +152,15 @@ async function troisEcrans(tables: Record<string, Ligne[]>) {
 }
 
 describe("T14 (C01) — la fiche du bail, le récapitulatif et la signature retiennent le même résumé", () => {
+  // Phase 3, lot 48 (U01) : l'ERP du dossier expire le 05/05/2027 et les écrans comparent cette échéance au jour réel :
+  // après cette date, « ERP : le diagnostic est expiré » s'ajoutait aux manquants. Horloge figée au jour JOUR.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-23T12:00:00Z"));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
   it("après « Actualiser le résumé » : le nouveau résumé partout, plus « Résumé à actualiser » ni l'ancien PDF sur la fiche", async () => {
     // L'ancien résumé (ancien titre, ancien texte) est lié au bail avant le nouveau : il sort en premier d'une lecture sans tri.
     const r = await troisEcrans(dossier([
@@ -343,10 +352,22 @@ describe("T16 (C08) — les écrans des travaux disent ce que le contrat imprime
     expect(renvoi(ctx.bail as Partial<ComplementsBailDefauts>)).toContain("Reportez-vous au contrat signé.");
   });
 
-  it("première location sans travaux saisis : « Sans objet — première location » (l'ancien contrat disait « Néant »), sans renvoi", () => {
+  // Phase 3, lot 48 (U03) : ce cas attendait « Sans objet — première location », sans renvoi. C'est ce qu'imprime un contrat
+  // préparé avec les modèles actuels, pas un contrat préparé avant g8 (« Néant. — montant : —. ») : la vue sert aux deux. Elle
+  // montre la saisie (« Néant ») et renvoie au contrat signé, comme pour des travaux saisis.
+  it.each(["nu", "meuble"] as const)("première location sans travaux saisis, bail %s : la vue dit « Néant » et renvoie au contrat signé, qui dit « Néant » (avant g8) ou « Sans objet »", (type) => {
     const bail = { precedente_location: "premiere", travaux_recents: null, travaux_recents_montant: 900 };
-    expect(lectureSeule(bail)).toEqual(["Travaux récents du bailleur | Sans objet — première location"]);
-    expect(renvoi(bail)).toBeNull();
+    const ctx = contexte();
+    ctx.bail = { ...ctx.bail, ...bail } as ContexteBail["bail"];
+    const construire = (typographieArchivee: boolean) => (type === "nu"
+      ? construireBailNu(ctx, { dpeClasse: "C", f: new Fusion(), typographieArchivee })
+      : construireBailMeuble(ctx, { dpeClasse: "C", f: new Fusion(), inventaire: [], typographieArchivee })).html.replace(/<[^>]+>/g, " ").replace(/[\s  ]+/g, " ");
+    expect(construire(true)).toContain("depuis la fin du dernier contrat : Néant. — montant : —.");
+    expect(construire(false)).toContain("depuis la fin du dernier contrat : Sans objet — première location.");
+    expect(lectureSeule(bail)).toEqual(["Travaux récents du bailleur | Néant"]);
+    expect(renvoi(bail)).toBe(RENVOI_SANS_TRAVAUX_PREMIERE_LOCATION);
+    expect(renvoi(bail)).toContain("« Néant »");
+    expect(renvoi(bail)).toContain("« Sans objet — première location »");
   });
 
   it("un montant saisi sans travaux : « Néant », sans montant", () => {

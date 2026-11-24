@@ -13,7 +13,7 @@ import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { eur, formaterDate } from "@/lib/ged";
-import { RENVOI_TRAVAUX_PREMIERE_LOCATION, travauxBailEtabli } from "@/lib/travaux-dernier-contrat";
+import { RENVOI_SANS_TRAVAUX_PREMIERE_LOCATION, RENVOI_TRAVAUX_PREMIERE_LOCATION, travauxBailEtabli } from "@/lib/travaux-dernier-contrat";
 
 // Valeurs actuelles du bail — la page les lit dans son select `baux` et les
 // passe telles quelles.
@@ -97,8 +97,9 @@ export function FormulaireComplementsBail({
     const montant = (v: number | null) => (v == null ? "—" : eur(v));
     // Phase 3, lot 45 (T16) : la rubrique des travaux dit ce que le contrat imprime (« Sans objet — première location »,
     // « Néant »), sans les travaux ni le montant saisis qu'il n'imprime pas. Reprise (T16) : le contrat de ce bail a pu être
-    // préparé avant les modèles actuels, qui imprimaient les travaux saisis même pour une première location ; dans ce seul cas
-    // où les deux versions diffèrent, l'écran montre la saisie et renvoie au contrat signé (travauxBailEtabli).
+    // préparé avant les modèles actuels, qui imprimaient les travaux saisis (ou « Néant ») même pour une première location ;
+    // pour une première location, où les deux versions diffèrent, l'écran montre la saisie et renvoie au contrat signé
+    // (travauxBailEtabli ; lot 48, U03 : aussi sans travaux saisis).
     const travaux = travauxBailEtabli(defauts);
     // [libellé, valeur, précision affichée sous la rangée]
     const lignes: [string, string, string?][] = [
@@ -110,7 +111,8 @@ export function FormulaireComplementsBail({
       ["Lieu de paiement", defauts.lieu_paiement ?? "—"],
       ["Valeur de l'IRL de référence", defauts.irl_valeur == null ? "—" : String(defauts.irl_valeur)],
       ["Événement justifiant une durée réduite", defauts.duree_reduite_evenement ?? "—"],
-      ["Travaux récents du bailleur", travaux.travaux],
+      // Lot 48 (U03) : une première location sans travaux saisis renvoie aussi au contrat signé, sous la rubrique elle-même.
+      ["Travaux récents du bailleur", travaux.travaux, travaux.renvoiContrat && !travaux.avecMontant ? RENVOI_SANS_TRAVAUX_PREMIERE_LOCATION : undefined],
       ...(travaux.avecMontant ? ([["Montant des travaux récents", montant(defauts.travaux_recents_montant), travaux.renvoiContrat ? RENVOI_TRAVAUX_PREMIERE_LOCATION : undefined]] as [string, string, string?][]) : []),
       ["Travaux à la charge du locataire", defauts.travaux_locataire ?? "—"],
       ...(agence

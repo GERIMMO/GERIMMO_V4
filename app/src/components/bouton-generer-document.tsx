@@ -90,7 +90,7 @@ export function BoutonGenererDocument({
           {affichage.manquants!.slice(0, montrerTous ? undefined : 5).map((m, i) => {
             const cible = code === "edl" && /état de |neuf, bon|compteur|index/i.test(m)
               ? { href: `${cheminRetour}#${/compteur|index/i.test(m) ? "edl-compteurs" : "edl-pieces"}`, ecran: /compteur|index/i.test(m) ? "compteurs de l’état des lieux" : "pièces de l’état des lieux" }
-              : lienPourManquant(m, orgId, affichage.liens ?? [], code, racine, affichage.emetteur);
+              : lienPourManquant(m, orgId, affichage.liens ?? [], code, racine, affichage.emetteur, affichage.seulementEnTete);
             return (
               <span key={m}>
                 {i > 0 && " · "}

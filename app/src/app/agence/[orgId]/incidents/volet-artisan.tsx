@@ -615,7 +615,7 @@ export async function VoletArtisan({
 
       {/* ─── La mission en cours, ou la dernière en date ─────────────────── */}
 
-      {mission && !estProprietaire && <EchangesIntervention intervention={mission.id} />}
+      {mission && !estProprietaire && <EchangesIntervention intervention={mission.id} interlocuteur="gestionnaire" />}
       {mission && (
         <RubriqueIncident rubrique="suivi"><Card id={`mission-${mission.id}`} className={estProprietaire ? "incident-carte-intervention" : undefined}>
           <CardHeader>

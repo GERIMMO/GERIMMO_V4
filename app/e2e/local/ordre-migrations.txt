@@ -548,3 +548,4 @@
 20261123090000_reperes_fiscaux_reglage.sql
 20261123150000_regularisation_premiere_mensualite.sql
 20261123170000_contrat_individuel_message_plafond.sql
+20261123230000_quittance_adresse_bailleurs.sql

@@ -10,7 +10,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { contexte } from "./fixtures/contexte-document";
 import { quittanceDocumentComplete } from "./fixtures/quittance-document";
 
@@ -153,6 +153,26 @@ describe("étage du logement (C09, C26, C63, C84)", () => {
     expect(mentionEtage("étage 1 à 3", "Lot étage 1")).toBe("étage 1 à 3");
     // « 5e et dernier » sous un nom qui dit le 5e : la mention garde « dernier », au singulier.
     expect(mentionEtage("5e et dernier", "T4 — 5e étage")).toBe("5e et dernier étage");
+  });
+
+  // Phase 3, lot 48 (U02) : trois saisies plausibles imprimaient encore deux fois le même niveau — « Duplex 1er et 2e étage,
+  // 1er et 2e étages », « T3 5e et dernier étage, 5e et dernier étage », « Duplex 1er et 2e étages, premier et deuxième
+  // étages ».
+  it("le nom du lot au singulier, « 5e et dernier étage » ou des niveaux en lettres : l'étage n'est pas redit", () => {
+    const ctx = contexte();
+    const duplex = { ...ctx.lot, nom: "Duplex 1er et 2e étage", etage: "1er et 2e" };
+    expect(adresseLogement(duplex, ctx.bien)).toBe("12 rue des Lilas, 69003 Lyon, Duplex 1er et 2e étage");
+    expect(adresseLogement({ ...duplex, etage: "1er et 2e, porte A" }, ctx.bien)).toBe("12 rue des Lilas, 69003 Lyon, Duplex 1er et 2e étage, porte A");
+    const dernier = { ...ctx.lot, nom: "T3 5e et dernier étage", etage: "5e et dernier" };
+    expect(adresseLogement(dernier, ctx.bien)).toBe("12 rue des Lilas, 69003 Lyon, T3 5e et dernier étage");
+    expect(mentionEtage("5", "T3 5e et dernier étage")).toBeNull();
+    expect(adresseLogement({ ...duplex, nom: "Duplex 1er et 2e étages", etage: "premier et deuxième" }, ctx.bien)).toBe("12 rue des Lilas, 69003 Lyon, Duplex 1er et 2e étages");
+    expect(mentionEtage("premier, porte droite", "Studio — 1er étage")).toBe("porte droite");
+    // Ce que le nom ne dit pas reste imprimé : « dernier » sous un nom qui ne dit que le 5e, un autre niveau, un autre duplex.
+    expect(mentionEtage("5e et dernier", "T3 — 5e étage")).toBe("5e et dernier étage");
+    expect(mentionEtage("1er", "Duplex 1er et 2e étage")).toBe("1er étage");
+    expect(mentionEtage("2e et 3e", "Duplex 1er et 2e étage")).toBe("2e et 3e étages");
+    expect(mentionEtage("deuxième", "Studio — 1er étage")).toBe("deuxième étage");
   });
 
   // Reprise du lot 35 : les écrans recopiaient l'ancienne règle (« étage 2e étage, porte gauche » à l'écran, « 2e étage,
@@ -395,6 +415,15 @@ describe("courriers avec signature et lignes de total (C45, C51, C53)", () => {
 });
 
 describe("congé du bailleur : un seul point après le texte saisi (C38)", () => {
+  // Phase 3, lot 48 (U01) : le congé compare le terme du bail (31/08/2029, rendu par la doublure) au jour réel ; après
+  // cette date, la lettre serait refusée (« a pris fin »). L'horloge est figée au jour où le cas a été écrit.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-23T12:00:00Z"));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
   const assembler = async (options: Record<string, string>) => {
     // Phase 3 (C31, C32) : le congé du bailleur se délivre sur un bail actif (le contexte d'essai par défaut est un brouillon).
     const ctx = contexte();

@@ -23,6 +23,8 @@ export type EtatGeneration = {
   // Phase 3, lot 46 (T19) : l'origine de l'en-tête imprimé (détenteurs du lot ou espace), pour que l'adresse et la commune
   // manquantes mènent à l'écran qui les corrige.
   emetteur?: EmetteurEnTete;
+  // Phase 3, lot 48 (U04) : les manquants vides dans l'en-tête seulement (même libellé qu'au corps d'un contrat).
+  seulementEnTete?: string[];
 };
 
 // Les droits et l’assemblage sont vérifiés à chaque demande. Seul le rendu
@@ -71,6 +73,7 @@ export async function genererDocument(
         ...refus,
         liens: assemblage.liens,
         ...(assemblage.document.emetteur ? { emetteur: assemblage.document.emetteur } : {}),
+        ...(assemblage.document.seulementEnTete ? { seulementEnTete: assemblage.document.seulementEnTete } : {}),
       };
     }
 

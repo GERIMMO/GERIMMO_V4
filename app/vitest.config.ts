@@ -78,6 +78,8 @@ export const FICHIERS_EN_SERIE = [
   "tests/reperes-fiscaux-base.test.ts",
   "tests/regularisation-premiere-mensualite-base.test.ts",
   "tests/contrat-individuel-message-plafond-base.test.ts",
+  // Phase 3, lot 48 (U07) : rejeu et retour de 20261123230000 (quittance_document réécrite dans la transaction du fichier).
+  "tests/quittance-adresse-bailleurs-base.test.ts",
   "tests/artisan-activation-securite.test.ts",
   "tests/retours-atomicite.test.ts",
   // Rejeu transactionnel des droits Stripe et de la lecture de session (DDL).

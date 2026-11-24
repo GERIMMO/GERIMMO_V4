@@ -88,6 +88,12 @@ describe("document incomplet : l'origine de l'en-tête accompagne les manquants"
     expect(m.rendre).not.toHaveBeenCalled();
     expect(m.depot).not.toHaveBeenCalled();
   });
+  // Phase 3, lot 48 (U04) : les manquants vides dans l'en-tête seulement accompagnent aussi la liste.
+  it("rend les manquants de l'en-tête seul, pour que « domicile ou siège social » suive l'adresse qui manque", async () => {
+    vi.mocked(refusDocumentIncomplet).mockReturnValueOnce({ erreur: "PDF non généré", manquants: ["domicile ou siège social"] });
+    m.assembler.mockResolvedValueOnce({ document: { emetteur: "espace", seulementEnTete: ["domicile ou siège social"] }, liens: [], titreGed: "Notice", nomFichier: "notice" });
+    expect(await generer()).toEqual({ erreur: "PDF non généré", manquants: ["domicile ou siège social"], liens: [], emetteur: "espace", seulementEnTete: ["domicile ou siège social"] });
+  });
   it("sans origine connue (en-tête construit hors expediteur), rien n'est ajouté", async () => {
     vi.mocked(refusDocumentIncomplet).mockReturnValueOnce({ erreur: "PDF non généré", manquants: ["commune"] });
     expect(await generer()).toEqual({ erreur: "PDF non généré", manquants: ["commune"], liens });

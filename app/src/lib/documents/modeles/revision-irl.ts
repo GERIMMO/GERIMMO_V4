@@ -18,6 +18,7 @@ import {
   echapper,
 } from "../gabarit";
 import { deElide } from "@/lib/elision";
+import { aujourdhuiParis } from "@/lib/ged";
 import {
   chargerContexteBail,
   expediteur,
@@ -243,7 +244,10 @@ export function construireRevisionIrl(d: DonneesRevisionIrl) {
   // anniversaire, la révision prend effet à la date de la demande — la lettre
   // ne l'annonce jamais « à compter » d'un anniversaire passé.
   const echeance = d.dateEcheance ?? d.dateEffet;
-  const etabliLe = new Date().toISOString();
+  // Reprise du lot 52 : le jour de Paris, celui que le document imprime. Avec `new Date().toISOString()`, la date imprimée était
+  // bien celle de Paris, mais la comparaison avec la date d'effet se faisait sur le jour UTC : entre minuit et 2 h à Paris, le
+  // lendemain de la date d'effet, le courrier imprimait ce lendemain sans dire qu'il était établi après cette date.
+  const etabliLe = aujourdhuiParis();
   const tardive = Boolean(d.dateDemande && d.dateEcheance && d.dateDemande > d.dateEcheance);
   const phraseEffet = tardive
     ? `<p>La révision se rattache à l'échéance annuelle du ${f.date(echeance)}. Demandée le

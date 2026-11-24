@@ -26,6 +26,7 @@ import {
   referenceCourte,
   signatureOrganisation,
   liensLocataires,
+  CSS_COURRIER_RESSERRE,
 } from "./communs";
 import type { Assemblage } from "./index";
 
@@ -122,7 +123,11 @@ export function construireProrata(d: DonneesProrata) {
     // compacte des documents du catalogue et du reçu de dépôt (lot 51, W14 : titre à 19 pt, marges réduites) le garde sur une
     // page, avec des lignes de tableau resserrées (ses deux tableaux comptent sept lignes et le total). Les règles de coupure
     // communes ne changent pas.
-    corps: `<style>.bloc-titre{padding:10pt 0;margin-bottom:8pt}h1{font-size:19pt;letter-spacing:.2em}h2{margin:14pt 0 8pt}.cartouches{margin:10pt 0}p{margin:4pt 0}.base-legale{margin:2pt 0 8pt}td{padding-top:3pt;padding-bottom:3pt}</style>${corps}`,
+    // Reprise du lot 52 (W23) : cela ne laissait qu'environ 7 pt sous la zone de signature vierge (44 pt). Une signature
+    // enregistrée (image jusqu'à 52 pt de haut), un second locataire ou une adresse de logement sur trois lignes renvoyaient
+    // « Fait à » et la signature en page 2. La mise en page resserrée commune aux courriers de loyer (CSS_COURRIER_RESSERRE)
+    // gagne environ 70 pt de plus.
+    corps: `<style>${CSS_COURRIER_RESSERRE}</style>${corps}`,
   });
 }
 

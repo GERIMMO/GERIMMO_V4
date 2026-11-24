@@ -33,6 +33,7 @@ import {
   interlocuteurLocataire,
   coordonneesBancaires,
   ibanLisible,
+  CSS_COURRIER_RESSERRE,
 } from "./communs";
 import type { Assemblage } from "./index";
 
@@ -157,7 +158,10 @@ export function construireAvisEcheance(d: DonneesAvisEcheance) {
     titreDocument: "Avis d'échéance",
     nomPied: "Avis d'échéance",
     reference: d.reference,
-    corps,
+    // Reprise du lot 52 (W23) : à la taille commune, la mention « En cas de difficulté de paiement… », « Fait à » et la
+    // signature (gardés ensemble, règle .fait-a) partaient seuls en page 2 de chaque avis. Même mise en page resserrée que le
+    // décompte de prorata.
+    corps: `<style>${CSS_COURRIER_RESSERRE}</style>${corps}`,
   });
 }
 

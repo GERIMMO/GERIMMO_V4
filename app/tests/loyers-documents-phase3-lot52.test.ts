@@ -72,7 +72,9 @@ describe("W23 — décompte de prorata : la clôture reste sur la page du calcul
     ctx.bail.date_debut = "2025-10-15";
     const appel = { id: "a1", bail_id: "b1", periode: "2025-10-01", loyer_hc: 383.87, charges: 32.9, montant_du: 416.77, prorata: true, base_loyer_hc: 700, base_charges: 60 };
     const html = succes(await assemblerProrata(base({ appels_loyer: [appel] }), "org", "a1")).document.html;
-    expect(html).toContain("h1{font-size:19pt;letter-spacing:.2em}h2{margin:14pt 0 8pt}");
+    // Reprise du lot 52 : les intertitres sont resserrés davantage (10 pt au lieu de 14 pt au-dessus) — la marge laissée par le
+    // lot 52 ne suffisait pas avec une signature enregistrée (rendu réel : loyers-documents-phase3-lot52-reprise.test.ts).
+    expect(html).toContain("h1{font-size:19pt;letter-spacing:.2em}h2{margin:10pt 0 6pt}");
     expect(html).toContain("td{padding-top:3pt;padding-bottom:3pt}");
     // La règle commune qui garde « Fait à » avec la signature n'est pas touchée.
     expect(html).toContain(".fait-a { break-before:avoid-page;");

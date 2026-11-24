@@ -480,6 +480,16 @@ export function libelleCharges(mode: string | null | undefined): string {
 // l'avis d'échéance : l'IBAN du profil de l'espace (organizations.iban). Connu, il s'imprime ; inconnu, l'information est à
 // renseigner (le PDF n'est pas produit, la liste « À renseigner » mène au profil — ou-renseigner.ts). Il s'imprimait « — »,
 // et le locataire recevait une demande de virement sans compte. Un autre mode de paiement ne l'exige pas (« — » s'il manque).
+// Reprise du lot 52 (W23) : la mise en page resserrée des courriers de loyer qui tiennent sur une page avec leur clôture
+// (décompte de prorata, avis d'échéance) — celle du catalogue (lot 51, W14 : titre à 19 pt, marges réduites), plus en-tête,
+// intertitres, cartouches, tableaux, bloc de signature et interligne resserrés. Elle se pose dans le corps de ces seuls
+// documents : la feuille commune, les règles de coupure (p{break-inside:auto}, .fait-a) et la taille de l'image de
+// signature ne changent pas.
+export const CSS_COURRIER_RESSERRE =
+  ".bloc-titre{padding:7pt 0;margin-bottom:8pt}h1{font-size:19pt;letter-spacing:.2em}h2{margin:10pt 0 6pt}" +
+  ".entete{margin-bottom:10pt}.cartouches{margin:10pt 0}.cartouches .case{padding:4pt 0 5pt}p{margin:4pt 0}" +
+  ".base-legale{margin:2pt 0 8pt}table{margin:4pt 0}td{padding-top:3pt;padding-bottom:3pt}.sig-emetteur{margin-top:8pt}" +
+  "body{line-height:1.45}";
 export const LIBELLE_COORDONNEES_BANCAIRES = "coordonnées bancaires (IBAN) du compte qui reçoit les loyers";
 export function demandeVirement(lieuPaiement: string | null | undefined): boolean {
   return /virement/i.test(lieuPaiement ?? "");
@@ -489,9 +499,14 @@ export function demandeVirement(lieuPaiement: string | null | undefined): boolea
 // recopier. Les groupes sont liés par des espaces insécables : l'IBAN ne se coupe pas en fin de ligne. Vide : null (le manque
 // reste signalé par coordonneesBancaires). Les baux ne l'emploient pas : leur texte entre dans l'empreinte d'un circuit de
 // signature déjà préparé, recalculée à l'activation.
+// Reprise du lot 52 : seul un IBAN se regroupe (deux lettres, deux chiffres, puis 11 à 30 lettres ou chiffres). Une autre
+// saisie (« FR76… BIC AGRIFRPP », un libellé) était collée et recoupée par quatre : un IBAN faux s'imprimait. Elle s'imprime
+// alors telle quelle.
 export function ibanLisible(iban: string | null | undefined): string | null {
-  const brut = String(iban ?? "").replace(/\s+/g, "").toUpperCase();
-  return brut ? brut.replace(/(.{4})(?=.)/g, "$1\u00a0") : null;
+  const saisie = String(iban ?? "").trim();
+  if (!saisie) return null;
+  const brut = saisie.replace(/\s+/g, "").toUpperCase();
+  return /^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(brut) ? brut.replace(/(.{4})(?=.)/g, "$1\u00a0") : saisie;
 }
 export function coordonneesBancaires(f: Fusion, lieuPaiement: string | null | undefined, iban: string | null | undefined): string {
   return demandeVirement(lieuPaiement) ? f.champ(iban, LIBELLE_COORDONNEES_BANCAIRES) : facultatif(iban);

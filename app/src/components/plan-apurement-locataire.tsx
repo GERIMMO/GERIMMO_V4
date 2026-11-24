@@ -71,7 +71,9 @@ function Demande({ orgId, demandeEnCours, detteEchue, interlocuteur }: { orgId: 
   const [etat, submit, pending] = useActionStateProtegee(demanderPlanApurement.bind(null, orgId), {} as EtatPlanApurement);
   if (demandeEnCours || etat.succes) return <p className="text-sm text-muted-foreground" role="status">{etat.succes ?? `Votre demande de plan de paiement est transmise à votre ${interlocuteur}. Sa réponse arrivera dans votre messagerie.`}</p>;
   return <div className="space-y-2 text-sm">
-    <p>Des loyers restent dus ({eur(detteEchue)}). Si vous traversez une période difficile, vous pouvez proposer de régler cette somme en plusieurs fois, en plus de votre loyer courant.</p>
+    {/* Phase 3, lot 61 (E136) : « Des loyers restent dus » au pluriel, même pour le reste d'un seul mois ; la somme est
+        dite comme sur l'accueil (« Il reste … à régler »). */}
+    <p>Il reste {eur(detteEchue)} à régler sur vos loyers échus. Si vous traversez une période difficile, vous pouvez proposer de régler cette somme en plusieurs fois, en plus de votre loyer courant.</p>
     {!ouvert ? <Button type="button" size="sm" variant="outline" disabled={!pret}
       title={pret ? undefined : AIDE_BOUTON_EN_ATTENTE} onClick={() => setOuvert(true)}>Demander un plan de paiement</Button>
       : <form data-saisie-confirmee action={submit} className="space-y-2">

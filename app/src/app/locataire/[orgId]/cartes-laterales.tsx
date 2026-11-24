@@ -34,7 +34,7 @@ export function Interlocuteur({ gestionnaire }: { gestionnaire: Gestionnaire }) 
         Votre interlocuteur{nom ? ` : ${nom}` : ""}
       </span>
       {email && (
-        <a href={`mailto:${email}`} className="lien-discret block [overflow-wrap:anywhere]">
+        <a href={`mailto:${email}`} className="lien-discret block py-1 [overflow-wrap:anywhere]">
           {email}
         </a>
       )}

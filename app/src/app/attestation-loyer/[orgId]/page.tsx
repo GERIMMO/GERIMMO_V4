@@ -125,13 +125,15 @@ export default async function PageAttestationLoyer(
       </div>
     );
   } else if (enSouffrance.length > 0) {
+    // Phase 3, lot 61 (E015, E136) : « redeviendra disponible » supposait qu'elle l'avait déjà été ; « sera » est vrai
+    // dans les deux cas.
     contenu = (
       <div className="vide-guide">
         <p className="titre max-sm:pr-14">Attestation indisponible pour l&apos;instant</p>
         <p className="explication">
           {enSouffrance.length} loyer{enSouffrance.length > 1 ? "s" : ""} reste
           {enSouffrance.length > 1 ? "nt" : ""} dû{enSouffrance.length > 1 ? "s" : ""} sur
-          votre échéancier. L&apos;attestation redeviendra disponible dès que
+          votre échéancier. L&apos;attestation sera disponible dès que
           votre compte sera soldé.
         </p>
         <div className="geste">
@@ -144,6 +146,8 @@ export default async function PageAttestationLoyer(
   } else if (!emetteur || emetteur.manquants.length > 0) {
     // Un document « fait pour valoir » sans auteur identifiable n'a pas de
     // valeur ([[Quittance conforme]]) : on ne le délivre pas à moitié.
+    // Phase 3, lot 61 (E015, E136) : « redeviendra disponible » supposait qu'elle l'avait déjà été ; « sera » est vrai
+    // dans les deux cas.
     contenu = (
       <div className="vide-guide">
         <p className="titre max-sm:pr-14">Attestation indisponible pour l&apos;instant</p>

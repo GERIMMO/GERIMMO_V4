@@ -2,8 +2,10 @@ import { RendezVousLocataireConfirme } from "@/components/rendez-vous-locataire-
 import { EchangesIntervention } from "@/components/echanges-intervention";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { IncidentsLocataire, type IncidentLocataire } from "../incidents-locataire";
+import { nomDemande } from "@/lib/incidents";
 import { aEchoue, PanneLecture } from "../panne-lecture";
 import { BORD_ETAT } from "../pastille-locataire";
 import type { CreneauPropose, SuiviIntervention } from "./suivi-intervention";
@@ -111,6 +113,27 @@ export default async function PageDemandesLocataire(
   // l'intervention n'est pas terminée. Le locataire lit qui est dit absent ; jamais la précision libre.
   const rdvManques = rendezVousManquesAffiches((rdvManquesBruts ?? []) as RendezVousManqueLocataire[], suivis);
 
+  // Phase 3, lot 61 (E014, E131) : la « Discussion de l'intervention » était rendue après TOUTES les demandes, sans dire
+  // laquelle elle concernait ; avec deux demandes, elle se lisait sous la mauvaise. Chaque discussion est maintenant
+  // rendue juste sous la carte de SA demande, et son en-tête nomme cette demande. Une discussion dont la demande n'est
+  // pas dans la liste (lecture des demandes en échec) reste en bas de page, comme avant.
+  const demandesAffichees = new Map(aEchoue(eIncidents) ? [] : incidents.map((i) => [i.id, i] as const));
+  const discussions: Record<string, ReactNode> = {};
+  const discussionsSansCarte: string[] = [];
+  for (const id of discussionsAffichees) {
+    const demande = demandesAffichees.get(suivis.find((s) => s.intervention_id === id)!.incident_id);
+    if (!demande) {
+      discussionsSansCarte.push(id);
+      continue;
+    }
+    discussions[demande.id] = (
+      <>
+        {discussions[demande.id]}
+        <EchangesIntervention key={id} intervention={id} interlocuteur={interlocuteur} demande={nomDemande(demande)} />
+      </>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* 24/09 : le bouton « Signaler un problème » passe dans l'en-tête, à
@@ -198,8 +221,10 @@ export default async function PageDemandesLocataire(
         lectureEnEchec={aEchoue(eIncidents)}
         rappelPromis={rappelPromis}
         interlocuteur={interlocuteur}
+        discussions={discussions}
       />
-      {!eSuivis && [...new Set(suivis.flatMap(s=>s.intervention_id?[s.intervention_id]:[]))].map(id=><EchangesIntervention key={id} intervention={id} interlocuteur={interlocuteur} />)}
+      {/* Lot 61 : seules les discussions qui n'ont pas pu être rangées sous leur demande restent ici. */}
+      {discussionsSansCarte.map(id=><EchangesIntervention key={id} intervention={id} interlocuteur={interlocuteur} />)}
     </div>
   );
 }

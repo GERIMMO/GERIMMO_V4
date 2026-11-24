@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { noteSignalementFerme } from "./types";
 import type { InterlocuteurLocataire } from "@/lib/interlocuteur-locataire";
-import { useId, useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {
   contesterImputation,
@@ -335,6 +335,7 @@ export function IncidentsLocataire({
   lectureEnEchec = false,
   rappelPromis = false,
   interlocuteur,
+  discussions = {},
 }: {
   orgId: string;
   incidents: IncidentLocataire[];
@@ -354,6 +355,9 @@ export function IncidentsLocataire({
   rappelPromis?: boolean;
   /** Lot 47 : « gestionnaire » dans un espace d'agence, « bailleur » chez un propriétaire. */
   interlocuteur: InterlocuteurLocataire;
+  /** Lot 61 : la discussion de l'intervention de chaque demande (clé : identifiant de la demande), rendue par la page
+   *  et posée ici juste sous la carte de SA demande. */
+  discussions?: Record<string, ReactNode>;
 }) {
   if (lectureEnEchec) {
     return (
@@ -394,7 +398,7 @@ export function IncidentsLocataire({
     <div className="space-y-3">
       {ordonnes.map((i) => {
         const suivi = suiviDe.get(i.id);
-        return (
+        const carte = (
           <CarteIncident
             key={i.id}
             orgId={orgId}
@@ -406,6 +410,15 @@ export function IncidentsLocataire({
             rappelPromis={rappelPromis}
             interlocuteur={interlocuteur}
           />
+        );
+        // Lot 61 (E014) : la discussion suit sa demande, plus serrée contre elle que deux demandes entre elles.
+        return discussions[i.id] ? (
+          <div key={i.id} className="space-y-1.5" data-demande-et-discussion={i.id}>
+            {carte}
+            {discussions[i.id]}
+          </div>
+        ) : (
+          carte
         );
       })}
     </div>

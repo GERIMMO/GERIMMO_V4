@@ -18,7 +18,8 @@ const PERIMETRE = [
   "src/app/agence/[orgId]/documents/page.tsx",
 ];
 // Sous-titres légitimes : ils suivent le <h2> de leur carte (« Votre signalement », « Les colonnes… » sous « 1. Le gabarit »).
-const SOUS_TITRES = [/Qui paiera la réparation/, /plat \? "text-sm font-medium"/, /Les colonnes du fichier/];
+// Phase 3, lot 61 (E023) : sur /compte/donnees, le titre de chaque demande suit le <h2> « Mes demandes sur mes données ».
+const SOUS_TITRES = [/Qui paiera la réparation/, /plat \? "text-sm font-medium"/, /Les colonnes du fichier/, /data-titre-demande-donnees/];
 
 describe("DES-A-03 : hiérarchie des titres", () => {
   it("aucun titre de carte n'est resté en <h3> dans le périmètre", () => {

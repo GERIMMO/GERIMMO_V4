@@ -46,9 +46,13 @@ function EncartQuiPaiera({ slug, plat = false, interlocuteur }: { slug: string; 
       <div className="loc-carte">
         <h3 className="text-base font-medium">Qui paiera la réparation</h3>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Choisissez une catégorie : nous vous indiquons immédiatement si la
-          réparation est plutôt à votre charge ou à celle du propriétaire, et
-          sur quel fondement. Aucune surprise à la sortie.
+          {/* Phase 3, lot 61 (E132) : « nous vous indiquons immédiatement… Aucune surprise à la sortie » contredisait
+              la phrase du haut de page (« après examen par votre gestionnaire ») et promettait une issue que l'écran
+              ne garantit pas : il ne donne qu'un repère. */}
+          Choisissez une catégorie : un repère vous indique si la réparation est
+          plutôt à votre charge ou à celle du propriétaire, et sur quel
+          fondement. Ce repère est indicatif : la décision revient à
+          votre {interlocuteur}, après examen de votre demande.
         </p>
       </div>
     );

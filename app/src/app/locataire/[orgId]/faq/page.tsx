@@ -33,7 +33,9 @@ function questions(orgId: string, qui: InterlocuteurLocataire): { question: stri
         <>
           Dès que votre virement est encaissé par votre {qui} : la quittance
           est établie automatiquement et disponible dans {rubrique("loyers", "Mes paiements")} et{" "}
-          {rubrique("documents", "Mes documents")}. Rien à demander. Un paiement partiel
+          {rubrique("documents", "Mes documents")}. En principe, rien à demander. Si le document reste marqué
+          « en préparation », votre {qui} doit encore compléter des informations obligatoires : vous pouvez le lui
+          demander depuis {rubrique("contact", `Mon ${qui}`)}. Un paiement partiel
           donne un simple reçu, transformé en quittance quand le mois est soldé.
         </>
       ),

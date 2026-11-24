@@ -70,11 +70,9 @@ export default async function PageQuittance(props: {
     year: "numeric",
   });
 
-  const titre = (
-    <>
-      {nature} — <span className="capitalize">{mois}</span>
-    </>
-  );
+  // Phase 3, lot 61 (E018) : une classe « capitalize » mettait une majuscule au mois au milieu du titre (« Reçu de
+  // paiement partiel — Novembre 2026 »), contre l'usage français et contre le nom du même document dans Mes documents.
+  const titre = `${nature} — ${mois}`;
   const delivre = manquants.length === 0;
   // Lot 47 : à qui le locataire demande de compléter le document — « gestionnaire » seulement dans un espace d'agence,
   // « bailleur » ailleurs (la règle des documents, `interlocuteurLocataire`). La phrase disait « Votre gestionnaire »

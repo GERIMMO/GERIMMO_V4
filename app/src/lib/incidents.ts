@@ -353,6 +353,14 @@ export function titreIncident(categorie: string): string {
   return categorieIncident(categorie)?.court ?? categorie;
 }
 
+/** Phase 3, lot 61 : le nom d'une demande pour le locataire, là où il faut la désigner hors de sa carte (en-tête de la
+ *  discussion de l'intervention) — sa catégorie, puis la première ligne de ses propres mots, coupée à 80 caractères. */
+export function nomDemande(incident: { categorie: string; description?: string | null }): string {
+  const mots = incident.description?.trim().split(/\r?\n/)[0]?.trim() ?? "";
+  const extrait = mots.length > 80 ? `${mots.slice(0, 77).trimEnd()}…` : mots;
+  return extrait ? `${titreIncident(incident.categorie)} — ${extrait}` : titreIncident(incident.categorie);
+}
+
 /** Un propriétaire identifie le problème par son intitulé, plutôt que par « Autre ». */
 export function titreIncidentProprietaire(incident: { titre?: string | null; categorie: string; description?: string | null }): string {
   if (incident.titre?.trim()) return incident.titre.trim();

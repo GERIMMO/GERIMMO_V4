@@ -136,7 +136,9 @@ describe("portail artisan (mineurs et détails)", () => {
 
   it("/compte parle à l'artisan de sa situation et lui rend son portail", () => {
     const compte = lire("app/compte/page.tsx");
-    expect(compte).toContain('href="/artisan"');
+    // Phase 3, lot 61 : le lien de retour au portail est dans le bandeau partagé avec /compte/donnees.
+    expect(lire("app/compte/bandeau-compte.tsx")).toContain('href="/artisan"');
+    expect(compte).toContain("<BandeauCompte compteId={user.id} marque={marque} estArtisan={estArtisan} espaceLocataire={espaceLocataire} />");
     expect(compte).toMatch(/estArtisan\s*\?/);
   });
 

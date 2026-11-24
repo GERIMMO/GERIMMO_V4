@@ -102,6 +102,9 @@ export default async function PagePaiementsLocataire(
     prorata?: boolean | null;
   }[];
   const disponibilites = await disponibilitesQuittances(supabase, lignesLoyer.map(l => l.quittance_id));
+  // Lot 61 : un document de l'historique est retenu faute d'informations obligatoires de l'émetteur (« Document en
+  // préparation ») : la quittance du mois soldé le sera aussi, tant qu'elles manquent.
+  const documentEnPreparation = Object.values(disponibilites).includes("en_preparation");
   const sommesEchues = lignesLoyer.filter(l => l.statut === "impaye" || l.statut === "partiel");
   const soldeEchu = sommesEchues.reduce((s, l) => s + Math.max(0, Math.round((Number(l.montant_du) - Number(l.montant_couvert)) * 100)), 0) / 100;
   const bail = ((bauxRows ?? []) as BailLocataire[])[0];
@@ -110,6 +113,10 @@ export default async function PagePaiementsLocataire(
     new Date(d).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
   const prochaine = lignesLoyer.find((l) => ["impaye", "partiel", "attendu"].includes(l.statut));
   const forfait = bail?.charges_mode === "forfait";
+  // Lot 61 : le premier mois affiché est postérieur au mois de début du bail (comparaison de « AAAA-MM »).
+  const historiqueCommenceApresLeBail =
+    !aEchoue(eEcheancier) && lignesLoyer.length > 0 && Boolean(bail?.date_debut) &&
+    lignesLoyer[0].periode.slice(0, 7) > bail!.date_debut!.slice(0, 7);
   // Seuls les mois SOLDÉS ont une quittance ; un paiement partiel n'a qu'un
   // reçu, et la mention le comptait comme une quittance (24/09).
   const nbQuittances = lignesLoyer.filter((l) => l.statut === "paye" && l.quittance_id && disponibilites[l.quittance_id] === "disponible").length;
@@ -229,9 +236,22 @@ export default async function PagePaiementsLocataire(
                     </div>
                   </div>
                 )}
-                <p className="mt-2 text-[13px] text-muted-foreground">
-                  Après paiement intégral, votre quittance est établie et disponible
-                  ici — rien à demander.
+                {/* Phase 3, lot 61 (E013, E130) : la phrase promettait « rien à demander » alors qu'un document du même
+                    historique attend que l'émetteur complète ses informations obligatoires — la même barrière
+                    retiendra la quittance. Dans ce cas, la phrase le dit et mène à l'interlocuteur. */}
+                <p className="mt-2 text-[13px] text-muted-foreground" data-phrase-quittance={documentEnPreparation ? "en-preparation" : "disponible"}>
+                  {documentEnPreparation ? (
+                    <>
+                      Après paiement intégral, votre quittance sera disponible ici dès que votre {qui} aura
+                      complété les informations obligatoires du document. Vous pouvez le lui demander :{" "}
+                      <Link href={`/locataire/${orgId}/contact`} className="lien-texte">
+                        écrire à mon {qui}
+                      </Link>
+                      .
+                    </>
+                  ) : (
+                    "Après paiement intégral, votre quittance est établie et disponible ici — rien à demander."
+                  )}
                   {prochaine.prorata &&
                     " Ce mois-ci est calculé au prorata de votre date d'entrée ou de sortie."}
                 </p>
@@ -358,6 +378,15 @@ export default async function PagePaiementsLocataire(
                 );
               })}
             </ul>
+          )}
+          {/* Phase 3, lot 61 (E016, E134) : le bail commence avant le premier mois de l'historique (loyers suivis ici
+              à partir d'un mois plus tardif) et rien ne le disait — le locataire pouvait croire un mois perdu. */}
+          {historiqueCommenceApresLeBail && (
+            <p className="mt-3 text-xs text-muted-foreground" data-historique-depuis>
+              Cet historique commence en {moisLong(lignesLoyer[0].periode)} : les mois antérieurs de votre bail
+              (depuis le {formaterDate(bail.date_debut)}) n&apos;y figurent pas. Pour un mois plus ancien, écrivez à
+              votre {qui}.
+            </p>
           )}
           <p className="mt-3 text-xs text-muted-foreground">
             {CONSERVATION_DOCUMENTS_LOCATAIRE} Utiles pour la CAF ou un futur dossier

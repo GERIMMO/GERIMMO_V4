@@ -81,7 +81,7 @@ export default async function PageContactLocataire(
                 {g.email_contact && (
                   <div className="ligne-info">
                     <span className="shrink-0 whitespace-nowrap">E-mail</span>
-                    <a href={`mailto:${g.email_contact}`} className="lien-discret min-w-0 wrap-anywhere">
+                    <a href={`mailto:${g.email_contact}`} className="lien-discret min-w-0 py-1.5 wrap-anywhere">
                       {g.email_contact}
                     </a>
                   </div>
@@ -91,7 +91,7 @@ export default async function PageContactLocataire(
                     <span className="shrink-0 whitespace-nowrap">Téléphone</span>
                     <a
                       href={`tel:${g.telephone.replace(/\s/g, "")}`}
-                      className="lien-discret min-w-0 wrap-anywhere"
+                      className="lien-discret min-w-0 py-1.5 wrap-anywhere"
                     >
                       {g.telephone}
                     </a>

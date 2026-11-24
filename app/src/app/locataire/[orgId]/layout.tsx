@@ -144,7 +144,8 @@ export default async function LayoutLocataire({
           <MenuCompte
             initiales={
               personne
-                ? `${(personne.prenom?.[0] ?? "").toUpperCase()}${(personne.nom?.[0] ?? "").toUpperCase()}`
+                ? // Lot 61 (E137) : nom puis prénom, comme le nom affiché à côté (« Dupont Alice » → « DA », pas « AD »).
+                  `${(personne.nom?.[0] ?? "").toUpperCase()}${(personne.prenom?.[0] ?? "").toUpperCase()}`
                 : "◇"
             }
             // Plus de « Locataire » sous le nom (25/09, D39) : la barre

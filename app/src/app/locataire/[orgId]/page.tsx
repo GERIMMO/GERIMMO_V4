@@ -37,7 +37,9 @@ const CARTE_KPI =
   "loc-carte loc-kpi relative transition-[translate,box-shadow,border-color] duration-[var(--duree)] ease-[var(--courbe)] hover:!border-[color-mix(in_srgb,var(--marque)_28%,var(--filet))] hover:!shadow-[var(--ombre-2)] motion-safe:hover:-translate-y-0.5";
 const LIEN_ETIRE =
   "lien-discret after:absolute after:inset-0 after:rounded-[var(--rayon-carte)] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring";
-const LIEN_KPI_SECONDAIRE = "lien-discret relative z-10";
+// Lot 61 (E139) : ces liens isolés ne faisaient que 19 px de haut à la souris ; le remplissage vertical porte la cible
+// au-dessus de 24 px sans déplacer le texte (py sur un élément en ligne n'agrandit pas la ligne).
+const LIEN_KPI_SECONDAIRE = "lien-discret relative z-10 py-1.5";
 
 // Pas de titre propre : celui de l'accueil est le titre par défaut du layout,
 // « Mon espace — <agence> » (24/09 : l'onglet parlait au nom de Gerimmo dans

@@ -13,6 +13,16 @@ export default async function Page({searchParams}:{searchParams:Promise<{public?
  const db=await createClient();const {data:{user}}=await db.auth.getUser();if(!user)redirect('/connexion?suite=%2Fveille');
  const p=await searchParams,publicChoisi=Object.hasOwn(PUBLICS_VEILLE,p.public??'')?p.public!:null,page=Math.max(1,Math.min(1000,Number.parseInt(p.page??'1')||1));
  if(publicChoisi==='artisan')redirect('/artisan/regles');
+ // Phase 3, lot 61 (E138) : comme l'artisan, le locataire lit ses règles DANS son espace (/locataire/…/regles, avec son
+ // menu). L'ancienne adresse y renvoie quand on sait de quel espace il s'agit : celui du paramètre `retour`, sinon son
+ // seul espace. Autrement, la page reste servie comme avant.
+ if(publicChoisi==='locataire'){
+  const espaceRetour=/^\/locataire\/[0-9a-f-]{36}$/.test(p.retour??'')?p.retour!:null;
+  if(espaceRetour)redirect(`${espaceRetour}/regles`);
+  const {data:adhesions}=await db.from('memberships').select('role, organization_id').eq('account_id',user.id).eq('status','active');
+  const liste=(adhesions??[]) as {role:string;organization_id:string}[];
+  if(liste.length===1&&liste[0].role==='locataire')redirect(`/locataire/${liste[0].organization_id}/regles`);
+ }
  const retour=p.retour&&/^\/(?:agence\/[0-9a-f-]{36}|espace\/[0-9a-f-]{36}|locataire\/[0-9a-f-]{36}|artisan(?:\/entreprise)?)$/.test(p.retour)?p.retour:'/espaces';
  const filtre=(publicCible:string,pageCible=1)=>`/veille?${new URLSearchParams({public:publicCible,page:String(pageCible),retour})}`;
  let q=db.from('regulatory_watch_published').select('id,titre,resume,action_conseillee,publics,source_nom,source_url,application_le,valide_le',{count:'exact'}).order('valide_le',{ascending:false}).order('id').range((page-1)*20,page*20-1);if(publicChoisi)q=q.contains('publics',[publicChoisi]);const {data,error,count}=await q;

@@ -46,7 +46,7 @@ export default async function PageSignalerIncident(
           fois, dans la carte d'urgence. */}
       <div className="entete-page">
         <TitreEcran rubrique="incidents">Signaler un problème</TitreEcran>
-        <Link href={`/locataire/${orgId}/demandes`} className="lien-discret">
+        <Link href={`/locataire/${orgId}/demandes`} className="lien-discret py-1.5">
           Suivre mes demandes{enCours > 0 ? ` (${enCours} en cours)` : ""}{"\u00a0"}→
         </Link>
       </div>

@@ -9,8 +9,7 @@
  *    vers ce profil. La version complète reste dans l'historique de la branche (a3f9440e, cf2142f7).
  *  - V02 : un seul des niveaux qu'un nom de duplex nomme déjà (« 1er » sous « Duplex RDC et 1er étage ») était redit :
  *    « Duplex RDC et 1er étage, 1er étage ».
- * Chaque cas ci-dessous échouait au commit cf2142f7, sauf les témoins signalés ; ceux de la reprise (dernier bloc) échouaient
- * au commit 446c7fe6, sauf les témoins.
+ * Chaque cas ci-dessous échouait au commit cf2142f7, sauf les témoins signalés.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { existsSync, readFileSync } from "node:fs";
@@ -191,75 +190,29 @@ describe("V02 — un niveau que le nom d'un duplex nomme déjà n'est plus redit
     // « 5e et dernier » est UN étage : un nom qui ne dit que le 5e ne le couvre pas ; le nom « 5e et dernier » couvre le 5.
     ["5e et dernier", "T3 — 5e étage", "5e et dernier étage"],
     ["5", "T3 5e et dernier étage", null],
+    // Un niveau prolongé par « et » n'est jamais coupé.
+    ["1er étage et 2e", "Duplex 1er et 2e étages", "1er étage et 2e"],
   ])("témoin : « %s » après « %s » → %s", (etage, nom, attendu) => {
     expect(mentionEtage(etage, nom)).toBe(attendu);
   });
 });
 
 /**
- * Reprise du lot 49 (relecture de V02) : la règle ne valait que pour la forme « 1er et 2e » de la saisie et pour un nom qui
- * écrit « étage(s) » après deux niveaux. Une saisie « 1 et 2 », « étage 1 et 2 », « 1er étage et 2e » ou « 1er et RDC » n'était
- * comparée que par sa tête ; un nom « Duplex 1er et 2e » (sans « étage »), « Duplex 1er étage et 2e » ou « Triplex 1er, 2e et 3e
- * étages » n'était pas lu en entier. L'adresse imprimait « Duplex 1er et 2e étages, étage 1 et 2 » ou « Duplex 1er et 2e,
- * 2e étage ». La mention entière est désormais comparée au nom entier.
+ * Retour sur la reprise du lot 49 (b3535792), décidé par l'orchestrateur après sa contre-relecture : la lecture de « toute
+ * énumération de niveaux » prenait l'ordinal d'une porte pour un niveau (« 1er étage, 2e porte à droite » sous « Studio —
+ * 1er étage » redisait l'étage) et le sous-sol d'un nom pour un étage (« T3 4e étage et 2e sous-sol » avalait une saisie
+ * « 2e » contradictoire). La règle du lot 49 (446c7fe6) est rétablie, plus simple ; les variantes de saisie plus rares d'un
+ * duplex (« 1 et 2 », nom sans « étage(s) », triplex) peuvent encore redire un niveau : limite connue, signalée (Q41).
  */
-describe("V02 (reprise) — toute énumération de niveaux, dans la saisie comme dans le nom du lot", () => {
+describe("retour à la règle du lot 49 — une porte ou un sous-sol n'est pas un étage", () => {
   it.each([
-    // La saisie prolonge sa tête par d'autres niveaux que le nom nomme tous.
-    ["1 et 2", "Duplex 1er et 2e étages", null],
-    ["étage 1 et 2", "Duplex 1er et 2e étages", null],
-    // Attente précédente (témoin « Un niveau prolongé par « et » n'est jamais coupé ») : « 1er étage et 2e », soit l'adresse
-    // « Duplex 1er et 2e étages, 1er étage et 2e », qui redisait deux niveaux que le nom nomme. La mention n'est pas coupée :
-    // elle est retirée en entier.
-    ["1er étage et 2e", "Duplex 1er et 2e étages", null],
-    ["1 et 2, porte B", "Duplex 1er et 2e étages", "porte B"],
-    ["1er et RDC", "Duplex RDC et 1er étage", null],
-    // Le nom d'un duplex sans « étage(s) », ou avec « étage » au milieu, se lit comme « Duplex RDC et 1er ».
-    ["2e", "Duplex 1er et 2e", null],
-    ["1er et 2e", "Duplex 1er et 2e", null],
-    ["2e, porte A", "Duplex 1er et 2e", "porte A"],
-    ["2e", "Duplex 1er étage et 2e", null],
-    // Trois niveaux et plus.
-    ["1er", "Triplex 1er, 2e et 3e étages", null],
-    ["1er, 2e et 3e", "Triplex 1er, 2e et 3e étages", null],
+    ["1er étage, 2e porte à droite", "Studio — 1er étage", "2e porte à droite"],
+    ["1er étage, 2e porte à droite", "Duplex 1er et 2e étages", "2e porte à droite"],
+    ["1er, 2e porte à droite", null, "1er étage, 2e porte à droite"],
+    ["2e", "T3 4e étage et 2e sous-sol", "2e étage"],
+    ["1er, porte droite", "Studio meublé — 1er étage", "porte droite"],
+    ["2e", "Duplex RDC et 1er étage", "2e étage"],
   ])("« %s » après « %s » → %s", (etage, nom, attendu) => {
     expect(mentionEtage(etage, nom)).toBe(attendu);
-  });
-
-  it("l'adresse du logement : les deux niveaux d'une saisie « 1 et 2 » ne sont pas redits après le nom du duplex", () => {
-    const ctx = contexte();
-    const duplex = { ...ctx.lot, nom: "Duplex 1er et 2e étages", etage: "1 et 2" };
-    expect(adresseLogement(duplex, ctx.bien)).toBe("12 rue des Lilas, 69003 Lyon, Duplex 1er et 2e étages");
-    expect(adresseLogement({ ...duplex, nom: "Duplex 1er et 2e", etage: "2e" }, ctx.bien)).toBe("12 rue des Lilas, 69003 Lyon, Duplex 1er et 2e");
-    // Témoin : le chemin archivé (baux d'avant g8) imprime la saisie comme avant, sans lire le nom (empreintes inchangées).
-    expect(adresseLogement(duplex, ctx.bien, true)).toBe("12 rue des Lilas, 69003 Lyon, Duplex 1er et 2e étages, étage 1 et 2");
-  });
-
-  it.each([
-    // Déjà justes avant : la lecture des énumérations ne les change pas.
-    ["1er", "Triplex RDC, 1er et 2e étages", null],
-    ["5e et dernier", "Duplex 4e et 5e et dernier étage", null],
-    // Un seul niveau de la mention manque au nom : elle reste entière (la saisie contradictoire se voit, rien n'est coupé).
-    ["1 et 2", "Studio 2 étage 1", "étage 1 et 2"],
-    ["1er étage et 2e", "Studio 2 étage 1", "1er étage et 2e"],
-    ["4e", "Triplex 1er, 2e et 3e étages", "4e étage"],
-    ["4e et dernier", "Duplex 4e et 5e et dernier étage", "4e et dernier étage"],
-    // Ce qui n'est pas une liste de niveaux close reste entier : une plage, une fraction, un nombre nu suivi d'un mot.
-    ["étage 1 à 2", "Duplex 1er et 2e étages", "étage 1 à 2"],
-    ["étage 1/2", "Duplex 1er et 2e étages", "étage 1/2"],
-    ["étage 1 et 2 pièces", "Duplex 1er et 2e étages", "étage 1 et 2 pièces"],
-    // Des nombres nus dans le nom sont des numéros de lot, pas des niveaux.
-    ["5", "Lot 5 et 6", "étage 5"],
-    ["5e", "Lot 5 et 6", "5e étage"],
-  ])("témoin : « %s » après « %s » → %s", (etage, nom, attendu) => {
-    expect(mentionEtage(etage, nom)).toBe(attendu);
-  });
-
-  // Corrigé au passage, même cause : seule la tête de la mention était comparée, et une énumération séparée par une virgule
-  // perdait sa tête quand le nom nommait le premier niveau : « Studio meublé — 1er étage, 2e et 3e », « Duplex 1er et 2e
-  // étages, 2e et 3e ».
-  it("une énumération séparée par des virgules n'est jamais coupée de sa tête", () => {
-    expect(mentionEtage("1er, 2e et 3e", "Studio meublé — 1er étage")).toBe("1er étage, 2e et 3e");
-    expect(mentionEtage("1er, 2e et 3e", "Duplex 1er et 2e étages")).toBe("1er étage, 2e et 3e");
   });
 });

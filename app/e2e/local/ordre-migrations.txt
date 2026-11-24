@@ -555,3 +555,5 @@
 20261124140000_export_droits_par_colonne.sql
 20261124150000_revision_loyer_seconde_reprise_d2.sql
 20261124170000_revision_loyer_troisieme_reprise_d2.sql
+20261124180000_notice_information_deposee.sql
+20261124190000_reperes_fiscaux_source.sql

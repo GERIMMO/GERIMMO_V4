@@ -16,6 +16,7 @@ import { synchroniserCircuitSignatureBail } from "@/lib/signature-bail-worker";
 import { verifierAvantEffet } from "@/lib/controle-effets";
 import { sansJargon } from "@/lib/erreurs";
 import { assemblerSignatureDocument, selectionDuCircuit } from "@/lib/signature-document";
+import { estNoticeDeposeeJointe } from "@/lib/documents-bail";
 import { selectionSignatureValide, type SelectionSignature } from "@/lib/politique-signature";
 import { signatureEnEssai } from "@/lib/signature-essai";
 import { fermetureModeleSignature } from "@/lib/signature-interrupteurs";
@@ -306,22 +307,26 @@ export async function activerBailApresSignature(org:string,bail:string,id:string
     if (signatureEnEssai(org)) throw new Error("Un essai de signature ne met pas un logement en location.");
     const {supabase,circuit} = await circuitAutorise(org,bail,id);
     if (circuit.modele && circuit.modele !== "bail") throw new Error("Seul le bail signé permet la mise en location.");
-    const actuel = await assemblerSignatureDocument(supabase,org,selectionDuCircuit(circuit));
-    let empreinte = actuel.empreinte;
+    // Décision du 24/11/2026 (Q46) : l'empreinte se recalcule avec la notice déposée que CE circuit portait, pas avec celle
+    // du jour. Un bail envoyé avant la décision (sans notice), ou une notice déposée de nouveau après l'envoi, ne change
+    // donc pas l'empreinte du contrat déjà signé.
+    const noticeDuCircuit = circuit.annexes.find(estNoticeDeposeeJointe)?.id ?? null;
+    const idBail = circuit.bail_id ?? bail;
+    let empreinte = (await assemblerSignatureBail(supabase, org, idBail, { noticeDuCircuit })).empreinte;
     // Les anciennes présentations restent vérifiables uniquement par correspondance
     // exacte avec l’empreinte conservée au moment de la signature.
     // Phase 3 (reprise du lot 35) : un bail préparé avec la présentation d’aujourd’hui avant la version g8 des documents
     // (feuille g7, typographie d’alors). La présentation d’avant #331 vient ensuite, avec la même mise en forme.
     if (empreinte !== circuit.empreinte) {
-      empreinte = (await assemblerSignatureBail(supabase, org, circuit.bail_id ?? bail, { typographieArchivee: true })).empreinte;
+      empreinte = (await assemblerSignatureBail(supabase, org, idBail, { typographieArchivee: true, noticeDuCircuit })).empreinte;
     }
     if (empreinte !== circuit.empreinte) {
-      empreinte = (await assemblerSignatureBail(supabase, org, circuit.bail_id ?? bail, { presentationAncienne: true })).empreinte;
+      empreinte = (await assemblerSignatureBail(supabase, org, idBail, { presentationAncienne: true, noticeDuCircuit })).empreinte;
     }
     // Décision du 24/10 : un bail préparé avant elle, dont le garant a signé avec le numéro de sa fiche (aucun numéro
     // confirmé par lui), garde l'ancien calcul de l'empreinte, qui comprenait ce numéro.
     if (empreinte !== circuit.empreinte && circuit.signataires.some(s=>s.qualite==="Garant"&&!s.telephoneConfirmeLe)) {
-      empreinte = (await assemblerSignatureBail(supabase,org,circuit.bail_id ?? bail,{ telephoneGarantDuDossier: true, presentationAncienne: true })).empreinte;
+      empreinte = (await assemblerSignatureBail(supabase, org, idBail, { telephoneGarantDuDossier: true, presentationAncienne: true, noticeDuCircuit })).empreinte;
     }
     if (empreinte !== circuit.empreinte) throw new Error("Les informations du dossier ont changé après la préparation du contrat. Vérifiez le PDF signé avant toute activation auprès de l’assistance.");
     const result = await supabase.rpc("activer_bail_signature_electronique",{p_circuit:id});

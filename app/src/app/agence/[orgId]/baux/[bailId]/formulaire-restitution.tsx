@@ -25,6 +25,7 @@ import { Modale } from "@/components/ui/modale";
 import { ChampFichier } from "@/components/champ-fichier";
 import { useBaseEspace } from "@/components/racine-espace-contexte";
 import { REGLE_ECART_EDL } from "@/lib/regle-ecart-edl";
+import { retenueJustifiee } from "@/lib/justificatif-retenue";
 
 export type Restitution = {
   id: string;
@@ -254,7 +255,9 @@ export function FormulaireRestitution({
         <ul className="divide-y divide-border border border-border">
           {retenues.map((r) => (
             <li key={r.id} className="flex flex-wrap items-center gap-2 px-3 py-2 text-sm">
-              <span className="min-w-0 flex-1 truncate">{r.libelle}</span>
+              {/* Lot D3 (24/11/2026) : `w-0` — un libellé long, non coupé, imposait sa largeur à toute la rubrique sur
+                  téléphone (défilement horizontal à 390 px) ; il se tronque maintenant dans la place disponible. */}
+              <span className="w-0 min-w-0 flex-1 truncate" title={r.libelle}>{r.libelle}</span>
               <span className="text-xs text-muted-foreground">
                 {eur(r.cout)}
                 {r.duree_vie_ans
@@ -263,12 +266,20 @@ export function FormulaireRestitution({
               </span>
               <span className="w-24 text-right font-medium">{eur(r.montant_retenu)}</span>
               {!finalise && <BoutonSupprimerRetenue orgId={orgId} bailId={bailId} retenueId={r.id} />}
-              {!r.justificatif_document && (
+              {!retenueJustifiee(r) && (
                 <FormJustifierRetenue orgId={orgId} bailId={bailId} retenue={r} />
               )}
             </li>
           ))}
         </ul>
+      )}
+      {/* Décision du 24/11/2026 (Q49) : chaque retenue a son justificatif ; sans lui, les deux décomptes sont bloqués. */}
+      {retenues.some(r => !retenueJustifiee(r)) && (
+        <p className="border-l-[3px] border-l-warning bg-warning-soft px-3 py-2 text-sm text-warning-soft-foreground" data-retenues-sans-justificatif>
+          Chaque retenue demande un justificatif : un devis suffit, comme une facture, un état des lieux ou des photos.
+          Tant qu&apos;une retenue n&apos;a pas le sien, ni le décompte de restitution ni le décompte des retenues ne
+          peuvent être générés.
+        </p>
       )}
 
       {!finalise && (
@@ -340,7 +351,7 @@ export function FormulaireRestitution({
             impayes={Number(restitution.impayes)}
             arretesLe={restitution.montants_arretes_le}
             nbRetenues={retenues.length}
-            retenuesSansPiece={retenues.filter(r => Number(r.montant_retenu) > 0 && (r.sans_justificatif || !r.justificatif_document))}
+            retenuesSansPiece={retenues.filter(r => Number(r.montant_retenu) > 0 && !retenueJustifiee(r))}
           />}
         </>
       )}
@@ -613,6 +624,11 @@ function ChampsRetenue({
           Ajouter la retenue
         </BoutonEnvoi>
       </div>
+      {/* Décision du 24/11/2026 (Q49) : le justificatif peut être joint plus tard, mais les décomptes l'attendent. */}
+      <p className="text-sm text-muted-foreground" data-justificatif-attendu>
+        Joignez le justificatif de la retenue : un devis suffit, comme une facture, un état des lieux ou des photos.
+        Sans lui, les décomptes ne peuvent pas être générés.
+      </p>
       <p className="text-sm text-muted-foreground">
         Retenue = coût × (durée de vie − âge) / durée de vie. Laisser durée de vie
         vide pour retenir le coût intégral (dégradation, non-vétusté).
@@ -838,6 +854,8 @@ function BoutonFinaliser({
               <strong>Retenues sans justificatif au dossier</strong>
               <ul>{retenuesSansPiece.map(r => <li key={r.id}>{r.libelle} · {eur(r.montant_retenu)}</li>)}</ul>
               <p>Choisissez « Annuler » pour joindre une pièce ou corriger les retenues avant de figer le solde.</p>
+              {/* Décision du 24/11/2026 (Q49) */}
+              <p>Sans justificatif pour chaque retenue (un devis suffit), le décompte ne pourra pas être généré ; vous pourrez encore joindre la pièce après la finalisation.</p>
             </div>
           )}
           {/* Audit palier 1 du 22/11/2026, P1-09 : l'écran promettait « un décompte rectificatif envoyé au

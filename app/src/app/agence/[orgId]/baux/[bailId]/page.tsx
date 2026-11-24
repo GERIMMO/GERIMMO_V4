@@ -60,6 +60,8 @@ import { CarteCautionnement } from "./carte-cautionnement";
 import { ConseilsChoixLocataire } from "@/components/conseils-choix-locataire";
 import { CONSEILS_LOCATAIRE_VALIDES } from "@/lib/conseils-locataire";
 import { CarteBailSigne } from "./carte-bail-signe";
+import { lireEcartDpe } from "@/lib/avertissement-dpe";
+import { AvertissementDpe } from "@/components/avertissement-dpe";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { FormulaireInventaire, type LigneInventaire } from "./formulaire-inventaire";
 import { FormulaireColocation, type LigneColoc } from "./formulaire-colocation";
@@ -590,6 +592,12 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             {moisBasculeAnnonce && !bail.document_signe && <p className="text-sm" data-loyers-suivis-a-partir>
               Gerimmo suivra les loyers à partir {deElide(moisBasculeAnnonce)} : ceux d’avant ne seront pas réclamés.
             </p>}
+            {/* Décision du 24/11/2026 (Q46) : la signature sur papier n'est pas bloquée par la notice ; l'écran rappelle
+                seulement qu'elle est à annexer au contrat (Gerimmo ne la joint qu'à la signature électronique). */}
+            {bail.etat === "brouillon" && !bail.document_signe && <p className="text-sm" data-rappel-notice-papier>
+              Signature sur papier : annexez vous-même au contrat la notice d’information officielle, en entier.{" "}
+              <a className="underline" href="#notice-deposee">Voir la notice de ce bail</a>
+            </p>}
             {lotEnPreparation && <p className="text-sm">
               Le logement est encore en préparation. Ouvrez sa fiche et choisissez « Mettre en location » avant d’activer le bail.{" "}
               <Link className="underline" href={`${base}/parc/${lot.bien_id}/lots/${bail.lot_id}#statut-lot`}>Ouvrir la mise en location du logement</Link>
@@ -970,6 +978,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               encaissements={(encaissements ?? []) as Encaissement[]}
               quittances={(quittances ?? []) as Quittance[]}
               revisionIrl={Boolean(bail.revision_irl)}
+              avertissementDpe={bail.revision_irl ? <AvertissementDpe ecart={await lireEcartDpe(supabase, orgId, bail.lot_id)} usage="Sa classe décide si la révision du loyer est possible : elle est refusée en classe F ou G." /> : null}
               irlReference={bail.irl_valeur === null ? null : Number(bail.irl_valeur)}
               irlTrimestre={bail.irl_trimestre}
               revisions={(revisions ?? []) as Revision[]}

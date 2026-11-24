@@ -128,7 +128,7 @@ export function indexEtapeBail(hash: string) {
   }
   if (/^#titre-(proprietaires|locataires|garants)-bail$/.test(hash)) return 1;
   if (/completer-person/.test(hash)) return 1;
-  if (/completer-dpe|complements-energie|reglement-copro|documents-bail|inventaire|assurances-bail|annexes-attendues/.test(hash)) return 4;
+  if (/completer-dpe|complements-energie|reglement-copro|notice-deposee|documents-bail|inventaire|assurances-bail|annexes-attendues/.test(hash)) return 4;
   if (/completer-(logement|lot|bien|equipements|chambres)/.test(hash)) return 2;
   if (/complements-(paiement|precedent|honoraires)|loyer/.test(hash)) return 3;
   if (/complements|clauses/.test(hash)) return 5;

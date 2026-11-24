@@ -95,6 +95,8 @@ export function SignatureElectroniqueBail({orgId,bailId,selection,apresSignature
   const resumesJoints=pieces.filter(estResumeNoticeJoint);
   const lienPiece=(a:{id:string;titre:string})=><li key={a.id}><a className="inline-flex min-h-11 items-center underline underline-offset-4" href={`${base}/documents/${a.id}/fichier`} target="_blank" rel="noreferrer">{a.titre}</a></li>;
   function corriger(champ:string) {
+    // Décision du 24/11/2026 (Q46) : la consigne « Déposez la notice d’information officielle… » mène à la carte du dépôt.
+    if (/notice d’information officielle/i.test(champ)) return "#notice-deposee";
     if (/annexe|notice|règlement|version PDF|diagnostic|étape Documents/i.test(champ)) return "#etape-bail-5";
     if (/signataire|propriétaire|locataire|rôles|e-mail|SMS|représentant/i.test(champ)) return "#etape-bail-2";
     return cibleChampBail(champ,orgId,racine).href;

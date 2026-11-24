@@ -256,7 +256,10 @@ export function FormulaireLoyers({
   aujourdhui = aujourdhuiParis(),
   decompteSortie = "non_finalise",
   planApurement = null,
+  avertissementDpe = null,
 }: {
+  /** Décision du 24/11/2026 (Q28) : avertissement « plusieurs DPE », affiché près de la révision (refusée en classe F ou G). */
+  avertissementDpe?: React.ReactNode;
   orgId: string;
   bailId: string;
   echeancier: LigneEcheance[];
@@ -649,6 +652,7 @@ export function FormulaireLoyers({
       {revisionIrl && (
         <div id="revision-loyer" className="scroll-mt-24 space-y-2 border-t border-border pt-4">
           <p className="text-sm font-medium">Révision annuelle du loyer (IRL)</p>
+          {avertissementDpe}
           {revisions.length > 0 && (
             <ul className="text-xs text-muted-foreground">
               {revisions.map((r) => (

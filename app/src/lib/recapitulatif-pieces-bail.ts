@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { avecEcheanceReglementaire, resumeNoticeAActualiser, resumeNoticeRetenu, type DiagnosticBail, type PieceBail } from "@/lib/documents-bail";
+import { avecEcheanceReglementaire, noticeDeposeeRetenue, resumeNoticeAActualiser, resumeNoticeRetenu, type DiagnosticBail, type PieceBail } from "@/lib/documents-bail";
 import { preparerDiagnosticsBail } from "@/lib/exigences-diagnostics-bail";
 import { TYPES_DIAGNOSTIC } from "@/lib/parc";
 import { jourAParis, jourValide } from "@/lib/presentation-document";
@@ -125,6 +125,13 @@ export async function lireRecapitulatifPiecesBail(
   const etatNotice = liensIncomplets ? INDISPONIBLE : fichier(notice?.id ?? null, true);
   ajouter("notice", "Résumé de la notice d’information", "signature", etatNotice.statut === "pret" && resumeNoticeAActualiser(notice)
     ? { statut: "a_completer", detail: "Actualisez le résumé : celui qui est rangé a été établi avec un ancien texte." } : etatNotice, `${baseBail}#annexes-attendues`);
+  // Décision du 24/11/2026 (Q46) : la notice officielle, déposée par le bailleur. Sans elle, la signature électronique est
+  // bloquée ; pour une signature sur papier, le bailleur l'annexe lui-même.
+  const noticeDeposee = noticeDeposeeRetenue(liens.lignes.map(l => parId.get(l.document_id)).filter((d): d is Fichier => Boolean(d)));
+  const etatNoticeDeposee = liensIncomplets ? INDISPONIBLE : fichier(noticeDeposee?.id ?? null, true);
+  ajouter("notice-deposee", "Notice d’information officielle", "signature", etatNoticeDeposee.statut === "a_completer" && !noticeDeposee
+    ? { statut: "a_completer", detail: "À déposer : la signature électronique est bloquée sans elle. Sur papier, annexez-la au contrat." }
+    : etatNoticeDeposee.statut === "pret" ? { statut: "pret", detail: "Déposée par vous ; jointe à la signature électronique. Sur papier, annexez-la au contrat." } : etatNoticeDeposee, `${baseBail}#notice-deposee`);
   ajouter("reglement", "Règlement de copropriété", "signature", bienIndisponible ? INDISPONIBLE
     : bien!.copropriete === false ? { statut: "non_concerne", detail: "Le bâtiment est déclaré hors copropriété." }
       : bien!.copropriete === null ? { statut: "a_verifier", detail: "Précisez si le bâtiment est en copropriété." }

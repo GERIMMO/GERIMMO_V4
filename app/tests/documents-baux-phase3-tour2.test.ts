@@ -80,7 +80,7 @@ vi.mock("@/app/agence/[orgId]/baux/[bailId]/piece-attendue-bail", () => ({
   ApercuPieceBail: (p: { fichier: string; titre: string }) => createElement("a", { "data-apercu": p.titre, href: p.fichier }),
   ChoisirPieceAttendueBail: () => null,
 }));
-vi.mock("@/app/agence/[orgId]/baux/[bailId]/formulaires-bail", () => ({ FormulaireReglementCopropriete: () => null }));
+vi.mock("@/app/agence/[orgId]/baux/[bailId]/formulaires-bail", () => ({ FormulaireReglementCopropriete: () => null, FormulaireNoticeBail: () => null }));
 vi.mock("@/app/agence/[orgId]/baux/[bailId]/choisir-reglement-bail", () => ({ ChoisirReglementBail: () => null }));
 vi.mock("@/app/agence/[orgId]/baux/[bailId]/formulaire-annexe-bail", () => ({ FormulaireAnnexeBail: () => null }));
 vi.mock("@/app/agence/[orgId]/baux/[bailId]/diagnostics-bail", () => ({ DiagnosticsBail: () => null }));
@@ -118,6 +118,7 @@ function document(id: string, titre: string, created_at: string, changements: Li
   return { id, organization_id: ORG, titre, type: "courrier", created_at, purged_at: null, expire_le: null, mime_type: "application/pdf",
     storage_path: `${ORG}/${id}.pdf`, empreinte: `e-${id}`, versions: [], ...changements };
 }
+const NOTICE_DEPOSEE = document("notice-deposee", "Notice d'information (déposée par le bailleur)", "2026-11-01T08:00:00+00:00", { type: "notice_information" });
 /** Un bail hors copropriété, un ERP déposé, et les résumés de la notice liés au bail DANS L'ORDRE DE LEUR CRÉATION. */
 function dossier(resumes: Ligne[]): Record<string, Ligne[]> {
   return {
@@ -126,8 +127,11 @@ function dossier(resumes: Ligne[]): Record<string, Ligne[]> {
     biens: [{ id: BIEN, organization_id: ORG, type: "appartement", annee_construction: 2010, copropriete: false }],
     diagnostics: [{ id: "g1", organization_id: ORG, lot_id: LOT, bien_id: BIEN, type: "erp", date_realisation: "2026-11-05", date_expiration: "2027-05-05", document_id: "erp", classe_dpe: null, archived_at: null }],
     qualifications_diagnostics_lot: [], pieces_attendues_bail: [], inventaire_lignes: [], bail_personnes: [], etats_des_lieux: [], bail_signature_circuits: [],
-    document_liens: resumes.map((d) => ({ organization_id: ORG, entite: "bail", entite_id: BAIL, document_id: d.id })),
-    documents: [...resumes, document("erp", "ERP — état des risques", "2026-11-05T09:00:00+00:00", { type: "diagnostic" })],
+    // Décision du 24/11/2026 (Q46) : la signature électronique exige aussi la notice officielle déposée par le bailleur.
+    // Ce dossier la porte (type à elle), pour que ces tests continuent de ne regarder QUE le résumé : sans elle, la consigne
+    // « Déposez la notice… » s'ajouterait à chaque liste de manquants (tests/decisions-24-11-d3.test.ts tient ce blocage).
+    document_liens: [...resumes, NOTICE_DEPOSEE].map((d) => ({ organization_id: ORG, entite: "bail", entite_id: BAIL, document_id: d.id })),
+    documents: [...resumes, NOTICE_DEPOSEE, document("erp", "ERP — état des risques", "2026-11-05T09:00:00+00:00", { type: "diagnostic" })],
   };
 }
 
@@ -137,7 +141,8 @@ async function troisEcrans(tables: Record<string, Ligne[]>) {
   const element = await DocumentsParcoursBail({ orgId: ORG, bailId: BAIL, lotId: LOT, bienId: BIEN, annexes: null, copropriete: false, reglementId: null, dateDebut: "2026-12-01", edlEntree: null, erreurEdl: false });
   const { prelude } = await prerender(createElement("div", null, element as ReactNode));
   const html = await new Response(prelude).text();
-  const carte = html.slice(html.indexOf("Notice d’information"), html.indexOf("reglement-copro"));
+  // Q46 : la carte de la notice déposée précède maintenant celle du résumé ; on lit la carte du RÉSUMÉ, comme avant.
+  const carte = html.slice(html.indexOf("Résumé de la notice (document d’information)"), html.indexOf("reglement-copro"));
   const fiche = {
     statut: /Résumé (disponible|à actualiser|à générer)/.exec(carte)?.[0],
     ouvre: /href="[^"]*\/documents\/([^/"]+)\/fichier"/.exec(carte)?.[1],
@@ -148,7 +153,7 @@ async function troisEcrans(tables: Record<string, Ligne[]>) {
   ctx.lot = { ...ctx.lot, id: LOT };
   ctx.bien = { ...ctx.bien, id: BIEN, copropriete: false };
   const signature = await annexesSignatureBail(base(tables) as unknown as SupabaseClient, ORG, BAIL, ctx);
-  return { fiche, recap, signature: { resume: signature.annexes.map((a) => a.id).filter((id) => id !== "erp"), manquants: signature.manquants } };
+  return { fiche, recap, signature: { resume: signature.annexes.map((a) => a.id).filter((id) => id !== "erp" && id !== NOTICE_DEPOSEE.id), manquants: signature.manquants } };
 }
 
 describe("T14 (C01) — la fiche du bail, le récapitulatif et la signature retiennent le même résumé", () => {

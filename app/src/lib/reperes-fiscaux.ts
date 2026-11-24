@@ -9,6 +9,9 @@
  * Règle tenue ici : une valeur qui n'a pas exactement la forme attendue n'est jamais affichée. Réglage illisible ou
  * réponse inattendue → `null`, et la phrase d'aide ne cite alors aucun chiffre.
  *
+ * Décision du 24/11/2026 (Q38) : la source du contrôle (la page officielle où le superviseur a lu les deux valeurs) est
+ * enregistrée avec sa date (migration 20261124190000) et affichée aux propriétaires avec elle.
+ *
  * Module sans import : il sert aussi bien à l'écran du propriétaire (serveur) qu'au panneau de la console (navigateur).
  */
 
@@ -19,7 +22,21 @@ export type ReperesFiscaux = {
   abattementPourcent: number;
   /** Jour (AAAA-MM-JJ) où le superviseur a confirmé ces deux valeurs ; `null` : jamais confirmées. */
   verifieLe: string | null;
+  /** Où le superviseur a lu ces deux valeurs ce jour-là (texte qu'il a saisi) ; `null` : aucune source enregistrée. */
+  source: string | null;
 };
+
+/** Les mêmes bornes que la contrainte de la table : une ligne de 10 à 300 caractères. */
+export const BORNES_SOURCE_REPERES = { min: 10, max: 300 } as const;
+
+/** La source saisie par le superviseur → une ligne propre, ou `null` si elle n'a pas la forme attendue. */
+export function lireSourceSaisie(brut: unknown): string | null {
+  if (typeof brut !== "string") return null;
+  const propre = brut.trim();
+  if (propre.length < BORNES_SOURCE_REPERES.min || propre.length > BORNES_SOURCE_REPERES.max) return null;
+  // Aucun caractère de contrôle (retour à la ligne, tabulation) : la source s'affiche dans une phrase.
+  return /[\u0000-\u001f\u007f]/.test(propre) ? null : propre;
+}
 
 /** Les mêmes bornes que les contraintes de la table : au-delà, c'est une faute de frappe, pas une valeur. */
 export const BORNES_REPERES_FISCAUX = {
@@ -40,18 +57,20 @@ export function lireReponseReperes(data: unknown): ReperesFiscaux | null {
   const plafond = d.micro_foncier_plafond_euros;
   const abattement = d.micro_foncier_abattement_pourcent;
   const verifie = d.verifie_le ?? null;
+  const source = d.source ?? null;
   if (!entierEntre(plafond, BORNES_REPERES_FISCAUX.plafondEuros)) return null;
   if (!entierEntre(abattement, BORNES_REPERES_FISCAUX.abattementPourcent)) return null;
   if (verifie !== null && (typeof verifie !== "string" || !JOUR_ISO.test(verifie))) return null;
-  return { plafondEuros: plafond, abattementPourcent: abattement, verifieLe: verifie };
+  if (source !== null && (typeof source !== "string" || lireSourceSaisie(source) !== source)) return null;
+  return { plafondEuros: plafond, abattementPourcent: abattement, verifieLe: verifie, source };
 }
 
-type ClientLecture = { rpc: (nom: "reperes_fiscaux") => PromiseLike<{ data: unknown; error: unknown }> };
+type ClientLecture = { rpc: (nom: "reperes_fiscaux_avec_source") => PromiseLike<{ data: unknown; error: unknown }> };
 
 /** Lit le réglage. Toute panne (base, droit, forme) rend `null` : l'écran reste lisible, sans chiffre. */
 export async function chargerReperesFiscaux(db: ClientLecture): Promise<ReperesFiscaux | null> {
   try {
-    const reponse = await db.rpc("reperes_fiscaux");
+    const reponse = await db.rpc("reperes_fiscaux_avec_source");
     if (!reponse || reponse.error) return null;
     return lireReponseReperes(reponse.data);
   } catch {
@@ -74,7 +93,7 @@ function jourEnFrancais(iso: string): string {
  * Les deux phrases de l'aide du récapitulatif fiscal.
  *  - `regle` : ce que dit le régime, avec les valeurs enregistrées — ou sans aucun chiffre si le réglage est illisible ;
  *  - `verification` : d'où viennent ces valeurs et ce qui fait foi. Sans date enregistrée, la phrase le dit : elle ne
- *    présente jamais une valeur comme vérifiée.
+ *    présente jamais une valeur comme vérifiée. Avec une source enregistrée (Q38), elle la cite telle que saisie.
  * Les deux-points portent une espace insécable : sur téléphone, « : » partait seul en début de ligne.
  */
 export function phrasesMicroFoncier(reperes: ReperesFiscaux | null): { regle: string; verification: string } {
@@ -88,7 +107,7 @@ export function phrasesMicroFoncier(reperes: ReperesFiscaux | null): { regle: st
   return {
     regle,
     verification: reperes.verifieLe
-      ? `Plafond et abattement vérifiés par Gerimmo le ${jourEnFrancais(reperes.verifieLe)}. Une loi de finances peut les modifier\u00A0: la notice officielle fait foi.`
+      ? `Plafond et abattement vérifiés par Gerimmo le ${jourEnFrancais(reperes.verifieLe)}${reperes.source ? ` (source\u00A0: ${reperes.source})` : ""}. Une loi de finances peut les modifier\u00A0: la notice officielle fait foi.`
       : "Aucune date de vérification n’est enregistrée pour ce plafond et cet abattement\u00A0: contrôlez-les dans la notice officielle avant de vous en servir.",
   };
 }

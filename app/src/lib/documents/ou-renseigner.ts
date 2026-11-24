@@ -1,5 +1,6 @@
 import { RACINE_AGENCE, RACINE_PROPRIETAIRE } from "@/lib/racine-espace";
 import type { EmetteurEnTete } from "@/lib/documents/gabarit";
+import { DEBUT_MANQUE_JUSTIFICATIF_RETENUE } from "@/lib/justificatif-retenue";
 // Où renseigner un champ resté en libellé dans un PDF généré (chantier
 // documentaire 08/09, refondu à l'audit du 09/09) : chaque « manquant »
 // pointe l'écran où la donnée se saisit — Gerimmo sait où vit chaque
@@ -186,6 +187,10 @@ export function lienPourManquant(
     if (bail) return { href: `${base}/baux/${bail.entiteId}`, ecran: "fiche du bail" };
     return null;
   };
+
+  // Décision du 24/11/2026 (Q49) : le justificatif d'une retenue se dépose dans la restitution du dépôt, sur la fiche du bail
+  // (les deux décomptes y renvoient ; le repli « fiche du bail » n'ouvrait pas la bonne rubrique).
+  if (l.startsWith(DEBUT_MANQUE_JUSTIFICATIF_RETENUE) && bail) return { href: `${base}/baux/${bail.entiteId}#restitution`, ecran: "restitution du dépôt de garantie" };
 
   // D39 : le détail des dépenses d'une régularisation se saisit dans le formulaire de génération lui-même. Aucun écran du dossier ne le porte :
   // l'envoyer à la fiche du bail (repli ci-dessous) ferait chercher un champ qui n'y existe pas.

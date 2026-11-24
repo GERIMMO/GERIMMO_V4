@@ -222,7 +222,9 @@ describe("décompte de restitution", () => {
     expect(finDelaiRestitution("2026-03-15", 2)).toBe("2026-05-15");
   });
   it("« sur demande » est réservé aux pièces déposées", () => {
-    expect(libelleJustificatifRetenue({ sans_justificatif: true, justificatif_document: null })).toBe("Non fourni");
+    // Décision du 24/11/2026 (Q49) : sans pièce, le décompte n'est plus imprimé avec « Non fourni » ; il est bloqué, et la
+    // cellule de l'épreuve dit « À déposer » (tests/decisions-24-11-d3.test.ts tient le blocage).
+    expect(libelleJustificatifRetenue({ sans_justificatif: true, justificatif_document: null })).toBe("À déposer");
     expect(libelleJustificatifRetenue({ sans_justificatif: false, justificatif_document: "doc" })).toBe("Déposé — sur demande");
   });
 });

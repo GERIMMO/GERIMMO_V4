@@ -10,6 +10,7 @@ import { etatVerification, libelleVerification, phrasesMicroFoncier, type Repere
  * micro-foncier, que l'aide du récapitulatif fiscal cite. `reperes` : le réglage enregistré (null = illisible) ;
  * `aujourdHui` : le jour de Paris, pour dire si la vérification date d'une année précédente. Aucun calcul ne lit ces
  * valeurs. Enregistrer date la vérification du jour : la case de confirmation est exigée.
+ * Décision du 24/11/2026 (Q38) : la source du contrôle est saisie ici, enregistrée avec la date et affichée.
  */
 export function ReperesFiscauxReglage({ reperes, aujourdHui }: { reperes: ReperesFiscaux | null; aujourdHui: string }) {
   const [retour, action, pending] = useActionState(reglerReperesFiscaux, {});
@@ -38,8 +39,11 @@ export function ReperesFiscauxReglage({ reperes, aujourdHui }: { reperes: Repere
             <p className="mt-1">{phrases.regle}</p>
             <p className="mt-1">{phrases.verification}</p>
           </div>
+          <p className="text-sm" data-source-enregistree>
+            {reperes.source ? <>Source enregistrée avec ce contrôle : <strong className="break-words">{reperes.source}</strong></> : "Aucune source n’est enregistrée pour ces deux valeurs."}
+          </p>
           {/* La clé remonte le formulaire après un enregistrement : les champs repartent des valeurs enregistrées. */}
-          <form key={`${reperes.plafondEuros}-${reperes.abattementPourcent}-${reperes.verifieLe ?? ""}`} action={action} className="space-y-3" data-saisie-confirmee>
+          <form key={`${reperes.plafondEuros}-${reperes.abattementPourcent}-${reperes.verifieLe ?? ""}-${reperes.source ?? ""}`} action={action} className="space-y-3" data-saisie-confirmee>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block min-w-0 text-sm" htmlFor="repere-plafond">
                 Plafond de recettes brutes, en euros
@@ -50,11 +54,15 @@ export function ReperesFiscauxReglage({ reperes, aujourdHui }: { reperes: Repere
                 <input id="repere-abattement" name="abattement" type="text" inputMode="numeric" required pattern="[0-9]{1,2}" maxLength={2} defaultValue={String(reperes.abattementPourcent)} className="champ mt-1 block w-full" />
               </label>
             </div>
+            <label className="block min-w-0 text-sm" htmlFor="repere-source">
+              Source du contrôle (site officiel, page, date de sa dernière mise à jour)
+              <input id="repere-source" name="source" type="text" required minLength={10} maxLength={300} defaultValue={reperes.source ?? ""} className="champ mt-1 block w-full" />
+            </label>
             <label htmlFor="repere-confirmation" className="flex items-start gap-2 text-sm">
               <input id="repere-confirmation" type="checkbox" name="confirmation" value="oui" required className="mt-1" />
-              <span>J’ai contrôlé ces deux valeurs aujourd’hui sur le site officiel des impôts.</span>
+              <span>J’ai contrôlé ces deux valeurs aujourd’hui, sur la source indiquée ci-dessus.</span>
             </label>
-            <BoutonEnvoi enCours={pending} enCoursTexte="Enregistrement…">Enregistrer et dater la vérification</BoutonEnvoi>
+            <BoutonEnvoi enCours={pending} enCoursTexte="Enregistrement…">Enregistrer, avec la date et la source</BoutonEnvoi>
           </form>
         </>
       )}

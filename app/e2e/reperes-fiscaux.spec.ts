@@ -13,7 +13,11 @@ import { debordementHorizontal, sansSyntheseAlertes } from "./aides";
 //  - confirmation cochée : les valeurs sont enregistrées, datées du jour, journalisées avec les valeurs d'avant ;
 //  - le propriétaire recharge : il lit les nouvelles valeurs et la date de leur vérification.
 //
-// Les valeurs saisies (15 300 €, 31 %) sont FICTIVES : elles servent à voir le réglage changer, pas à dire le droit.
+// Décision du dirigeant du 24/11/2026 (Q38, lot D3) : « enregistre la date et la source. » Le parcours tient en plus que
+// la source du contrôle est exigée, enregistrée avec la date, journalisée, affichée dans la console et lue par le
+// propriétaire à côté de la date. Rien n'est retiré des vérifications d'avant ; les phrases attendues portent la source.
+//
+// Les valeurs saisies (15 300 €, 31 %) et la source saisie sont FICTIVES : elles servent à voir le réglage changer, pas à dire le droit.
 // Le parcours modifie un réglage commun à toute la base du banc : il le remet à la livraison quoi qu'il arrive.
 // Aucun autre parcours ne lit cette phrase d'aide.
 
@@ -36,8 +40,10 @@ test("repères fiscaux : livrés sans date, réglés et datés par le superviseu
   );
   const db = new Client({ connectionString: cible });
   await db.connect();
-  const livraison = () => db.query("update public.reperes_fiscaux_reglage set micro_foncier_plafond_euros = 15000, micro_foncier_abattement_pourcent = 30, verifie_le = null, modifie_le = null, modifie_par = null where singleton");
-  const reglage = async () => (await db.query("select micro_foncier_plafond_euros plafond, micro_foncier_abattement_pourcent abattement, verifie_le::text verifie from public.reperes_fiscaux_reglage where singleton")).rows[0];
+  const livraison = () => db.query("update public.reperes_fiscaux_reglage set micro_foncier_plafond_euros = 15000, micro_foncier_abattement_pourcent = 30, verifie_le = null, source = null, modifie_le = null, modifie_par = null where singleton");
+  const reglage = async () => (await db.query("select micro_foncier_plafond_euros plafond, micro_foncier_abattement_pourcent abattement, verifie_le::text verifie, source from public.reperes_fiscaux_reglage where singleton")).rows[0];
+  // Source d'essai, fictive : aucune page officielle n'est citée ici.
+  const SOURCE = "Site officiel fictif, page d’essai du 01/01/2026";
   const debut = (await db.query("select now() t")).rows[0].t;
   const journal = async () => (await db.query("select details from public.supervision_operations where action = 'reperes_fiscaux' and cree_le >= $1 order by cree_le", [debut])).rows.map((r) => r.details);
   const { jour, annee } = (await db.query<{ jour: string; annee: number }>("select public.aujourdhui_paris()::text jour, extract(year from public.aujourdhui_paris())::int annee")).rows[0];
@@ -76,7 +82,11 @@ test("repères fiscaux : livrés sans date, réglés et datés par le superviseu
     const plafond = panneau.locator("#repere-plafond");
     const abattement = panneau.locator("#repere-abattement");
     const confirmation = panneau.locator("#repere-confirmation");
-    const enregistrer = panneau.getByRole("button", { name: "Enregistrer et dater la vérification", exact: true });
+    const source = panneau.locator("#repere-source");
+    // Q38 : le bouton dit ce qu'il enregistre désormais (la date ET la source).
+    const enregistrer = panneau.getByRole("button", { name: "Enregistrer, avec la date et la source", exact: true });
+    await expect(source).toHaveValue("");
+    await expect(panneau.locator("[data-source-enregistree]")).toHaveText("Aucune source n’est enregistrée pour ces deux valeurs.");
     await expect(plafond).toHaveValue("15000");
     await expect(abattement).toHaveValue("30");
     await expect(panneau.locator("[data-phrase-affichee]")).toContainText(/n’excèdent pas 15\s000\s€/);
@@ -99,13 +109,21 @@ test("repères fiscaux : livrés sans date, réglés et datés par le superviseu
     await expect(aide).toContainText("Aucune date de vérification n’est enregistrée pour ce plafond et cet abattement");
     await expect(aide).not.toContainText("vérifiés par Gerimmo");
 
-    // ── 3. Une virgule dans le plafond : le navigateur retient le geste, rien n'est enregistré.
+    // ── 3 (Q38). Sans source : le navigateur retient le geste sur ce champ, rien n'est enregistré.
+    await confirmation.check();
+    await enregistrer.click();
+    await expect(source).toBeFocused();
+    await expect(panneau.getByRole("status")).toHaveCount(0);
+    expect(await reglage()).toEqual({ plafond: 15000, abattement: 30, verifie: null, source: null });
+    await source.fill(SOURCE);
+
+    // ── 3 bis. Une virgule dans le plafond : le navigateur retient le geste, rien n'est enregistré.
     await plafond.fill("15300,50");
     await confirmation.check();
     await enregistrer.click();
     await expect(panneau.locator("#repere-plafond:invalid")).toHaveCount(1);
     await expect(panneau.getByRole("status")).toHaveCount(0);
-    expect(await reglage()).toEqual({ plafond: 15000, abattement: 30, verifie: null });
+    expect(await reglage()).toEqual({ plafond: 15000, abattement: 30, verifie: null, source: null });
 
     // ── 4. Valeurs correctes, mais sans la case de confirmation : rien n'est enregistré non plus.
     await plafond.fill("15300");
@@ -113,7 +131,7 @@ test("repères fiscaux : livrés sans date, réglés et datés par le superviseu
     await confirmation.uncheck();
     await enregistrer.click();
     await expect(confirmation).toBeFocused();
-    expect(await reglage()).toEqual({ plafond: 15000, abattement: 30, verifie: null });
+    expect(await reglage()).toEqual({ plafond: 15000, abattement: 30, verifie: null, source: null });
     expect(await journal()).toEqual([]);
 
     // ── 5. Confirmation cochée : enregistré, daté du jour, journalisé avec les valeurs d'avant.
@@ -122,10 +140,12 @@ test("repères fiscaux : livrés sans date, réglés et datés par le superviseu
     await expect(panneau.getByRole("status")).toContainText(/Enregistré : plafond de 15\s300\s€, abattement de 31\s%, vérifiés aujourd’hui/);
     await expect(panneau).toHaveAttribute("data-reperes-fiscaux", "verifie");
     await expect(panneau.locator("[data-etat-verification]")).toHaveText(`Vérifiés le ${jourFr}`);
-    await expect(panneau.locator("[data-phrase-affichee]")).toContainText(`Plafond et abattement vérifiés par Gerimmo le ${jourFr}.`);
-    expect(await reglage()).toEqual({ plafond: 15300, abattement: 31, verifie: jour });
+    // Q38 : la phrase des propriétaires cite la source à côté de la date ; la console la montre ; le journal la garde.
+    await expect(panneau.locator("[data-phrase-affichee]")).toContainText(new RegExp(`Plafond et abattement vérifiés par Gerimmo le ${jourFr} \\(source\\s: ${SOURCE}\\)\\.`));
+    await expect(panneau.locator("[data-source-enregistree]")).toHaveText(`Source enregistrée avec ce contrôle : ${SOURCE}`);
+    expect(await reglage()).toEqual({ plafond: 15300, abattement: 31, verifie: jour, source: SOURCE });
     expect(await journal()).toEqual([
-      { plafond_euros: 15300, abattement_pourcent: 31, verifie_le: jour, plafond_precedent: 15000, abattement_precedent: 30, verification_precedente: null },
+      { plafond_euros: 15300, abattement_pourcent: 31, verifie_le: jour, source: SOURCE, plafond_precedent: 15000, abattement_precedent: 30, verification_precedente: null, source_precedente: null },
     ]);
 
     // ── 6. Après rechargement : les champs repartent des valeurs enregistrées, la case est de nouveau à cocher.
@@ -133,6 +153,7 @@ test("repères fiscaux : livrés sans date, réglés et datés par le superviseu
     await expect(panneau).toHaveAttribute("data-reperes-fiscaux", "verifie");
     await expect(plafond).toHaveValue("15300");
     await expect(abattement).toHaveValue("31");
+    await expect(source).toHaveValue(SOURCE);
     await expect(confirmation).not.toBeChecked();
     await expect(page.locator('a[href="#reperes-fiscaux"]')).toContainText(`Vérifiés le ${jourFr}`);
     expect(await debordementHorizontal(page)).toBeLessThanOrEqual(1);
@@ -143,6 +164,13 @@ test("repères fiscaux : livrés sans date, réglés et datés par le superviseu
       await expect(panneau).toBeVisible();
       await panneau.screenshot({ path: info.outputPath("reperes-fiscaux-verifies.png") });
     }).toPass({ timeout: 15_000 });
+    // Lot D3 : le panneau, avec la source, tient aussi dans un écran de téléphone (390 px) et sur grand écran (1440 px).
+    for (const largeur of [390, 1440]) {
+      await page.setViewportSize({ width: largeur, height: 900 });
+      await expect(panneau.locator("[data-source-enregistree]")).toBeVisible();
+      expect(await debordementHorizontal(page), `débordement à ${largeur} px`).toBeLessThanOrEqual(1);
+      await expect(async () => { await panneau.screenshot({ path: info.outputPath(`reperes-fiscaux-source-${largeur}.png`) }); }).toPass({ timeout: 15_000 });
+    }
 
     // ── 7. Le propriétaire recharge : les nouvelles valeurs, et la date de leur vérification.
     await proprietaire.reload();
@@ -150,11 +178,17 @@ test("repères fiscaux : livrés sans date, réglés et datés par le superviseu
     await expect(aide).toHaveAttribute("data-micro-foncier", "verifie");
     await expect(aide).toContainText(/n’excèdent pas 15\s300\s€/);
     await expect(aide).toContainText(/abattement automatique de 31\s%/);
-    await expect(aide).toContainText(`Plafond et abattement vérifiés par Gerimmo le ${jourFr}. Une loi de finances peut les modifier : la notice officielle fait foi.`);
+    await expect(aide).toContainText(new RegExp(`Plafond et abattement vérifiés par Gerimmo le ${jourFr} \\(source\\s: ${SOURCE}\\)\\. Une loi de finances peut les modifier\\s: la notice officielle fait foi\\.`));
     await expect(aide).not.toContainText(/15\s000/);
     expect(await debordementHorizontal(proprietaire)).toBeLessThanOrEqual(1);
     await aide.scrollIntoViewIfNeeded();
     await proprietaire.screenshot({ path: info.outputPath("reperes-fiscaux-proprietaire.png") });
+    for (const largeur of [390, 1440]) {
+      await proprietaire.setViewportSize({ width: largeur, height: 900 });
+      expect(await debordementHorizontal(proprietaire), `débordement à ${largeur} px`).toBeLessThanOrEqual(1);
+      await aide.scrollIntoViewIfNeeded();
+      await aide.screenshot({ path: info.outputPath(`reperes-fiscaux-proprietaire-source-${largeur}.png`) });
+    }
     await proprietaire.context().close();
 
     // ── 8. Le journal de la supervision nomme le geste en clair.

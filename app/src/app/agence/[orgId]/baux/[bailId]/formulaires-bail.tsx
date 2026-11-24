@@ -12,6 +12,7 @@ import {
   terminerBail,
   type EtatBail,
 } from "@/app/actions/baux";
+import { deposerNoticeBail } from "@/app/actions/annexe-bail";
 import { creerEdl, type EtatEdl } from "@/app/actions/edl";
 import { buttonVariants } from "@/components/ui/button";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
@@ -90,6 +91,18 @@ export function FormulaireReglementCopropriete({ orgId, bailId }: { orgId: strin
       libelle="Extrait du règlement de copropriété (PDF)"
       bouton="Déposer le règlement"
       action={deposerReglementCopropriete.bind(null, orgId, bailId)}
+    />
+  );
+}
+
+/** Décision du 24/11/2026 (Q46) : dépôt, par le bailleur, de la notice d'information officielle de ce bail. */
+export function FormulaireNoticeBail({ orgId, bailId, dejaDeposee }: { orgId: string; bailId: string; dejaDeposee: boolean }) {
+  return (
+    <FormulairePieceBail
+      id="depot-notice-information"
+      libelle="Notice d’information officielle (PDF)"
+      bouton={dejaDeposee ? "Déposer une autre version" : "Déposer la notice"}
+      action={deposerNoticeBail.bind(null, orgId, bailId)}
     />
   );
 }

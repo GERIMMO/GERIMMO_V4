@@ -11,6 +11,7 @@ import { aujourdhuiParis } from "@/lib/ged";
 import { loyerDuTermeEnCours, type RevisionDuLoyer } from "@/lib/baux";
 import { deElide } from "@/lib/elision";
 import { echeanceReglementaire } from "@/lib/documents-bail";
+import { exigerJustificatifsRetenues } from "./decompte-restitution";
 
 // Reprise du lot 38 (S09, C40) : la liste des dossiers du catalogue (catalogue-cibles) écarte les mêmes cas, avec le même motif.
 // Inventaires : un logement meublé (case « meublé » du lot) ou un bail de type meublé.
@@ -309,7 +310,7 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
     } else if (code === "decompte_retenues") {
       const rs = await lireLignes(supabase.from("restitutions").select("id,statut").eq("bail_id",bailId).eq("organization_id",orgId).limit(1));
       if (!rs.length) return { erreur: "Préparez d’abord la restitution du dépôt de ce contrat." };
-      const retenues = await lireLignes(supabase.from("retenues").select("libelle,cout,duree_vie_ans,age_ans,montant_retenu,justificatif_document").eq("restitution_id",rs[0].id).eq("organization_id",orgId));
+      const retenues = await lireLignes(supabase.from("retenues").select("libelle,cout,duree_vie_ans,age_ans,montant_retenu,justificatif_document,sans_justificatif").eq("restitution_id",rs[0].id).eq("organization_id",orgId));
       // Phase 3 (C37) : l'écran de restitution laisse l'âge et la durée de vie facultatifs (vides : coût retenu en intégralité, la
       // base ne calcule alors aucune décote). Vides, ils s'impriment « — », comme dans le décompte de restitution, sans bloquer le PDF.
       const sansDecote = retenues.some(l=>l.duree_vie_ans==null || l.age_ans==null);
@@ -327,7 +328,9 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
         ${dureeNulle ? "<p>Durée de vie nulle : aucune décote de vétusté n’est appliquée, le coût est retenu en intégralité.</p>" : ""}
         <p>Total : ${eur(retenues.reduce((s,l)=>s+montant(l.montant_retenu),0))}. État du dossier : ${rs[0].statut === "finalise" ? "finalisé" : "en préparation"}.</p>
         <p>Les justificatifs déposés (devis, facture, constat comparé des états des lieux) sont tenus à la disposition du locataire sur demande. Les sommes ci-dessus sont propres à ce contrat.</p>`;
-      if (retenues.some(l=>!l.justificatif_document)) f.champ(null,"justificatifs de retenues à déposer");
+      // Décision du 24/11/2026 (Q49) : même règle que le décompte de restitution — une ligne « À renseigner » par retenue
+      // sans pièce (un devis suffit), qui mène à la restitution du dépôt.
+      exigerJustificatifsRetenues(f, retenues);
     } else if (code === "liste_dossier") {
       // Phase 3, lot 46 (reprise, T21) : sans locataire principal, la liste est INCOMPLÈTE (« nom et prénom(s) du ou des
       // locataires », qui mène à la fiche du bail), plus refusée (« Choisissez d’abord la personne du dossier », sans lien).

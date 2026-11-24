@@ -52,7 +52,14 @@ describe("révision du loyer, troisième reprise du lot D2 — manifeste, retour
     // Son retour se joue AVANT celui de la seconde reprise, qui attend ses propres lignes intactes ; puis les deux autres.
     const chaine = lisezMoi.split("Ordre complet si tout doit être défait :")[1] ?? "";
     const codes = [...chaine.split("puis `500000`")[0].matchAll(/`(\d{14})`/g)].map((m) => m[1]);
-    expect([...new Set(codes)].slice(0, 4)).toEqual([CODE, "20261124150000", "20261124130000", "20261124100000"]);
+    // Lot D3 (24/11) : une migration plus récente qui cite la fonction du jour (20261124190000, source des repères fiscaux)
+    // entre en tête de la chaîne, comme attendu (ordre inverse du manifeste). Ce que le test tient reste entier : l'ORDRE
+    // des retours du lot D2 entre eux, et seuls des retours de migrations PLUS RÉCENTES les précèdent.
+    const ordre = [...new Set(codes)];
+    const rang = ordre.indexOf(CODE);
+    expect(rang).toBeGreaterThanOrEqual(0);
+    expect(ordre.slice(0, rang).every((c) => c > CODE)).toBe(true);
+    expect(ordre.slice(rang, rang + 4)).toEqual([CODE, "20261124150000", "20261124130000", "20261124100000"]);
     expect(lire("tests/relais-migrations-manifeste.test.ts")).toContain(`"${NOM}.sql",`);
     expect(lire("vitest.config.ts")).toContain('"tests/revision-loyer-troisieme-reprise-d2-base.test.ts"');
   });

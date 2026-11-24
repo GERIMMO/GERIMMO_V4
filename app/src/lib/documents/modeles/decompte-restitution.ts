@@ -31,6 +31,7 @@ import {
 } from "./communs";
 import type { Assemblage } from "./index";
 import { deElide } from "@/lib/elision";
+import { manqueJustificatifRetenue, retenueJustifiee, type JustificatifRetenue } from "@/lib/justificatif-retenue";
 
 type Retenue = {
   libelle: string;
@@ -55,11 +56,17 @@ export function finDelaiRestitution(dateRemise: string, delaiMois: number): stri
   return cible.toISOString().slice(0, 10);
 }
 
-// Colonne « Justificatif » d'une retenue (audit du 27/09) : « sur demande »
-// est réservé aux pièces réellement déposées ; sans pièce, on l'écrit (wiki
-// « Restitution du dépôt de garantie », RM-2.4.6 et RM-2.7.2).
+// Décision du 24/11/2026 (Q49, règle dans lib/justificatif-retenue.ts) : la même exigence pour le décompte de restitution
+// (ci-dessous) et le décompte des retenues (catalogue-bail.ts).
+/** Chaque retenue sans pièce devient une information manquante : le PDF n'est pas produit. */
+export function exigerJustificatifsRetenues(f: Fusion, retenues: (JustificatifRetenue & { libelle?: unknown })[]): void {
+  for (const r of retenues) if (!retenueJustifiee(r)) f.champ(null, manqueJustificatifRetenue(r.libelle));
+}
+
+// Colonne « Justificatif » d'une retenue (audit du 27/09) : « sur demande » est réservé aux pièces réellement
+// déposées. Sans pièce, le décompte n'est plus imprimé (Q49) : « À déposer » ne se lit que dans l'épreuve bloquée.
 export function libelleJustificatifRetenue(r: { sans_justificatif: boolean; justificatif_document: string | null }): string {
-  return r.justificatif_document && !r.sans_justificatif ? "Déposé — sur demande" : "Non fourni";
+  return retenueJustifiee(r) ? "Déposé — sur demande" : "À déposer";
 }
 
 // La décote de vétusté telle qu'appliquée : retenue = coût × (durée − âge) / durée
@@ -124,6 +131,8 @@ export async function assemblerDecompteRestitution(
 
   const f = new Fusion();
   const exp = expediteur(ctx);
+  // Q49 : chaque retenue a son justificatif, sinon le décompte n'est pas produit.
+  exigerJustificatifsRetenues(f, retenues);
 
   const corps = `
     ${enTete(f, exp, {
@@ -234,10 +243,7 @@ export async function assemblerDecompteRestitution(
         loyerHc !== null ? ` (soit ${eur(loyerHc * 0.1)})` : ""
       } pour chaque période mensuelle commencée en retard (article 22 de la loi du 6 juillet 1989).</p>
       <p>Les justificatifs déposés (devis, facture, constat comparé des états des lieux) sont tenus à la
-      disposition du locataire sur demande.${
-        // Phase 3, lot 51 (W15) : la légende du marquage « Non fourni » ne s'imprime que si une retenue le porte.
-        retenues.some((r) => libelleJustificatifRetenue(r) === "Non fourni") ? " Une retenue marquée « Non fourni » n'est appuyée d'aucune pièce." : ""
-      }</p>
+      disposition du locataire sur demande.</p>
     </div>
     ${faitA(f, exp.ville, restitution.date_emission ?? new Date().toISOString())}
     ${blocSignatureEmetteur(exp.nom, await signatureOrganisation(supabase, orgId))}

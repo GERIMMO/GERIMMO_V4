@@ -37,6 +37,8 @@ import { aujourdhuiParis, formaterDate, eur } from "@/lib/ged";
 import { ETATS_BAIL, COULEURS_ETAT_BAIL, TYPES_BAIL } from "@/lib/baux";
 import { nomComplet } from "@/lib/roles-personnes";
 import { LignesDiagnostics, type DiagnosticDepose } from "../../lignes-diagnostics";
+import { lireEcartDpe } from "@/lib/avertissement-dpe";
+import { AvertissementDpe } from "@/components/avertissement-dpe";
 import { RecapLot, LienModifierLot } from "./recap-lot";
 import { PersonnesLot, IncidentsLot } from "./personnes-incidents-lot";
 import { SectionLot } from "./section-lot";
@@ -422,6 +424,8 @@ export default async function PageLot(
               />}
             </div>
           </SectionLot>);
+  // Décision du 24/11/2026 (Q28) : avertissement quand plusieurs DPE existent pour ce logement (aucun calcul ne change).
+  const ecartDpe = await lireEcartDpe(supabase, orgId, lotId);
   const rubriqueDiagnostics = (<SectionLot ouvertParDefaut
             id="diagnostics"
             titre="Diagnostics du lot"
@@ -436,6 +440,7 @@ export default async function PageLot(
             }
           >
             <div className="space-y-3">
+              <AvertissementDpe ecart={ecartDpe} usage="Sa classe sert au contrôle de la mise en location et à l’alerte sur les classes F et G." />
               {(!estProprietaire || parcours === "1") && <p className="text-xs text-muted-foreground">Documents propres à ce logement.</p>}
               {erreurDiagnostics ? <p role="alert">Documents indisponibles. Réessayez pour connaître leur état.</p> : <LignesDiagnostics
                 orgId={orgId}

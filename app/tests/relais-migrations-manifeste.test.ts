@@ -290,6 +290,10 @@ const MISSION_OCTOBRE = [
   // 24/11, décisions du dirigeant (lot D2, troisième reprise après relecture) : l'indice attendu est celui de l'échéance
   // (ni celui de la révision suivante, ni un plus ancien) ; bail repris révisé ailleurs l'an dernier : indice du bail en référence.
   "20261124170000_revision_loyer_troisieme_reprise_d2.sql",
+  // 24/11, décisions du dirigeant (lot D3, Q46) : type de document « notice_information », la notice déposée par le bailleur.
+  "20261124180000_notice_information_deposee.sql",
+  // 24/11, décisions du dirigeant (lot D3, Q38) : la source du contrôle des repères fiscaux, enregistrée avec sa date.
+  "20261124190000_reperes_fiscaux_source.sql",
 
 
 ];

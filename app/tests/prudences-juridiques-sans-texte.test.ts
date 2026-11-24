@@ -125,7 +125,11 @@ describe("P0-07 — notice d'information", () => {
       expect(s).not.toMatch(/Gerimmo prépare le document|Générer la notice|Actualiser la notice/);
     }
     expect(parcours).toContain("Gerimmo en prépare un résumé, pas le texte officiel.");
-    expect(parcours).toContain("Gerimmo ne le joint pas à votre place.");
+    // Décision du 24/11/2026 (Q46) : le bailleur dépose désormais la notice officielle, et Gerimmo joint CE fichier à la
+    // signature électronique. La phrase « Gerimmo ne le joint pas à votre place » n'est donc plus vraie ; l'écran dit que
+    // Gerimmo ne fournit pas le texte et ne vérifie pas le fichier, et que le résumé ne remplace pas la notice.
+    expect(parcours).toContain("Gerimmo ne fournit pas ce texte et ne vérifie pas le fichier déposé");
+    expect(parcours).toContain("Ce résumé ne remplace pas la notice d’information officielle");
     expect(parcours).toContain('"Actualiser le résumé" : "Générer le résumé"');
     expect(page).toContain("Générer le résumé de la notice (PDF)");
     expect(CATALOGUE_DOCUMENTS.find((d) => d.code === "notice")?.description).toBe("Résumé des droits et obligations. La notice officielle complète reste à remettre avec le bail.");

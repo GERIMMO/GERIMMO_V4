@@ -171,10 +171,15 @@ describe("W15 — décompte de restitution : la légende « Non fourni » seulem
     expect(texte).not.toContain(LEGENDE);
   });
 
-  it("une retenue sans pièce : le marquage et sa légende s'impriment", async () => {
-    const texte = texteDe(succes(await assemblerDecompteRestitution(base(tables([retenue, { ...retenue, libelle: "Flexible", sans_justificatif: true, justificatif_document: null }])), "org", "b1")).document.html);
-    expect(texte).toContain("Non fourni");
-    expect(texte).toContain(LEGENDE);
+  // Décision du 24/11/2026 (Q49) : ce test affirmait « une retenue sans pièce : le marquage et sa légende s'impriment ».
+  // Les deux décomptes sont alignés : une retenue sans pièce BLOQUE le décompte de restitution (une ligne « À renseigner »
+  // par retenue) ; « Non fourni » et sa légende ne s'impriment plus.
+  it("une retenue sans pièce : le décompte est bloqué, ni marquage « Non fourni » ni légende", async () => {
+    const doc = succes(await assemblerDecompteRestitution(base(tables([retenue, { ...retenue, libelle: "Flexible", sans_justificatif: true, justificatif_document: null }])), "org", "b1")).document;
+    expect(doc.manquants).toEqual(["justificatif de la retenue « Flexible » (un devis suffit)"]);
+    const texte = texteDe(doc.html);
+    expect(texte).not.toContain("Non fourni");
+    expect(texte).not.toContain(LEGENDE);
   });
 });
 

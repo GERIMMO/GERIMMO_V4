@@ -101,9 +101,11 @@ describe("C35, C37 — décompte des retenues", () => {
     expect(texte).not.toMatch(/joint/);
   });
 
-  it("une retenue sans justificatif déposé reste signalée, avec le mot de l'écran (« déposer »)", async () => {
+  // Décision du 24/11/2026 (Q49) : la ligne unique « justificatifs de retenues à déposer » devient une ligne par retenue,
+  // la même que celle du décompte de restitution, qui dit qu'un devis suffit et mène à la restitution du dépôt.
+  it("une retenue sans justificatif déposé reste signalée, par une ligne qui la nomme", async () => {
     const doc = succes(await assemblerComplementBail("decompte_retenues", base(tables([{ ...avecVetuste, justificatif_document: null }])), "org", "b1")).document;
-    expect(doc.manquants).toEqual(["justificatifs de retenues à déposer"]);
+    expect(doc.manquants).toEqual(["justificatif de la retenue « Plan de travail » (un devis suffit)"]);
   });
 });
 

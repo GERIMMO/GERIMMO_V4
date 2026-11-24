@@ -96,12 +96,22 @@ export const resumeNoticeAActualiser = (piece: { titre: string | null } | null |
 // rangé sous l'ancien titre (texte qui se disait annexé au contrat) reste parmi les annexes, comme sur sa page de garde.
 export const estResumeNoticeJoint = (piece: { titre: string | null }) => piece.titre === TITRE_GED_RESUME_NOTICE;
 
+// Décision du 24/11/2026 (Q46) : en attendant que Gerimmo joigne lui-même le texte officiel, le BAILLEUR dépose la notice
+// d'information (un PDF qu'il s'est procuré). Elle est rangée sous un type à elle et sous ce titre fixe, liée au bail ; la
+// signature électronique du bail est bloquée sans elle et la joint comme annexe (annexesSignatureBail). Le titre dit d'où
+// vient le fichier : Gerimmo ne vérifie ni son contenu, ni qu'il s'agit de la version en vigueur.
+export const TYPE_GED_NOTICE_DEPOSEE = "notice_information";
+export const TITRE_GED_NOTICE_DEPOSEE = "Notice d'information (déposée par le bailleur)";
+// Dans un dossier de signature, une pièce ne porte que son titre : la notice déposée s'y reconnaît à ce titre, que seul le
+// dépôt dédié pose (deposerNoticeBail).
+export const estNoticeDeposeeJointe = (piece: { titre: string | null }) => piece.titre === TITRE_GED_NOTICE_DEPOSEE;
+
 export type PieceBail = { id: string; titre: string | null; type: string; purged_at: string | null };
 export function classerPiecesBail<T extends PieceBail>(pieces: T[], diagnosticIds: string[], reglementId: string | null) {
   const uniques = [...new Map(pieces.filter(p => !p.purged_at).map(p => [p.id, p])).values()];
   const notices = uniques.filter(p => p.type === "courrier" && TITRES_GED_RESUME_NOTICE.includes(p.titre ?? ""));
   const exclus = new Set([...diagnosticIds, ...notices.map(p => p.id), reglementId]);
-  const autres = uniques.filter(p => !exclus.has(p.id) && !["bail", "etat_des_lieux", "diagnostic", "reglement_copropriete"].includes(p.type));
+  const autres = uniques.filter(p => !exclus.has(p.id) && !["bail", "etat_des_lieux", "diagnostic", "reglement_copropriete", TYPE_GED_NOTICE_DEPOSEE].includes(p.type));
   return { notices, autres };
 }
 
@@ -129,4 +139,10 @@ export const plusRecentDAbord = (a: { id: string; created_at: string }, b: { id:
 };
 export function resumeNoticeRetenu<T extends PieceBail & { created_at: string }>(pieces: T[]): T | undefined {
   return classerPiecesBail([...pieces].sort(plusRecentDAbord), [], null).notices[0];
+}
+
+// Q46 : la notice déposée retenue pour un bail est la plus récente de celles qui lui sont liées (même tri que le résumé) :
+// la même sur la fiche du bail, au récapitulatif des pièces et dans le dossier de signature.
+export function noticeDeposeeRetenue<T extends PieceBail & { created_at: string }>(pieces: T[]): T | undefined {
+  return pieces.filter(p => p.type === TYPE_GED_NOTICE_DEPOSEE && !p.purged_at).sort(plusRecentDAbord)[0];
 }

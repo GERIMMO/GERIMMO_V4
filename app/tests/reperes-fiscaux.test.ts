@@ -41,9 +41,14 @@ const texteDe = (html: string) =>
   html.replace(/<[^>]+>/g, " ").replace(/&#x27;|&#39;|&apos;|’/g, "'").replace(/[  ]/g, " ").replace(/\s+/g, " ");
 const lisible = (s: string) => s.replace(/’/g, "'").replace(/[  ]/g, " ");
 
-const LIVRAISON: ReperesFiscaux = { plafondEuros: 15000, abattementPourcent: 30, verifieLe: null };
-const VERIFIES: ReperesFiscaux = { plafondEuros: 15300, abattementPourcent: 31, verifieLe: "2026-11-23" };
+// Décision du 24/11/2026 (Q38) : le réglage porte aussi la SOURCE du contrôle (migration 20261124190000). Les cas de ce
+// fichier la laissent vide (`null`, comme à la livraison) : ce qu'ils tiennent ne change pas. La source elle-même est tenue
+// par tests/decisions-24-11-d3.test.ts et, plus bas, par le geste du superviseur, qui l'exige.
+const LIVRAISON: ReperesFiscaux = { plafondEuros: 15000, abattementPourcent: 30, verifieLe: null, source: null };
+const VERIFIES: ReperesFiscaux = { plafondEuros: 15300, abattementPourcent: 31, verifieLe: "2026-11-23", source: null };
 const REPONSE = (r: ReperesFiscaux) => ({ micro_foncier_plafond_euros: r.plafondEuros, micro_foncier_abattement_pourcent: r.abattementPourcent, verifie_le: r.verifieLe });
+/** Une source d'essai, fictive : aucune page officielle n'est citée dans les tests. */
+const SOURCE = "Site officiel fictif, page d’essai du 01/01/2026";
 
 beforeEach(() => { vi.resetAllMocks(); });
 
@@ -80,7 +85,8 @@ describe("lecture stricte du réglage", () => {
     expect(await chargerReperesFiscaux({ rpc: (async () => undefined) as never })).toBeNull();
     const rpc = vi.fn(async () => ({ data: REPONSE(LIVRAISON), error: null }));
     await chargerReperesFiscaux({ rpc });
-    expect(rpc).toHaveBeenCalledExactlyOnceWith("reperes_fiscaux");
+    // Q38 : la lecture passe par la fonction qui rend aussi la source (l'ancienne, « reperes_fiscaux », reste en base).
+    expect(rpc).toHaveBeenCalledExactlyOnceWith("reperes_fiscaux_avec_source");
   });
 });
 
@@ -192,7 +198,7 @@ describe("l'écran du propriétaire", () => {
     }));
   };
   const repondre = (data: unknown, error: unknown = null) =>
-    m.rpcEcran.mockImplementation(async (nom: string) => (nom === "reperes_fiscaux" ? { data, error } : { data: null, error: null }));
+    m.rpcEcran.mockImplementation(async (nom: string) => (nom === "reperes_fiscaux_avec_source" ? { data, error } : { data: null, error: null }));
 
   it("valeurs vérifiées : l'aide cite les valeurs du réglage et la date de leur vérification", async () => {
     repondre(REPONSE(VERIFIES));
@@ -242,7 +248,7 @@ describe("l'écran du propriétaire", () => {
     repondre(REPONSE(VERIFIES));
     const html = await ecran(true);
     expect(html).not.toContain("data-micro-foncier");
-    expect(m.rpcEcran.mock.calls.map(([nom]) => nom)).not.toContain("reperes_fiscaux");
+    expect(m.rpcEcran.mock.calls.map(([nom]) => nom).filter((nom) => String(nom).startsWith("reperes_fiscaux"))).toEqual([]);
   });
 
   it("le code de l'écran ne contient plus ni le plafond ni le taux", () => {
@@ -267,7 +273,10 @@ describe("le panneau de la console", () => {
     expect(html).toMatch(/<form[^>]*data-saisie-confirmee/);
     // Le superviseur voit la phrase exacte que lisent les propriétaires.
     expect(texteDe(html)).toContain("Aucune date de vérification n'est enregistrée");
-    expect(texteDe(html)).toContain("Enregistrer et dater la vérification");
+    // Q38 : le bouton dit ce qu'il enregistre désormais (la date ET la source), et la source est un champ obligatoire.
+    expect(texteDe(html)).toContain("Enregistrer, avec la date et la source");
+    expect(html).toMatch(/<input[^>]*id="repere-source"[^>]*required=""/);
+    expect(texteDe(html)).toContain("Aucune source n'est enregistrée pour ces deux valeurs.");
   });
 
   it("vérifiés cette année, puis à revérifier l'année suivante", () => {
@@ -300,13 +309,17 @@ describe("le geste du superviseur", () => {
   };
 
   it.each([
-    ["un plafond avec une virgule", { plafond: "15000,00", abattement: "30", confirmation: "oui" }, "Plafond"],
-    ["un plafond hors bornes", { plafond: "150", abattement: "30", confirmation: "oui" }, "Plafond"],
-    ["aucun plafond", { abattement: "30", confirmation: "oui" }, "Plafond"],
-    ["un abattement décimal", { plafond: "15000", abattement: "30,5", confirmation: "oui" }, "Abattement"],
-    ["un abattement de 100", { plafond: "15000", abattement: "100", confirmation: "oui" }, "Abattement"],
-    ["aucune confirmation", { plafond: "15000", abattement: "30" }, "Cochez la confirmation"],
-    ["une confirmation inattendue", { plafond: "15000", abattement: "30", confirmation: "on" }, "Cochez la confirmation"],
+    ["un plafond avec une virgule", { plafond: "15000,00", abattement: "30", source: SOURCE, confirmation: "oui" }, "Plafond"],
+    ["un plafond hors bornes", { plafond: "150", abattement: "30", source: SOURCE, confirmation: "oui" }, "Plafond"],
+    ["aucun plafond", { abattement: "30", source: SOURCE, confirmation: "oui" }, "Plafond"],
+    ["un abattement décimal", { plafond: "15000", abattement: "30,5", source: SOURCE, confirmation: "oui" }, "Abattement"],
+    ["un abattement de 100", { plafond: "15000", abattement: "100", source: SOURCE, confirmation: "oui" }, "Abattement"],
+    // Q38 : sans source lisible, rien n'est enregistré (la date serait affichée sans dire où les valeurs ont été lues).
+    ["aucune source", { plafond: "15000", abattement: "30", confirmation: "oui" }, "Source"],
+    ["une source trop courte", { plafond: "15000", abattement: "30", source: "site", confirmation: "oui" }, "Source"],
+    ["une source sur deux lignes", { plafond: "15000", abattement: "30", source: "Site officiel fictif\npage d’essai", confirmation: "oui" }, "Source"],
+    ["aucune confirmation", { plafond: "15000", abattement: "30", source: SOURCE }, "Cochez la confirmation"],
+    ["une confirmation inattendue", { plafond: "15000", abattement: "30", source: SOURCE, confirmation: "on" }, "Cochez la confirmation"],
   ])("refuse %s sans rien demander à la base", async (_cas, champs, motif) => {
     const rpc = superviseur();
     const retour = await reglerReperesFiscaux({}, formulaire(champs));
@@ -318,7 +331,7 @@ describe("le geste du superviseur", () => {
 
   it("sans superviseur permanent en double vérification, le réglage n'est pas appelé", async () => {
     const rpc = superviseur(false);
-    const retour = await reglerReperesFiscaux({}, formulaire({ plafond: "15300", abattement: "31", confirmation: "oui" }));
+    const retour = await reglerReperesFiscaux({}, formulaire({ plafond: "15300", abattement: "31", source: SOURCE, confirmation: "oui" }));
     expect(retour.erreur).toContain("superviseur permanent");
     expect(rpc.mock.calls.map(([nom]) => nom)).toEqual(["is_permanent_super_admin"]);
     expect(m.revalidate).not.toHaveBeenCalled();
@@ -326,15 +339,16 @@ describe("le geste du superviseur", () => {
 
   it("un refus de la base est dit, sans annoncer de succès", async () => {
     superviseur(true, true);
-    const retour = await reglerReperesFiscaux({}, formulaire({ plafond: "15300", abattement: "31", confirmation: "oui" }));
+    const retour = await reglerReperesFiscaux({}, formulaire({ plafond: "15300", abattement: "31", source: SOURCE, confirmation: "oui" }));
     expect(retour).toEqual({ erreur: "Le réglage n’a pas pu être enregistré. Réessayez dans un instant." });
     expect(m.revalidate).not.toHaveBeenCalled();
   });
 
-  it("enregistre les deux entiers lus, puis rafraîchit la console", async () => {
+  // Q38 : le geste enregistre aussi la source, par la fonction qui la prend (l'ancienne, à deux arguments, n'est plus appelée).
+  it("enregistre les deux entiers lus et la source, puis rafraîchit la console", async () => {
     const rpc = superviseur();
-    const retour = await reglerReperesFiscaux({}, formulaire({ plafond: "15 300", abattement: "31", confirmation: "oui" }));
-    expect(rpc).toHaveBeenLastCalledWith("regler_reperes_fiscaux", { p_plafond_euros: 15300, p_abattement_pourcent: 31 });
+    const retour = await reglerReperesFiscaux({}, formulaire({ plafond: "15 300", abattement: "31", source: `  ${SOURCE} `, confirmation: "oui" }));
+    expect(rpc).toHaveBeenLastCalledWith("regler_reperes_fiscaux_avec_source", { p_plafond_euros: 15300, p_abattement_pourcent: 31, p_source: SOURCE });
     expect(retour.erreur).toBeUndefined();
     expect(lisible(retour.succes ?? "")).toContain("plafond de 15 300 €, abattement de 31 %, vérifiés aujourd'hui");
     expect(m.revalidate).toHaveBeenCalledWith("/admin/parametres");

@@ -168,6 +168,11 @@ describe.skipIf(!DB_URL)("Audit sécurité du 27/09", () => {
       // la table du réglage reste fermée à tous les comptes ; anon ne l'exécute pas ; elle ne rend aucune autre
       // colonne (tests/reperes-fiscaux-base.test.ts).
       "reperes_fiscaux()",
+      // Décision du 24/11/2026 (Q38) : la même lecture, avec en plus la source du contrôle (le texte saisi par le
+      // superviseur : site officiel, page, date). Quatre valeurs sans rapport avec un compte ni une organisation.
+      // Definer pour la même raison ; anon ne l'exécute pas ; elle ne rend aucune autre colonne
+      // (tests/reperes-fiscaux-source-base.test.ts).
+      "reperes_fiscaux_avec_source()",
     ]);
     const sansGarde = rows.map((r) => r.f).filter((f) => !motivees.has(f) && !f.startsWith("montant_abonnement_cents("));
     expect(sansGarde, `Fonctions definer sans garde apparente :\n${sansGarde.join("\n")}`).toEqual([]);

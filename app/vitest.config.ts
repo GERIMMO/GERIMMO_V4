@@ -102,6 +102,9 @@ export const FICHIERS_EN_SERIE = [
   // transaction de chaque fichier (mêmes objets que les deux fichiers ci-dessus).
   "tests/justificatif-retenue-dossier-du-bail-base.test.ts",
   "tests/reperes-fiscaux-journal-source-base.test.ts",
+  // Textes officiels, lot T1 (25/11) : rejeu de 20261125101500 et de son retour dans la transaction du fichier
+  // (`enregistrer_conge` réécrite, même fonction que tests/conge-dernier-terme-base.test.ts).
+  "tests/textes-t1-conges-base.test.ts",
   // Réserve du relecteur du lot D2 : ces trois fichiers figent le jour de Paris (`create or replace` de
   // `aujourdhui_paris()` dans leur transaction, tests/fixtures/jour-de-paris-fige.ts) : le verrou pris sur la fonction
   // ferait attendre les fichiers lancés en parallèle.

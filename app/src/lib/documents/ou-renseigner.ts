@@ -196,9 +196,9 @@ export function lienPourManquant(
   // l'envoyer à la fiche du bail (repli ci-dessous) ferait chercher un champ qui n'y existe pas.
   if (l.includes("détail des dépenses par nature")) return null;
   // Congé du bailleur (audit palier 1, P0-08) : le bénéficiaire d'une reprise, son lien, son adresse, les raisons et le
-  // motif invoqué se saisissent dans le formulaire du congé lui-même. Le repli « fiche de la personne » enverrait
+  // motif invoqué — et, lot T1, les conditions de la vente — se saisissent dans le formulaire du congé lui-même. Le repli « fiche de la personne » enverrait
   // chercher l'adresse du bénéficiaire sur la fiche du LOCATAIRE.
-  if (modele === "conge_bailleur" && ["bénéficiaire de la reprise", "lien avec le bailleur", "raisons de la reprise", "motif invoqué"].some((m) => l.includes(m))) return null;
+  if (modele === "conge_bailleur" && ["bénéficiaire de la reprise", "lien avec le bailleur", "raisons de la reprise", "motif invoqué", "conditions de la vente"].some((m) => l.includes(m))) return null;
 
   // Reprise du lot 37 : chez un propriétaire qui gère lui-même, l'en-tête d'un document du bail (et de l'ordre ou du compte
   // rendu d'une intervention) est celui des détenteurs du lot (`expediteur`) : son adresse et sa commune se complètent sur la

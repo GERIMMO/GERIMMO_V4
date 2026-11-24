@@ -72,12 +72,16 @@ describe("S18 — congé du bailleur depuis le catalogue : les informations du m
     const m = conge();
     await m.stabiliser();
     expect(m.texte()).toContain("Vente ou reprise : à faire relire avant de notifier");
-    expect(m.texte()).toContain("Gerimmo n’a pas pu comparer ce modèle au texte officiel".replace("’", "'"));
+    // Textes officiels, lot T1 : « Gerimmo n'a pas pu comparer ce modèle au texte officiel » n'est plus vrai ; l'avertissement
+    // dit que Gerimmo ne garantit pas le modèle, et que la notice est à joindre par le bailleur.
+    expect(m.texte()).toContain("Gerimmo ne garantit pas que ce modèle soit complet ni à jour");
+    expect(m.texte()).toContain("Gerimmo ne l'imprime pas : joignez-la vous-même");
   });
 
   it("seules les informations du motif choisi partent à la génération", () => {
     const saisies: Record<string, string> = { motif: "vente", date_presentation: "", prix_vente: " 245 000 ", conditions_vente: "", beneficiaire_nom: "Reste d'une autre saisie" };
-    expect(optionsDuFormulaire("conge_bailleur", (cle) => saisies[cle] ?? "")).toEqual({ motif: "vente", date_presentation: "", prix_vente: "245 000", conditions_vente: "" });
+    // Lot T1 : la question « logement acheté déjà loué ? » et la date d'acquisition accompagnent la vente et la reprise.
+    expect(optionsDuFormulaire("conge_bailleur", (cle) => saisies[cle] ?? "")).toEqual({ motif: "vente", date_presentation: "", prix_vente: "245 000", conditions_vente: "", achete_occupe: "", date_acquisition: "" });
     saisies.motif = "motif_legitime";
     saisies.motif_detail = "impayés répétés";
     expect(optionsDuFormulaire("conge_bailleur", (cle) => saisies[cle] ?? "")).toEqual({ motif: "motif_legitime", date_presentation: "", motif_detail: "impayés répétés" });

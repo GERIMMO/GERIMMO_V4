@@ -255,7 +255,8 @@ describe("W17, W21, W22 — congé délivré par le bailleur", () => {
     ctx.bail.etat = "actif";
     ctx.bail.date_debut = "2024-07-01";
     const rpc = vi.fn(async () => ({ data: "2029-08-31", error: null }));
-    return succes(await assemblerCongeBailleur({ rpc } as unknown as SupabaseClient, "org", "b1", options)).document.html;
+    // Textes officiels, lot T1 : en location nue, un congé pour vendre ou pour reprise répond à la question « logement acheté déjà loué ? ».
+    return succes(await assemblerCongeBailleur({ rpc } as unknown as SupabaseClient, "org", "b1", { achete_occupe: "non", ...options })).document.html;
   };
   const MOTIFS: Record<string, string>[] = [
     { motif: "vente", prix_vente: "245000" },
@@ -276,12 +277,15 @@ describe("W17, W21, W22 — congé délivré par le bailleur", () => {
     expect(await conge(options)).toMatch(TITRE_COMPACT);
   });
 
-  it("W22 : le délai d'acceptation de l'offre est nommé ; l'article s'écrit « 15-II » partout", async () => {
+  // Textes officiels, lot T1 : ce test affirmait le RÉSUMÉ de l'offre de vente (« À défaut d'acceptation… vous êtes déchu »,
+  // « (article 15-II). »). Ce résumé disait autre chose que la loi (nullité « de l'offre », notaire seul) : il est remplacé
+  // par la reproduction mot pour mot des cinq premiers alinéas de l'article 15 II. Le délai reste nommé, par le texte lui-même.
+  it("W22 : le délai d'acceptation de l'offre est nommé (texte de l'article 15 II reproduit) ; plus de « dans ce délai »", async () => {
     const texte = texteDe(await conge(MOTIFS[0]));
-    expect(texte).toContain("À défaut d'acceptation pendant les deux premiers mois du délai de préavis, vous êtes déchu de plein droit");
+    expect(texte).toContain("l'offre est valable pendant les deux premiers mois du délai de préavis");
+    expect(texte).toContain("le locataire qui n'a pas accepté l'offre de vente est déchu de plein droit de tout titre d'occupation sur le local");
     expect(texte).not.toContain("dans ce délai");
-    expect(texte).not.toContain("15 II");
-    expect(texte).toContain("(article 15-II).");
+    expect(texte).not.toContain("nullité de l'offre");
     ctx.bail.type = "nu";
     const refus = await assemblerCongeBailleur({ rpc: vi.fn(async () => ({ data: "2029-08-31", error: null })) } as unknown as SupabaseClient, "org", "b1", { motif: "vente" });
     expect(refus).toEqual({ erreur: "Congé pour vente d'un logement loué nu : indiquez le prix de vente proposé — le congé vaut offre de vente au locataire (article 15-II de la loi du 6 juillet 1989)." });

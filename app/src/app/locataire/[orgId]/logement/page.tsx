@@ -80,7 +80,10 @@ export default async function PageLogementLocataire(
   // une colocation à bail unique, le meublé du logement fait foi — même règle
   // que le serveur (enregistrer_conge).
   const bailMeuble = bail.type === "meuble" || (bail.type === "colocation" && bail.meuble);
-  const preavisMois = bailMeuble || bail.zone_tendue ? 1 : 3;
+  // Textes officiels, lot T1 (R02-A5) : en zone tendue, le préavis d'un mois n'est pas automatique — le locataire doit
+  // le préciser et le justifier dans sa lettre de congé, sinon trois mois (article 15 I de la loi du 6 juillet 1989).
+  const preavisMois = bailMeuble ? 1 : 3;
+  const zoneTendue = !bailMeuble && bail.zone_tendue === true;
   // Audit gestion du 29/09 : zone tendue non vérifiée par le gestionnaire —
   // l'écran ne tranche pas à la place de la loi.
   const zoneInconnue = !bailMeuble && bail.zone_tendue == null;
@@ -176,8 +179,9 @@ export default async function PageLogementLocataire(
               {zoneInconnue
                 ? `1 mois si le logement est en zone tendue, 3 mois sinon (zone en cours de vérification par votre ${qui})`
                 : <>
-                    {preavisMois} mois
-                    {preavisMois === 1 ? (bailMeuble ? " (logement meublé)" : " (zone tendue : secteur où les logements à louer manquent, la loi y réduit le préavis)") : ""}
+                    {zoneTendue
+                      ? "1 mois si votre lettre de congé précise que le logement est en zone tendue et le justifie ; sinon 3 mois"
+                      : `${preavisMois} mois${bailMeuble ? " (logement meublé)" : ""}`}
                   </>}
             </span>
           </div>
@@ -344,6 +348,7 @@ export default async function PageLogementLocataire(
         enPreavis={bail.etat === "preavis"}
         dateFin={bail.date_fin}
         preavisMois={preavisMois}
+        zoneTendue={zoneTendue}
         intentionDu={
           ((intentions ?? []) as { created_at: string; traitee_le: string | null }[]).find(
             (i) => !i.traitee_le

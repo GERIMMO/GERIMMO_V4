@@ -727,7 +727,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         premier(lot?.bien ?? null)?.zone_tendue == null && (
           <p className="border-l-[3px] border-l-warning bg-warning-soft px-3 py-2 text-sm text-warning-soft-foreground">
             Zone tendue non renseignée pour ce logement : elle fixe le préavis du
-            locataire (1 mois de plein droit en zone tendue) et le plafond des
+            locataire (1 mois en zone tendue, s&apos;il le précise et le justifie dans sa lettre) et le plafond des
             honoraires. Renseignez-la sur la fiche du bien, ou choisissez la zone
             des honoraires, avant la signature. À défaut, un congé du locataire à
             1 mois sera accepté puis signalé à vérifier.
@@ -1098,7 +1098,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           <CardContent className="space-y-3 text-sm">
             {(conges ?? []).map((c, i) => (
               <p key={i} className={c.annule_le ? "text-muted-foreground" : undefined}>
-                Donné par {c.par === "bailleur" ? "le bailleur" : "le locataire"}, date enregistrée
+                Donné par {c.par === "bailleur" ? "le bailleur" : "le locataire"}, reçu
                 le {formaterDate(c.date_premiere_presentation)}, préavis {c.preavis_mois} mois
                 → effet le <span className="font-medium">{formaterDate(c.date_effet)}</span>
                 {c.motif && !c.annule_le && (

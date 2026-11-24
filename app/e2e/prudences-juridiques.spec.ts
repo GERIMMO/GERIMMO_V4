@@ -126,13 +126,25 @@ test("pièces demandées, notice, cautionnement et congé : Gerimmo avertit et d
     await expect(motif).toHaveValue("vente");
     const aRelire = page.locator("[data-conge-a-faire-relire]:visible");
     await expect(aRelire).toHaveAttribute("data-conge-a-faire-relire", "vente");
-    await expect(aRelire).toContainText("À faire relire avant de notifier. Un congé pour vente doit comporter des mentions précises et reproduire certains textes ; un congé incomplet peut être annulé.");
-    await expect(aRelire).toContainText("Gerimmo n’a pas pu comparer ce modèle au texte officiel");
+    // Textes officiels, lot T1 : le rappel ne dit plus « Gerimmo n’a pas pu comparer ce modèle au texte officiel » (le modèle a
+    // été rapproché du recueil fourni par le dirigeant) ; il reste « à faire relire » et sans garantie.
+    await expect(aRelire).toContainText("À faire relire avant de notifier. Faites relire ce congé pour vente (ADIL, avocat, commissaire de justice).");
+    await expect(aRelire).toContainText("Gerimmo ne garantit pas que ce modèle soit complet ni à jour.");
     await tientDansLEcran(page, aRelire);
+    // Lot T1 : la date limite de réception du terme en cours, la notice à joindre soi-même, « réception » et non « présentation ».
+    const dateLimite = page.locator("[data-conge-date-limite]:visible");
+    await expect(dateLimite).toContainText("le locataire doit avoir reçu le congé au plus tard le");
+    await expect(dateLimite).toContainText("une lettre présentée mais non retirée ne fait pas courir le délai");
+    await tientDansLEcran(page, dateLimite);
+    const noticeConge = page.locator("[data-conge-notice-a-joindre]:visible");
+    await expect(noticeConge).toContainText("Gerimmo ne l’imprime pas : joignez-la vous-même.");
+    await tientDansLEcran(page, noticeConge);
+    await expect(page.locator("label[for='conge-b-presentation']:visible")).toContainText("Réception prévue par le locataire");
+    await expect(page.locator("body")).not.toContainText("première présentation, dont la date");
 
     await motif.selectOption("reprise");
     await expect(aRelire).toHaveAttribute("data-conge-a-faire-relire", "reprise");
-    await expect(aRelire).toContainText("Un congé pour reprise doit comporter des mentions précises");
+    await expect(aRelire).toContainText("Faites relire ce congé pour reprise");
     await expect(aRelire).toContainText("Gerimmo ne génère pas la lettre tant que le nom du bénéficiaire, son lien avec vous, son adresse et les raisons de la reprise ne sont pas renseignés.");
     const adresse = page.locator("#conge-b-adresse:visible");
     const raisons = page.locator("#conge-b-raisons:visible");
@@ -140,6 +152,14 @@ test("pièces demandées, notice, cautionnement et congé : Gerimmo avertit et d
     // sans envoyer chercher l'adresse du bénéficiaire sur la fiche du locataire. Un refus ne crée rien.
     await page.locator("#conge-b-beneficiaire:visible").fill("Marie Dupont");
     await page.locator("#conge-b-lien:visible").fill("fille du bailleur");
+    // Lot T1 : en location nue, la question « logement acheté déjà loué ? » attend une réponse avant toute lettre.
+    await page.locator("button:visible", { hasText: "Générer le congé (PDF)" }).click();
+    await expect(page.locator("span.text-destructive:visible", { hasText: "Indiquez si le logement a été acheté alors qu’il était déjà loué" })).toBeVisible({ timeout: 30_000 });
+    const acheteOccupe = page.locator("#conge-b-achete-occupe:visible");
+    await acheteOccupe.selectOption("oui");
+    await expect(page.locator("#conge-b-acquisition:visible")).toBeVisible();
+    await acheteOccupe.selectOption("non");
+    await expect(page.locator("#conge-b-acquisition")).toHaveCount(0);
     await page.locator("button:visible", { hasText: "Générer le congé (PDF)" }).click();
     const aRenseigner = page.locator("span:visible", { hasText: "À renseigner avant de générer le PDF" }).last();
     await expect(aRenseigner).toContainText("adresse du bénéficiaire de la reprise", { timeout: 30_000 });

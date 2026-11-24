@@ -159,7 +159,8 @@ describe("P0-08 — congé du bailleur pour vente ou pour reprise", () => {
   const assembler = async (options: Record<string, string>) => {
     vi.mocked(chargerContexteBail).mockResolvedValue(bailActif());
     const rpc = vi.fn(async () => ({ data: "2029-08-31", error: null }));
-    const doc = await assemblerCongeBailleur({ rpc } as unknown as SupabaseClient, "org", "b1", options);
+    // Textes officiels, lot T1 : en location nue, un congé pour vendre ou pour reprise répond à la question « logement acheté déjà loué ? ».
+    const doc = await assemblerCongeBailleur({ rpc } as unknown as SupabaseClient, "org", "b1", { achete_occupe: "non", ...options });
     if (!("document" in doc)) throw new Error(`congé non assemblé : ${JSON.stringify(doc)}`);
     return { texte: texteDe(doc.document.html), manquants: doc.document.manquants };
   };
@@ -208,7 +209,7 @@ describe("P0-08 — congé du bailleur pour vente ou pour reprise", () => {
   it("ce qui est saisi est échappé : une adresse ne peut pas injecter de balise dans la lettre", async () => {
     vi.mocked(chargerContexteBail).mockResolvedValue(bailActif());
     const rpc = vi.fn(async () => ({ data: "2029-08-31", error: null }));
-    const doc = await assemblerCongeBailleur({ rpc } as unknown as SupabaseClient, "org", "b1", { motif: "reprise", beneficiaire_adresse: "<img src=x onerror=alert(1)>", raisons_reprise: "<script>x</script>" });
+    const doc = await assemblerCongeBailleur({ rpc } as unknown as SupabaseClient, "org", "b1", { motif: "reprise", achete_occupe: "non", beneficiaire_adresse: "<img src=x onerror=alert(1)>", raisons_reprise: "<script>x</script>" });
     if (!("document" in doc)) throw new Error("congé non assemblé");
     expect(doc.document.html).not.toMatch(/<img src=x|<script>x/);
     expect(doc.document.html).toContain("&lt;img src=x onerror=alert(1)&gt;");
@@ -232,8 +233,10 @@ describe("P0-08 — congé du bailleur pour vente ou pour reprise", () => {
     const { GenererCongeBailleur } = await import("@/app/agence/[orgId]/baux/[bailId]/generer-conge-bailleur");
     const html = renderToStaticMarkup(createElement(GenererCongeBailleur, { orgId: "org", bailId: "b1", cheminRetour: "/espace/org/baux/b1", meuble: false, terme: "2029-08-31" }));
     const rappel = /<p[^>]*data-conge-a-faire-relire="vente"[^>]*>([\s\S]*?)<\/p>/.exec(html)?.[1] ?? "";
-    expect(texteDe(rappel)).toContain("À faire relire avant de notifier. Un congé pour vente doit comporter des mentions précises et reproduire certains textes ; un congé incomplet peut être annulé.");
-    expect(texteDe(rappel)).toContain("Gerimmo n'a pas pu comparer ce modèle au texte officiel : il ne garantit pas qu'il soit complet.");
+    // Textes officiels, lot T1 : « Gerimmo n'a pas pu comparer ce modèle au texte officiel » n'est plus vrai (le modèle a été
+    // rapproché du recueil fourni par le dirigeant). Le rappel « à faire relire » reste, et Gerimmo ne garantit toujours rien.
+    expect(texteDe(rappel)).toContain("À faire relire avant de notifier. Faites relire ce congé pour vente (ADIL, avocat, commissaire de justice). Un congé incomplet ou tardif peut être sans effet ; Gerimmo ne garantit pas que ce modèle soit complet ni à jour.");
+    expect(texteDe(rappel)).not.toContain("conforme");
     expect(texteDe(rappel)).not.toMatch(SANS_REFERENCE);
     const ecran = source("src/app/agence/[orgId]/baux/[bailId]/generer-conge-bailleur.tsx");
     expect(ecran).toContain('{motif !== "motif_legitime" && (');

@@ -191,7 +191,8 @@ describe.each(INSTANTS)("documents de contrat produits à %s : « Établi le » 
     ctx.bail.etat = "actif";
     vi.mocked(chargerContexteBail).mockResolvedValue(ctx);
     const rpc = vi.fn(async () => ({ data: "2029-08-31", error: null }));
-    const doc = await assemblerCongeBailleur({ rpc } as unknown as SupabaseClient, "org", "b1", { motif: "vente", prix_vente: "245000" });
+    // Textes officiels, lot T1 : en location nue, un congé pour vendre ou pour reprise répond à la question « logement acheté déjà loué ? ».
+    const doc = await assemblerCongeBailleur({ rpc } as unknown as SupabaseClient, "org", "b1", { motif: "vente", prix_vente: "245000", achete_occupe: "non" });
     expect(rpc).toHaveBeenCalledWith("terme_bail", { p_bail: "b1", p_date: jourIso });
     expect("document" in doc && datesDuDocument(doc.document.html)).toEqual([attendu, attendu]);
   });

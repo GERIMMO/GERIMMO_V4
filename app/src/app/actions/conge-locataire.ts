@@ -17,8 +17,8 @@ export type EtatConge = {
 // Le locataire transmet son INTENTION de congé depuis son espace. Le congé
 // lui-même se donne par lettre recommandée (RM-A3 : la mise à disposition en
 // ligne n'a aucune valeur probante) : le gestionnaire l'enregistre à réception
-// du courrier, avec la date de première présentation — c'est elle qui fait
-// courir le préavis. Ici : alerte au gestionnaire, rien d'irréversible.
+// du courrier, avec la date de réception effective — c'est elle qui fait
+// courir le préavis (lot T1 : plus la « première présentation »). Ici : alerte au gestionnaire, rien d'irréversible.
 export async function donnerMonConge(
   orgId: string,
   _etat: EtatConge,

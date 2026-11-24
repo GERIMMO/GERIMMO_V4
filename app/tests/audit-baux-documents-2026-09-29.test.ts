@@ -216,6 +216,8 @@ describe("congé du bailleur (PDF)", () => {
     const doc = await assemblerCongeBailleur(c, "org", "b1", {
       motif: "vente",
       prix_vente: "245 000",
+      // Textes officiels, lot T1 : en location nue, un congé pour vendre répond à la question « logement acheté déjà loué ? ».
+      achete_occupe: "non",
       date_presentation: "2029-01-10",
       date_effet: "2026-12-25", // une date saisie à la main n'est plus lue
     });
@@ -233,6 +235,7 @@ describe("congé du bailleur (PDF)", () => {
     const doc = await assemblerCongeBailleur(c, "org", "b1", {
       motif: "vente",
       prix_vente: "200000",
+      achete_occupe: "non",
       date_presentation: "2029-04-01",
     });
     expect(rpc).toHaveBeenLastCalledWith("terme_bail", { p_bail: "b1", p_date: "2029-09-01" });
@@ -254,6 +257,9 @@ describe("congé du bailleur (PDF)", () => {
     expect(ajouterMois("2026-08-31", 6)).toBe("2027-02-28");
     expect(congeBailleurDansLesDelais("2029-02-28", "2029-08-31", 6)).toBe(true);
     expect(congeBailleurDansLesDelais("2029-03-02", "2029-08-31", 6)).toBe(false);
+    // Textes officiels, lot T1 (R13-A1) : le 1er mars est déjà trop tard pour un terme au 31 août (1er mars + 6 mois =
+    // 1er septembre) ; l'ancienne règle (terme + 1 jour) l'acceptait. Cas détaillés dans tests/textes-t1-conges.test.ts.
+    expect(congeBailleurDansLesDelais("2029-03-01", "2029-08-31", 6)).toBe(false);
     expect(prixDepuisOptions("245 000,50")).toBe(245000.5);
     expect(prixDepuisOptions("0")).toBeNull();
   });

@@ -20,19 +20,31 @@ const consultation: ChampCatalogue = {cle:"consultation",libelle:"Consultation d
 const consultationEtJustificatif: ChampCatalogue = {...consultation,aide:`Lieu ou lien, horaires et personne à contacter. Le justificatif enregistré avec la régularisation n’est pas dans ce PDF : joignez-le au courrier. ${SANS_PRELEVEMENT}`};
 // D39 (CHF-03) : saisi à la génération du document ; la régularisation émise ne se modifie pas et n'est pas touchée.
 const detailDepenses: ChampCatalogue = {cle:"detail_depenses",libelle:"Détail des dépenses par nature et clé de répartition",type:"textarea",repli:"detail_enregistre",aide:"Chaque nature de charges (eau, chauffage, ascenseur, entretien…) avec son montant et la clé de répartition retenue (tantièmes, surface, consommation…). Ce détail n’est écrit que dans ce document : la régularisation déjà enregistrée n’est pas modifiée."};
+// Textes officiels, lot T1 — les consignes du congé du bailleur, écrites une fois pour l'écran du bail et pour le catalogue.
+// Ce qui fait courir le délai (article 15 I de la loi du 6 juillet 1989 ; notice de l'arrêté du 13 décembre 2017, point 1-4).
+export const CONGE_RECEPTION = "Le délai court à compter de la réception par le locataire : pour une lettre recommandée avec demande d’avis de réception, le jour où la lettre lui est effectivement remise (une lettre présentée mais non retirée ne fait pas courir le délai) ; pour un acte de commissaire de justice, le jour de la signification ; pour une remise en main propre contre récépissé ou émargement, le jour de la remise.";
+// La notice n'est pas imprimée par Gerimmo (même logique que la notice du bail, décision Q46) : le bailleur la joint lui-même.
+export const CONGE_NOTICE_A_JOINDRE = "Logement loué nu, congé pour vendre ou pour reprise : la notice d’information fixée par l’arrêté du 13 décembre 2017 doit être jointe au congé. La lettre l’annonce en pièce jointe, mais Gerimmo ne l’imprime pas : joignez-la vous-même. Son texte est l’annexe de cet arrêté, publiée sur Légifrance (legifrance.gouv.fr, texte JORFTEXT000036236664).";
+export const CONGE_SANS_GARANTIE = "Un congé incomplet ou tardif peut être sans effet ; Gerimmo ne garantit pas que ce modèle soit complet ni à jour.";
+export const CONGE_ACHETE_OCCUPE = "La loi limite le congé quand le bailleur a acheté le logement déjà loué : pour vendre, si le terme du bail arrive moins de trois ans après l’achat ; pour reprendre, moins de deux ans après. Dans ces cas, Gerimmo ne prépare pas la lettre.";
 export const OPTIONS_CATALOGUE: Record<string, ChampCatalogue[]> = {
   avenant:[{cle:"objet",libelle:"Objet de l’avenant"},modifications],
   cautionnement:[{cle:"garant",libelle:"Garant du dossier",aide:"Choisissez un garant déjà rattaché au bail."},{cle:"forme",libelle:"Forme de caution",choix:[{valeur:"solidaire",libelle:"Solidaire"},{valeur:"simple",libelle:"Simple"}]},{cle:"montant_max",libelle:"Plafond de l’engagement (€)",type:"montant"},{cle:"sans_garantie_cumulee",libelle:CERTIFICATION_SANS_GARANTIE_CUMULEE,type:"case"}],
   // Phase 3 (S18) : les informations que demande l'écran du bail (generer-conge-bailleur.tsx), selon le motif : prix et conditions de
   // la vente, bénéficiaire de la reprise, motif invoqué. Plus de « date d'effet » : l'assembleur ne la lisait pas — l'effet est l'échéance
-  // du bail calculée pour la date de présentation prévue. Le prix reste facultatif à la saisie (meublé) ; en location nue, l'assembleur
-  // refuse le congé pour vendre sans prix et le dit.
+  // du bail calculée pour la date de réception prévue. Le prix et les conditions restent facultatifs à la saisie (meublé) ; en location
+  // nue, l'assembleur refuse le congé pour vendre sans eux et le dit.
+  // Textes officiels, lot T1 : la date est celle de la RÉCEPTION par le locataire (article 15 I de la loi du 6 juillet 1989), plus la
+  // « première présentation » ; la clé `date_presentation` garde son nom. Question « acheté déjà loué » : exigée par l'assembleur en
+  // location nue (vente, reprise). Les textes ci-dessous sont partagés avec l'écran du bail (generer-conge-bailleur.tsx).
   conge_bailleur:[
-    {cle:"motif",libelle:"Motif du congé",choix:[{valeur:"vente",libelle:"Vente"},{valeur:"reprise",libelle:"Reprise"},{valeur:"motif_legitime",libelle:"Motif légitime et sérieux"}],aide:"Vente ou reprise : à faire relire avant de notifier (ADIL, avocat, commissaire de justice). Un congé incomplet peut être annulé ; Gerimmo n’a pas pu comparer ce modèle au texte officiel et ne garantit pas qu’il soit complet."},
-    {cle:"date_presentation",libelle:"Présentation prévue au locataire (aujourd’hui par défaut)",type:"date",facultatif:true,aide:"La date d’effet ne se saisit pas : c’est l’échéance du bail calculée pour cette date de présentation (l’échéance suivante si le préavis n’y tient plus). Gerimmo ne notifie pas le congé : à notifier par lettre recommandée avec accusé de réception, acte d’huissier ou remise en main propre contre récépissé ou émargement, à chaque locataire et colocataire individuellement ; la date de première présentation est ensuite à enregistrer sur la fiche du bail."},
+    {cle:"motif",libelle:"Motif du congé",choix:[{valeur:"vente",libelle:"Vente"},{valeur:"reprise",libelle:"Reprise"},{valeur:"motif_legitime",libelle:"Motif légitime et sérieux"}],aide:`Vente ou reprise : à faire relire avant de notifier (ADIL, avocat, commissaire de justice). ${CONGE_SANS_GARANTIE} ${CONGE_NOTICE_A_JOINDRE}`},
+    {cle:"date_presentation",libelle:"Réception prévue par le locataire (aujourd’hui par défaut)",type:"date",facultatif:true,aide:`La date d’effet ne se saisit pas : c’est l’échéance du bail calculée pour cette date de réception (l’échéance suivante si le préavis n’y tient plus). ${CONGE_RECEPTION} Gerimmo ne notifie pas le congé : il se notifie à chaque locataire et colocataire individuellement ; la date de réception est ensuite à enregistrer sur la fiche du bail.`},
     {cle:"prix_vente",libelle:"Prix de vente proposé (€)",type:"montant",facultatif:true,si:siMotif("vente"),aide:"Obligatoire pour un logement loué nu : le congé pour vendre y vaut offre de vente au locataire, le PDF ne se génère pas sans lui. Facultatif en meublé."},
-    {cle:"conditions_vente",libelle:"Conditions de la vente",facultatif:true,si:siMotif("vente")},
-    {cle:"beneficiaire_nom",libelle:"Bénéficiaire de la reprise",si:siMotif("reprise")},
+    {cle:"conditions_vente",libelle:"Conditions de la vente",facultatif:true,si:siMotif("vente"),aide:"Obligatoires pour un logement loué nu, comme le prix : le PDF ne se génère pas sans elles. Facultatives en meublé."},
+    {cle:"achete_occupe",libelle:"Logement acheté alors qu’il était déjà loué ?",facultatif:true,si:siMotif("vente","reprise"),choix:[{valeur:"",libelle:"À préciser (obligatoire en location nue)"},{valeur:"non",libelle:"Non"},{valeur:"oui",libelle:"Oui"}],aide:CONGE_ACHETE_OCCUPE},
+    {cle:"date_acquisition",libelle:"Date d’acquisition (seulement si le logement a été acheté déjà loué)",type:"date",facultatif:true,si:siMotif("vente","reprise")},
+    {cle:"beneficiaire_nom",libelle:"Bénéficiaire de la reprise",si:siMotif("reprise"),aide:"Bailleur SCI familiale : le bénéficiaire est l’un des associés."},
     {cle:"beneficiaire_lien",libelle:"Lien avec le bailleur",si:siMotif("reprise")},
     {cle:"beneficiaire_adresse",libelle:"Adresse du bénéficiaire de la reprise",si:siMotif("reprise")},
     {cle:"raisons_reprise",libelle:"Raisons de la reprise",type:"textarea",si:siMotif("reprise")},

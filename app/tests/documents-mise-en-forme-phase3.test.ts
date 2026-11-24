@@ -434,17 +434,19 @@ describe("congé du bailleur : un seul point après le texte saisi (C38)", () =>
     ctx.bail.etat = "actif";
     vi.mocked(chargerContexteBail).mockResolvedValue(ctx);
     const rpc = vi.fn(async () => ({ data: "2029-08-31", error: null }));
-    const doc = await assemblerCongeBailleur({ rpc } as unknown as SupabaseClient, "org", "b1", options);
+    // Textes officiels, lot T1 : en location nue, un congé pour vendre ou pour reprise répond à la question « logement acheté déjà loué ? ».
+    const doc = await assemblerCongeBailleur({ rpc } as unknown as SupabaseClient, "org", "b1", { achete_occupe: "non", ...options });
     if (!("document" in doc)) throw new Error(`congé non assemblé : ${JSON.stringify(doc)}`);
     return texteDe(doc.document.html);
   };
 
   it("vente : « … de l'acte. », jamais « acte.. »", async () => {
     const texte = await assembler({ motif: "vente", prix_vente: "245000", conditions_vente: "Paiement comptant à la signature de l'acte." });
-    expect(texte).toContain("Conditions de la vente : Paiement comptant à la signature de l'acte.");
+    // Lot T1 : le libellé suit le texte (« le prix et les conditions de la vente projetée »), sur sa propre ligne.
+    expect(texte).toContain("Conditions de la vente projetée : Paiement comptant à la signature de l'acte.");
     expect(texte).not.toContain("acte..");
     const sansPoint = await assembler({ motif: "vente", prix_vente: "245000", conditions_vente: "Paiement comptant" });
-    expect(sansPoint).toContain("Conditions de la vente : Paiement comptant.");
+    expect(sansPoint).toContain("Conditions de la vente projetée : Paiement comptant.");
     const sansConditions = await assembler({ motif: "vente", prix_vente: "245000" });
     expect(sansConditions).toMatch(/Prix de la vente projetée : 245 000,00 € \([^)]*\)\./);
   });

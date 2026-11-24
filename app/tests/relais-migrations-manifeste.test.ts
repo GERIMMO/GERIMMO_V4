@@ -302,6 +302,9 @@ const MISSION_OCTOBRE = [
   "20261124220000_justificatif_retenue_dossier_du_bail.sql",
   // 24/11, seconde reprise du lot D3 (Q38) : le journal de l'ancien réglage des repères fiscaux dit quelle source il a effacée.
   "20261124230000_reperes_fiscaux_ancien_reglage_journal_source.sql",
+  // 25/11, textes officiels, lot T1 (congés) : date limite du congé du bailleur comptée jusqu'au dernier jour du bail, préavis
+  // d'un mois en zone tendue seulement s'il est demandé, reprise refusée à une société non familiale (location nue).
+  "20261125101500_conge_textes_officiels_t1.sql",
 
 
 ];

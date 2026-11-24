@@ -64,10 +64,10 @@ function questions(orgId: string, qui: InterlocuteurLocataire): { question: stri
           Par lettre recommandée avec accusé de réception adressée à votre{" "}
           {qui} — c&apos;est elle qui fait courir le préavis, à sa réception effective par le destinataire. Un recommandé non retiré ne fait pas courir ce délai. Prévenez-le d&apos;abord depuis {rubrique("logement", "Mon logement")}{" "}
           (deux minutes) : il attendra votre courrier et confirmera votre date de
-          fin de bail. Préavis : 1 mois en meublé ou en zone tendue, 3 mois sinon —
-          ramené à 1 mois pour certaines situations (mutation, perte d&apos;emploi,
-          RSA ou AAH, état de santé, violences conjugales…), justificatif joint à
-          votre lettre.
+          fin de bail. Préavis : 1 mois en meublé, 3 mois sinon —
+          ramené à 1 mois pour certaines situations (logement en zone tendue, mutation, perte d&apos;emploi,
+          RSA ou AAH, état de santé, violences conjugales…), à condition de préciser le motif dans
+          votre lettre et d&apos;y joindre le justificatif.
         </>
       ),
     },

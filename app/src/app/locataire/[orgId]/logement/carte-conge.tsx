@@ -17,6 +17,7 @@ export function CarteConge({
   enPreavis,
   dateFin,
   preavisMois,
+  zoneTendue = false,
   intentionDu,
   interlocuteur,
 }: {
@@ -24,8 +25,10 @@ export function CarteConge({
   // Le bail est déjà en préavis : le congé est enregistré, on montre la suite
   enPreavis: boolean;
   dateFin: string | null;
-  // 1 (meublé ou zone tendue) ou 3 — indicatif, calculé par la page depuis le bail
+  // 1 (meublé) ou 3 — indicatif, calculé par la page depuis le bail
   preavisMois: number;
+  /** Lot T1 : logement nu en zone tendue — un mois seulement si la lettre de congé le précise et le justifie. */
+  zoneTendue?: boolean;
   // Une intention déjà transmise, pas encore confirmée par le gestionnaire
   intentionDu: string | null;
   /** Lot 47 : « gestionnaire » dans un espace d'agence, « bailleur » chez un propriétaire. */
@@ -129,7 +132,7 @@ export function CarteConge({
           <p className="mt-1.5 text-sm text-muted-foreground">
             Votre préavis sera d&apos;environ{" "}
             <b className="font-semibold">{preavisMois} mois</b>
-            {preavisMois === 1 ? " (logement meublé ou zone tendue)" : ""} : il
+            {preavisMois === 1 ? " (logement meublé)" : ""} : il
             court à compter de la réception effective de votre{" "}
             <b className="font-semibold">lettre recommandée</b> — l&apos;annonce
             faite ici prévient votre {interlocuteur}, elle ne remplace pas le
@@ -142,9 +145,9 @@ export function CarteConge({
           {preavisMois > 1 && (
             <p className="mt-2 text-sm text-muted-foreground">
               Certaines situations ramènent le préavis à <b className="font-semibold">1 mois</b>{" "}
-              : mutation, perte d&apos;emploi, bénéficiaire du RSA ou de l&apos;AAH, état de
-              santé, violences conjugales… Indiquez-la dans votre lettre et joignez-y le
-              justificatif — il est obligatoire.
+              : {zoneTendue ? "logement en zone tendue (c’est le cas du vôtre), " : ""}mutation, perte d&apos;emploi,
+              bénéficiaire du RSA ou de l&apos;AAH, état de santé, violences conjugales… Indiquez-la dans votre
+              lettre et joignez-y le justificatif — sans cela, le préavis reste de 3 mois.
             </p>
           )}
           <Label htmlFor="conge-motif" className="mt-3">

@@ -10,6 +10,7 @@ import { prestataireSignature, type ConfigurationSignature, type PrestataireSign
 import { aujourdhuiParis } from "@/lib/ged";
 import { echeanceReglementaire, estResumeNoticeJoint, TITRE_GED_RESUME_NOTICE, TITRES_GED_RESUME_NOTICE, TYPE_GED_NOTICE_DEPOSEE } from "@/lib/documents-bail";
 import { marquerDocumentEssai, signatureEnEssai } from "@/lib/signature-essai";
+import { estBienHabitation } from "@/lib/parc";
 import type { ModeleSignature } from "./politique-signature";
 import { MENTION_PAGE_SIGNATURE_GARANT, mentionCadreCautionBail } from "./textes-signature-actes";
 
@@ -49,7 +50,7 @@ export const MANQUE_NOTICE_DEPOSEE = "Déposez la notice d’information officie
  * Les pièces jointes au dossier de signature du bail, et ce qui manque pour l'envoyer.
  * `noticeDuCircuit` ne sert qu'à recalculer l'empreinte d'un circuit DÉJÀ préparé (activation du bail signé) : la notice
  * déposée que ce circuit portait (son identifiant), ou `null` s'il n'en portait pas (circuit d'avant la décision Q46).
- * Absent : la notice déposée la plus récente du bail, exigée.
+ * Absent : la notice déposée la plus récente du bail, exigée pour un bien d'habitation (reprise du lot D3, M4).
  */
 export async function annexesSignatureBail(db:SupabaseClient,org:string,bail:string,ctx:ContexteBail,noticeDuCircuit?:string|null) {
   const champs="id,titre,type,storage_path,empreinte,mime_type,purged_at,created_at";
@@ -85,7 +86,8 @@ export async function annexesSignatureBail(db:SupabaseClient,org:string,bail:str
       .eq("type",TYPE_GED_NOTICE_DEPOSEE).in("id",idsLies).is("purged_at",null).order("created_at",{ascending:false}).order("id",{ascending:false}).limit(1) : {data:[],error:null};
     if(deposees.error)throw new Error("La notice d’information déposée pour ce bail ne peut pas être vérifiée.");
     noticeDeposee = deposees.data?.[0]?.id ?? null;
-    if (!noticeDeposee) manquants.push(MANQUE_NOTICE_DEPOSEE);
+    // Reprise du lot D3 (M4) : exigée pour les seuls biens d'habitation, comme le contrôle de mise en location.
+    if (!noticeDeposee && estBienHabitation(ctx.bien.type)) manquants.push(MANQUE_NOTICE_DEPOSEE);
   }
   if (ctx.bien.copropriete && !contrat.data?.reglement_copropriete) manquants.push("Joignez les extraits du règlement de copropriété à l’étape Documents.");
   const ids=new Set<string>(); if(notice)ids.add(notice.id); if(noticeDeposee)ids.add(noticeDeposee); if(contrat.data?.reglement_copropriete)ids.add(contrat.data.reglement_copropriete);

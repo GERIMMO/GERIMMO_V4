@@ -225,6 +225,10 @@ describe.skipIf(!url)("repères fiscaux (avec base)", () => {
        where p.proname in ('reperes_fiscaux', 'regler_reperes_fiscaux') order by 1`)).rows;
     const existeTable = async () => (await db.query<{ t: string | null }>("select to_regclass('public.reperes_fiscaux_reglage')::text t")).rows[0].t !== null;
 
+    // Reprise du lot D3 (24/11) : la migration 20261124210000 réécrit `regler_reperes_fiscaux` (elle y vide la source).
+    // Ce test tient la migration du 23/11 seule : on défait d'abord cette réécriture (son retour rend le texte du 23/11),
+    // sinon « rejouer ne change rien » comparerait le texte du 23/11 à celui du 24/11.
+    await db.query(readFileSync("supabase/retours-arriere/20261124210000_reperes_fiscaux_ancien_reglage_sans_source.retour.sql", "utf8"));
     await db.query("update public.reperes_fiscaux_reglage set micro_foncier_plafond_euros = 15300, micro_foncier_abattement_pourcent = 31, verifie_le = date '2026-11-23' where singleton");
     const avec = await etat();
     expect(avec).toHaveLength(2);

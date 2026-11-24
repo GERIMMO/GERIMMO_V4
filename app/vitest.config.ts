@@ -94,6 +94,10 @@ export const FICHIERS_EN_SERIE = [
   // de chaque fichier (colonne et fonctions du réglage fiscal ; valeur du type des documents).
   "tests/reperes-fiscaux-source-base.test.ts",
   "tests/notice-information-deposee-base.test.ts",
+  // Reprise du lot D3 (24/11) : rejeu de 20261124200000 et de 20261124210000, et de leurs retours, dans la transaction de
+  // chaque fichier (déclencheur de la table des retenues ; ancien réglage fiscal réécrit).
+  "tests/justificatif-retenue-piece-existante-base.test.ts",
+  "tests/reperes-fiscaux-ancien-reglage-base.test.ts",
   // Réserve du relecteur du lot D2 : ces trois fichiers figent le jour de Paris (`create or replace` de
   // `aujourdhui_paris()` dans leur transaction, tests/fixtures/jour-de-paris-fige.ts) : le verrou pris sur la fonction
   // ferait attendre les fichiers lancés en parallèle.

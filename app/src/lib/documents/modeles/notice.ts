@@ -123,7 +123,10 @@ export async function assemblerNotice(
       f,
       titreDocument: "Résumé de la notice d'information",
       nomPied: "Résumé de la notice d'information",
-      reference: referenceCourte("NOTICE", ctx.bail.id),
+      // Reprise du lot D3 (M6) : la référence s'imprime au pied de chaque page du résumé, qui est joint au dossier de
+      // signature. « NOTICE-… » le faisait passer pour la notice officielle. Seuls les résumés générés à partir de
+      // maintenant changent : un résumé déjà rangé (et joint à un circuit envoyé) garde son fichier et son empreinte.
+      reference: referenceCourte("RESUME-NOTICE", ctx.bail.id),
       corps,
     }),
     titreGed: TITRE_GED_RESUME_NOTICE,

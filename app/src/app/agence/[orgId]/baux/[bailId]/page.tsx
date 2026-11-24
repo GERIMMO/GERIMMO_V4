@@ -39,6 +39,7 @@ import {
 import { deElide } from "@/lib/elision";
 import { nomComplet } from "@/lib/roles-personnes";
 import { premier } from "@/lib/postgrest";
+import { estBienHabitation } from "@/lib/parc";
 import { actionsAttendues } from "@/lib/actions-attendues";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
@@ -145,7 +146,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     { data: bailPersonnes, error: erreurBailPersonnes },
     { data: intentions, error: erreurIntentions },
   ] = await Promise.all([
-      supabase.from("lots").select("id, nom, bien_id, etat, meuble, surface_m2, colocation_loyer_reference, bien:biens!lots_bien_id_fkey(zone_tendue, copropriete)").eq("id", bail.lot_id).maybeSingle(),
+      supabase.from("lots").select("id, nom, bien_id, etat, meuble, surface_m2, colocation_loyer_reference, bien:biens!lots_bien_id_fkey(zone_tendue, copropriete, type)").eq("id", bail.lot_id).maybeSingle(),
       // Les pièces déclarées du lot : leur absence rend l'état des lieux générique.
       supabase
         .from("lot_pieces")
@@ -570,6 +571,8 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   // Décision B du 20/11/2026 : un bail déjà en cours (date d'entrée passée) s'active par son contrat signé, même si le
   // logement n'a jamais été « mis en location ». La base décide (controler_mise_en_location) ; la fiche l'annonce.
   const dejaEnCours = bail.etat === "brouillon" && bailDejaEnCours(bail.date_debut, aujourdhuiParis());
+  // Reprise du lot D3 (M4) : le type du bien, pour ne rappeler la notice que sur un bien d'habitation.
+  const bienDuLot = premier(lot?.bien ?? null);
   const lotEnPreparation = bail.etat === "brouillon" && lot?.etat === "brouillon" && !dejaEnCours;
   // Date de bascule : ce que la base posera à l'activation (premier_mois_suivi), annoncé avant le dépôt. Rien si la
   // base ne connaît pas encore la règle.
@@ -594,7 +597,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             </p>}
             {/* Décision du 24/11/2026 (Q46) : la signature sur papier n'est pas bloquée par la notice ; l'écran rappelle
                 seulement qu'elle est à annexer au contrat (Gerimmo ne la joint qu'à la signature électronique). */}
-            {bail.etat === "brouillon" && !bail.document_signe && <p className="text-sm" data-rappel-notice-papier>
+            {/* Reprise du lot D3 (M4) : rappel réservé aux biens d'habitation, comme le blocage de la voie électronique
+                (bien illisible : le rappel reste affiché). */}
+            {bail.etat === "brouillon" && !bail.document_signe && (!bienDuLot || estBienHabitation(bienDuLot.type)) && <p className="text-sm" data-rappel-notice-papier>
               Signature sur papier : annexez vous-même au contrat la notice d’information officielle, en entier.{" "}
               <a className="underline" href="#notice-deposee">Voir la notice de ce bail</a>
             </p>}

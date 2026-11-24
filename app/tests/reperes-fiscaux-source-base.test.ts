@@ -8,7 +8,8 @@
  *  2. tout compte connecté lit les quatre valeurs par `reperes_fiscaux_avec_source()` ; anon n'a rien ;
  *  3. seul le superviseur permanent en double vérification règle ; la source est exigée (une ligne de 10 à 300
  *     caractères) ; la vérification est datée du jour de Paris ; le journal garde la source d'avant et d'après ;
- *  4. les deux fonctions du 23/11 ne sont pas touchées ;
+ *  4. les deux fonctions du 23/11 ne sont pas touchées par CETTE migration (l'ancien réglage vide la source depuis
+ *     20261124210000, reprise du lot D3) ;
  *  5. la migration se rejoue sans effacer la source ; son retour retire ses deux fonctions et la colonne, se rejoue,
  *     et laisse le réglage du 23/11 intact ; il se joue avant le retour du 23/11.
  *
@@ -171,14 +172,17 @@ describe.skipIf(!url)("source des repères fiscaux (avec base)", () => {
     expect(lignes.every((l) => l.auteur === superviseur)).toBe(true);
   });
 
-  it("les deux fonctions du 23/11 restent telles quelles : mêmes trois valeurs lues, même réglage à deux arguments", async () => {
+  it("les deux fonctions du 23/11 restent utilisables : mêmes trois valeurs lues, réglage à deux arguments (qui vide la source)", async () => {
     const superviseur = await compte(true);
     await simuler({ compte: superviseur, role: "authenticated" });
     expect((await db.query("select public.reperes_fiscaux() r")).rows[0].r).toEqual({ micro_foncier_plafond_euros: 15000, micro_foncier_abattement_pourcent: 30, verifie_le: null });
     await db.query(REGLER, [15300, 31, SOURCE]);
-    // L'ancien réglage, que l'application n'appelle plus, ne touche pas la source.
+    // Reprise du lot D3 (M2, migration 20261124210000) : ce test affirmait que l'ancien réglage « ne touche pas la
+    // source ». C'était le défaut relevé à la relecture : les nouvelles valeurs s'affichaient avec la source d'un contrôle
+    // d'avant. L'ancien réglage, que l'application n'appelle plus, vide maintenant la source
+    // (tests/reperes-fiscaux-ancien-reglage-base.test.ts).
     await db.query("select public.regler_reperes_fiscaux(15400, 32)");
-    expect(await ligne()).toMatchObject({ plafond: 15400, abattement: 32, source: SOURCE });
+    expect(await ligne()).toMatchObject({ plafond: 15400, abattement: 32, source: null });
   });
 
   it("droits : la lecture pour les comptes et le traitement, le réglage pour les comptes seulement", async () => {

@@ -294,6 +294,10 @@ const MISSION_OCTOBRE = [
   "20261124180000_notice_information_deposee.sql",
   // 24/11, décisions du dirigeant (lot D3, Q38) : la source du contrôle des repères fiscaux, enregistrée avec sa date.
   "20261124190000_reperes_fiscaux_source.sql",
+  // 24/11, reprise du lot D3 (B1, Q49) : garde-fou sur la pièce d'une retenue (même espace, lisible par l'appelant, pas le dossier d'un autre bail).
+  "20261124200000_justificatif_retenue_piece_existante.sql",
+  // 24/11, reprise du lot D3 (M2, Q38) : l'ancien réglage des repères fiscaux vide la source au lieu de garder celle d'avant.
+  "20261124210000_reperes_fiscaux_ancien_reglage_sans_source.sql",
 
 
 ];

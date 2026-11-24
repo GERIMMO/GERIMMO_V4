@@ -37,7 +37,7 @@ import { aujourdhuiParis, formaterDate, eur } from "@/lib/ged";
 import { ETATS_BAIL, COULEURS_ETAT_BAIL, TYPES_BAIL } from "@/lib/baux";
 import { nomComplet } from "@/lib/roles-personnes";
 import { LignesDiagnostics, type DiagnosticDepose } from "../../lignes-diagnostics";
-import { lireEcartDpe } from "@/lib/avertissement-dpe";
+import { lireEcartDpe, usageDpeFicheLogement } from "@/lib/avertissement-dpe";
 import { AvertissementDpe } from "@/components/avertissement-dpe";
 import { RecapLot, LienModifierLot } from "./recap-lot";
 import { PersonnesLot, IncidentsLot } from "./personnes-incidents-lot";
@@ -440,7 +440,7 @@ export default async function PageLot(
             }
           >
             <div className="space-y-3">
-              <AvertissementDpe ecart={ecartDpe} usage="Sa classe sert au contrôle de la mise en location et à l’alerte sur les classes F et G." />
+              <AvertissementDpe ecart={ecartDpe} usage={usageDpeFicheLogement(ecartDpe)} />
               {(!estProprietaire || parcours === "1") && <p className="text-xs text-muted-foreground">Documents propres à ce logement.</p>}
               {erreurDiagnostics ? <p role="alert">Documents indisponibles. Réessayez pour connaître leur état.</p> : <LignesDiagnostics
                 orgId={orgId}

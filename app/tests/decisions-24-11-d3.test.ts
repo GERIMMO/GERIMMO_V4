@@ -30,7 +30,7 @@ import { lienPourManquant } from "@/lib/documents/ou-renseigner";
 import { manqueJustificatifRetenue, retenueJustifiee } from "@/lib/justificatif-retenue";
 import { ajouterPagesSignature, annexesSignatureBail, MANQUE_NOTICE_DEPOSEE, type AnnexeSignature } from "@/lib/signature-bail";
 import { nomsFichiersPiecesJointes } from "@/lib/signature-envoi";
-import { classerPiecesBail, estNoticeDeposeeJointe, estResumeNoticeJoint, noticeDeposeeRetenue, TITRE_GED_NOTICE_DEPOSEE, TITRE_GED_RESUME_NOTICE, TYPE_GED_NOTICE_DEPOSEE } from "@/lib/documents-bail";
+import { carteNoticeDeposee, classerPiecesBail, estNoticeDeposeeJointe, estResumeNoticeJoint, noticeDeposeeRetenue, TITRE_GED_NOTICE_DEPOSEE, TITRE_GED_RESUME_NOTICE, TYPE_GED_NOTICE_DEPOSEE } from "@/lib/documents-bail";
 import { lireRecapitulatifPiecesBail } from "@/lib/recapitulatif-pieces-bail";
 import { indexEtapeBail } from "@/lib/champs-etape-bail";
 import { TYPES_DOCUMENT } from "@/lib/ged";
@@ -193,7 +193,10 @@ describe("Q46 — la notice d'information déposée par le bailleur", () => {
     const parcours = source("src/app/agence/[orgId]/baux/[bailId]/documents-parcours-bail.tsx");
     expect(parcours).toContain('<article id="notice-deposee"');
     expect(parcours).toContain("Gerimmo ne fournit pas ce texte et ne vérifie pas le fichier déposé");
-    expect(parcours).toContain("Sans elle, l’envoi du bail en signature électronique est bloqué. Pour une signature sur papier, annexez-la vous-même au contrat.");
+    // Reprise du lot D3 (M4) : la phrase n'a pas changé pour un bien d'habitation ; elle vit maintenant dans
+    // carteNoticeDeposee (documents-bail.ts), qui porte aussi le texte des biens hors habitation.
+    expect(parcours).toContain("<p data-notice-effet>{carteNotice.effet}</p>");
+    expect(carteNoticeDeposee(true, false).effet).toBe("Sans elle, l’envoi du bail en signature électronique est bloqué. Pour une signature sur papier, annexez-la vous-même au contrat.");
     // Le résumé ne porte jamais le nom de la notice ; aucune adresse officielle n'est ajoutée, aucune version affirmée.
     expect(parcours).toContain("<h4>Résumé de la notice (document d’information)</h4>");
     expect(parcours).not.toMatch(/legifrance|version en vigueur est|conforme/i);
@@ -259,7 +262,10 @@ describe("Q28 — avertissement quand plusieurs diagnostics de performance éner
     expect(source("src/app/agence/[orgId]/baux/[bailId]/documents-parcours-bail.tsx")).toContain('<AvertissementDpe ecart={ecartDpe} usage="Sa classe est celle que le contrat imprime." />');
     expect(source("src/app/agence/[orgId]/baux/[bailId]/page.tsx")).toContain("Sa classe décide si la révision du loyer est possible : elle est refusée en classe F ou G.");
     expect(source("src/app/agence/[orgId]/baux/[bailId]/formulaire-loyers.tsx")).toContain("{avertissementDpe}");
-    expect(source("src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/page.tsx")).toContain("Sa classe sert au contrôle de la mise en location et à l’alerte sur les classes F et G.");
+    // Reprise du lot D3 (M5) : l'ancienne phrase (« … et à l'alerte sur les classes F et G ») était inexacte : le contrôle
+    // de la mise en location regarde tous les DPE en vigueur, et aucune alerte ne porte sur la classe F sur cette fiche.
+    // La phrase est maintenant choisie par usageDpeFicheLogement (decisions-24-11-d3-reprise.test.ts).
+    expect(source("src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/page.tsx")).toContain("<AvertissementDpe ecart={ecartDpe} usage={usageDpeFicheLogement(ecartDpe)} />");
     // La règle de choix reste celle d'avant : le contrat lit toujours le DPE non archivé (bail nu pris en témoin).
     const bailNu = source("src/lib/documents/modeles/bail-nu.ts");
     expect(bailNu).toMatch(/\.eq\("type", "dpe"\)\s*\.is\("archived_at", null\)\s*\.order\("date_realisation", \{ ascending: false \}\)\s*\.limit\(1\)/);
@@ -333,7 +339,9 @@ describe("Q49 — les deux décomptes exigent de la même façon un justificatif
 
   it("écran de la restitution : même règle, dite avant le geste ; le justificatif se joint encore après la finalisation", () => {
     const ecran = source("src/app/agence/[orgId]/baux/[bailId]/formulaire-restitution.tsx");
-    expect(ecran).toContain("retenuesSansPiece={retenues.filter(r => Number(r.montant_retenu) > 0 && !retenueJustifiee(r))}");
+    // Reprise du lot D3 (M1) : ce test figeait le filtre « montant > 0 », alors que le blocage des décomptes vaut pour
+    // toutes les retenues. La fenêtre de finalisation les liste maintenant toutes (decisions-24-11-d3-reprise.test.ts).
+    expect(ecran).toContain("retenuesSansPiece={retenues.filter(r => !retenueJustifiee(r))}");
     expect(ecran).toContain("{!retenueJustifiee(r) && (");
     expect(ecran).toContain("data-retenues-sans-justificatif");
     expect(ecran).toContain("Chaque retenue demande un justificatif : un devis suffit, comme une facture, un état des lieux ou des photos.");

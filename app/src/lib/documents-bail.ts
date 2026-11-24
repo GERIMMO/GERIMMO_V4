@@ -146,3 +146,33 @@ export function resumeNoticeRetenu<T extends PieceBail & { created_at: string }>
 export function noticeDeposeeRetenue<T extends PieceBail & { created_at: string }>(pieces: T[]): T | undefined {
   return pieces.filter(p => p.type === TYPE_GED_NOTICE_DEPOSEE && !p.purged_at).sort(plusRecentDAbord)[0];
 }
+
+// Reprise du lot D3 (M7) : « Déposer une autre version » range une NOUVELLE notice liée au bail ; les précédentes y restent
+// liées. La fiche du bail les liste comme anciennes versions (de la plus récente à la plus ancienne) : avant, elles ne se
+// voyaient plus que dans Documents.
+export function anciennesNoticesDeposees<T extends PieceBail & { created_at: string }>(pieces: T[]): T[] {
+  return pieces.filter(p => p.type === TYPE_GED_NOTICE_DEPOSEE && !p.purged_at).sort(plusRecentDAbord).slice(1);
+}
+
+// Reprise du lot D3 (M4) : Gerimmo n'exige la notice que pour un bien d'habitation (estBienHabitation, lib/parc.ts : la même
+// distinction que le contrôle de mise en location). Pour un local, un parking, un terrain : ni blocage de la signature
+// électronique, ni mention « obligatoire ». Le dépôt reste possible ; déposée, la notice est jointe au dossier.
+// Les textes de la carte « Notice d'information officielle » de l'étape Documents, selon les deux cas.
+export function carteNoticeDeposee(habitation: boolean, deposee: boolean): { etat: string; ton: "ok" | "attention" | undefined; obligation: string; effet: string } {
+  if (habitation) return {
+    etat: deposee ? "Déposée" : "À déposer",
+    ton: deposee ? "ok" : "attention",
+    obligation: "Obligatoire · Annexée au bail",
+    effet: deposee
+      ? "Elle sera jointe au dossier de signature électronique, comme annexe du contrat. Pour une signature sur papier, annexez-la vous-même au contrat."
+      : "Sans elle, l’envoi du bail en signature électronique est bloqué. Pour une signature sur papier, annexez-la vous-même au contrat.",
+  };
+  return {
+    etat: deposee ? "Déposée" : "Non demandée",
+    ton: deposee ? "ok" : undefined,
+    obligation: "Bien déclaré hors habitation · Non demandée par Gerimmo",
+    effet: deposee
+      ? "Elle sera jointe au dossier de signature électronique, comme annexe du contrat."
+      : "Ce bien n’est pas déclaré comme un logement (appartement, maison, immeuble) : Gerimmo ne bloque pas la signature électronique sans la notice. Si vous la déposez, elle sera jointe au dossier.",
+  };
+}

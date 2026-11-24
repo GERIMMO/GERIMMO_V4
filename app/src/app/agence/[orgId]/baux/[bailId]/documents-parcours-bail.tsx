@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { premier } from "@/lib/postgrest";
-import { aujourdhuiParis } from "@/lib/ged";
-import { classerPiecesBail, echeanceReglementaire, noticeDeposeeRetenue, resumeNoticeAActualiser, resumeNoticeRetenu, TYPE_GED_NOTICE_DEPOSEE, type DiagnosticBail, type PieceBail } from "@/lib/documents-bail";
+import { aujourdhuiParis, formaterDateHeure } from "@/lib/ged";
+import { estBienHabitation } from "@/lib/parc";
+import { anciennesNoticesDeposees, carteNoticeDeposee, classerPiecesBail, echeanceReglementaire, noticeDeposeeRetenue, resumeNoticeAActualiser, resumeNoticeRetenu, TYPE_GED_NOTICE_DEPOSEE, type DiagnosticBail, type PieceBail } from "@/lib/documents-bail";
 import { FileCheck2, BookOpen, Building2, Paperclip, ShieldCheck, KeyRound } from "lucide-react";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { FormulaireNoticeBail, FormulaireReglementCopropriete } from "./formulaires-bail";
@@ -62,7 +63,11 @@ export async function DocumentsParcoursBail({ orgId, bailId, lotId, bienId, anne
   const tonNotice = docsBail.error ? undefined : notice && !noticeAActualiser ? "ok" : "attention";
   // Décision du 24/11/2026 (Q46) : la notice d'information que le bailleur a déposée pour ce bail (la plus récente).
   const noticeDeposee = noticeDeposeeRetenue(documentsBail);
-  const tonNoticeDeposee = docsBail.error ? undefined : noticeDeposee ? "ok" : "attention";
+  // Reprise du lot D3 (M4) : exigée pour les seuls biens d'habitation (bien illisible : on garde l'exigence).
+  const carteNotice = carteNoticeDeposee(!batiment.data || estBienHabitation(batiment.data.type), Boolean(noticeDeposee));
+  const tonNoticeDeposee = docsBail.error ? undefined : carteNotice.ton;
+  // Reprise du lot D3 (M7) : les versions déposées avant celle qui est retenue.
+  const anciennesNotices = anciennesNoticesDeposees(documentsBail);
   const dejaAffiches = new Set([...notices.map(d => d.id), ...diagnostics.map(d => d.document_id), ...identifiees.map(d => d.document_id), reglementId]);
   const autres = documents.filter(d => !dejaAffiches.has(d.id) && d.type !== TYPE_GED_NOTICE_DEPOSEE);
   const luReglement = reglement.data as unknown as DocumentConnu | null;
@@ -115,13 +120,17 @@ export async function DocumentsParcoursBail({ orgId, bailId, lotId, bienId, anne
         {/* Décision du 24/11/2026 (Q46) : le bailleur dépose lui-même la notice officielle. Gerimmo ne fournit pas ce texte
             (il n'a pas pu être lu) et ne dit pas quelle version est en vigueur : l'écran dit seulement où la chercher. */}
         <article id="notice-deposee" className={styles.carte} data-ton={tonNoticeDeposee}>
-          <div className={styles.carteEntete}><h4>Notice d’information officielle</h4><span className={styles.etat} data-ton={tonNoticeDeposee}>{docsBail.error ? "Indisponible" : noticeDeposee ? "Déposée" : "À déposer"}</span></div>
-          <p className={styles.obligation}>Obligatoire · Annexée au bail</p>
+          <div className={styles.carteEntete}><h4>Notice d’information officielle</h4><span className={styles.etat} data-ton={tonNoticeDeposee}>{docsBail.error ? "Indisponible" : carteNotice.etat}</span></div>
+          <p className={styles.obligation}>{carteNotice.obligation}</p>
           <p data-notice-officielle>Déposez ici le texte complet de la notice d’information, en PDF. Vous le trouverez sur le site officiel de l’administration (service-public.fr). Gerimmo ne fournit pas ce texte et ne vérifie pas le fichier déposé : assurez-vous qu’il s’agit bien de la version applicable à la date de signature.</p>
-          <p data-notice-effet>{noticeDeposee
-            ? "Elle sera jointe au dossier de signature électronique, comme annexe du contrat. Pour une signature sur papier, annexez-la vous-même au contrat."
-            : "Sans elle, l’envoi du bail en signature électronique est bloqué. Pour une signature sur papier, annexez-la vous-même au contrat."}</p>
+          <p data-notice-effet>{carteNotice.effet}</p>
           {!docsBail.error && <div className={styles.actions}>{noticeDeposee && <ApercuPieceBail fichier={fichier(noticeDeposee.id)} titre="Notice d’information déposée" mime="application/pdf"/>}<FormulaireNoticeBail orgId={orgId} bailId={bailId} dejaDeposee={Boolean(noticeDeposee)}/></div>}
+          {/* Reprise du lot D3 (M7) : « Déposer une autre version » ne fait pas disparaître les précédentes de la fiche. */}
+          {!docsBail.error && anciennesNotices.length > 0 && <details className={styles.details} data-anciennes-notices>
+            <summary>Anciennes versions ({anciennesNotices.length})</summary>
+            <p>Ces versions restent rangées dans Documents. Seule la plus récente, ci-dessus, est jointe à la signature électronique.</p>
+            <ul>{anciennesNotices.map(d => <li key={d.id}><a className={styles.lien} href={fichier(d.id)} target="_blank" rel="noreferrer">Notice déposée le {formaterDateHeure(d.created_at)}</a></li>)}</ul>
+          </details>}
         </article>
         <article className={styles.carte} data-ton={tonNotice}>
           <div className={styles.carteEntete}><h4>Résumé de la notice (document d’information)</h4><span className={styles.etat} data-ton={tonNotice}>{docsBail.error ? "Indisponible" : !notice ? "Résumé à générer" : noticeAActualiser ? "Résumé à actualiser" : "Résumé disponible"}</span></div>

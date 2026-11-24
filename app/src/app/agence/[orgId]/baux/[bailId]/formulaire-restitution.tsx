@@ -257,7 +257,9 @@ export function FormulaireRestitution({
             <li key={r.id} className="flex flex-wrap items-center gap-2 px-3 py-2 text-sm">
               {/* Lot D3 (24/11/2026) : `w-0` — un libellé long, non coupé, imposait sa largeur à toute la rubrique sur
                   téléphone (défilement horizontal à 390 px) ; il se tronque maintenant dans la place disponible. */}
-              <span className="w-0 min-w-0 flex-1 truncate" title={r.libelle}>{r.libelle}</span>
+              {/* Reprise du lot D3 : sur téléphone, le libellé prend sa propre ligne (avec `w-0` seul, il se réduisait à une
+                  lettre : on ne savait plus à quelle retenue joindre la pièce). Il reste tronqué, sans défilement de côté. */}
+              <span className="w-full truncate sm:w-0 sm:min-w-0 sm:flex-1" title={r.libelle}>{r.libelle}</span>
               <span className="text-xs text-muted-foreground">
                 {eur(r.cout)}
                 {r.duree_vie_ans
@@ -278,7 +280,14 @@ export function FormulaireRestitution({
         <p className="border-l-[3px] border-l-warning bg-warning-soft px-3 py-2 text-sm text-warning-soft-foreground" data-retenues-sans-justificatif>
           Chaque retenue demande un justificatif : un devis suffit, comme une facture, un état des lieux ou des photos.
           Tant qu&apos;une retenue n&apos;a pas le sien, ni le décompte de restitution ni le décompte des retenues ne
-          peuvent être générés.
+          peuvent être générés.{" "}
+          {/* Reprise du lot D3 (B1) : un devis pour plusieurs réparations, ou l'état des lieux de sortie déjà rangé. */}
+          <span data-meme-piece>Une même pièce peut justifier plusieurs retenues : choisissez de nouveau le même fichier,
+          il est rattaché sans copie, même s&apos;il est déjà rangé dans vos documents.</span>{" "}
+          {/* Reprise du lot D3 (M1) : le blocage du PDF n'arrête pas le délai. Aucun article ni délai chiffré ajouté ici :
+              le délai de ce dossier est affiché plus haut (« Délai légal »). */}
+          <span data-delai-court-toujours>Ce blocage n&apos;arrête pas le délai de restitution du dépôt : il continue de
+          courir depuis la remise des clés.</span>
         </p>
       )}
 
@@ -300,6 +309,15 @@ export function FormulaireRestitution({
             Solde de tout compte :{" "}
             <span className="font-semibold">{eur(restitution.solde ?? 0)}</span>.
           </p>
+          {/* Reprise du lot D3 (M1) : un décompte finalisé avant que le justificatif soit exigé (il s'imprimait avec
+              « Non fourni ») ne se génère plus tant qu'une pièce manque. On le dit là où se trouve le bouton. */}
+          {retenues.some(r => !retenueJustifiee(r)) && (
+            <p className="text-sm text-warning-soft-foreground" data-decompte-finalise-sans-piece>
+              Ce décompte est finalisé, mais une retenue n&apos;a pas de justificatif : il ne peut plus être généré de
+              nouveau tant que la pièce manque. Joignez-la ci-dessus (c&apos;est encore possible après la finalisation).
+              Les décomptes déjà générés restent rangés dans vos documents.
+            </p>
+          )}
           {/* Le décompte PDF (art. 22 loi 89) : à générer puis envoyer au locataire */}
           <BoutonGenererDocument
             orgId={orgId}
@@ -351,7 +369,9 @@ export function FormulaireRestitution({
             impayes={Number(restitution.impayes)}
             arretesLe={restitution.montants_arretes_le}
             nbRetenues={retenues.length}
-            retenuesSansPiece={retenues.filter(r => Number(r.montant_retenu) > 0 && !retenueJustifiee(r))}
+            // Reprise du lot D3 (M1) : toutes les retenues sans pièce, quel que soit leur montant — le blocage des
+            // décomptes vaut pour toutes (avant, celles de montant nul n'étaient pas listées).
+            retenuesSansPiece={retenues.filter(r => !retenueJustifiee(r))}
           />}
         </>
       )}

@@ -75,3 +75,52 @@ Sans suite pour le code : zone de bruit d'aérodrome, article 3 ter du décret d
 ## 7. État du banc
 
 Bases remises à neuf par `precheck.sh` ; la migration du lot y est appliquée par la préparation. Émulateur et serveur arrêtés ; aucun fichier de travail dans l'arbre ; arbre propre.
+
+---
+
+# Reprise du lot T3 (relecture T3R, 25/11/2026)
+
+Commit local sur `$S/palier1` (parent `4a410eda`), non poussé. Migration `20261125151000_textes_t3_reprise_exercice_ancien` (retour fourni). Options appliquées : section « REPRISE T3 » de `PETITES-REPRISES.md`.
+
+## 1. Tableau
+
+| Point | Verdict | Ce qui est fait |
+|---|---|---|
+| T3R-1 (important, ARGENT, régression) | **corrigé** | La base exige la confirmation : à la place exacte de la ligne du lot T3, `regulariser_charges` et `consommations_interne.emettre_regularisation` refusent un complément (écart < 0) d'un exercice dont le 31/12 a plus de trois ans avec « Exercice … clos depuis plus de trois ans : confirmation nécessaire… » (le mot « prescrit » n'est pas dit). `p_exercice_ancien` arrive par une **seconde signature** (un paramètre en dernier) des deux fonctions et des deux enveloppes publiques (`regulariser_charges_avec_justificatif`, `emettre_regularisation_fourniture`). L'ancienne signature vaut « faux » (refus). Droits des secondes signatures = ceux des jumelles (comparés rôle par rôle), rien pour `anon` ni PUBLIC. Les deux actions transmettent la case cochée. |
+| T3R-2 (important) | **corrigé** | Nom libre pour une personne qui n'est ni caution ni locataire d'un bail en préparation mais qui a un bail signé terminé (titulaire), un départ enregistré d'un bail signé (colocataire), un lot détenu ou un mandat non résilié. Lecture commune à l'action et à la fiche : `src/lib/pieces-regime.ts` (session du gérant, aucune clé de service). Le locataire d'un bail signé en cours reste libre comme avant. |
+| T3R-3 | **dit dans le test** | Titre et commentaire du test : le refus est tenu par l'action serveur (formulaire forgé compris), pas par la base. Pas de déclencheur : il faudrait recopier en SQL toute la lecture de la place de la personne (non simple). Pas d'élévation de droits (le gérant écrit ses propres demandes). |
+| T3R-4 | **corrigé** | L'e-mail reproduit en entier le texte du décret joint à une pièce de la liste (sept pièces dépassaient 300 caractères) ; une précision libre reste abrégée à 300. |
+| T3R-5 | **corrigé** | II-B-1 : « Extrait K bis original de moins de trois mois de la société ou les statuts » ; I-D-6 : « Attestation de simulation établie par l'organisme payeur ou simulation établie par le locataire » (débuts mot pour mot ; le texte entier reste joint). Le texte complet de I-D-6 (126 caractères) dépasse la limite de 120 de la base. Test : chaque nom est le début mot pour mot de son texte. Empreinte des 34 textes inchangée. |
+| T3R-6 | **corrigé** | (a) une pièce « unique » déjà reçue se redemande ; seule une demande en cours bloque. (b) annexe II : « … (caution) » ajouté aux deux rubriques « une pièce » (identité, domicile) : candidat et caution distincts, une demande de domicile pour chacun. Aucune demande à ces noms n'existe hors du banc (lot T3 jamais publié). |
+| T3R-7 | **corrigé** | Reçu de dépôt d'un bail meublé (plafond de deux mois) : en-tête « Loi n° 89-462 du 6 juillet 1989 », sans article ; bail nu : « Article 22 » inchangé. Montants inchangés. |
+| T3R-8 | **corrigé** | En-tête de la migration `20261125111000` complété (commentaire seul) ; test en base des baux étudiants de neuf mois : 29/05/2025, 30/05, 31/05 → 28/02/2026 (27/02 avant) ; 31/07/2025 → 30/04/2026 ; 31/12/2025 → 30/09/2026 ; 29/05/2027, 31/03, 01/09, 31/10 : inchangés. |
+
+## 2. Preuves (vérifié)
+
+- Sonde de la relecture (`T3R/tmp/sonde1.sql`, rôle `authenticated`) : avant → `2012 | -5000.00` enregistré (`$S/lotT3R2/sonde1-avant.out`) ; après → refus « confirmation nécessaire » (`sonde1-apres.out`).
+- `tests/textes-t3-reprise-base.test.ts` (12, avec base) : refus sans confirmation par les quatre voies (fonction, enveloppe, fournitures publique et interne ; la fiche du décompte est annulée avec le refus) ; accepté avec, au centime ; trop-perçu et exercice récent inchangés ; la confirmation ne fuit pas d'un appel à l'autre ; droits identiques ; gérant d'un autre espace refusé même confirmé ; quatre citations du jour de Paris gardées ; rejeu, retour (texte du lot T3 rendu à l'identique, md5 vérifié ; l'appel direct est de nouveau accepté : c'est l'état d'avant), marche avant ; définition inattendue → arrêt sans rien modifier ; T3R-8.
+- Tests unitaires lancés sur le code d'avant (src remis à `4a410eda`) : 11 échecs dans `textes-t3.test.ts` (T3R-2, 4, 5, 6, 7), 5 dans `textes-t3-regularisation`/`loyers-saisies-et-envoi` (T3R-1 côté action) ; tous passent après (`$S/lotT3R2/avant-unitaires-2.txt`).
+- Tests mis à jour parce qu'ils affirmaient l'état fautif : `textes-t3-base` (complément ancien sans confirmation accepté ; ordre des retours), `audit-gestion-2026-09-29` (idem), `textes-t2-reprises` (« la migration T3 reste la dernière » → « aucune migration suivante ne touche `enregistrer_depart_colocataire` »), `loyers-suivis-depuis-base` (la seconde signature est hors de son périmètre), `prudences-juridiques-sans-texte` (la fiche lit la place par le module commun), mocks de `pieces-demandees-actions` et `textes-t3` (lots, mandats ; filtres d'état et de départ appliqués).
+- 157 fichiers liés : 3 136 réussis ; seul échec, l'attendu `lot3-notifications-base`. `tsc` 0, eslint 0.
+
+## 3. Supposé / non vérifié
+
+- PostgREST réel (production) : la sélection d'une signature par les noms de paramètres est supposée identique à l'émulateur du banc (qui fait comme PostgREST 14). Non vérifié hors banc.
+- Production : définitions des deux fonctions supposées identiques au banc (sinon la migration s'arrête proprement).
+
+## 4. Questions pour le dirigeant
+
+1. T3R-1 : « default false » a été réalisé par une seconde signature (l'ancienne vaut « faux ») et non par un paramètre à valeur par défaut, qui aurait rendu ambigus les appels existants ; même méthode que la reprise D2. D'accord ?
+2. T3R-3 : un contrôle du nom de la pièce en base (déclencheur) est-il voulu ? Il faudrait recopier en SQL la lecture de la place de la personne.
+3. T3R-2 : un ancien propriétaire (détention close, aucun mandat) ou une ancienne caution sans autre lien retombe sur la liste des candidats (annexe I). Faut-il aussi lui rendre le nom libre ?
+4. T3R-6 : redemander une pièce d'identité déjà reçue est permis sans motif ; faut-il exiger un motif (périmée, illisible) ?
+
+## 5. Points pour JURISTE.md
+
+- À ajouter : redemander « une pièce justificative d'identité » quand celle reçue est périmée ou illisible reste-t-il « une pièce » au sens du décret ?
+- À ajouter : le reçu de dépôt d'un bail meublé ne cite plus d'article (l'article 25-6 n'est pas dans le recueil) : faut-il citer l'article exact ?
+- Inchangé : terme d'un bail commencé un 29 février (28/02) et, désormais aussi, d'un bail étudiant de neuf mois commencé un 29, 30 ou 31 (fin de mois) : confirmer le dernier jour.
+
+## 6. État du banc
+
+Commit `7180794e`. Contrôle commun aux deux lots : `precheck.sh EPX d9380013` — préparation (toutes les migrations du manifeste, dont `20261125151000`), compilation et 13 parcours réussis, dont `textes-t3.spec.ts` (`$S/banc-integ/EPX.status`). Suite vitest complète : seuls échecs, les attendus. Aucun serveur laissé.

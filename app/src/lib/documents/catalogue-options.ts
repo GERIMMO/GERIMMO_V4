@@ -37,7 +37,7 @@ export const OPTIONS_CATALOGUE: Record<string, ChampCatalogue[]> = {
   inventaire_entree:[{cle:"date_constat",libelle:"Date du constat",type:"date"}],
   inventaire_sortie:[{cle:"date_constat",libelle:"Date du constat",type:"date"},{cle:"constat",libelle:"Constat du mobilier à la sortie",type:"textarea"}],
   // Phase 3 (C22) : le sortant se choisit parmi les titulaires du contrat commun (liste de l'écran ; l'assembleur refuse toute autre personne).
-  avenant_remplacement:[{cle:"sortant",libelle:"Colocataire sortant",aide:"Choisissez l’un des titulaires du contrat commun."},{cle:"entrant",libelle:"Identité et adresse de l’entrant",type:"textarea"},effet,{cle:"depot",libelle:"Accord relatif au dépôt",type:"textarea"}],
+  avenant_remplacement:[{cle:"sortant",libelle:"Colocataire sortant",aide:"Choisissez l’un des titulaires du contrat commun."},{cle:"entrant",libelle:"Identité, adresse et état civil de l’entrant",aide:"Première ligne : Nom Prénom (repris dans le cadre de signature). Lignes suivantes : date et lieu de naissance, adresse.",type:"textarea"},effet,{cle:"depot",libelle:"Accord relatif au dépôt",type:"textarea"}],
   attestation_loyer:[{cle:"destinataire",libelle:"Destinataire"}],
   attestation_caf:[{cle:"destinataire",libelle:"Caisse destinataire"},{cle:"allocataire",libelle:"Numéro allocataire"}],
   regularisation_charges:[detailDepenses,consultation],decompte_charges:[detailDepenses,consultation],consultation_charges:[consultation],

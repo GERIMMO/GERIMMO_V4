@@ -6,6 +6,8 @@ import { presentationArchivee, typographieArchivee, type OptionsContrat } from "
 // absent reste en libellé d'épreuve et remonte dans la liste des manquants.
 // Les champs facultatifs au sens du contrat type (téléphone, IBAN) et les
 // clauses vides s'impriment « — » ou « Néant. » sans créer de manquant.
+// Phase 3, lot 50 : l'IBAN n'est facultatif que si le paiement ne se fait pas
+// par virement ; par virement, il est à renseigner (coordonneesBancaires).
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
@@ -33,6 +35,7 @@ import {
   type ContexteBail,
   type PersonneDocument,
   liensLocataires,
+  coordonneesBancaires,
 } from "./communs";
 import { periodeConstruction, mentionsEnergie, destinationServitude, clauseResolutoire, honorairesLocation, encadrementLocation, fixationLoyer, dateConclusion, dureeReduiteSansObjet, travauxDepuisDernierContrat } from "./mentions-location";
 import { designationIndividuelle } from "./designation-individuelle";
@@ -152,8 +155,10 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
     Type d'habitat : ${f.champ(
       ctx.bien.type === "appartement" || ctx.bien.type === "immeuble" ? "immeuble collectif" : "individuel",
       "immeuble collectif ou individuel"
-    )} — Régime juridique de l'immeuble : ${f.champ(copro ? "copropriété" : "monopropriété", "monopropriété ou copropriété")} —
-    Période de construction : ${f.champ(periodeConstruction(ctx.bien.annee_construction), "avant 1949, 1949-1974, 1975-1989, 1990-2005, depuis 2006")}<br/>
+    )} — Régime juridique de l'immeuble : ${f.champ(copro ? "copropriété" : "monopropriété", "monopropriété ou copropriété")}${
+      // Phase 3, lot 50 (W05) : « Période de construction » sur sa propre ligne. En fin d'une ligne trop longue, le libellé
+      // restait en bas de page et sa valeur passait seule à la page suivante. Typographie archivée : rendu d'avant.
+      t.archivee ? " —\n    " : "<br/>\n    "}Période de construction : ${f.champ(periodeConstruction(ctx.bien.annee_construction), "avant 1949, 1949-1974, 1975-1989, 1990-2005, depuis 2006")}<br/>
     Surface habitable ${individuel ? "du logement entier" : ""} : ${f.champ(
       ctx.lot.surface_m2 !== null ? `${t.nombre(ctx.lot.surface_m2)} m²` : null,
       "en m²"
@@ -224,7 +229,10 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
     )}
     le ${f.champ(t.jour(ctx.bail.jour_echeance), "jour du mois")} de chaque mois.<br/>
     Lieu de paiement : ${f.champ(ctx.bail.lieu_paiement, "domicile du bailleur, virement…")} — Coordonnées bancaires :
-    ${facultatif(ctx.organisation.iban)}.<br/>
+    ${/* Phase 3, lot 50 (W01, W02, W06) : le contrat qui fixe un paiement par virement donne le compte où verser, comme l'avis
+      d'échéance (C50, C72) ; inconnu, l'IBAN du profil de l'espace est à renseigner. Un bail déjà préparé pour la signature
+      garde son rendu (typographie archivée : « — »). */
+      t.archivee ? facultatif(ctx.organisation.iban) : coordonneesBancaires(f, ctx.bail.lieu_paiement, ctx.organisation.iban)}.<br/>
     Montant total dû à la première échéance : ${premiereEcheance(f, ctx.bail)}.</p>
 
     ${section("V — Travaux")}

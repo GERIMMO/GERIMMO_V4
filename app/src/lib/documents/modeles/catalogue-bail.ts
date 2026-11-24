@@ -298,13 +298,16 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
       const restants = ctx.locataires.filter(p => p.id !== sortant?.id && !partis.has(p.id));
       const nomSortant = f.champ(nomPersonne(sortant), "identité du colocataire sortant");
       const entrant = opt("entrant","identité, adresse et état civil de l’entrant");
+      // Phase 3, lot 50 (W08) : le cadre de signature de l'entrant porte son identité (première ligne saisie), comme celui du
+      // sortant porte son nom ; la saisie complète (état civil, adresse) reste dans la phrase des parties.
+      const identiteEntrant = options.entrant?.trim() ? f.champ(options.entrant.trim().split(/\r?\n/)[0], "identité, adresse et état civil de l’entrant") : entrant;
       // C21 : un cadre par partie — le bailleur, le sortant, l'entrant (qui devient partie au contrat) et les colocataires
       // qui restent ; C23 : la date est portée à la signature ; C25 : le contrat modifié, avec sa date de prise d'effet.
       avenant = {
         // Reprise du lot 40 (C18) : référence tirée du contenu du remplacement, la même à chaque génération de cet avenant.
         reference: referenceAvenant(bailId, { sortant: sortant?.id, entrant: options.entrant, date_effet: options.date_effet, depot: options.depot }),
         contrat: `Réf. ${referenceCourte("BAIL",bailId)} — prise d’effet le ${f.date(ctx.bail.date_debut, "date de prise d’effet du contrat")}`,
-        signatures: `<div class="signatures">${cadreSignature(libelleSignataireBailleur(ctx.organisation.type),nomsBailleurs(f,ctx.bailleurs))}${cadreSignature("Le colocataire sortant",nomSortant)}${cadreSignature("Le colocataire entrant",entrant.replace(/\r?\n/g,"<br/>"))}${restants.length ? cadreSignature(restants.length > 1 ? "Les colocataires restants" : "Le colocataire restant",restants.map(p=>echapper(nomPersonne(p) ?? "")).join("<br/>")) : ""}</div>`,
+        signatures: `<div class="signatures">${cadreSignature(libelleSignataireBailleur(ctx.organisation.type),nomsBailleurs(f,ctx.bailleurs))}${cadreSignature("Le colocataire sortant",nomSortant)}${cadreSignature("Le colocataire entrant",identiteEntrant)}${restants.length ? cadreSignature(restants.length > 1 ? "Les colocataires restants" : "Le colocataire restant",restants.map(p=>echapper(nomPersonne(p) ?? "")).join("<br/>")) : ""}</div>`,
       };
       contenu = `${section("Parties et remplacement convenu")}
         <p>Colocataire sortant : ${nomSortant} ; colocataire entrant : ${entrant}${pointFinal(options.entrant)}</p>

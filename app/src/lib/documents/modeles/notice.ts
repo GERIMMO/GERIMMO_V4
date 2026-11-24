@@ -15,6 +15,9 @@
 // que le bail déclare annexée. Titre, pied et titre de classement disent
 // « résumé » ; le cartouche donne la date de prise d'effet du contrat comme
 // telle (ce n'est pas la date du contrat). Les rubriques sont inchangées.
+//
+// Phase 3, lot 50 (W04) : l'introduction annonçait aussi les voies « d'indemnisation », qu'aucune rubrique ne traite ;
+// elle n'annonce plus que les voies de recours (rubrique 11).
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Fusion, assemblerPage, cartouches, echapper, enTete, section, titre } from "../gabarit";
@@ -108,7 +111,7 @@ export async function assemblerNotice(
     ])}
     <p class="mentions"><b>${echapper(AVERTISSEMENT_RESUME_NOTICE)}</b></p>
     <p>Ce résumé rappelle les droits et obligations respectifs des parties ainsi que les voies de
-    recours et d'indemnisation ouvertes en cas de litige.</p>
+    recours ouvertes en cas de litige.</p>
     ${RUBRIQUES.map(([t, texte]) => `${section(t)}<p>${echapper(texte)}</p>`).join("")}
     ${section("Pour toute question")}
     <p>La commission départementale de conciliation et l'ADIL de votre département (coordonnées sur

@@ -36,6 +36,7 @@ import {
   type ContexteBail,
   type PersonneDocument,
   liensLocataires,
+  coordonneesBancaires,
 } from "./communs";
 import { periodeConstruction, mentionsEnergie, destinationServitude, clauseResolutoire, honorairesLocation, encadrementLocation, fixationLoyer, dateConclusion, dureeReduiteSansObjet, travauxDepuisDernierContrat } from "./mentions-location";
 import { designationIndividuelle } from "./designation-individuelle";
@@ -192,8 +193,10 @@ export function construireBailMeuble(
     Type d'habitat : ${f.champ(
       ctx.bien.type === "appartement" || ctx.bien.type === "immeuble" ? "immeuble collectif" : "individuel",
       "immeuble collectif ou individuel"
-    )} — Régime juridique de l'immeuble : ${f.champ(copro ? "copropriété" : "monopropriété", "monopropriété ou copropriété")} —
-    Période de construction : ${f.champ(periodeConstruction(ctx.bien.annee_construction), "avant 1949, 1949-1974, 1975-1989, 1990-2005, depuis 2006")}<br/>
+    )} — Régime juridique de l'immeuble : ${f.champ(copro ? "copropriété" : "monopropriété", "monopropriété ou copropriété")}${
+      // Phase 3, lot 50 (W05) : « Période de construction » sur sa propre ligne. En fin d'une ligne trop longue, le libellé
+      // restait en bas de page et sa valeur passait seule à la page suivante. Typographie archivée : rendu d'avant.
+      t.archivee ? " —\n    " : "<br/>\n    "}Période de construction : ${f.champ(periodeConstruction(ctx.bien.annee_construction), "avant 1949, 1949-1974, 1975-1989, 1990-2005, depuis 2006")}<br/>
     Surface habitable ${individuel ? "du logement entier" : ""} : ${f.champ(
       ctx.lot.surface_m2 !== null ? `${t.nombre(ctx.lot.surface_m2)} m²` : null,
       "en m²"
@@ -260,7 +263,10 @@ export function construireBailMeuble(
     <p>Périodicité : ${f.champ("mensuelle", "mensuelle, trimestrielle…")} — paiement ${f.champ(echeanceLibelle, "à échoir ou échu")}
     le ${f.champ(t.jour(ctx.bail.jour_echeance), "jour du mois")} de chaque mois.<br/>
     Lieu de paiement : ${f.champ(ctx.bail.lieu_paiement, "domicile du bailleur, virement…")} — Coordonnées bancaires :
-    ${facultatif(ctx.organisation.iban)}.<br/>
+    ${/* Phase 3, lot 50 (W01, W02, W06) : le contrat qui fixe un paiement par virement donne le compte où verser, comme l'avis
+      d'échéance (C50, C72) ; inconnu, l'IBAN du profil de l'espace est à renseigner. Un bail déjà préparé pour la signature
+      garde son rendu (typographie archivée : « — »). */
+      t.archivee ? facultatif(ctx.organisation.iban) : coordonneesBancaires(f, ctx.bail.lieu_paiement, ctx.organisation.iban)}.<br/>
     Montant total dû à la première échéance : ${montantPremiereEcheance(f, ctx.bail)}.</p>
 
     ${section("V — Travaux")}
@@ -392,7 +398,8 @@ export async function assemblerBailMeuble(
 
   return {
     document,
-    titreGed: `Bail meublé — ${nomPersonne(ctx.locataires[0]) ?? ctx.lot.nom}`,
+    // Phase 3, lot 50 (W03) : le projet se dit « à faire signer », comme le bail nu, la colocation et le contrat individuel.
+    titreGed: `Bail meublé (généré, à faire signer) — ${nomPersonne(ctx.locataires[0]) ?? ctx.lot.nom}`,
     nomFichier: `bail-meuble-${referenceCourte("BAIL", ctx.bail.id).toLowerCase()}`,
     // Phase 3, lot 46 (reprise, T19) : le lot, comme le bail nu, la colocation et le contrat individuel. Sans lui, « domicile ou
     // siège social » et « ou dénomination » (lot sans détenteur) menaient à la fiche du bail au lieu de la détention du lot, et

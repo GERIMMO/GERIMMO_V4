@@ -1,17 +1,21 @@
-import { Fusion, section, TYPOGRAPHIE, type Typographie } from "../gabarit";
+import { Fusion, section, sousSection, TYPOGRAPHIE, type Typographie } from "../gabarit";
 import type { ContexteBail } from "./communs";
 
 export function designationIndividuelle(ctx: ContexteBail, f: Fusion, t: Typographie = TYPOGRAPHIE): string {
   const c = ctx.chambre;
   if (!c) return "";
-  return `${section("Partie privative et espaces partagés")}
+  // Phase 3, lot 50 (W07) : ces deux intertitres sont des rubriques de « II — Objet du contrat » (niveau des rubriques A, B,
+  // C), pas des sections : au niveau des titres numérotés, A, B et C paraissaient rangées sous « Indépendance du contrat ».
+  // Un bail déjà préparé pour la signature garde son rendu (typographie archivée).
+  const intertitre = t.archivee ? section : sousSection;
+  return `${intertitre("Partie privative et espaces partagés")}
     <p>Chambre réservée au seul locataire : ${f.champ(c.nom, "désignation de la chambre")}.
     Surface habitable privative : ${f.champ(c.surface_m2 == null ? null : t.nombre(c.surface_m2), "surface privative")} m² ; volume habitable privatif : ${f.champ(c.volume_m3 == null ? null : t.nombre(c.volume_m3), "volume privatif")} m³.</p>
     <p>Description et accès : ${f.champ(c.description, "description de la chambre")}${t.point(c.description)}</p>
     <p>Équipements privatifs : ${f.champ(c.equipements, "équipements privatifs, ou néant")}${t.point(c.equipements)}</p>
     <p>Pièces et équipements du logement partagés avec les autres occupants : ${f.champ(c.espaces_partages, "espaces partagés")}${t.point(c.espaces_partages)}</p>
     <p>Les autres chambres ne font pas partie des locaux loués au titre de ce contrat. Les droits d’usage communs n’autorisent pas l’accès aux parties privatives d’un autre occupant.</p>
-    ${section("Indépendance du contrat")}
+    ${intertitre("Indépendance du contrat")}
     <p>Le loyer, les charges et le dépôt ci-dessous sont ceux de ce seul contrat. Il n’existe aucune solidarité entre les titulaires des différents contrats individuels du logement.
     Chaque locataire répond des sommes et obligations prévues par son propre contrat. Les éventuelles cautions garantissent uniquement le locataire désigné dans leur acte.</p>
     <p>Le congé et l’état des lieux de sortie de ce locataire concernent sa partie privative et les espaces partagés mis à sa disposition ; ils ne mettent pas fin aux contrats des autres occupants.

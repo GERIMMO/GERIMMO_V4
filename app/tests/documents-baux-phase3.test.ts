@@ -338,7 +338,9 @@ describe("C21 à C25 — avenant de remplacement en colocation", () => {
     const r = succes(await assemblerComplementBail("avenant_remplacement", base(), "org", "b1", options));
     expect(cadres(r.document.html)).toEqual(["Le bailleur", "Le colocataire sortant", "Le colocataire entrant", "Les colocataires restants"]);
     expect(r.document.html).toContain('<div class="bandeau">Le colocataire sortant</div><div class="zone"><span class="v">Leblanc Julie</span></div>');
-    expect(r.document.html).toContain('<div class="bandeau">Le colocataire entrant</div><div class="zone"><span class="v">Martin Paul<br/>1 rue Neuve, 69003 Lyon</span></div>');
+    // Phase 3, lot 50 (W08) : le cadre de l'entrant porte son identité (première ligne saisie), comme celui du sortant porte
+    // son nom ; il recopiait tout le bloc, adresse comprise. L'adresse reste dans la phrase des parties.
+    expect(r.document.html).toContain('<div class="bandeau">Le colocataire entrant</div><div class="zone"><span class="v">Martin Paul</span></div>');
     expect(r.document.html).toContain('<div class="bandeau">Les colocataires restants</div><div class="zone">Fictif Bruno<br/>Fictif Chloé</div>');
   });
   it("C21 : un colocataire dont le départ est enregistré ne signe pas comme restant ; un seul restant au singulier", async () => {

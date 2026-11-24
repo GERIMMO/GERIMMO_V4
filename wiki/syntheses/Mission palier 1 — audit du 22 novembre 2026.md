@@ -228,12 +228,11 @@ dirigeant dans `QUESTIONS.md` (Q40 à Q53) ; dans les deux cas, l'option la plus
   touchés ; une vérification en lecture seule est prévue au plan de publication (Q40).
 
 > [!warning] Points à trancher / contradictions (phase 3, 24/11/2026)
-> - **Relance datée d'avant le plan d'apurement** : `QUESTIONS.md`, Q44 (2), écrit qu'« aucune relance ne s'enregistre
->   pendant un plan, même datée d'avant son activation », et `JOURNAL.md`, lot 39, qu'aucune relance n'est « proposée
->   ni enregistrée pendant un plan d'apurement ». Le code de la préproduction (reprise du lot 44, enregistrement d'une
->   relance) ne refuse qu'une relance datée du jour de l'activation ou après ; une relance envoyée avant (une mise en
->   demeure et sa date de première présentation) peut encore être consignée. Ces deux textes et le code divergent ; à
->   aligner dans un sens ou dans l'autre, décision du dirigeant (Q44). Voir [[Relances et mise en demeure]].
+> - **Relance datée d'avant le plan d'apurement** : le code de la préproduction (reprise du lot 44) ne refuse qu'une
+>   relance datée du jour de l'activation ou après ; une relance envoyée avant (une mise en demeure et sa date de
+>   première présentation) peut encore être consignée. `QUESTIONS.md` (Q44, point 2) et `JOURNAL.md` (lot 39) disaient
+>   d'abord le contraire : relevé par la relecture du wiki, ils ont été rectifiés le 24/11. Reste au dirigeant à dire
+>   s'il veut, au contraire, tout refuser pendant un plan (Q44). Voir [[Relances et mise en demeure]].
 > - **Limites connues laissées ouvertes** : le décompte des retenues reste bloqué sans justificatif, alors que le
 >   décompte de restitution imprime « Non fourni » (Q49) ; un même devis a deux références (Q51) ; un seul IBAN par
 >   espace, pas par bailleur (Q45) ; des saisies rares d'un duplex répètent encore un niveau (Q41).

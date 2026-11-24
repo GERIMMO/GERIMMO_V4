@@ -74,7 +74,8 @@ Relu dans le code après les lots 39 et 44 de la phase 3 ([[Mission palier 1 —
 > [!warning] Points à trancher / contradictions (24/11/2026)
 > - La définition ci-dessus dit que le plan suspend les relances « tant qu'il est respecté » (RM-3.6.6) : l'application
 >   les suspend aussi quand il est en défaut, jusqu'à sa caducité ou son annulation (Q44, point 1).
-> - Une relance envoyée avant l'activation peut encore être consignée (code, reprise du lot 44), alors que Q44 (2) et
->   `JOURNAL.md`, lot 39, disent le contraire : à aligner dans un sens ou dans l'autre, décision du dirigeant (Q44).
+> - Une relance envoyée avant l'activation peut encore être consignée (reprise du lot 44). Q44 (2) et `JOURNAL.md`,
+>   lot 39, disaient le contraire ; ils ont été rectifiés le 24/11 pour décrire le code. Reste à décider si l'on veut, au
+>   contraire, refuser tout enregistrement pendant un plan (Q44).
 > - La clause de caducité imprimée est-elle suffisante et opposable pour un accord amiable ? Faut-il mentionner les
 >   délais de paiement que le juge peut accorder ? (juriste, point 7).

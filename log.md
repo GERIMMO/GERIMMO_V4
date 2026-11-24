@@ -8063,3 +8063,8 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
   signale l'écart (pages [[Relances et mise en demeure]], [[Plan d'apurement]],
   [[Mission palier 1 — audit du 22 novembre 2026]]) ; ni `QUESTIONS.md` ni `JOURNAL.md` ne sont modifiés par l'agent du
   wiki.
+- **Suite donnée par l'agent principal** : la contradiction relevée est une erreur de ma rédaction de `QUESTIONS.md`
+  (Q44, point 2) et de `JOURNAL.md` (lot 39), pas du code. Les deux textes sont rectifiés le 24/11 pour décrire ce que
+  fait l'application ; les encadrés des pages [[Relances et mise en demeure]], [[Plan d'apurement]] et
+  [[Mission palier 1 — audit du 22 novembre 2026]] le disent, et la seule question qui reste au dirigeant est de savoir
+  s'il veut, au contraire, tout refuser pendant un plan.

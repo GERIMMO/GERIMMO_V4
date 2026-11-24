@@ -147,8 +147,8 @@ Les 46 modèles du palier 1 ont été produits sur six espaces fictifs et relus 
 été corrigés (lots 35 à 49 : [[Mission palier 1 — audit du 22 novembre 2026]], phase 3). Ce qui vaut pour tout le
 catalogue :
 - **Chaque modèle ne propose que les dossiers qu'il accepte** ; un dossier ouvert par un lien direct est refusé avec la
-  raison et ce qu'il faut faire. Dans un très grand parc, une page de la liste peut montrer moins de 50 dossiers ; «
-  Dossiers suivants » complète (Q48).
+  raison et ce qu'il faut faire. Dans un très grand parc, une page de la liste peut montrer moins de 50 dossiers ;
+  « Dossiers suivants » complète (Q48).
 - **« À renseigner » mène à l'écran où l'information manque**, en agence comme chez un propriétaire.
 - **Émetteur** : hors agence, les documents d'un bail partent des bailleurs (détenteurs du lot) ; « gestionnaire »
   seulement en agence (Q42). Voir [[Quittance conforme]].

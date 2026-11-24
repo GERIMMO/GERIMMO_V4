@@ -164,7 +164,7 @@ et 7). Rien n'est publié en production ; aucun courrier n'est présenté comme 
   il n'est pas produit et « À renseigner » mène au plan du bail ; sur un plan caduc, soldé ou annulé, il est refusé. Il
   imprime « Les relances de loyer sont suspendues dès l'activation du plan, après l'accord du locataire, et jusqu'à sa
   fin : dette soldée, plan devenu caduc ou annulé. » et « Le bailleur ne renonce à aucun droit, ni à la clause
-  résolutoire du bail. » Il est daté à la signature. La clause de caducité est posée au juriste (juriste, point 7).
+  résolutoire du bail. » Il est daté à la signature. La clause de caducité est posée au juriste (partie 5, point 7).
 - **L'avis d'échéance d'un terme déjà échu se présente comme un rappel** : « Avis établi après la date d'échéance : il
   rappelle un terme restant à régler. » Il dit au passé que le terme est arrivé à échéance, donne ce qui est déjà reçu
   et ce qui reste à régler, et annonce le **total réellement dû à sa date** (« pour solder votre compte à la date du
@@ -184,12 +184,10 @@ et 7). Rien n'est publié en production ; aucun courrier n'est présenté comme 
   de sortie est finalisé, ces courriers ne sont plus préparés : le solde figure dans le décompte.
 
 > [!warning] Points à trancher / contradictions (24/11/2026)
-> - **Relance datée d'avant le plan** : `QUESTIONS.md`, Q44 (2), dit qu'aucune relance ne s'enregistre pendant un plan,
->   « même datée d'avant son activation », et `JOURNAL.md`, lot 39, qu'aucune relance n'est « proposée ni enregistrée
->   pendant un plan d'apurement » ; le code (reprise du lot 44) accepte l'enregistrement d'une relance (rubrique
->   « Relances » du bail) datée d'avant l'activation. Aucun écran ne propose de relance, mais l'enregistrement d'une
->   relance antérieure reste ouvert. Ce wiki décrit le code ; la
->   décision revient au dirigeant (Q44).
+> - **Relance datée d'avant le plan** : le code (reprise du lot 44) accepte l'enregistrement d'une relance (rubrique
+>   « Relances » du bail) datée d'avant l'activation, et refuse celles datées de l'activation ou après ; aucun écran ne
+>   propose de relance. `QUESTIONS.md` (Q44, point 2) et `JOURNAL.md` (lot 39) disaient d'abord le contraire ; ils ont
+>   été rectifiés le 24/11. Reste au dirigeant à dire s'il veut, au contraire, tout refuser pendant un plan (Q44).
 > - **Cible V3 ≠ application** : le référentiel (RM-3.6.6, section « Cible V3 » ci-dessus) prévoit la reprise des
 >   relances « au premier manquement » ; l'application les suspend aussi quand le plan est **en défaut**, jusqu'à sa
 >   caducité ou son annulation (Q44, point 1).

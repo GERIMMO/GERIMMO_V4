@@ -18,6 +18,19 @@ restent ouvertes. La façon de lire Légifrance est une question posée au dirig
 fin de fichier, ajoute les points de droit des lots 50 à 54 et des décisions du 24/11. La partie 7 ajoute ceux des lots
 D1 et D2 et du vendeur. La partie 8 ajoute ceux du lot D3.
 
+**Note du 25 novembre 2026 — recueil de textes officiels fourni par le dirigeant ; toujours aucune question
+retirée.** Le 24/11, le dirigeant a fourni un recueil de 37 références (`raw/Gerimmo-textes-officiels-recueil-v6.pdf`,
+édition V6 du 24 novembre 2026 ; page du wiki « Recueil des textes officiels (v6) »). Chaque extrait y porte une
+adresse Légifrance et une date de version, mais **il n'a pas été recontrôlé sur Légifrance**, et certains passages
+viennent d'un site miroir (notice du bail, ordonnance n° 2026-2). Les lots T1 à T4, le lot du vendeur D7 et ses deux
+reprises, et le lot D4 l'ont confronté au code. Ces lots sont faits localement : ils ne sont **pas encore vérifiés en
+entier ni publiés**. Quand leurs notes disent qu'un point de ce fichier est tranché par le texte fourni, le point
+**reste à sa place** et porte une mention en italique : « Texte fourni par le dirigeant (recueil v6, non recontrôlé sur
+Légifrance) : … ; Gerimmo corrigé dans le lot … (non encore publié) », suivie de ce qui reste ouvert. Ces mentions ne
+valent pas avis : un juriste doit encore confirmer, et le texte doit être relu une fois sur Légifrance. Rien n'est noté
+« conforme ». La **partie 9** ajoute les points que le texte fourni ne tranche pas, ou que les corrections ont fait
+naître.
+
 Tant qu'une question reste ouverte, Gerimmo garde le comportement le plus prudent : il avertit au lieu d'affirmer,
 et ne présente pas un document comme valable s'il manque une mention.
 
@@ -28,29 +41,45 @@ et ne présente pas un document comme valable s'il manque une mention.
 Une question fermée par point incertain ; le numéro renvoie à la ligne du tableau.
 
 1. (1) Les PDF nu et meublé de Gerimmo reprennent-ils toutes les rubriques des annexes 1 et 2 du décret n° 2015-587 en vigueur depuis le 1er octobre 2026 ?
+   - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : décret n° 2015-587, annexes 1 et 2 dans leur version en vigueur depuis le 01/10/2026 (réf. 08 et 09) ; Gerimmo corrigé dans le lot T2 (non encore publié) : clause résolutoire et trois alinéas de l'article 5 I mot pour mot, montant de la première échéance, activité et garant du mandataire. Reste : rubriques « le cas échéant » absentes, adresse électronique exigée alors qu'elle est facultative, détail des prestations d'honoraires (QUESTIONS.md, Q108 et Q110).*
 2. (2) Une clause résolutoire au sens identique mais rédigée autrement que le contrat type est-elle acceptable, oui ou non ?
+   - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : le contrat type donne la rédaction de la clause résolutoire et demande un contrat établi « dans le respect du présent contrat type » (réf. 08) ; il ne dit pas si une autre rédaction est tolérée ; Gerimmo corrigé dans le lot T2 (non encore publié) : les deux phrases du contrat type imprimées mot pour mot. Reste : la tolérance d'une autre rédaction, sans effet tant que Gerimmo imprime celle du texte.*
 3. (2) Les clauses « défaut d'assurance » et « troubles de voisinage » peuvent-elles être imprimées par défaut sans choix exprès des parties ?
 4. (3) Un résumé de la notice suffit-il, ou le texte intégral de l'annexe de l'arrêté est-il exigé ?
+   - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : article 3 de la loi de 1989 (réf. 05, version de 2022 dans le recueil) : une notice d'information « est annexée au contrat de location » et un arrêté « détermine le contenu de cette notice » ; annexe de l'arrêté du 29 mai 2015 dans sa rédaction issue de l'arrêté du 9 octobre 2026 (réf. 06 et 07) : un résumé ne la remplace pas ; Gerimmo corrigé dans le lot T2 (non encore publié) : l'écran et le résumé disent quelle version déposer (contrats conclus ou renouvelés depuis le 18/10/2026). Reste : Gerimmo ne joint pas lui-même la notice entière, le texte du recueil venant d'un site miroir (QUESTIONS.md, Q77).*
 5. (3) Un bail signé entre le 18 octobre 2026 et aujourd'hui avec l'ancienne notice ou le résumé doit-il être régularisé auprès du locataire ?
 6. (6) Le bail à durée réduite de l'article 11 est-il ouvert à une SCI familiale et à une indivision, et est-il exclu en meublé ?
+   - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : article 13 (réf. 17) : les articles 11 et 15 peuvent être invoqués par une société civile « constituée exclusivement entre parents et alliés jusqu'au quatrième degré inclus » et « par tout membre de l'indivision » ; l'article 11 n'est pas dans la liste des articles applicables aux logements meublés (article 25-3, réf. 20) ; Gerimmo corrigé dans le lot T2 (non encore publié) : rubrique « durée réduite » retirée du bail meublé ; bail nu à durée réduite refusé en attendant un vrai parcours (QUESTIONS.md, Q107).*
 7. (13) Le gel du loyer s'applique-t-il à un bail de six ans conclu avant le 24 août 2022 et pas encore reconduit ?
 8. (13) En l'absence de DPE valide, le bailleur peut-il réviser le loyer ?
 9. (14) Pour un bail conclu avant le 1er janvier 2025 sur un logement classé G, la non-décence joue-t-elle dès la première reconduction tacite postérieure à cette date ?
 10. (14) Gerimmo peut-il laisser activer, avec une simple alerte, un bail signé après le 1er janvier 2025 sur un logement classé G ?
 11. (15) Le plomb, l'électricité et le gaz doivent-ils être exigés avant la signature au même titre que le DPE et l'état des risques ?
 12. (16) En zone tendue, le locataire qui n'invoque pas la zone tendue dans sa lettre doit-il trois mois de préavis ?
+    - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : article 15 I (réf. 02) : le locataire « précise le motif invoqué et le justifie au moment de l'envoi de la lettre de congé. A défaut, le délai de préavis applicable à ce congé est de trois mois. » ; Gerimmo corrigé dans le lot T1 (non encore publié) : plus de préavis d'un mois d'office en zone tendue ; un mois seulement si la personne qui enregistre le congé confirme que la lettre précise et justifie le motif. Reste : le contenu de la justification (partie 9, point 5).*
 13. (17) Pour le préavis réduit, la zone tendue s'apprécie-t-elle à la signature du bail, à sa dernière reconduction ou à la date du congé ?
 14. (19) Pour un bail dont le dernier jour est le 20 septembre, un congé du bailleur reçu le 21 juin (meublé) ou le 21 mars (nu) est-il tardif ?
+    - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : notice de l'arrêté du 13 décembre 2017 (réf. 13), exemples de dates limites pour un logement nu (terme le 15 juin → au plus tard le 15 décembre ; le 31 août → le 28 février, 29 en année bissextile) ; Gerimmo corrigé dans le lot T1 (non encore publié) : le congé est dans les délais si la réception plus le préavis tombe au plus tard le dernier jour du bail ; dans le cas posé, le congé reçu le 21 mars (nu) ou le 21 juin (meublé) est refusé. Reste : le meublé (la notice ne le vise pas), les fins de mois courtes, et le sens de « terme » (partie 9, points 1, 2 et 24).*
 15. (20) Une lettre recommandée présentée mais non retirée fait-elle courir le délai du congé du bailleur ?
+    - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : article 15 I (réf. 02) : le délai « court à compter du jour de la réception de la lettre recommandée, de la signification de l'acte du commissaire de justice ou de la remise en main propre » ; Gerimmo corrigé dans le lot T1 (non encore publié) : « réception par le locataire » partout où le congé du bailleur disait « première présentation » ; l'écran dit qu'une lettre présentée mais non retirée ne fait pas courir le délai.*
 16. (21) Quels alinéas exacts de l'article 15 II doivent être reproduits dans le congé pour vente, dans la version en vigueur ?
+    - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : article 15 II (réf. 02, version en vigueur depuis le 29 juillet 2023) : « Les termes des cinq alinéas précédents sont reproduits à peine de nullité dans chaque notification. » ; Gerimmo corrigé dans le lot T1 (non encore publié) : les cinq premiers alinéas du II imprimés mot pour mot dans le congé pour vendre d'un logement nu, tirés du recueil par programme et gardés par une empreinte (texte altéré : pas de lettre). Reste : relire une fois ces cinq alinéas sur Légifrance.*
 17. (22) L'absence de l'adresse du bénéficiaire rend-elle nul le congé pour reprise ?
+    - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : article 15 I (réf. 02) : « A peine de nullité, le congé donné par le bailleur doit indiquer le motif allégué et, en cas de reprise, les nom et adresse du bénéficiaire de la reprise » ; même exigence en meublé (article 25-8, réf. 20) ; Gerimmo : la lettre de reprise ne se produit plus sans ces mentions depuis le lot 33 ; relu au lot T1, rien de plus à corriger (non encore publié).*
 18. (23) L'absence de la notice de l'arrêté du 13 décembre 2017 rend-elle le congé nul ou seulement contestable ?
+    - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : article 15 I (réf. 02) : la notice « est jointe au congé délivré par le bailleur en raison de sa décision de reprendre ou de vendre le logement » ; le texte ne dit pas la sanction ; Gerimmo corrigé dans le lot T1 (non encore publié) : la lettre annonce la notice en pièce jointe ; Gerimmo ne l'imprime pas (texte du recueil douteux) et l'écran dit de la joindre soi-même (QUESTIONS.md, Q102). Reste : la sanction, nullité ou simple contestation.*
 19. (24) Une SCI non familiale peut-elle donner congé pour reprise ?
+    - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : article 13 (réf. 17) : la reprise de l'article 15 peut être invoquée « lorsque le bailleur est une société civile constituée exclusivement entre parents et alliés jusqu'au quatrième degré inclus, par la société au profit de l'un des associés » ; Gerimmo corrigé dans le lot T1 (non encore publié) : reprise refusée en location nue quand un bailleur est « SCI » non familiale ou « Personne morale » (QUESTIONS.md, Q106). Reste : le meublé (partie 9, point 3).*
 20. (25) La clause de solidarité avec extinction à six mois peut-elle figurer dans un bail consenti à deux époux ou partenaires de PACS ?
+    - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : article 8-1 I (réf. 17) : la colocation exclut « la location consentie exclusivement à des époux ou à des partenaires liés par un pacte civil de solidarité au moment de la conclusion initiale du contrat » ; entre époux, la solidarité vient de l'article 220 du code civil (réf. 24) ; Gerimmo corrigé dans le lot T2 (non encore publié) : clause conditionnelle imprimée pour un bail à deux locataires. Le calcul de la base (fin de solidarité six mois après le départ) attend la case « mariés ou pacsés », lot en cours. Reste : partie 9, point 11.*
 21. (25) Quand le remplaçant entre au bail après la date d'effet du congé, la solidarité cesse-t-elle à son entrée ?
+    - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : article 8-1 VI (réf. 17) : la solidarité prend fin « à la date d'effet du congé régulièrement délivré et lorsqu'un nouveau colocataire figure au bail. A défaut, elles s'éteignent au plus tard à l'expiration d'un délai de six mois après la date d'effet du congé » ; Gerimmo corrigé dans le lot T2 (non encore publié) : le bail et l'acte de cautionnement le disent dans ces mots. Reste : la base ne raccourcit pas les six mois quand le remplaçant arrive après le départ enregistré.*
 22. (28) La mention de caution imprimée par Gerimmo satisfait-elle l'article 2297 du code civil, pour une caution solidaire comme pour une caution simple ?
+    - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : article 2297 du code civil (réf. 04) ; contenu de la mention comparé au lot T2 : chaque élément du texte y figure ; « pénalités de retard » retiré de l'acte et de la mention (non encore publié). Reste : la mention saisie au clavier en signature électronique vaut-elle « appose elle-même » (article 1174 du code civil, absent du recueil) ?*
 23. (28) Le texte reproduit dans l'acte est-il mot pour mot l'avant-dernier alinéa de l'article 22-1 en vigueur ?
+    - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : article 22-1, avant-dernier alinéa (réf. 03, version du 1er janvier 2022) ; comparé mot à mot au texte de l'acte au lot T2 et à sa relecture : identique ; rien à corriger (non encore publié). Reste : relire une fois sur Légifrance la version en vigueur.*
 24. (29) Une SCI non familiale peut-elle demander la caution d'une personne physique pour un locataire non étudiant ?
+    - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : article 22-1 (réf. 03) : si le bailleur est une personne morale autre qu'une SCI familiale, le cautionnement ne peut être demandé que « s'il est apporté par un des organismes dont la liste est fixée par décret en Conseil d'Etat » ou « si le logement est loué à un étudiant ne bénéficiant pas d'une bourse de l'enseignement supérieur » ; Gerimmo corrigé dans le lot T2 (non encore publié) : l'acte est refusé dans ce cas, sauf déclaration « étudiant non boursier ». Reste : partie 9, points 13 et 14 ; la liste des organismes (décret) n'est pas dans le recueil.*
 25. (10) La provision de 20 % en copropriété peut-elle être retenue par un bailleur particulier sans clause au bail ?
 
 ### Avenant au bail qui modifie le loyer ou les charges (lot 13, P1-14)
@@ -72,6 +101,10 @@ pas des règles de droit vérifiées. Ce parcours n'est pas présenté comme con
     appelé ou déjà quittancé ?
 30. **Dépôt de garantie.** Gerimmo ne modifie pas le dépôt après un avenant. Est-ce correct quand le loyer baisse et
     que le dépôt dépasse alors le plafond calculé sur le nouveau loyer ? Et quand il augmente ?
+    - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : article 22 (réf. 11) : le dépôt « ne
+      doit faire l'objet d'aucune révision durant l'exécution du contrat de location, éventuellement renouvelé » ; selon
+      l'analyse du recueil (`livrables/recueil/analyse-refs-10-24.md`), Gerimmo, qui ne modifie pas le dépôt après un
+      avenant, n'avait rien à corriger ; non revérifié par un lot, rien n'est publié.*
 31. **Révision annuelle après un avenant.** Gerimmo applique l'indice au loyer en vigueur (avenant compris) en gardant
     l'indice de référence d'origine. Après un avenant qui modifie le loyer, quel loyer et quel indice de référence la
     révision suivante doit-elle retenir ?
@@ -103,11 +136,20 @@ conformes. Questions communes : (a) chacune est-elle exacte ? (b) suffit-elle, o
     avant d'envoyer une demande : Gerimmo ne contrôle pas ce que vous demandez. » Le bouton « RIB » n'est plus
     proposé ; le libellé reste libre. Faut-il n'offrir que la liste officielle, en cases à cocher, tant qu'aucun bail
     n'est signé ?
+    - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : décret n° 2015-1437, annexes I et II
+      (réf. 19) : liste fermée, sans RIB ni attestation d'assurance ; Gerimmo corrigé dans le lot T3 (non encore publié) :
+      avant tout bail signé, et pour une caution, choix dans la liste du décret (34 textes recopiés mot pour mot) ;
+      libellé libre refusé par le serveur. La relecture a trouvé ce refus appliqué aussi à un locataire sorti et à un
+      propriétaire mandant : la reprise du lot T3, en cours, le corrige. Reste : après la signature (partie 9, point 23).*
 37. **Notice d'information** (points 4 et 5). Le document porte en tête : « Ce document est un résumé établi par
     Gerimmo. Il ne remplace pas la notice d'information officielle, dont le texte complet est fixé par arrêté : le
     bailleur la remet au locataire avec le bail. » Tant que le texte officiel n'est pas dans Gerimmo : ce résumé
     peut-il rester joint à la signature électronique du bail, ou faut-il le retirer ? La phrase « La présente notice
     est remise au locataire et annexée au contrat » (inchangée, plus bas dans le document) doit-elle être réécrite ?
+    - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : voir le point 4 (réf. 05 à 07) ;
+      Gerimmo corrigé dans le lot T2 (non encore publié) : le résumé dit la version de la notice et ne se présente pas
+      comme elle ; « il produit intérêt » remplacé par la majoration de 10 % de l'article 22 (réf. 11). Restent les
+      deux questions ci-dessus, et la notice entière que Gerimmo ne joint pas lui-même (QUESTIONS.md, Q77).*
 38. **Congé pour vente ou pour reprise** (points 17 à 19). Rappel affiché : « À faire relire avant de notifier. Un
     congé pour vente [ou : pour reprise] doit comporter des mentions précises et reproduire certains textes ; un congé
     incomplet peut être annulé. Gerimmo n'a pas pu comparer ce modèle au texte officiel : il ne garantit pas qu'il
@@ -116,10 +158,18 @@ conformes. Questions communes : (a) chacune est-elle exacte ? (b) suffit-elle, o
     génère pas tant que ces deux lignes, le nom du bénéficiaire et son lien avec le bailleur ne sont pas saisis
     (choix de prudence de Gerimmo, pas une règle citée). Quels textes doivent être reproduits mot pour mot, et ces
     quatre mentions sont-elles les bonnes et suffisent-elles ?
+    - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : article 15 I et II (réf. 02) et notice
+      de l'arrêté du 13 décembre 2017 (réf. 13) ; Gerimmo corrigé dans le lot T1 (non encore publié) : les cinq alinéas
+      du II reproduits, conditions de la vente exigées en location nue, notice annoncée en pièce jointe, amende et
+      personnes protégées dans les mots du texte. Le rappel « à faire relire » est gardé. Reste : partie 9, points 7 à 10.*
 39. **Caution demandée par un bailleur en société** (point 24). Rappel affiché sur tout acte de cautionnement :
     « Bailleur en société (SCI, autre personne morale) : demander une caution n'est pas permis dans tous les cas.
     Vérifiez votre situation (ADIL, juriste) avant de faire signer cet acte ; Gerimmo ne contrôle pas ce point. »
     Dans quels cas précis Gerimmo doit-il refuser de préparer l'acte ?
+    - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : article 22-1 (réf. 03), voir le
+      point 24 ; Gerimmo corrigé dans le lot T2 (non encore publié) : le rappel « Gerimmo ne contrôle pas ce point » est
+      remplacé par un refus de l'acte quand un bailleur est « SCI » non familiale ou « Personne morale », sauf
+      déclaration « étudiant non boursier » imprimée dans l'acte. Reste : partie 9, points 13 et 14.*
 40. **Facture créée depuis Gerimmo par l'artisan** (partie 4, points 2 et 3). Aide affichée sous le numéro :
     « Gerimmo ne numérote pas à votre place : il vérifie seulement que ce numéro n'est pas déjà utilisé ici. Reprenez
     le numéro suivant de votre propre série de factures, et relisez les mentions de la facture avant de l'envoyer :
@@ -133,15 +183,19 @@ conformes. Questions communes : (a) chacune est-elle exacte ? (b) suffit-elle, o
 1. **Signature de l'état des lieux par code SMS.** Un état des lieux signé à distance après la visite, avec la seule confirmation du bailleur « établi sur place le … », satisfait-il l'article 3-2 (« établi contradictoirement ») et l'article 3 du décret de 2016 (« remis à chaque partie au moment de sa signature ») ?
 2. **Description précise.** Une note sur cinq niveaux (neuf, bon, usagé, mauvais, absent) avec observation facultative suffit-elle à la « description précise » de l'article 2 du décret, ou faut-il une observation écrite par élément ?
 3. **Adresse à la sortie.** L'« adresse de restitution du dépôt » vaut-elle « adresse du nouveau domicile ou du lieu d'hébergement » ? Sinon, quelle formule imprimer ?
+   - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : décret n° 2016-382, article 2, 2°, a (réf. 15) : « L'adresse du nouveau domicile ou du lieu d'hébergement du locataire » ; article 22 (réf. 11) : le locataire indique, lors de la remise des clés, « l'adresse de son nouveau domicile » ; Gerimmo corrigé dans le lot T3 (non encore publié) : ce libellé à la saisie, à la consultation, dans le message d'erreur et dans l'état des lieux de sortie (même donnée en base). Un état des lieux de sortie « prêt » mais non envoyé se prépare de nouveau (QUESTIONS.md, Q40).*
 4. **Conformité de la sortie.** Un simple passage de « bon » à « usagé » (usure normale) rend-il l'état des lieux de sortie « non conforme » au sens de l'article 22, donc deux mois au lieu d'un ?
 5. **Grille de vétusté.** À défaut de grille convenue à la signature du bail, le bailleur peut-il appliquer seul une durée de vie de son choix ? Peut-il retenir un coût à 100 % sans abattement pour une dégradation ? Quelle mention porter au décompte ?
 6. **Prescription des charges.** Point de départ des trois ans pour un complément de charges : fin de l'exercice, date où le bailleur a connu les dépenses (approbation des comptes de copropriété), ou date de la régularisation ? Gerimmo doit-il refuser ou seulement avertir ?
+   - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : article 7-1 (réf. 16) : « Toutes actions dérivant d'un contrat de bail sont prescrites par trois ans à compter du jour où le titulaire d'un droit a connu ou aurait dû connaître les faits lui permettant d'exercer ce droit » ; Gerimmo corrigé dans le lot T3 (non encore publié) : plus de refus « prescrit » ; un avertissement (« peut-être prescrit ») et une case à cocher. La relecture a montré que cette confirmation se contournait par un appel direct à la base : la reprise du lot T3, en cours, ajoute le contrôle dans la base. Reste : en copropriété, quelle date prouve que le bailleur a connu les dépenses (approbation des comptes ?).*
 7. **Délai d'un mois.** Une régularisation validée le jour même de l'envoi du décompte est-elle inopposable au locataire ? Quelle preuve d'envoi garder ?
 8. **Décompte par nature.** Un décompte par facture (fournisseur, période, part du logement) vaut-il « décompte par nature de charges » ?
 9. **Gaz, chauffage, désinsectisation, ascenseur.** Pour une maison ou un petit immeuble en gestion directe : le gaz d'une chaudière individuelle payé par le bailleur est-il récupérable ? La main-d'œuvre d'une désinsectisation ? Quelle part d'un contrat d'ascenseur « complet » ?
 10. **Gardien.** Faut-il lire le contrat de travail pour choisir entre 75 % et 40 % ? Que retenir quand une entreprise extérieure partage les tâches ?
 11. **RIB.** Peut-on demander un RIB entre l'accord sur le logement et la signature du bail ? Après la signature, à quelles conditions (le prélèvement ne peut pas être imposé) ?
+    - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : décret n° 2015-1437 (réf. 19) : le RIB n'est pas dans la liste des pièces qu'on peut demander au candidat ou à sa caution ; après la signature, l'article 4 (réf. 16) interdit seulement d'imposer le prélèvement ; Gerimmo corrigé dans le lot T3 (non encore publié) : le RIB ne peut plus être demandé avant le bail. Reste : après la signature, à quelles conditions.*
 12. **Attestation d'assurance.** Peut-elle être demandée avant la signature, ou seulement à la remise des clés ?
+    - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : article 7 g) (réf. 16) : le locataire s'assure « et d'en justifier lors de la remise des clés puis, chaque année, à la demande du bailleur » ; l'attestation n'est pas dans la liste des pièces du candidat (décret n° 2015-1437, réf. 19) ; Gerimmo corrigé dans le lot T3 (non encore publié) : avant le bail, seules les pièces de la liste se demandent ; le rappel d'assurance sépare les deux temps de l'article 7 g).*
 13. **Pièces reçues en trop.** Un bailleur particulier qui reçoit spontanément une pièce hors liste doit-il la supprimer ? Gerimmo doit-il l'y obliger ?
 14. **Bail repris.** Pour un bail entré avant Gerimmo, quelle preuve de l'état des lieux d'entrée papier faut-il garder pour fonder une retenue à la sortie ?
 15. **Mode agence.** Le domicile du bailleur doit-il figurer sur l'état des lieux quand un mandataire le réalise ?
@@ -166,6 +220,7 @@ Une question fermée (oui ou non) par point.
 - **A7.** Le passage automatique en lecture seule quinze jours après un impayé relève-t-il de l'exception « exécution du contrat » de l'article 22 § 2 a) ? Les conditions doivent-elles alors décrire une voie de réexamen par une personne ?
 - **A8.** La suppression d'un compte après 24 mois d'inactivité et deux avertissements est-elle une durée défendable pour un bailleur particulier ?
 - **A9.** Un bailleur peut-il demander un RIB à un candidat avant la signature du bail ? L'éditeur qui propose ce bouton engage-t-il sa responsabilité ?
+  - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : décret n° 2015-1437 (réf. 19), voir partie 2, point 11 ; Gerimmo corrigé dans le lot T3 (non encore publié) : le RIB ne se demande plus avant le bail. Reste : après la signature, et la question de la responsabilité de l'éditeur.*
 - **A9bis.** L'urgence déclarée par le locataire, sans tri par le système, appelle-t-elle une information particulière ?
 - **A10.** La date et le lieu de naissance d'une caution sont-ils nécessaires à l'acte de cautionnement ?
 - **A10bis.** Un brouillon de devis proposé par une IA et validé par l'artisan échappe-t-il à l'article 22 ?
@@ -175,6 +230,7 @@ Une question fermée (oui ou non) par point.
 - **A14.** Les 36 mois après la fin du bail imposent-ils un accès restreint (archivage intermédiaire) dans l'outil ?
 - **A15.** Conserver la fiche nominative d'un ancien locataire tant que le compte du bailleur existe est-il acceptable jusqu'à la livraison du retrait prévu avant 2028 ?
 - **A16.** La loi n° 2026-534 du 25 juin 2026 porte-t-elle bien à dix ans la conservation des factures d'un entrepreneur individuel non commerçant en franchise de TVA ?
+  - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : loi n° 2026-534, article 36 (réf. 31) : à l'article L. 102 B du livre des procédures fiscales, « doivent être conservés pendant un délai de six » devient « sont conservés pendant un délai de dix », et « Le présent article s'applique aux documents et aux pièces dont le délai de conservation expire après le 1er janvier 2027 » ; Gerimmo corrigé dans le lot T4 et sa reprise (non encore publié) : dix ans dans les purges programmées (supposé : aucune facture supprimée à ce jour, aucune n'ayant six ans avant 2032), à l'article 9 des conditions, dans la page de confidentialité et la console. Reste : le point de départ (partie 9, point 28).*
 - **A17.** Une mesure d'exclusion dont le motif n'est pas purgé à l'échéance annoncée reste-t-elle opposable à l'artisan ?
 - **A18.** Trente-six mois de journal pour les accès de la supervision sont-ils justifiables sans analyse écrite ?
 - **A18bis.** Les réclamations doivent-elles avoir une durée de conservation propre, distincte du support ?
@@ -201,10 +257,13 @@ Une question fermée (oui ou non) par point.
 - **B10.** L'envoi par le logiciel, au nom du bailleur, de quittances, d'avis d'échéance et de relances constitue-t-il un concours à la gestion immobilière au sens de la loi Hoguet ?
 - **B10bis.** Ces relances constituent-elles un recouvrement amiable pour le compte d'autrui ?
 - **B11.** L'obligation de désigner un médiateur s'applique-t-elle dès l'essai gratuit, avant toute vente ?
+  - *Suite (25/11) : textes L612-1 et L616-1 lus dans le recueil fourni par le dirigeant (non recontrôlé sur Légifrance) ; voir partie 9, point 26.*
 - **B12.** Les mentions légales d'un entrepreneur individuel doivent-elles porter son adresse personnelle si elle est son adresse d'entreprise ?
 - **B13.** Les articles 8.7, 8.10, 14 bis et 15 des conditions sont-ils à jour de la réforme de la rétractation du 19 juin 2026 ?
+  - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : article L. 221-21 du code de la consommation, ordonnance n° 2026-2 et article D. 221-5 (réf. 26 ; l'ordonnance est extraite d'une copie EUR-Lex) ; la fonction de rétractation en ligne de l'abonnement payant a été comparée au texte (libellé « renoncer au contrat ici », confirmation, accusé de réception) : aucun écart relevé ; seul un commentaire du code est mis à jour au lot T4 (non encore publié). Reste : le délai et ses exceptions (L. 221-18 et L. 221-28, absents du recueil), le compte gratuit, et les articles 8.7, 14 bis et 15.*
 - **B14.** Le carnet de devis et de factures de l'artisan est-il un logiciel de facturation soumis à certification ou à la facturation électronique ?
 - **B10ter (ajoutée le 22/11, lot 15, P1-08).** Quatre e-mails automatiques sont prêts mais **fermés** : avis d'échéance, relance amiable d'un loyer impayé (avec information de la caution à la seconde relance), rappel d'un rendez-vous d'intervention au locataire et à l'artisan, relance d'une invitation de locataire. Rien ne part tant que le dirigeant n'a pas ouvert l'envoi. Avant toute ouverture : (a) l'avis d'échéance et la relance par e-mail demandent-ils l'accord préalable du **locataire**, comme Gerimmo le demande déjà pour la quittance, ou l'accord du bailleur suffit-il ? (b) la caution peut-elle être informée d'un impayé par simple e-mail, et à quel moment doit-elle l'être ? (c) la relance d'une invitation (trois puis dix jours après, deux au plus) adressée à une personne qui n'a pas encore de compte est-elle un message de service ou une sollicitation qui demande son consentement ? En attendant : les quatre envois sont fermés et ne sont pas présentés comme conformes.
+  - *(b) Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : article 2303 du code civil (réf. 24) : « Le créancier professionnel est tenu d'informer toute caution personne physique de la défaillance du débiteur principal dès le premier incident de paiement non régularisé dans le mois de l'exigibilité de ce paiement » ; Gerimmo corrigé par un avertissement dans le lot T3 (non encore publié) : les loyers d'un bail avec caution affichent la date à ne pas dépasser (échéance + un mois) ; l'envoi reste fermé. Restent : le moyen de preuve et la qualité de créancier professionnel (partie 9, points 21 et 22) ; (a) et (c) inchangés.*
 - **A19bis (ajoutée le 22/11, lot 3).** OpenAI figure déjà parmi les sous-traitants déclarés aux clients, pour les seules propositions de devis. L'étendre à deux usages faits à la demande de l'utilisateur (ses messages à l'assistant ; le fichier d'une facture ou d'une photo de compteur) est-il un simple changement à porter à la connaissance du client, ou une modification du contrat qui demande son accord exprès ? Autrement dit : la nouvelle version des conditions doit-elle être classée « technique » ou « substantielle » ?
 - **A19ter (ajoutée le 22/11, lot 3).** La page de confidentialité dit que Gerimmo envoie ces demandes « avec l'option qui demande à OpenAI de ne pas conserver l'échange » et renvoie, pour les durées, aux informations d'OpenAI. Cette formulation suffit-elle, ou faut-il indiquer une durée de conservation chez le prestataire ? L'accord de traitement des données avec OpenAI est-il signé et conservé (je ne peux pas le vérifier) ?
 - **A19quater (ajoutée le 22/11, lot 28, P2-05) — libellé bancaire conservé lors d'un pointage.** Quand le propriétaire pointe un
@@ -326,8 +385,17 @@ source (Q5).
     événement précis », prévue pour le bail nu : s'applique-t-elle au meublé, et au bail étudiant de neuf mois ? (b) Pour
     l'avenant de remplacement d'un colocataire, les signataires prévus sont le bailleur, le sortant, l'entrant et les
     colocataires restants : les cautions du sortant et de l'entrant doivent-elles signer aussi ?
+    - *(a) Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : l'article 11 n'est pas dans la
+      liste des articles applicables aux logements meublés (article 25-3, réf. 20) ; le bail étudiant de neuf mois a sa
+      règle propre ; Gerimmo corrigé dans le lot T2 (non encore publié) : la rubrique n'est plus imprimée en meublé, même
+      « sans objet », et le champ est masqué. Reste : (b) ; l'article 8-1 VI (réf. 17) demande que chaque acte de
+      cautionnement nomme son colocataire, sans parler de la signature des cautions sur l'avenant.*
 13. **Date d'un état des lieux.** Constaté sur place un jour, signé un autre jour : quelle date doit porter « Fait à …,
     le » ? Gerimmo imprime la date du constat, et la date de signature seulement si la première manque.
+    - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : décret n° 2016-382, article 2 (réf. 15) :
+      l'état des lieux comporte « Sa date d'établissement » ; selon l'analyse du recueil
+      (`livrables/recueil/analyse-refs-10-24.md`), Gerimmo, qui imprime la date du constat, n'avait rien à corriger ; non
+      revérifié par un lot, rien n'est publié.*
 14. **Chiffrage des retenues et état des lieux de sortie** (Q49). Le coût, la vétusté et le montant des retenues peuvent-ils
     figurer dans l'état des lieux de sortie signé par les deux parties, ou doivent-ils rester dans un décompte séparé émis
     par le bailleur ? Gerimmo les réserve aux décomptes.
@@ -342,6 +410,11 @@ source (Q5).
     signature tant que l'index de chaque compteur et le nombre de chaque clé ne sont pas saisis ? (c) Sinon, « non relevé »
     et « non compté » sont-ils acceptables sur la reproduction d'un état des lieux signé, dont l'original a pu être complété
     à la main ? Même question pour le bordereau de remise des clés.
+    - *(a) Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : décret n° 2016-382 (réf. 15) : « Le
+      cas échéant, les relevés des compteurs individuels de consommation d'eau ou d'énergie » ; article 3-2 (réf. 14) :
+      « les relevés des index pour chaque énergie » ; le numéro du compteur n'est pas cité ; selon l'analyse du recueil
+      (`livrables/recueil/analyse-refs-10-24.md`), rien à corriger pour (a) ; non revérifié par un lot, rien n'est publié.
+      (b) et (c) restent.*
 17. **« Établi contradictoirement » sur un inventaire préparé à l'avance.** Les inventaires d'entrée et de sortie, préparés
     avant la signature, impriment « établi contradictoirement » (« lors de la restitution des clés » pour la sortie). Peut-on
     l'écrire sans savoir si les deux parties seront présentes, ou faut-il une formule conditionnelle (« à établir… ») ?
@@ -373,6 +446,10 @@ tête). Quand une fiche officielle a été lue, c'est dit, avec ce qu'elle ne tr
    l'indemnisation ; le mot a été retiré. Un document d'information remis avec le bail doit-il décrire une voie
    d'indemnisation du locataire, et laquelle ? (Complète les points 4, 5 et 37 de la partie 1 et le point 9 de la
    partie 5.)
+   - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : la notice du bail porte sur les
+     « voies de conciliation et de recours » (article 3, réf. 05) ; les « voies de recours et d'indemnisation » sont
+     celles de la notice jointe au congé (article 15 I, réf. 02) ; Gerimmo : le retrait du mot (lot 50) est relu au
+     lot T2, rien d'autre à corriger (non encore publié).*
 3. **Attestation de fin de bail : quelle date ?** L'attestation imprime la date de fin du bail et la date de sortie
    réelle du locataire. Laquelle fait foi pour un tiers (nouveau bailleur, organisme) ? Faut-il n'en imprimer qu'une ?
 4. **Congé pour vendre : la phrase sur les deux premiers mois.** La lettre imprime : « À défaut d'acceptation pendant
@@ -381,10 +458,17 @@ tête). Quand une fiche officielle a été lue, c'est dit, avec ce qu'elle ne tr
    mois du préavis. La sanction n'y est pas décrite.
 5. **Congé pour vendre : nullité de quoi ?** La lettre écrit « à peine de nullité de l'offre ». Un relecteur pense, de
    mémoire et sans l'avoir vérifié, que la loi vise la nullité du congé. Laquelle des deux formules est juste ?
+   - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : article 15 II (réf. 02) : « le congé
+     doit, à peine de nullité, indiquer le prix et les conditions de la vente projetée » ; Gerimmo corrigé dans le lot T1
+     (non encore publié) : « à peine de nullité de l'offre » supprimé, les cinq alinéas du texte étant reproduits.*
 6. **Congé pour vendre : notification par le notaire.** La lettre écrit « le notaire doit vous notifier » un prix ou des
    conditions plus avantageux. Un relecteur pense, de mémoire et sans l'avoir vérifié, que la loi ajoute « lorsque le
    bailleur n'y a pas préalablement procédé ». Faut-il ajouter cette réserve ? (Les points 4 à 6 complètent les points
    17 à 19 et 38 de la partie 1.)
+   - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : article 15 II (réf. 02) : « le notaire
+     doit, lorsque le bailleur n'y a pas préalablement procédé, notifier au locataire ces conditions et prix à peine de
+     nullité de la vente » ; Gerimmo corrigé dans le lot T1 (non encore publié) : sa propre phrase sur le notaire est
+     supprimée, l'alinéa reproduit le disant lui-même.*
 7. **Révision du loyer notifiée après sa date d'effet** (complète le point 6 de la partie 5). La lettre cite maintenant
    la date à laquelle la demande du bailleur a été enregistrée dans Gerimmo. Cette date suffit-elle ? Faut-il aussi
    dire par quel moyen la demande a été faite (courrier, recommandé…), ce que Gerimmo n'enregistre pas ?
@@ -414,6 +498,15 @@ tête). Quand une fiche officielle a été lue, c'est dit, avec ce qu'elle ne tr
     le même jour citent toujours l'article 293 B. Le nouveau code n'a pas été lu. Quelle référence faut-il imprimer
     aujourd'hui sur les factures d'abonnement de Gerimmo (Q7, Q63) et sur les factures des artisans en franchise
     (partie 4, point 3) ? En attendant : rien n'est changé.
+    - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : la date du 1er septembre 2026 est
+      remplacée par celle du 1er janvier 2027 (réf. 30, textes du report) ; aujourd'hui, la seule mention prévue par un
+      texte du recueil est « TVA non applicable, article 293 B du CGI » (article 293 E, réf. 29 et 30), maintenue après
+      le 1er janvier 2027 jusqu'à la mesure réglementaire ; le chapitre de la franchise y est numéroté L233-1 à L233-24
+      du code des impositions sur les biens et services (« à venir »), et non « L. 223 et s. » ; Gerimmo corrigé dans le
+      lot T4 (non encore publié) : « article » en toutes lettres sur les factures d'abonnement (pied posé dans Stripe),
+      le courriel de confirmation et la page des tarifs ; factures des artisans non touchées (Q14 reportée). Reste : la
+      mention à imprimer quand la mesure réglementaire paraîtra, et la tolérance annoncée par la fiche (partie 9,
+      point 32).*
 14. **Alerte — nouveau modèle de bail depuis le 1er octobre 2026** (complète les points 1 à 3 de la partie 1). La fiche
     officielle de service-public (vérifiée le 01/10/2026) annonce un nouveau modèle réglementaire pour les baux signés
     depuis le 1er octobre 2026, vide et meublé. Différences visibles sur la fiche : le téléphone portable des parties,
@@ -481,17 +574,30 @@ vision de Gerimmo ») : ils sont signalés.
    de la consommation (art. L612-1 et L616-1) et se classe elle-même « texte à relire ». **Lu :** aucune fiche
    officielle sur ce point. **Non lu :** ces articles. Peut-on vendre à des particuliers sans médiateur désigné, oui
    ou non ? Quel est le risque ? Que doivent écrire les conditions de vente en attendant ?
+   - *Suite (25/11) : les articles L612-1 et L616-1 sont lus dans le recueil fourni par le dirigeant (non recontrôlé sur
+     Légifrance) ; vente aux particuliers fermée par défaut sans médiateur, ouverture sur décision datée du dirigeant
+     (lots D7 et T4, non encore publiés). Voir partie 9, points 26 et 27.*
 7. **Mention « entrepreneur individuel » ou « EI »** (Q63). Le vendeur est un entrepreneur individuel, sous un nom
    commercial. Ses factures, ses conditions de vente et ses mentions légales doivent-elles porter « entrepreneur
    individuel » ou « EI » à côté de son nom, et sous quelle forme exacte ? **Lu :** aucune fiche officielle sur ce
    point. **Non lu :** le texte. En attendant : la mention n'est pas écrite ; elle sera vérifiée sur une fiche
    officielle avant de l'être.
+   - *Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : article R526-27 du code de commerce
+     (réf. 28) : l'entrepreneur individuel utilise « une dénomination incorporant son nom ou nom d'usage précédé ou
+     suivi immédiatement des mots : “entrepreneur individuel” ou des initiales : “EI” », qui « figure sur les documents
+     et correspondances à usage professionnel » ; Gerimmo corrigé dans le lot D7 et ses deux reprises (non encore
+     publié) : nom suivi de « EI » contrôlé à la saisie, à l'ouverture des ventes et avant toute première souscription ;
+     choix explicite du « type de vendeur ». La phrase « En attendant : la mention n'est pas écrite » ne décrit plus la
+     version préparée. Reste : partie 9, point 29.*
 8. **Adresse publiée d'un entrepreneur individuel** (Q7 ; complète B12 de la partie 3). Le dirigeant a décidé de
    publier l'adresse de son établissement. La réponse reçue à B12 disait « sans objet », parce qu'elle supposait que
    le vendeur était une société : ce n'est pas le cas, la question se pose donc de nouveau. **Lu :** aucune fiche
    officielle sur ce point. **Non lu :** la loi pour la confiance dans l'économie numérique (art. 6 III), citée par
    la réponse. Les mentions légales, les conditions de vente et les factures d'un entrepreneur individuel
    doivent-elles porter cette adresse ? Si elle est aussi son domicile, une autre adresse est-elle admise ?
+   - *Suite (25/11) : la loi n° 2004-575 est lue dans le recueil fourni par le dirigeant (non recontrôlé sur
+     Légifrance) : c'est l'article 1-1, qui remplace le 6 III cité par la réponse reçue ; il demande, pour une personne
+     physique, son « domicile ». Voir partie 9, point 33.*
 
 ## 8. Lot D3 (décisions du 24/11/2026 : notice, retenues, diagnostics)
 
@@ -508,6 +614,10 @@ d'arrêté n'a été lu mot à mot.
    retenues ? (c) L'état des lieux de sortie peut-il, à lui seul, servir de justificatif d'une retenue ? (d) Bloquer
    le décompte tant qu'une pièce manque fait-il courir un risque au bailleur, puisque le délai de restitution
    continue ?
+   - *(d) Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : article 22 (réf. 11) : aucune
+     suspension du délai de restitution n'est prévue, et la majoration court pour chaque période mensuelle commencée en
+     retard ; selon l'analyse du recueil (`livrables/recueil/analyse-refs-10-24.md`), le risque est donc réel, et l'écran
+     le dit déjà ; non revérifié par un lot, rien n'est publié. Restent (a), (b) et (c).*
 2. **Notice d'information déposée par le bailleur : quelle version, et qui la vérifie ?** (Q46 ; complète les points
    4, 5 et 37 de la partie 1 et le point 9 de la partie 5). En attendant de joindre lui-même le texte officiel,
    Gerimmo demande au bailleur de déposer la notice. L'envoi en signature électronique est bloqué sans elle ; déposée,
@@ -518,6 +628,11 @@ d'arrêté n'a été lu mot à mot.
    par le bailleur ? (c) Les baux déjà signés sans la notice officielle doivent-ils être régularisés (voir aussi le
    point 5 de la partie 1) ? (d) Pour la signature sur papier, Gerimmo ne bloque rien et rappelle seulement d'annexer
    la notice : est-ce suffisant ?
+   - *(b) Texte fourni par le dirigeant (recueil v6, non recontrôlé sur Légifrance) : arrêté du 9 octobre 2026,
+     article 2 (réf. 07) : « Le présent arrêté s'applique aux contrats conclus ou renouvelés à compter de son entrée en
+     vigueur » (le 18 octobre 2026, date déduite de la publication) ; Gerimmo corrigé dans le lot T2 (non encore
+     publié) : l'écran dit la version à déposer. Restent (a), (c) et (d) ; un bail reconduit tacitement n'est pas visé à
+     la lettre.*
 3. **Notice d'information : pour quels baux ?** (Q46). Gerimmo n'exige la notice que pour un bien d'habitation
    (appartement, maison, immeuble), quel que soit le type de bail. L'obligation n'a été relevée que pour la location
    vide et la location meublée. La notice est-elle due aussi pour une colocation à contrats individuels et pour un
@@ -531,6 +646,188 @@ d'arrêté n'a été lu mot à mot.
    en classe G suffit à bloquer. (a) Entre le dernier enregistré et le plus récent par date d'établissement, lequel
    doit décider ? (b) Quand deux diagnostics en vigueur donnent des classes différentes, lequel décide pour la mise
    en location, et lequel pour la hausse du loyer ? (c) À dates d'établissement égales, lequel retenir ?
+
+## 9. Points nés de la lecture du recueil de textes officiels (24/11/2026)
+
+Ces points viennent des lots qui ont confronté au code le recueil fourni par le dirigeant le 24/11
+(`raw/Gerimmo-textes-officiels-recueil-v6.pdf`, 37 références ; voir la note du 25 novembre en tête) : congés (T1),
+bail, caution et colocation (T2), dépôt, charges et pièces (T3), vente et données (T4), vendeur D7 et ses deux
+reprises, conditions et envois (D4). **Le recueil n'est pas recontrôlé sur Légifrance**, et ces lots, faits
+localement, ne sont **ni vérifiés en entier ni publiés**. Ce sont les points que le texte fourni ne tranche pas, ou que
+les corrections ont fait naître. Pour chacun : la question à poser, et ce que Gerimmo fait en attendant. Aucun n'est
+présenté comme conforme. « Réf. » renvoie au numéro de la référence dans le recueil.
+
+### Congés du bailleur et du locataire (lot T1)
+
+1. **« Terme » du bail : dernier jour ou jour anniversaire ?** Gerimmo tient le congé du bailleur pour reçu à temps si
+   la date de réception plus le préavis tombe au plus tard le dernier jour du bail (un bail commencé le 16 juin finit
+   le 15 juin). La notice de l'arrêté du 13 décembre 2017 (réf. 13) dit « arrive à terme le 15 juin » sans préciser ;
+   ses exemples (30 juin, 31 août, 31 mai) vont dans le sens du dernier jour. Si le texte visait le jour anniversaire,
+   Gerimmo refuserait un jour trop tôt, y compris à l'enregistrement, où un congé valable ne pourrait pas être saisi
+   (relecture T1R-1). Question : le « terme » est-il le dernier jour du bail, oui ou non ?
+2. **Même calcul en meublé, et fins de mois courtes.** La notice ne vise pas le meublé ; l'article 25-8 (réf. 20) dit
+   seulement « trois mois » et « à compter du jour de la réception ». Gerimmo applique la même règle (supposé). Les fins
+   de mois sont déduites de la règle « à défaut, le délai expire le dernier jour du mois » citée par la notice.
+   Questions : (a) la même règle vaut-elle pour le meublé ? (b) pour un terme le 28 février, un congé reçu le 31 août
+   est-il encore dans les délais ?
+3. **Reprise d'un logement meublé par un bailleur société.** L'article 13 (réf. 17) ne vise que les articles 11 et 15.
+   Gerimmo refuse la reprise par une SCI non familiale ou une personne morale en location nue, mais ne contrôle rien en
+   meublé. Question : une société, familiale ou non, peut-elle donner congé pour reprise d'un logement meublé ?
+4. **Logement acheté alors qu'il était déjà loué.** Gerimmo compare le terme visé à la date d'acquisition saisie
+   (plus de trois ans pour vendre, plus de deux ans pour reprendre) et refuse à l'égalité exacte. Questions : (a) la
+   « date d'acquisition » est-elle celle de l'acte authentique ? (b) à l'égalité exacte (terme juste deux ou trois ans
+   après), le congé est-il permis ?
+5. **Préavis d'un mois en zone tendue : quelle justification ?** L'article 15 I (réf. 02) demande au locataire de
+   préciser le motif et de le justifier « au moment de l'envoi de la lettre de congé ». Gerimmo se contente d'une case
+   cochée par la personne qui enregistre le congé (QUESTIONS.md, Q103). Question : que doit contenir la justification
+   pour la zone tendue (simple mention de la commune, référence au décret) ?
+6. **Zone tendue appréciée à quelle date ?** (complète le point 13 de la partie 1). La réponse reçue dit « à la date du
+   congé » (niveau « texte à relire ») ; le texte fourni ne le dit pas. Gerimmo lit la zone figée au bail. Question :
+   faut-il apprécier la zone à la date du congé ? À savoir : la notice du bail (réf. 06, note 5) annonce un nouveau
+   décret des zones tendues (n° 2026-831) à partir du 1er janvier 2027 ; il n'est pas dans le recueil.
+7. **Congé pour vendre : « vaut offre de vente » dans tous les cas.** Gerimmo l'écrit dans chaque lettre. Le texte
+   écarte l'offre pour les actes entre parents jusqu'au troisième degré (avec une occupation de deux ans) et pour les
+   immeubles de l'article L. 126-17 du code de la construction et de l'habitation ; Gerimmo ne traite pas ces cas (une
+   phrase à l'écran le dit pour la vente à un parent). Question : faut-il une autre lettre, ou un refus, pour ces cas ?
+8. **« Il peut quitter le logement à tout moment, sans préavis de sa part ».** Phrase gardée dans les mentions du congé
+   du bailleur. Le texte dit seulement que le locataire ne doit le loyer que pour le temps où il a occupé les lieux ; la
+   notice ajoute qu'il est « conseillé d'informer le bailleur ». Question : la phrase est-elle exacte, ou faut-il
+   l'adoucir ?
+9. **Désignation des locaux dans le congé pour vendre.** Gerimmo reprend les données du logement qu'il tient (adresse,
+   autres parties, locaux privatifs, pièces si connues), y compris quand le bail a été signé ailleurs ; la lettre écrit
+   « Désignation des locaux loués : ». Question : ces données suffisent-elles quand le bail a été signé hors Gerimmo ?
+10. **Colocation, époux, partenaires : un congé à chacun ?** La notice (point 1-3) demande un congé à chacun des
+    cotitulaires. Gerimmo produit une seule lettre adressée à tous les locataires du bail. Question : faut-il une lettre
+    par cotitulaire ? (La case « mariés ou pacsés » au bail, lot en cours, ne règle pas ce point.)
+
+### Bail, cautionnement, colocation (lot T2)
+
+11. **Location à deux époux ou partenaires : quelle clause ?** L'article 8-1 I (réf. 17) exclut de la colocation la
+    location consentie exclusivement à des époux ou à des partenaires pacsés au moment de la conclusion initiale du
+    contrat. Quand le bail a exactement deux locataires, Gerimmo imprime la règle des six mois suivie de « Cette règle ne
+    s'applique pas si la location est consentie exclusivement à des époux ou à des partenaires liés par un pacte civil
+    de solidarité… ». Une case « mariés ou pacsés » au bail est en cours (décision du dirigeant). Questions : (a) une
+    location à deux époux doit-elle porter une clause de solidarité, et laquelle ? (b) la phrase conditionnelle
+    suffit-elle, ou faut-il deux rédactions selon la situation de famille ?
+12. **Cautionnement d'époux colocataires.** L'acte doit nommer le colocataire garanti (article 8-1 VI, réf. 17).
+    Gerimmo imprime la règle du cautionnement nominatif sous condition, et refuse une caution commune aux deux époux (un
+    garant ne se rattache qu'à un locataire ; relecture T2R-4). Questions : (a) quand l'acte désigne un seul des deux
+    époux, cette rédaction conditionnelle est-elle sans risque ? (b) une caution commune à deux époux, qui ne sont pas
+    en colocation, doit-elle être possible ?
+13. **Bailleur société et « étudiant non boursier ».** L'article 22-1 (réf. 03) permet à une personne morale autre
+    qu'une SCI familiale de demander une caution si le logement est loué « à un étudiant ne bénéficiant pas d'une bourse
+    de l'enseignement supérieur ». Gerimmo se contente d'une déclaration du bailleur, imprimée dans l'acte. Questions :
+    (a) cette déclaration suffit-elle, ou faut-il un justificatif ? (b) qu'en est-il d'un apprenti (l'article ne le
+    cite que pour le cas où le bailleur a une assurance) ?
+14. **Indivision dont un membre est une société non familiale.** Gerimmo refuse alors l'acte de cautionnement.
+    Question : est-ce trop sévère ?
+15. **« Activité exercée » et garant du mandataire.** Le contrat type (réf. 08) les demande. Gerimmo imprime « gestion
+    immobilière » et le champ « garantie financière » du profil de l'agence, souvent sans adresse (QUESTIONS.md, Q108).
+    Questions : quelle formule exacte pour l'activité ? Le garant est-il bien l'organisme de garantie financière ?
+16. **Première échéance.** Le contrat type demande le « montant total dû à la première échéance de paiement pour une
+    période complète de location ». Gerimmo l'imprime, puis, si le bail ne commence pas un 1er, une seconde phrase pour
+    le premier terme au prorata. Question : cette seconde phrase peut-elle figurer au contrat ?
+17. **Résumé de la notice : « tribunal judiciaire » ou « juge des contentieux de la protection » ?** Gerimmo reprend les
+    mots de la notice du recueil (le litige « relève exclusivement du tribunal judiciaire »). Question : laquelle des
+    deux formules faut-il imprimer ?
+18. **Majoration de 10 % du dépôt rendu en retard : sur quel loyer ?** L'article 22 (réf. 11) parle du « loyer mensuel
+    en principal ». Gerimmo l'entend hors charges. Question : hors charges, et aussi hors complément de loyer ?
+19. **Bail meublé, rubrique III.** Les phrases de reconduction et de congé du bail meublé suivent le sens de l'annexe 2
+    du recueil, pas ses mots : le recueil dit l'annexe meublée corrigée à la main à cinq endroits, sans dire lesquels.
+    Question : ces phrases peuvent-elles rester ainsi, ou faut-il les relire sur le Journal officiel et les reprendre mot
+    pour mot ?
+
+### Dépôt de garantie, charges, état des lieux, pièces (lot T3)
+
+20. **Pièces d'identité de la caution** (décret n° 2015-1437, annexe II, A ; réf. 19). Dans le recueil, la liste
+    s'arrête au permis de conduire et finit par un point-virgule. Gerimmo s'en tient à ces trois documents. Question :
+    manque-t-il un document, par exemple le titre de séjour ?
+21. **Article 2303 du code civil : quel délai ?** (réf. 24) La caution est informée « dès le premier incident de
+    paiement non régularisé dans le mois de l'exigibilité de ce paiement ». Gerimmo affiche, par prudence, échéance + un
+    mois (QUESTIONS.md, Q112). Question : « dans le mois de l'exigibilité » est-il le délai pour informer, ou ce qui
+    caractérise l'incident ?
+22. **« Créancier professionnel ».** (complète B10ter (b) de la partie 3) Le texte ne le définit pas. Questions : un
+    bailleur particulier, ou une agence qui gère pour lui, est-il un créancier professionnel ? Un e-mail simple
+    suffit-il pour informer la caution ?
+23. **Pièces demandées à une caution après la signature.** Gerimmo garde la liste du décret (annexe II), par prudence
+    (QUESTIONS.md, Q113). Question : cette liste s'applique-t-elle encore à une caution après la signature du bail ?
+24. **Bail commencé un 29 février.** Gerimmo fixe son dernier jour au 28 février et la date limite du congé du bailleur
+    au 31 août précédent (avant : 27 février et 27 août). Si le juste dernier jour était le 27, un congé reçu du 28 au
+    31 août serait tardif (relecture T3R). Question : le 28 février est-il le bon dernier jour ? (s'ajoute au point 1 ;
+    la même règle change d'un jour le terme de certains baux étudiants de neuf mois, QUESTIONS.md, Q115.)
+25. **Textes absents ou anciens dans le recueil.** L'article 25-6 (dépôt de deux mois en meublé) n'y est pas : le reçu
+    de dépôt garde ce plafond, déjà dans le code, sous le seul en-tête « Article 22 » (la reprise du lot T3, en cours,
+    revoit cet en-tête). L'article 22-2 y est dans une version consultée en avril 2023. Question : le plafond de deux
+    mois en meublé et l'article 22-2 du recueil sont-ils à jour ? (QUESTIONS.md, Q111)
+
+### Vente des abonnements et données (lot D7 et ses reprises, lot T4)
+
+26. **Vendre à des consommateurs sans médiateur** (remplace le point 1 des notes du lot D7 ; complète B11 et 7·6).
+    Texte fourni : L612-1 — « le professionnel garantit au consommateur le recours effectif à un dispositif de médiation
+    de la consommation » ; L616-1 — il communique « les coordonnées du ou des médiateurs compétents dont il relève » ;
+    aucune exception lue (réf. 25). État préparé, non publié : vente aux particuliers fermée par défaut ; ouverture
+    possible sur décision datée du dirigeant, inscrite à l'historique (QUESTIONS.md, Q75). Questions : (a) quelle est la
+    sanction (article absent du recueil) ? (b) où et comment communiquer les coordonnées (« modalités fixées par
+    décret », décret absent) ? (c) l'essai gratuit, ouvert sans médiateur, est-il déjà un contrat de consommation qui
+    l'exige ?
+27. **Article 17 des conditions, nouvelle rédaction** (version du 24/11/2026, non publiée). Il énonce le droit dans les
+    mots de L612-1, pour le seul « Client consommateur », renvoie aux mentions légales, et promet le rappel du médiateur
+    dans la réponse qui clôt une réclamation faite depuis « Aide et retours ». Questions : (a) suffit-il tant qu'aucun
+    médiateur n'existe ? (b) la médiation de la consommation est-elle ouverte au « non-professionnel » (une SCI
+    familiale, par exemple), que l'ancienne rédaction visait (QUESTIONS.md, Q81) ? (c) L616-1, alinéa 2, demande
+    l'information quand une réclamation n'a pas abouti : pour une réclamation reçue par courriel, suffit-il que la
+    personne qui répond l'écrive (QUESTIONS.md, Q83) ?
+28. **Conservation des factures : dix ans, à partir de quand ?** Texte fourni : loi n° 2026-534, article 36 (réf. 31) ;
+    le recueil ne donne pas la rédaction de L102 B au 1er janvier 2027. Gerimmo retient la plus tardive de la date
+    d'émission et de la fin de l'exercice (à défaut, la fin du dernier abonnement payé), toujours au moins dix ans après
+    l'émission ; la preuve du contrat reste à dix ans après la fin du dernier abonnement payé. Question : ce point de
+    départ est-il le bon ?
+29. **Mention « EI » : ce qui reste** (complète 7·7 ; notes D7, points 4 et 7). Le nom suivi de « EI » est appliqué
+    d'après R526-27 (réf. 28). Questions : (a) les courriels automatiques signés « L'équipe Gerimmo » sont-ils des
+    « correspondances à usage professionnel » qui doivent porter le nom suivi de « EI » ? (b) le nom commercial
+    SAUVEXPERT peut-il ou doit-il figurer à côté, et sous quelle forme (QUESTIONS.md, Q79) ? (c) l'en-tête des factures
+    d'abonnement, réglé dans le compte Stripe, doit-il porter « EI », l'adresse et le SIREN comme le site (Q80) ?
+30. **Lecture seule automatique et RGPD, article 22** (remplace le point 5 des notes T4 ; complète A7 de la partie 3).
+    Le texte du recueil (réf. 34) vise une décision « fondée exclusivement sur un traitement automatisé » qui produit des
+    effets juridiques. La phrase « le Client peut demander qu'une personne réexamine sa situation » a été retirée de
+    l'article 15.3 (QUESTIONS.md, Q82). Questions : (a) la mise en lecture seule d'un compte impayé (15.3) ou en fin
+    d'essai (8.2) est-elle une telle décision ? (b) et quand le client est une société ? Si oui, la phrase est à
+    remettre dans les deux articles, avec une personne qui répond et un délai.
+31. **Annexe 1 élargie (OpenAI)** (notes T4, point 6 ; notes D4, point 4). La version du 24/11 décrit les trois envois
+    réels (assistant, lecture assistée, propositions de devis) : le prestataire ne change pas, sa description s'élargit.
+    L'annexe promet une information « par courriel, au moins un mois à l'avance » de tout ajout ou remplacement de
+    prestataire. Question : cette information est-elle due aux clients déjà abonnés (RGPD, article 28) ?
+32. **Mention de franchise de TVA** (complète 6·13 et QUESTIONS.md, Q66 ; notes D7, point 2). « article » est écrit en
+    toutes lettres, comme dans le texte de l'article 293 E du recueil. Questions : (a) la franchise en base
+    s'applique-t-elle à ce vendeur — entrepreneur individuel dont l'activité déclarée est « formation continue
+    d'adultes » (85.59A), actif depuis le 03/02/2026, qui vend un logiciel par abonnement — et jusqu'à quel seuil ?
+    (b) après le 1er janvier 2027, quelle mention imprimer quand la mesure réglementaire paraîtra ? (c) la « tolérance
+    jusqu'au 31/12/2027 » annoncée par une fiche officielle n'est dans aucun texte du recueil : faut-il en tenir compte ?
+33. **Adresse publiée de l'éditeur personne physique** (complète B12 et 7·8 ; notes D7, point 3). Texte fourni : loi
+    n° 2004-575, article 1-1 (réf. 27) : pour une personne physique, « leurs nom, prénoms, domicile et numéro de
+    téléphone ». Le dirigeant a décidé de publier « 3 rue de l'Église, 91360 Épinay-sur-Orge » ; la page dit « adresse de
+    l'entreprise ». Questions : (a) cette adresse est-elle bien le « domicile » demandé ? (b) une adresse de
+    domiciliation distincte du domicile serait-elle admise pour un éditeur professionnel ? (c) quelle adresse sur les
+    factures et les conditions de vente, que cet article ne vise pas ?
+34. **Directeur de la publication** (notes D7, point 6). Le dirigeant s'est désigné (Brahim TAHIR). Question : faut-il
+    autre chose que son nom ? (L'immatriculation, point 5 des notes D7, n'est pas reposée : le dirigeant a indiqué le
+    24/11 une immatriculation au RNE sous le numéro 821 974 474.)
+
+### Conditions générales et envois (lot D4 et sa reprise)
+
+35. **Article 16, second alinéa, face à l'accord exprès** (notes D4, points 7.1 et R7.1). Les changements autres que le
+    prix, la durée et les caractéristiques essentielles « s'appliquent à la date annoncée » ; Gerimmo demande pourtant
+    l'accord exprès au prochain acte (Q15), sans jamais de non-reconduction pour la version du 24/11 ; l'écran ne dit
+    plus « rien ne change ». Questions : (a) quelle version régit un abonné qui n'a pas répondu ? (b) lesquels des
+    changements du 24/11 (factures gardées dix ans, médiation, annexe OpenAI) s'appliquent à lui à la date annoncée ?
+36. **Article 16, premier alinéa : courriel et préavis d'un mois** (notes D4, points 7.2 et R7.2). Ils ne sont pas
+    automatisés ; Gerimmo refuse donc d'archiver une nouvelle version dès qu'il existe un abonné actif (QUESTIONS.md,
+    Q93). Question : ce refus suffit-il, ou faut-il, avec des abonnés, repousser la date d'effet ?
+37. **Preuve de l'accord** (notes D4, point 7.3). Case non cochée par défaut, date du serveur, version, empreinte du texte
+    archivé, compte. Ni adresse IP, ni copie du texte envoyée sur support durable après l'accord. Question : est-ce
+    suffisant ?
+38. **Client en essai** (notes D4, point R7.3). Question : un client en période d'essai, sans souscription, est-il un
+    « Client » à qui la notification de l'article 16 est due ? (QUESTIONS.md, Q98)
 
 ---
 

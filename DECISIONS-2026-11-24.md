@@ -94,3 +94,15 @@ Inchangé : rien en production sans « je valide la publication » ; aucun test 
 - **Q76, contact du vendeur à publier** : e-mail `contact.gerimmo.app@gmail.com`, téléphone `07 43 56 04 63`. À saisir dans la console le jour de la publication. Restent à fournir : l'immatriculation (RNE ou RCS) et le nom du directeur de publication.
 - **Bail, époux et partenaires pacsés** : « Tu peux ajouter la case marié ou pacsé. » → une case au bail ; quand elle est cochée, la solidarité de six mois après le départ d'un colocataire ne s'applique pas (texte du bail, écrans et calcul de la base).
 - **Q76, suite** : immatriculation au RNE (Registre national des entreprises) sous le numéro `821 974 474` ; directeur de publication : Brahim TAHIR. Les informations du vendeur sont maintenant complètes pour la saisie du jour de la publication (type de vendeur : entrepreneur individuel ; nom : TAHIR Brahim EI ; nom commercial SAUVEXPERT ; SIRET 821 974 474 00032 ; 3 rue de l'Église, 91360 Épinay-sur-Orge ; e-mail et téléphone ci-dessus ; TVA non applicable ; médiateur : aucun à ce jour).
+
+## Réponses du 25/11
+
+Réponses du dirigeant aux trois questions du lot des défauts d'écran majeurs (QUESTIONS.md, Q99 à Q101), texte reçu
+mot pour mot :
+- **Q99, date de la page Confidentialité** : « de sa modification » → la page est datée du jour de la dernière
+  modification de son texte. C'est déjà le comportement du lot des défauts majeurs (rien à changer).
+- **Q100, outil public de calcul de l'IRL, loyer et trimestres d'exemple** : « comme tu penses que ça doit être fait »
+  → décision déléguée ; option retenue : aucun champ prérempli avec une valeur ; l'exemple n'apparaît qu'en texte
+  indicatif grisé dans le champ vide, jamais comme donnée. Décidé, à appliquer dans le code (autre agent).
+- **Q101, diffusion Facebook quand la Page est « À vérifier »** : « oui » → la diffusion reste masquée tant que la Page
+  n'est pas vérifiée. Décidé, à appliquer dans le code (autre agent).

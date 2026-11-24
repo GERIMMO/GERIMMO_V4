@@ -8186,3 +8186,32 @@ cahier V3 et le wiki (sans autre document). La décision la plus récente l'empo
 - Fichier : `raw/Gerimmo-textes-officiels-recueil-v6.pdf` (166 pages). Chaque texte porte une adresse Légifrance et une date de version.
 - Provenance : recueil assemblé pour le dirigeant ; non recontrôlé par nous sur Légifrance (accès refusé). Traité comme « texte fourni, source déclarée ».
 - En cours : confrontation au code et aux réponses du juriste (trois lectures). Page-résumé du wiki et pages touchées à écrire une fois les lectures rendues.
+
+## [2026-11-25] ingest | Recueil des textes officiels (v6) — page-résumé, lots tirés du recueil, questions et points de droit
+
+- **Source** : `raw/Gerimmo-textes-officiels-recueil-v6.pdf` (37 références, édition V6 du 24/11/2026), fourni par le
+  dirigeant ; **non recontrôlé sur Légifrance**. Lus aussi : les trois analyses du recueil (`livrables/recueil/`), les
+  notes et rapports de relecture des lots (`livrables/notes-banc/` : D7, L60, T1 à T4, D4, D5, PR, majeurs ;
+  relectures D7R, L60R, T1R à T4R, D4R ; `PETITES-REPRISES.md`, `PLAN-PUBLICATION-NOTES.md`), `DECISIONS-2026-11-24.md`,
+  `QUESTIONS.md`, `JURISTE.md`, `REPONSES-JURISTE.md`. Aucun fichier de notes demandé ne manquait ; il n'y a pas de
+  rapport de relecture pour D5, les défauts majeurs, les petites reprises, la seconde reprise D7 ni la reprise D4.
+- **Page créée** : [[Recueil des textes officiels (v6)]] (contenu, provenance, limites : miroir, coquilles, textes
+  « à venir » en 2027, textes absents ; liens vers les pages touchées). `index.md` mis à jour.
+- **Hors wiki** : `JOURNAL.md` (onze entrées : neuf lots, et la reprise du lot T3 et la case « mariés ou pacsés »,
+  toutes deux en cours) ; `QUESTIONS.md` (Q78 à Q115, dont Q99 à Q101 déjà tranchées le 25/11) ;
+  `DECISIONS-2026-11-24.md` (« Réponses du 25/11 », trois réponses du dirigeant) ; `JURISTE.md` (note d'en-tête du
+  25/11, partie 9 de 38 points, et une mention « Texte fourni par le dirigeant (recueil v6, non recontrôlé sur
+  Légifrance) » sur chaque point que les notes disent tranché, sans rien retirer).
+- **État des lots** : tous faits localement, sauvegardés sur `claude/sauvegarde-banc-principal` et
+  `claude/sauvegarde-banc-vendeur` ; **pas encore réunis ni vérifiés en entier, pas poussés sur la préproduction** ;
+  rien n'est publié en production ; rien n'est noté « conforme ».
+- **Pages du wiki devenues fausses pour la version préparée, non réécrites dans ce lot** (à reprendre dans un lot
+  suivant) : [[Bail]] et [[Types de baux]] (préavis d'un mois en zone tendue, « première présentation », congé du
+  bailleur), [[Révision annuelle IRL]] (outil public sans indice prérempli ; gel F/G plus large que le texte fourni),
+  [[Restitution du dépôt de garantie]] et [[Dépôt de garantie]] (majoration de 10 %, plafond du reçu), [[Signature
+  électronique]] (circuit « télécharger, signer, redéposer » retiré), [[Durées de conservation]], [[Fermeture de
+  compte]] et [[Registre des traitements]] (factures six ans → dix ans), [[Conditions générales]] et [[Souscription de
+  l'abonnement]] (version du 24/11, médiateur, accord exprès), [[Garantie]] (caution d'un bailleur société),
+  [[Dossier locataire]] (liste du décret), [[Régularisation des charges]] (plus de refus « prescrit »), [[État des
+  lieux]], [[Mentions obligatoires du bail]], [[Grille tarifaire]] (« article 293 B »), [[Relances et mise en demeure]]
+  et [[Planification d'intervention]] (relance à la main, cinquième envoi).

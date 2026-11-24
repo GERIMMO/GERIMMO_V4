@@ -153,8 +153,12 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
       // Reprise du lot D2 (24/11/2026) : le bail porte le loyer révisé dès l'enregistrement de la révision, avant son premier
       // terme. Le document attestait ce loyer comme s'il était déjà appliqué : il dit le loyer du terme en cours, puis le
       // loyer révisé avec le terme à partir duquel il s'applique (même fonction que l'espace du locataire).
-      const revisions = await lireLignes(supabase.from("revisions_loyer").select("ancien_loyer, nouveau_loyer, premier_terme").eq("organization_id", orgId).eq("bail_id", bailId).not("premier_terme", "is", null));
-      const duTerme = loyerDuTermeEnCours(ctx.bail.loyer_hc, revisions as unknown as RevisionDuLoyer[], aujourdhui);
+      // Seconde reprise du lot D2 : les révisions sont lues dans un ordre fixe (premier terme, puis date d'enregistrement,
+      // puis date d'effet), le même que `revisions_de_mon_loyer_locataire` ; un bail en préavis qui finit avant le premier
+      // terme révisé n'annonce rien (la date de fin est transmise).
+      const revisions = await lireLignes(supabase.from("revisions_loyer").select("ancien_loyer, nouveau_loyer, premier_terme").eq("organization_id", orgId).eq("bail_id", bailId).not("premier_terme", "is", null)
+        .order("premier_terme").order("created_at").order("date_effet"));
+      const duTerme = loyerDuTermeEnCours(ctx.bail.loyer_hc, revisions as unknown as RevisionDuLoyer[], aujourdhui, ctx.bail.date_fin);
       const loyerAtteste = duTerme.aVenir
         ? `${montantInsecable(duTerme.loyer)} jusqu’au terme ${deElide(moisEnToutesLettres(duTerme.aVenir.dernierTermeAvant))}, ${montantInsecable(duTerme.aVenir.loyer)} à compter du terme ${deElide(moisEnToutesLettres(duTerme.aVenir.premierTerme))} (révision annuelle du loyer)`
         : montantInsecable(ctx.bail.loyer_hc);

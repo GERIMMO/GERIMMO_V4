@@ -29,6 +29,7 @@ import {
   datesRevisionIrl,
   dateLimiteRevision,
   premierTermeRevise,
+  indicePrecedentExige,
   numeroTrimestreIrl,
   exerciceRegularisationParDefaut,
   exerciceNonTermine,
@@ -329,19 +330,24 @@ export function FormulaireLoyers({
   const champIndice = useRef<HTMLInputElement>(null);
   const champTrimestre = useRef<HTMLSelectElement>(null);
   const champAnnee = useRef<HTMLInputElement>(null);
-  // Reprise du lot D2 (24/11/2026) : quand l'année de l'indice saisi dépasse de plus d'un an celle de l'indice de référence,
-  // la révision d'une année n'a pas été faite. Elle n'est pas rattrapée : la base calcule sur un an et exige l'indice du même
-  // trimestre de l'année précédente. Le champ de cet indice n'apparaît que dans ce cas. Miroir de `reviser_loyer`.
   // L'année de l'indice en cours de saisie ; tant que rien n'a été tapé, celle d'une saisie refusée et reposée.
   const [anneeIndice, setAnneeIndice] = useState<string | null>(null);
   const anneeTapee = anneeIndice ?? etatRev.valeurs?.irl_trimestre_annee ?? "";
   const anneeSaisie = /^\d{4}$/.test(anneeTapee) ? Number(anneeTapee) : NaN;
   const anneeReference = anneeTrimestreIrl(derniereRevision ? derniereRevision.irl_trimestre : irlTrimestre);
-  const anneeSautee = anneeReference !== null && Number.isFinite(anneeSaisie) && anneeSaisie > anneeReference + 1;
   // L'indice de l'année précédente proposé par l'Insee : le champ se réaffiche avec lui (il reste modifiable).
   const [precedentPropose, setPrecedentPropose] = useState<string | null>(null);
   // Aperçu : la date de la demande en cours de saisie (posée à aujourd'hui par défaut).
   const [dateDemandeSaisie, setDateDemandeSaisie] = useState("");
+  const demandeApercu = /^\d{4}-\d{2}-\d{2}$/.test(dateDemandeSaisie) ? dateDemandeSaisie : aujourdhui;
+  // Reprise du lot D2 (24/11/2026) : quand la révision d'une année n'a pas été faite, elle n'est pas rattrapée : la base
+  // calcule sur un an et exige l'indice du même trimestre de l'année précédente. Le champ de cet indice n'apparaît que
+  // dans ce cas. Seconde reprise : ce cas se reconnaît comme dans la base (`reviser_loyer`, migration 20261124150000) —
+  // d'abord à l'année de bail (aucune révision pour l'année de bail précédente, d'après la date de la demande saisie),
+  // ou à l'année de l'indice saisi quand elle dépasse de plus d'un an celle, lisible, de l'indice de référence.
+  const anneeSautee =
+    indicePrecedentExige(dateDebut, demandeApercu, revisions) ||
+    (anneeReference !== null && Number.isFinite(anneeSaisie) && anneeSaisie > anneeReference + 1);
   const reporterIndice = (p: { valeur: number; trimestre: number; annee: number; precedent: number | null }) => {
     const poser = (champ: HTMLInputElement | HTMLSelectElement | null, valeur: string) => {
       if (!champ) return;
@@ -358,7 +364,6 @@ export function FormulaireLoyers({
   // Reprise du lot D2 : l'aperçu suit la date de demande saisie et calcule comme la base — date de révision et date limite
   // d'après la date de la demande ; premier terme révisé d'après le plus tardif entre cette date et aujourd'hui, et après
   // le dernier terme déjà appelé (`premierTermeRevise`).
-  const demandeApercu = /^\d{4}-\d{2}-\d{2}$/.test(dateDemandeSaisie) ? dateDemandeSaisie : aujourdhui;
   const datesDuJour = aujourdhui ? datesRevisionIrl(dateDebut, demandeApercu) : null;
   const limiteDuJour = datesDuJour ? dateLimiteRevision(dateDebut, datesDuJour.echeance) : null;
   const dernierTermeAppele = echeancier.reduce<string | null>((max, l) => (max === null || l.periode > max ? l.periode : max), null);
@@ -644,7 +649,10 @@ export function FormulaireLoyers({
                   {r.date_demande && r.date_echeance && r.date_demande > r.date_echeance
                     ? ` · demandée le ${formaterDate(r.date_demande)}, après l'échéance du ${formaterDate(r.date_echeance)}`
                     : ""}
-                  {r.irl_reference_trimestre ? ` · calcul sur un an, avec l'indice du ${r.irl_reference_trimestre} (révision de l'année précédente non faite)` : ""}
+                  {/* Seconde reprise du lot D2 : la ligne ne dit plus « révision de l'année précédente non faite ». Cet indice est
+                      aussi demandé quand aucune révision n'est ENREGISTRÉE pour l'année précédente (bail repris en cours) : on
+                      dit seulement ce qui a servi au calcul. */}
+                  {r.irl_reference_trimestre ? ` · calcul sur un an, avec l'indice du ${r.irl_reference_trimestre} (même trimestre, année précédente)` : ""}
                   {r.premier_terme ? ` · loyer révisé appliqué à partir du terme ${deElide(moisDuTerme(r.premier_terme))}` : ""}
                   {/* Documents-0 : la lettre de révision (23) */}
                   <BoutonGenererDocument
@@ -718,7 +726,9 @@ export function FormulaireLoyers({
             {anneeSautee && (
               <div className="space-y-1" data-irl-precedent>
                 <Label htmlFor="irl-precedent" className="text-sm">
-                  IRL du {trimestreReference ? `T${trimestreReference} ` : "même trimestre "}{anneeSaisie - 1}
+                  {/* Seconde reprise du lot D2 : le champ peut paraître avant que l'année de l'indice soit saisie. */}
+                  IRL du {trimestreReference ? `T${trimestreReference} ` : "même trimestre "}
+                  {Number.isFinite(anneeSaisie) ? anneeSaisie - 1 : "de l’année précédente"}
                 </Label>
                 <Input key={precedentPropose ?? "saisie"} id="irl-precedent" name="irl_precedent" type="text" inputMode="decimal" placeholder="ex. 144,05" defaultValue={precedentPropose ?? etatRev.valeurs?.irl_precedent} className="h-9 w-28" />
               </div>
@@ -734,10 +744,10 @@ export function FormulaireLoyers({
             </BoutonEnvoi>
             {anneeSautee && (
               <p className="w-full text-sm text-warning-soft-foreground" data-revision-annee-sautee>
-                L&apos;indice de référence de ce bail est celui de {anneeReference} : la révision d&apos;une année au moins n&apos;a pas
-                été faite. Elle n&apos;est pas rattrapée : le loyer se révise sur un an, avec l&apos;indice du même trimestre de
-                l&apos;année précédente ({anneeSaisie - 1}), à saisir ci-dessus. Le calcul devient : loyer actuel × IRL{" "}
-                {anneeSaisie} / IRL {anneeSaisie - 1}.
+                Aucune révision n&apos;est enregistrée pour l&apos;année de bail précédente, ou l&apos;indice de référence de ce
+                bail est plus ancien. Une révision qui n&apos;a pas été faite n&apos;est pas rattrapée : le loyer se révise sur un an, avec l&apos;indice du même trimestre de
+                l&apos;année précédente{Number.isFinite(anneeSaisie) ? ` (${anneeSaisie - 1})` : ""}, à saisir ci-dessus.
+                {Number.isFinite(anneeSaisie) ? ` Le calcul devient : loyer actuel × IRL ${anneeSaisie} / IRL ${anneeSaisie - 1}.` : ""}
               </p>
             )}
             {etatRev.erreur && <p className="w-full text-sm text-destructive">{etatRev.erreur}</p>}

@@ -371,11 +371,14 @@ export function construireRevisionIrl(d: DonneesRevisionIrl) {
     ${d.premierTerme
       ? phrasePremierTerme({ premierTerme: d.premierTerme, dateDemande: d.dateDemande, ancienLoyer: d.ancienLoyer, nouveauLoyer: d.nouveauLoyer, dateFinBail: d.dateFinBail, enregistreLe: d.enregistreLe })
       : phraseApplication(d.application, d.dateFinBail, d.nouveauLoyer)}
-    ${/* Reprise du lot D2 : dit de façon neutre, avec les deux indices réellement utilisés (tableau « Indices retenus »). */
+    ${/* Reprise du lot D2 : dit de façon neutre, avec les deux indices réellement utilisés (tableau « Indices retenus »).
+         Seconde reprise : la lettre n'affirme plus que « la révision de l'année précédente n'a pas été appliquée ». Ce calcul
+         sert aussi quand aucune révision n'est ENREGISTRÉE pour l'année précédente (bail repris en cours, révisé auparavant
+         hors de Gerimmo) : la lettre dit le calcul, et la règle sous forme générale. */
       d.referenceAnneePrecedente
-        ? `<p>La révision annuelle de l'année précédente n'a pas été appliquée ; elle n'est pas rattrapée. Le calcul porte sur une
-          seule année : de l'indice du ${echapper(d.referenceAnneePrecedente)} (même trimestre, année précédente) à l'indice du
-          ${echapper(d.trimestreNouveau ?? "trimestre de la révision")}.</p>`
+        ? `<p>Le calcul porte sur une seule année : de l'indice du ${echapper(d.referenceAnneePrecedente)} (même trimestre,
+          année précédente) à l'indice du ${echapper(d.trimestreNouveau ?? "trimestre de la révision")}. Une révision annuelle
+          qui n'aurait pas été appliquée une année précédente n'est pas rattrapée.</p>`
         : ""}
     ${section("Nouveau montant")}
     ${tableau(

@@ -99,6 +99,8 @@ export default async function PageAttestationLoyer(
     bail?.loyer_hc ?? null,
     ((revisions ?? []) as (RevisionDuLoyer & { bail_id: string })[]).filter((r) => r.bail_id === bail?.bail_id),
     aujourdhui,
+    // Seconde reprise du lot D2 : un bail qui finit avant le premier terme révisé n'annonce rien.
+    bail?.date_fin,
   );
   const loyerCc =
     bail && (duTerme.loyer !== null || bail.charges !== null)

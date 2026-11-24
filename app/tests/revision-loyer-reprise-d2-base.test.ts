@@ -34,6 +34,11 @@ verifierBaseDeTest(url);
 const lire = (chemin: string) => readFileSync(chemin, "utf8");
 const migration = () => lire(`supabase/migrations/${NOM}.sql`);
 const retour = () => lire(`supabase/retours-arriere/${NOM}.retour.sql`);
+// Seconde reprise du lot D2 (24/11) : la migration 20261124150000 modifie deux lignes posées par celle-ci (la condition de
+// l'année non faite et son message). Tant qu'elle est en place, le rejeu et le retour de celle-ci s'arrêtent sans rien
+// modifier (tenu par tests/revision-loyer-seconde-reprise-d2-base.test.ts). Les tests qui rejouent ou défont CETTE migration
+// jouent donc d'abord le retour de la seconde reprise, dans leur transaction : c'est l'ordre du LISEZ-MOI.
+const retourSecondeReprise = () => lire("supabase/retours-arriere/20261124150000_revision_loyer_seconde_reprise_d2.retour.sql");
 
 describe("révision du loyer, reprise du lot D2 — manifeste, retour et écriture de la migration (sans base)", () => {
   it("la migration est au manifeste une seule fois, après celle du lot D2, avec son retour listé et en tête de l'ordre des retours", () => {
@@ -187,7 +192,9 @@ describe.skipIf(!url)("révision du loyer, reprise du lot D2 (avec base)", () =>
       // Sans l'indice de l'année précédente : refus clair, rien n'est écrit, le loyer ne bouge pas.
       const message = await refusRevision(b, 106, "T2 2025", "2025-11-24");
       expect(message).toContain("Indice du T2 2024 obligatoire");
-      expect(message).toContain("Elle n'est pas rattrapée : le loyer se révise sur un an");
+      // Seconde reprise du lot D2 : le message n'affirme plus qu'une révision « n'a pas été faite » (la base sait seulement
+      // qu'aucune n'est enregistrée) ; la règle, elle, est dite de la même façon.
+      expect(message).toContain("Une révision qui n'a pas été faite n'est pas rattrapée : le loyer se révise sur un an");
       expect(await refusRevision(b, 106, "T2 2025", "2025-11-24", null)).toContain("Indice du T2 2024 obligatoire");
       expect(await refusRevision(b, 106, "T2 2025", "2025-11-24", 0)).toContain("Indice du T2 2024 obligatoire");
       expect(await revisions(b)).toEqual([]);
@@ -199,14 +206,16 @@ describe.skipIf(!url)("révision du loyer, reprise du lot D2 (avec base)", () =>
     it("variante du relecteur : indice T2 2024 en 2025, puis T2 2026 un an après — la seconde se calcule avec le T2 2025, pas avec le T2 2024", async () => {
       await nousSommesLe("2025-11-24");
       const b = await bail({ date_debut: "2023-10-15", irl_trimestre: "T2 2023" });
-      // Première révision : un an d'écart entre les indices (T2 2023 → T2 2024), cas normal.
-      expect(await reviser(b, 103, "T2 2024", "2025-11-24")).toBe(721);
+      // Première révision : un an d'écart entre les indices (T2 2023 → T2 2024).
+      // Seconde reprise du lot D2 : ce bail est dans sa deuxième année sans révision la première ; l'indice de l'année
+      // précédente est désormais exigé même ici (c'est celui du bail, 100). Même montant, et son trimestre est écrit.
+      expect(await reviser(b, 103, "T2 2024", "2025-11-24", 100)).toBe(721);
       await nousSommesLe("2026-10-15");
       // Seconde : T2 2026 contre une référence T2 2024. Avant la reprise : 721 × 109 / 103 = 763,00 €.
       expect(await refusRevision(b, 109, "T2 2026", "2026-10-15")).toContain("Indice du T2 2025 obligatoire");
       expect(await reviser(b, 109, "T2 2026", "2026-10-15", 106)).toBe(741.41); // 721 × 109 / 106
       expect((await revisions(b)).map((r) => [r.ancien, r.nouveau, r.reference, r.indice, r.reference_trimestre])).toEqual([
-        [700, 721, 100, 103, null],
+        [700, 721, 100, 103, "T2 2023"],
         [721, 741.41, 106, 109, "T2 2025"],
       ]);
     });
@@ -227,6 +236,7 @@ describe.skipIf(!url)("révision du loyer, reprise du lot D2 (avec base)", () =>
       expect(await deuxAnnees(55)).toEqual(attendu);     // un indice « précédent » fourni à tort n'est pas lu
       // La définition d'avant la reprise, rétablie par le retour, donne les mêmes lignes.
       await base();
+      await db.query(retourSecondeReprise());
       await db.query(retour());
       const avant = await (async () => {
         await nousSommesLe("2025-10-15");
@@ -401,6 +411,7 @@ describe.skipIf(!url)("révision du loyer, reprise du lot D2 (avec base)", () =>
     });
 
     it("rejouée deux fois, la migration ne change rien ; les migrations précédentes de cette fonction se rejouent aussi sans effet ; une définition inattendue l'arrête", async () => {
+      await db.query(retourSecondeReprise());
       const avant = await etat();
       await db.query(migration());
       await db.query(migration());
@@ -426,6 +437,7 @@ describe.skipIf(!url)("révision du loyer, reprise du lot D2 (avec base)", () =>
     });
 
     it("le retour rend la définition d'avant et retire la seconde signature, garde la colonne et les révisions, se rejoue ; la migration se rejoue ensuite", async () => {
+      await db.query(retourSecondeReprise());
       await nousSommesLe("2025-11-24");
       const b = await bail({ date_debut: "2023-10-15", irl_trimestre: "T2 2023" });
       await reviser(b, 106, "T2 2025", "2025-11-24", 103);

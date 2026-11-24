@@ -854,7 +854,7 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
       `insert into public.baux (organization_id, lot_id, type, etat, loyer_hc, charges,
          date_debut, jour_echeance, irl_valeur, irl_trimestre)
        values ($1,$2,'nu'::public.bail_type,'actif'::public.bail_etat,600,50,
-         (public.aujourdhui_paris() - interval '2 years')::date,5,145.17,'2e trimestre 2025')
+         (public.aujourdhui_paris() - interval '2 years')::date,5,145.17,'2e trimestre 2024')
        returning id`,
       [org, lotSuite.id]
     );
@@ -950,14 +950,18 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
     // Décision Q23 du 24/11/2026 : la révision d'une année est refusée passé un an après sa date de révision, même antidatée.
     // « Celle de l'an dernier » s'enregistre donc le jour où elle a été demandée (jour de Paris figé un an plus tôt) ;
     // les montants vérifiés sont les mêmes.
+    // Seconde reprise du lot D2 (24/11/2026) : l'année de l'indice ne peut plus dépasser celle de la date de révision. Les
+    // libellés de ce bail étaient décalés d'un an (« T2 2026 » pour la révision de l'an dernier, « T2 2027 » pour celle de
+    // ce jour, référence « 2e trimestre 2025 ») : ils sont remis à leur année (2024, 2025, 2026). Mêmes valeurs d'indice,
+    // mêmes montants vérifiés.
     const {
       rows: [anDernier],
     } = await auJourDeParis(db, "public.aujourdhui_paris() - interval '1 year'", enGerant, () =>
-      db.query(`select public.reviser_loyer($1, 148.03, 'T2 2026', public.aujourdhui_paris()) as loyer`, [bailSuite.id]));
+      db.query(`select public.reviser_loyer($1, 148.03, 'T2 2025', public.aujourdhui_paris()) as loyer`, [bailSuite.id]));
     expect(Number(anDernier.loyer)).toBe(611.82);
     const {
       rows: [cetteAnnee],
-    } = await db.query(`select public.reviser_loyer($1, 152.00, 'T2 2027', public.aujourdhui_paris()) as loyer`, [
+    } = await db.query(`select public.reviser_loyer($1, 152.00, 'T2 2026', public.aujourdhui_paris()) as loyer`, [
       bailSuite.id,
     ]);
     expect(Number(cetteAnnee.loyer)).toBe(628.23);

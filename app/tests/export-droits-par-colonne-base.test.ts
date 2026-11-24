@@ -34,7 +34,9 @@ describe("export et droits par colonne — manifeste et écriture de la migratio
   it("la migration est au manifeste une seule fois, avec son retour listé et son test en série", () => {
     const manifeste = lireFichier("e2e/local/ordre-migrations.txt").trim().split(/\r?\n/);
     expect(manifeste.filter((l) => l === `${NOM}.sql`)).toHaveLength(1);
-    expect(manifeste.at(-1)).toBe(`${NOM}.sql`);
+    // Seconde reprise du lot D2 (24/11) : la migration 20261124150000 la suit au manifeste ; elle n'est plus la dernière,
+    // mais elle reste après celle qu'elle complète.
+    expect(manifeste.indexOf(`${NOM}.sql`)).toBeGreaterThan(manifeste.indexOf("20261124120000_motif_retrait_reserve_a_l_auteur.sql"));
     expect(existsSync(`supabase/retours-arriere/${NOM}.retour.sql`)).toBe(true);
     expect(lireFichier("supabase/retours-arriere/LISEZ-MOI.md")).toContain(`| \`${NOM}.retour.sql\` | \`${NOM}.sql\``);
     expect(lireFichier("tests/relais-migrations-manifeste.test.ts")).toContain(`"${NOM}.sql",`);

@@ -284,6 +284,9 @@ const MISSION_OCTOBRE = [
   // 24/11, décisions du dirigeant (lot D1, seconde reprise, C1) : l'export complet d'un espace retrouve la table des notes
   // d'artisans (droit de lecture par colonne), sans le motif du retrait.
   "20261124140000_export_droits_par_colonne.sql",
+  // 24/11, décisions du dirigeant (lot D2, seconde reprise après relecture) : année non faite reconnue à l'année de bail,
+  // indices invraisemblables et indice de la révision suivante refusés, terme appelé en retard autour d'un avenant.
+  "20261124150000_revision_loyer_seconde_reprise_d2.sql",
 
 
 ];

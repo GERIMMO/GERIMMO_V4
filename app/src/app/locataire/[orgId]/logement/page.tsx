@@ -91,6 +91,8 @@ export default async function PageLogementLocataire(
     bail.loyer_hc,
     ((revisions ?? []) as (RevisionDuLoyer & { bail_id: string })[]).filter((r) => r.bail_id === bail.bail_id),
     aujourdhuiParis(),
+    // Seconde reprise du lot D2 : un bail qui finit avant le premier terme révisé n'annonce rien.
+    bail.date_fin,
   );
   const moisDuTerme = (terme: string) =>
     new Date(`${terme}T12:00:00Z`).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });

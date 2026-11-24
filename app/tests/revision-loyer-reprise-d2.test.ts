@@ -68,7 +68,10 @@ describe("point 1 — lettre d'une révision calculée sur un an (révision de l
   it("elle imprime les deux indices réellement utilisés, le calcul sur un an, et dit de façon neutre ce qui s'est passé", () => {
     le("2025-11-24");
     const texte = lettre(anneeSautee());
-    expect(texte).toContain("La révision annuelle de l'année précédente n'a pas été appliquée ; elle n'est pas rattrapée. Le calcul porte sur une seule année : de l'indice du T2 2024 (même trimestre, année précédente) à l'indice du T2 2025.");
+    // Seconde reprise du lot D2 : la lettre n'affirme plus que « la révision de l'année précédente n'a pas été appliquée »
+    // (ce calcul sert aussi pour un bail repris en cours, révisé auparavant hors de Gerimmo) ; elle dit le calcul et la règle.
+    expect(texte).toContain("Le calcul porte sur une seule année : de l'indice du T2 2024 (même trimestre, année précédente) à l'indice du T2 2025. Une révision annuelle qui n'aurait pas été appliquée une année précédente n'est pas rattrapée.");
+    expect(texte).not.toContain("n'a pas été appliquée ;");
     expect(texte).toContain("Nouvel indice retenu 106,00");
     expect(texte).toContain("Indice de référence (même trimestre de l'année précédente, T2 2024) 103,00");
     expect(texte).toContain("Variation 2,91 %");
@@ -202,11 +205,13 @@ describe("point 4 — le loyer affiché avant le premier terme révisé", () => 
 describe("points 1 et 6 — formulaire de révision", () => {
   const formulaire = readFileSync("src/app/agence/[orgId]/baux/[bailId]/formulaire-loyers.tsx", "utf8");
 
-  it("le champ de l'indice de l'année précédente n'apparaît que si l'année saisie dépasse de plus d'un an celle de la référence", () => {
-    expect(formulaire).toContain("const anneeSautee = anneeReference !== null && Number.isFinite(anneeSaisie) && anneeSaisie > anneeReference + 1;");
+  it("le champ de l'indice de l'année précédente n'apparaît que si la révision de l'année précédente manque, ou si l'année saisie dépasse de plus d'un an celle de la référence", () => {
+    // Seconde reprise du lot D2 (24/11) : l'année non faite se reconnaît d'abord à l'année de bail, comme dans la base
+    // (`indicePrecedentExige`) ; l'ancienne condition, sur l'année lue de la référence, reste en second.
+    expect(formulaire).toContain("indicePrecedentExige(dateDebut, demandeApercu, revisions) ||\n    (anneeReference !== null && Number.isFinite(anneeSaisie) && anneeSaisie > anneeReference + 1);");
     expect(formulaire).toContain("{anneeSautee && (\n              <div className=\"space-y-1\" data-irl-precedent>");
     expect(formulaire).toContain('name="irl_precedent"');
-    expect(formulaire).toContain("Elle n&apos;est pas rattrapée : le loyer se révise sur un an");
+    expect(formulaire).toContain("Une révision qui n&apos;a pas été faite n&apos;est pas rattrapée : le loyer se révise sur un an");
   });
 
   it("l'aperçu suit la date de demande saisie et dit le refus quand la base refuserait", () => {
@@ -222,8 +227,16 @@ describe("refus de la base — ils arrivent entiers à l'écran, sans mot techni
     const { sansJargon } = await import("@/lib/erreurs");
     const migration = readFileSync("supabase/migrations/20261124130000_revision_loyer_reprise_d2.sql", "utf8");
     expect(migration).toContain("raise exception 'Révision refusée : ce bail est terminé, son loyer ne se révise plus';");
+    // Seconde reprise du lot D2 (24/11) : le premier message ne cite plus l'année lue de la référence (elle peut manquer) ;
+    // s'y ajoutent les deux refus de la migration 20261124150000 (indice de la révision suivante, indices invraisemblables).
+    const seconde = readFileSync("supabase/migrations/20261124150000_revision_loyer_seconde_reprise_d2.sql", "utf8");
+    expect(seconde).toContain("aucune révision n''est enregistrée pour l''année de bail précédente, ou l''indice de référence de ce bail est plus ancien. Une révision qui n''a pas été faite n''est pas rattrapée");
+    expect(seconde).toContain("cet indice est celui de la révision suivante");
+    expect(seconde).toContain("Révision refusée : vérifiez les indices saisis.");
     for (const message of [
-      "Indice du T2 2024 obligatoire : l'indice de référence de ce bail est celui de 2023, la révision d'une année au moins n'a pas été faite. Elle n'est pas rattrapée : le loyer se révise sur un an, avec l'indice du même trimestre de l'année précédente (T2 2024). Saisissez cet indice",
+      "Indice du T2 2024 obligatoire : aucune révision n'est enregistrée pour l'année de bail précédente, ou l'indice de référence de ce bail est plus ancien. Une révision qui n'a pas été faite n'est pas rattrapée : le loyer se révise sur un an, avec l'indice du même trimestre de l'année précédente (T2 2024). Saisissez cet indice",
+      "Indice du T2 2025 refusé : cet indice est celui de la révision suivante. La révision demandée est celle du 15/10/2024 : l'année de son indice ne peut pas dépasser 2024",
+      "Révision refusée : vérifiez les indices saisis. L'indice nouveau (106) et l'indice de référence (1) doivent être deux nombres positifs proches l'un de l'autre",
       "Révision refusée : ce bail est terminé, son loyer ne se révise plus",
     ]) {
       expect(sansJargon(message)).toBe(message);

@@ -107,13 +107,24 @@ test("révision annuelle : rappelée à la date anniversaire, indice cherché ch
     await revision.locator("#irl-annee").fill(String(d.annee));
     await expect(revision.locator("[data-irl-precedent]")).toBeVisible();
     await expect(revision.locator("[data-irl-precedent] label")).toHaveText(`IRL du T2 ${d.annee - 1}`);
-    await expect(revision.locator("[data-revision-annee-sautee]")).toContainText("Elle n'est pas rattrapée : le loyer se révise sur un an");
+    await expect(revision.locator("[data-revision-annee-sautee]")).toContainText("Une révision qui n'a pas été faite n'est pas rattrapée : le loyer se révise sur un an");
     await revision.locator("#irl-precedent").fill("");
     await revision.getByRole("button", { name: "Réviser le loyer" }).click();
     await expect(revision.getByText(`Indice du T2 ${d.annee - 1} obligatoire`)).toBeVisible();
     expect((await db.query("select count(*)::int n from revisions_loyer where bail_id=$1", [bail])).rows[0].n).toBe(0);
     expect(await debordementHorizontal(page)).toBeLessThanOrEqual(1);
     await revision.screenshot({ path: info.outputPath("revision-annee-sautee.png") });
+
+    // ── Seconde reprise du lot D2 (24/11) : un indice invraisemblable (faute de frappe, « 1420 » pour « 142 ») est refusé
+    // par la base avec une phrase claire, et rien n'est enregistré. C'est un garde-fou de saisie.
+    await revision.locator("#irl-nouv").fill("1420");
+    await revision.locator("#irl-trim").selectOption("2");
+    await revision.locator("#irl-annee").fill(String(d.annee - 1));
+    await expect(revision.locator("[data-irl-precedent]")).toHaveCount(0);
+    await revision.getByRole("button", { name: "Réviser le loyer" }).click();
+    await expect(revision.getByText("Révision refusée : vérifiez les indices saisis.", { exact: false })).toBeVisible();
+    expect((await db.query("select count(*)::int n from revisions_loyer where bail_id=$1", [bail])).rows[0].n).toBe(0);
+    expect((await db.query("select loyer_hc::float8 loyer from baux where id=$1", [bail])).rows[0].loyer).toBe(700);
 
     // ── La saisie à la main reste possible (valeurs fictives) : avec l'indice de l'année qui suit la référence (un an
     // d'écart, cas normal), le champ de l'année précédente disparaît et la révision s'enregistre.

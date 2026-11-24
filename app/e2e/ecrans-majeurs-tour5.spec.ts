@@ -22,9 +22,17 @@ test.describe("pages publiques", () => {
   test("E173 : un lien de signature non valable ne promet pas un acte de cautionnement", async ({ page }) => {
     await page.goto(`/signature/caution/${"A".repeat(43)}`);
     await expect(page.getByText("Ce lien n’est pas valable.", { exact: false })).toBeVisible();
-    await expect(page.getByText("Un document à signer en ligne.", { exact: true })).toBeVisible();
+    // Vérification groupée de la fusion (25/11) : la promesse est portée par le panneau de la marque, affiché à partir de
+    // 1024 px seulement (src/components/coquille-auth.tsx : « hidden … lg:flex ») ; le seul projet du banc est à 390 px, où
+    // elle est dans la page sans être visible (l'ancienne assertion « visible » ne pouvait pas passer). Elle est donc lue
+    // présente à 390 px, puis visible à 1280 px. Le texte de la page (panneau masqué compris) ne nomme pas le cautionnement.
+    const promesse = page.getByText("Un document à signer en ligne.", { exact: true });
+    await expect(promesse).toBeAttached();
     await expect(page.locator("body")).not.toContainText("cautionnement");
     await tenue(page);
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await expect(promesse).toBeVisible();
+    await expect(page.locator("body")).not.toContainText("cautionnement");
   });
 
   test("E056 : la page Confidentialité porte sa propre date de mise à jour", async ({ page }) => {
@@ -49,6 +57,10 @@ test.describe("console du super admin", () => {
   test("E088 : à 390 px, le champ de recherche des prospects garde sa largeur et son libellé sur une ligne", async ({ page }) => {
     await page.goto("/admin/territoire#prospects");
     const champ = page.locator('input[name="qProspect"]');
+    // Vérification groupée de la fusion (25/11) : la console est rendue en flux (src/app/admin/loading.tsx) ; sur un serveur
+    // froid, le défilement partait avant que le contenu soit en place (« élément détaché »). On attend la section, puis le champ.
+    await expect(page.getByRole("heading", { level: 2, name: "Prospects et prochaines actions" })).toBeVisible();
+    await expect(champ).toBeVisible();
     await champ.scrollIntoViewIfNeeded();
     const largeur = (await champ.boundingBox())?.width ?? 0;
     expect(largeur).toBeGreaterThanOrEqual(200);
@@ -69,6 +81,10 @@ test.describe("console du super admin", () => {
 
   test("E089 : la veille ne propose « Commander la collecte » que si « Automatismes » peut lancer la tâche", async ({ page }) => {
     await page.goto("/admin/equipes");
+    // Vérification groupée de la fusion (25/11) : `isVisible()` n'attend pas ; la console étant rendue en flux
+    // (src/app/admin/loading.tsx), sur un serveur froid l'avis n'était pas encore en place et le test concluait à tort
+    // que le lancement était possible. On lit l'avis une fois le titre de la page affiché (même rendu que l'avis).
+    await expect(page.getByRole("heading", { level: 1, name: "Automatismes et consignes" })).toBeVisible();
     const lancementImpossible = await page.getByText("Le lancement manuel attend la connexion des traitements.", { exact: false }).isVisible();
     await page.goto("/admin/veille");
     await expect(page.getByRole("heading", { level: 1, name: "Veille réglementaire" })).toBeVisible();

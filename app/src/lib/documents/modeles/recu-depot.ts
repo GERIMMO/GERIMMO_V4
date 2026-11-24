@@ -63,7 +63,8 @@ export function construireRecuDepot(d: DonneesRecuDepot) {
       ["Logement loué", `<div>${f.champ(d.logementAdresse, "adresse complète, étage, porte")}</div>`],
       // Phase 3, lot 51 (W11, même défaut que C14) : la date imprimée est la prise d'effet du bail, pas sa conclusion ; « du »
       // la présentait comme la date du contrat (un reçu du 28/06 renvoyait à un bail « du 01/07 »).
-      ["Bail", `Réf. ${f.champ(d.referenceBail, "référence du bail")} — prise d'effet le ${f.date(d.dateBail)}`],
+      // Lot 53 (reprise du lot 51, W19) : « prise d’effet » avec l'apostrophe typographique des documents du dossier du bail.
+      ["Bail", `Réf. ${f.champ(d.referenceBail, "référence du bail")} — prise d’effet le ${f.date(d.dateBail)}`],
     ])}
     <p>Je soussigné(e) ${d.bailleurNom}, bailleur du logement désigné ci-dessus, reconnais avoir reçu
     ${d.versant ? `de ${f.champ(d.versant, "versant")}` : `de ${d.locatairesNoms}`}

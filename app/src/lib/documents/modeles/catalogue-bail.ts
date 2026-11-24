@@ -80,6 +80,8 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
     // S39 : l'adresse postale du destinataire d'un courrier de recouvrement, ligne par ligne (`undefined` : pas un courrier ;
     // aucune ligne : inconnue).
     let adresseDestinataire: string[] | undefined;
+    // La date d'arrêté de la dette du plan dont un protocole reprend les termes (titre de classement, W35).
+    let datePlanProtocole: string | null = null;
     const opt = (cle: string, libelle: string) => f.champ(options[cle]?.trim() || null, libelle);
     if (["attestation_loyer", "attestation_caf"].includes(code) && !["actif","preavis"].includes(ctx.bail.etat)) return { erreur: "Cette attestation concerne un contrat actuellement en cours." };
     if (["attestation_loyer", "attestation_caf", "relance_simple", "seconde_relance", "mise_en_demeure", "protocole_apurement"].includes(code) && ctx.bail.etat === "brouillon") return { erreur: "Ce document se prépare pour un bail engagé, après la signature du contrat." };
@@ -191,6 +193,7 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
             tranches: tranches.map(t => ({ date: texte(t.echeance), montant: montant(t.montant) })) };
         }
       }
+      datePlanProtocole = plan?.date_arrete || null;
       const detteCentimes = plan ? Math.round(plan.dette_initiale * 100) : soldeEchuCentimes;
       if (code !== "situation_dette" && detteCentimes <= 0) return { erreur: REFUS_AUCUNE_DETTE };
       // C67, C68 : la colonne « Période » écrit le mois (« novembre 2026 ») et signale un terme au prorata avec ses bornes réelles.
@@ -203,7 +206,10 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
       const aVenirCentimes = lignesSituation.filter(l => !echus.includes(l)).reduce((s,l)=>s+resteCentimes(l),0);
       contenu = `${section(code === "situation_dette" ? "Situation des échéances" : "Échéances restant dues")}
         ${lignesTableau(f,avecPeriodeLisible(lignesSituation),[["Période","periode","texte"],["Échéance","date_echeance","date"],["Appelé","montant_du","montant"],["Couvert","montant_couvert","montant"],["Reste dû","reste","montant"]])}
-        <p><strong>Solde échu au ${f.date(aujourdhui)} : ${eur(soldeEchuCentimes/100)}.</strong> Les échéances à venir sont exclues de ce solde${aVenirCentimes > 0 ? ` : il reste ${eur(aVenirCentimes/100)} sur les échéances du tableau qui ne sont pas encore échues` : ""}.</p>`;
+        ${/* Phase 3, lot 53 (W33, même défaut que C45) : le solde, qui tient lieu de total du tableau, reste sous ses dernières
+             lignes ; avec « Fait à » et la signature (.fait-a), il partait seul en tête de la page 2, le tableau sans total en page 1.
+             Pas pour le protocole d'apurement, dont le HTML est l'empreinte de son circuit de signature (et où le solde est
+             suivi des modalités de règlement, pas de la signature). */ ""}<p${code === "protocole_apurement" ? "" : ` style="break-before:avoid-page;page-break-before:avoid"`}><strong>Solde échu au ${f.date(aujourdhui)} : ${eur(soldeEchuCentimes/100)}.</strong> Les échéances à venir sont exclues de ce solde${aVenirCentimes > 0 ? ` : il reste ${eur(aVenirCentimes/100)} sur les échéances du tableau qui ne sont pas encore échues` : ""}.</p>`;
       if (code === "relance_simple") contenu += `<p>Sauf règlement intervenu depuis l’établissement de ce décompte, nous vous invitons à régulariser les sommes échues. En cas de difficulté ou de désaccord, contactez votre ${interlocuteur} afin d’examiner votre situation.</p>`;
       if (code === "mise_en_demeure" && (!/^\d+$/.test(options.delai ?? "") || Number(options.delai) < 1 || Number(options.delai) > 90)) return { erreur: "Indiquez un délai de règlement de 1 à 90 jours." };
       if (code === "relance_simple" || code === "seconde_relance" || code === "mise_en_demeure") {
@@ -221,7 +227,10 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
           : adressePostaleLogement(ctx.lot,ctx.bien);
         if (code === "seconde_relance") contenu += `<p>Notre précédent courrier du ${f.date(suivi.precedente)} reste sans régularisation complète à ce jour. Merci de régler ce solde ou de prendre contact avec votre ${interlocuteur}.</p>`;
       }
-      if (code === "mise_en_demeure") contenu += `<p>Par le présent courrier, nous vous mettons en demeure de régler les sommes échues détaillées ci-dessus dans un délai de ${opt("delai","délai de règlement à compter de la réception")} jours à compter de sa réception, sous réserve des règlements intervenus depuis son établissement.</p><p>Ce courrier est à notifier avec preuve de réception. Il ne constitue ni un commandement de payer ni une décision de résiliation du bail.</p>`;
+      // Phase 3, lot 53 (W34) : « Ce courrier est à notifier avec preuve de réception » était une consigne pour l'expéditeur,
+      // imprimée dans la lettre adressée au locataire ; elle reste à l'écran (aide du délai : catalogue-options.ts, préparation
+      // du recommandé : rappels-loyers-interactifs.tsx). Aucun mode d'envoi n'est affirmé : Gerimmo ne le connaît pas.
+      if (code === "mise_en_demeure") contenu += `<p>Par le présent courrier, nous vous mettons en demeure de régler les sommes échues détaillées ci-dessus dans un délai de ${opt("delai","délai de règlement à compter de la réception")} jours à compter de sa réception, sous réserve des règlements intervenus depuis son établissement.</p><p>Ce courrier ne constitue ni un commandement de payer ni une décision de résiliation du bail.</p>`;
       // C72 : un règlement demandé par virement donne le compte où verser, comme l'avis d'échéance (même source, même règle).
       if (code !== "situation_dette") contenu += `<p>Modalités de règlement : ${f.champ(ctx.bail.lieu_paiement,"modalités de règlement")}${demandeVirement(ctx.bail.lieu_paiement) ? ` ; coordonnées bancaires : ${coordonneesBancaires(f, ctx.bail.lieu_paiement, ibanLisible(ctx.organisation.iban))}` : ""} ; référence à rappeler : ${referenceCourte("BAIL",bailId)}.</p>`;
       if (code === "protocole_apurement") {
@@ -279,12 +288,18 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
       // Phase 3 (C37) : l'écran de restitution laisse l'âge et la durée de vie facultatifs (vides : coût retenu en intégralité, la
       // base ne calcule alors aucune décote). Vides, ils s'impriment « — », comme dans le décompte de restitution, sans bloquer le PDF.
       const sansDecote = retenues.some(l=>l.duree_vie_ans==null || l.age_ans==null);
+      // Phase 3, lot 53 (reprise du lot 51, W16) : la base (ajouter_retenue) n'applique la décote qu'avec une durée de vie
+      // supérieure à 0 et un âge saisis ; une durée de vie de 0 retient le coût entier, comme le dit le décompte de restitution
+      // (« Aucune — coût retenu en intégralité »). La règle de vétusté ne s'imprimait pas moins.
+      const decoteAppliquee = (l: LigneDocument) => Number(l.duree_vie_ans) > 0 && l.age_ans != null;
+      const dureeNulle = retenues.some(l=>l.duree_vie_ans!=null && !(Number(l.duree_vie_ans) > 0));
       const lignesRetenues = retenues.map(l=>({...l,age_ans:l.age_ans==null?null:nombreFr(l.age_ans as number|string),duree_vie_ans:l.duree_vie_ans==null?null:nombreFr(l.duree_vie_ans as number|string)}));
       // Phase 3 (C35) : comme le décompte de restitution, les justificatifs sont tenus à disposition (aucune pièce n'est jointe au PDF).
       contenu = `${section("Retenues enregistrées")}${lignesTableau(f,lignesRetenues,[["Motif","libelle","texte"],["Coût","cout","montant"],["Âge (ans)","age_ans","facultatif"],["Durée de vie (ans)","duree_vie_ans","facultatif"],["Retenue","montant_retenu","montant"]])}
         ${/* Phase 3, lot 51 (W16) : la décote appliquée est nommée et sa règle écrite (celle du calcul de la base et du décompte de
-             restitution) ; le coût devenait une retenue plus faible sans explication. */ ""}${retenues.some(l=>l.duree_vie_ans!=null && l.age_ans!=null) ? "<p>Vétusté : la retenue tient compte de l’âge de l’élément ; elle est égale au coût × (durée de vie − âge) / durée de vie.</p>" : ""}
+             restitution) ; le coût devenait une retenue plus faible sans explication. */ ""}${retenues.some(decoteAppliquee) ? "<p>Vétusté : la retenue tient compte de l’âge de l’élément ; elle est égale au coût × (durée de vie − âge) / durée de vie.</p>" : ""}
         ${sansDecote ? "<p>« — » : âge ou durée de vie non renseigné ; aucune décote de vétusté n’est appliquée, le coût est retenu en intégralité.</p>" : ""}
+        ${dureeNulle ? "<p>Durée de vie nulle : aucune décote de vétusté n’est appliquée, le coût est retenu en intégralité.</p>" : ""}
         <p>Total : ${eur(retenues.reduce((s,l)=>s+montant(l.montant_retenu),0))}. État du dossier : ${rs[0].statut === "finalise" ? "finalisé" : "en préparation"}.</p>
         <p>Les justificatifs déposés (devis, facture, constat comparé des états des lieux) sont tenus à la disposition du locataire sur demande. Les sommes ci-dessus sont propres à ce contrat.</p>`;
       if (retenues.some(l=>!l.justificatif_document)) f.champ(null,"justificatifs de retenues à déposer");
@@ -358,9 +373,15 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
     // un « dossier de location » (le dossier d'un candidat) : sans sous-titre (le CAF lisait « Dossier de préparation CAF / MSA »
     // puis « Dossier de location »). Les autres documents du dossier gardent le leur.
     const sousTitre = code === "attestation_loyer" || code === "attestation_caf" ? "" : "Dossier de location";
+    // Phase 3, lot 53 (W35, même défaut que C64) : deux courriers d'impayés du même modèle sur un même bail portaient le même
+    // titre de classement. Les relances, la mise en demeure et le relevé de situation portent leur date d'établissement (celle
+    // de l'en-tête et du solde), le protocole la date d'arrêté de la dette (celle de son plan) ; sans plan, il n'est pas
+    // produit. La GED détecte les doublons par l'empreinte du contenu du fichier, pas par le titre : rien n'y change.
+    const titreGed = code === "protocole_apurement" && datePlanProtocole ? `${meta.nom} — dette arrêtée au ${formaterDateFr(datePlanProtocole)}`
+      : (CODES_RECOUVREMENT as readonly string[]).includes(code) && code !== "protocole_apurement" ? `${meta.nom} — ${formaterDateFr(aujourdhui)}` : meta.nom;
     const corps = `${enTete(f,exp,avenant ? {libelle:"Avenant",reference:avenant.reference,etabliLe:aujourdhui} : {libelle:"Contrat",reference:referenceCourte("BAIL",bailId),etabliLe:aujourdhui})}${titre(meta.nom,avenant ? "Modification du contrat commun de location" : sousTitre,[])}
       ${cartouches([["Bailleur",nomsBailleurs(f,ctx.bailleurs)],adresseDestinataire === undefined ? [caseLocataires,nomsLocataires(f,ctx.locataires)] : [`${caseLocataires} (${plusieurs ? "destinataires" : "destinataire"})`,`${nomsLocataires(f,ctx.locataires)}${adresseDestinataire.map(ligne => `<div>${facultatif(ligne)}</div>`).join("")}`],["Locaux concernés",f.champ(adresseLogement(ctx.lot,ctx.bien),"adresse du logement")],["Contrat",avenant?.contrat ?? contratDesigne]])}
       ${contenu}${avenant ? `${faitALaSignature(f,exp.ville)}${avenant.signatures}` : `${dateALaSignature ? faitALaSignature(f,exp.ville) : faitA(f,exp.ville,aujourdhui)}${signatureEmetteur ?? (signatures ? `<div class="signatures">${cadreSignature(libelleSignataireBailleur(ctx.organisation.type),nomsBailleurs(f,ctx.bailleurs))}${cadreSignature(plusieurs ? "Les locataires" : "Le locataire",nomsLocataires(f,ctx.locataires))}</div>` : "")}`}`;
-    return { document:assemblerPage({f,titreDocument:meta.nom,nomPied:meta.nom,reference,corps:`<style>.bloc-titre{padding:10pt 0;margin-bottom:8pt}h1{font-size:19pt;letter-spacing:.2em}h2{margin:14pt 0 8pt}.cartouches{margin:10pt 0}p{margin:4pt 0}</style>${corps}`}),titreGed:meta.nom,nomFichier:`${code}-${bailId.slice(0,8)}`,liens:[{entite:"bail",entiteId:bailId},{entite:"lot",entiteId:ctx.lot.id},...liensLocataires(ctx)] };
+    return { document:assemblerPage({f,titreDocument:meta.nom,nomPied:meta.nom,reference,corps:`<style>.bloc-titre{padding:10pt 0;margin-bottom:8pt}h1{font-size:19pt;letter-spacing:.2em}h2{margin:14pt 0 8pt}.cartouches{margin:10pt 0}p{margin:4pt 0}</style>${corps}`}),titreGed,nomFichier:`${code}-${bailId.slice(0,8)}`,liens:[{entite:"bail",entiteId:bailId},{entite:"lot",entiteId:ctx.lot.id},...liensLocataires(ctx)] };
   } catch(e) { if(e instanceof RefusDocument) return {erreur:e.message}; throw e; }
 }

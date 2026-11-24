@@ -227,7 +227,8 @@ export async function assemblerCongeBailleur(
       ],
       [
         "Bail",
-        `Réf. ${echapper(referenceBail)} — prise d'effet le ${f.date(ctx.bail.date_debut, "date de prise d'effet du bail")}`,
+        // Lot 53 (reprise du lot 51, W19) : « prise d’effet » avec l'apostrophe typographique des documents du dossier du bail.
+        `Réf. ${echapper(referenceBail)} — prise d’effet le ${f.date(ctx.bail.date_debut, "date de prise d'effet du bail")}`,
       ],
     ])}
     <p>Madame, Monsieur,</p>

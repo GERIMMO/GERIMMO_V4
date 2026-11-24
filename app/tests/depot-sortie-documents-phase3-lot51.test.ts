@@ -115,7 +115,9 @@ describe("W11, W14 — reçu de dépôt de garantie", () => {
 
   it("W11 : la date du bail est dite « prise d'effet », jamais « du » (le reçu du 28/06 ne renvoie plus à un bail « du 01/07 »)", () => {
     const texte = texteDe(recu().html);
-    expect(texte).toContain("Réf. BAIL-42669582 — prise d'effet le 01/07/2024");
+    // Lot 53 (reprise du lot 51, W19) : « prise d’effet » s'écrit avec l'apostrophe typographique, comme dans la case
+    // « Contrat » des documents du dossier du bail (l'apostrophe droite était l'une des deux graphies de la même mention).
+    expect(texte).toContain("Réf. BAIL-42669582 — prise d’effet le 01/07/2024");
     expect(texte).not.toMatch(/BAIL-42669582 du /);
   });
 

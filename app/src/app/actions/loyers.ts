@@ -18,7 +18,7 @@ import {
   parties,
 } from "@/lib/quittance-conforme";
 import { aujourdhuiParis, eur } from "@/lib/ged";
-import { avertissementExerciceNonTermine, etatDecompteSortie, exerciceNonTermine, messageSoldeNonAppele, type EtatDecompteSortie } from "@/lib/baux";
+import { avertissementExerciceAncien, avertissementExerciceNonTermine, etatDecompteSortie, exerciceDePlusDeTroisAns, exerciceNonTermine, messageSoldeNonAppele, type EtatDecompteSortie } from "@/lib/baux";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import {
   erreurDuChamp,
@@ -284,6 +284,13 @@ export async function regulariserCharges(
       erreur: `${avertissementExerciceNonTermine(annee, await lireEtatDecompteSortie(supabase, orgId, bailId))} Cochez la confirmation pour l’enregistrer malgré tout.`,
       valeurs,
     };
+  // Lot T3 (R16-A1) : un exercice clos depuis plus de trois ans n'est plus refusé comme « prescrit » par la base (le point de
+  // départ du délai de l'article 7-1 n'est pas la fin de l'exercice, et Gerimmo ne le connaît pas). Il s'enregistre sur
+  // confirmation explicite, vérifiée ICI comme pour l'exercice non terminé. Le sens du solde n'est pas encore connu (la base
+  // le calcule) : la confirmation est demandée pour tout exercice ancien, le texte dit qu'elle ne concerne qu'un complément.
+  const exerciceAncien = exerciceDePlusDeTroisAns(annee, aujourdhuiParis());
+  if (exerciceAncien && String(formData.get("confirmer_exercice_ancien") ?? "") !== "oui")
+    return { erreur: `${avertissementExerciceAncien(annee)} Cochez la confirmation pour l’enregistrer malgré tout.`, valeurs };
   // Audit agence 27/09 : le décompte n'existe en GED que si la régularisation
   // existe. Déposé avant la fonction, chaque refus (exercice déjà régularisé,
   // forfait, exercice hors bail…) laissait une pièce rattachée à rien, dont
@@ -322,6 +329,8 @@ export async function regulariserCharges(
           ? `Complément de ${eur(Math.abs(ecart))} dû par le locataire, qui a demandé à le régler en 12 mensualités (échéancier enregistré).`
           : `Complément de ${eur(Math.abs(ecart))} dû par le locataire.`
         : "Charges équilibrées (aucun écart).";
+  // Lot T3 (R16-A1) : le complément d'un exercice ancien est enregistré, jamais présenté comme sûrement dû.
+  const reserveAncien = exerciceAncien && ecart < 0 ? " Exercice clos depuis plus de trois ans : ce complément est peut-être prescrit (article 7-1 de la loi du 6 juillet 1989)." : "";
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   // Audit du 27/09 : la régularisation n'écrit PAS au journal (aucun appel
   // ni avoir n'est encore généré) ; son solde est repris au décompte de
@@ -359,7 +368,7 @@ export async function regulariserCharges(
     alerteManquante ? "Attention : l’alerte n’a pas pu être créée, notez ce solde pour ne pas l’oublier." : "",
     prep.avertissement ?? "",
   ].filter(Boolean);
-  return { succes: [msg, ...complements].join(" ") };
+  return { succes: [msg + reserveAncien, ...complements].join(" ") };
 }
 
 // Générer les appels de loyer manquants (échéancier) jusqu'au mois courant.

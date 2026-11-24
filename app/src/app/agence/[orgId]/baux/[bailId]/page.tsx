@@ -994,6 +994,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               encaissements={(encaissements ?? []) as Encaissement[]}
               quittances={(quittances ?? []) as Quittance[]}
               revisionIrl={Boolean(bail.revision_irl)}
+              cautionAuBail={lignesColoc.some((l) => l.role === "garant" && (!l.date_depart || l.date_depart >= aujourdhuiParis()))}
               avertissementDpe={bail.revision_irl ? <AvertissementDpe ecart={await lireEcartDpe(supabase, orgId, bail.lot_id)} usage="Sa classe décide si la révision du loyer est possible : elle est refusée en classe F ou G." /> : null}
               irlReference={bail.irl_valeur === null ? null : Number(bail.irl_valeur)}
               irlTrimestre={bail.irl_trimestre}

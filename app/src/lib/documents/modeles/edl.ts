@@ -274,7 +274,11 @@ export function construireEdl(d: DonneesEdl) {
                  )
                : "<p>Aucun écart avec l'état des lieux d'entrée : le logement est restitué dans l'état où il a été remis.</p>"
            }
-           <p>Adresse de restitution du dépôt de garantie : ${f.champ(d.adresseRestitutionDepot, "adresse de restitution du dépôt")}${pointFinal(d.adresseRestitutionDepot)}</p>`
+           ${/* Lot T3 (R15-A1) : le décret du 30 mars 2016 (article 2, 2°, a) demande à la sortie « L'adresse du nouveau
+               domicile ou du lieu d'hébergement du locataire » ; le document imprimait « Adresse de restitution du dépôt de
+               garantie », qui n'est pas la mention demandée. La donnée est la même (colonne adresse_restitution_depot,
+               inchangée) : seul le libellé change. */ ""}
+           <p>Adresse du nouveau domicile ou du lieu d’hébergement du locataire : ${f.champ(d.adresseRestitutionDepot, "adresse du nouveau domicile ou du lieu d’hébergement du locataire")}${pointFinal(d.adresseRestitutionDepot)}</p>`
     }
 
     ${sectionPhotos(d, numeros)}

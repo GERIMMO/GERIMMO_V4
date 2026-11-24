@@ -49,11 +49,18 @@ export function construireRappelAssurance(d: DonneesRappelAssurance) {
     attestation couvrant les risques locatifs (incendie, dégât des eaux, explosion), ${
       d.espaceLocataire ? "directement depuis votre espace locataire Gerimmo ou " : ""
     }à l'adresse suivante : ${f.champ(d.canalReponse, "adresse ou courriel")}.</p>
+    ${/* Lot T3 (R16-A2) : l'ancien texte mêlait deux procédures de l'article 7 g (« après mise en demeure […] constitue un
+        motif de résiliation, ou permet […] de souscrire une assurance ») : la résiliation suppose une clause et un
+        COMMANDEMENT ; la mise en demeure ouvre l'assurance pour compte et vaut renoncement à la clause. */ ""}
     <div class="mentions">
       <p>L'assurance du logement est une obligation du locataire pendant toute la durée du bail
-      (article 7 g de la loi du 6 juillet 1989). Son défaut, après mise en demeure restée sans
-      effet, constitue un motif de résiliation, ou permet au bailleur de souscrire une assurance
-      pour le compte du locataire, récupérable par douzième avec le loyer.</p>
+      (article 7 g de la loi du 6 juillet 1989) : vous en justifiez à la remise des clés puis,
+      chaque année, à la demande du bailleur. À défaut, deux voies distinctes existent : la clause
+      du bail qui prévoit sa résiliation pour défaut d'assurance ne produit effet qu'un mois après
+      un commandement resté sans effet ; ou bien, un mois après une mise en demeure non suivie
+      d'effet, le bailleur peut souscrire une assurance pour le compte du locataire, dont la prime
+      est récupérable par douzième à chaque paiement du loyer. Cette mise en demeure vaut
+      renoncement à la clause de résiliation.</p>
     </div>
     ${faitA(f, d.exp.ville, new Date().toISOString())}
     ${blocSignatureEmetteur(d.exp.nom, d.signatureImg ?? null)}

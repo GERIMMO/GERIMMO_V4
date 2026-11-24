@@ -5,8 +5,8 @@
  * Règle du plan : quand le texte ne peut pas être ouvert, le point part chez le juriste et Gerimmo garde le
  * comportement le plus prudent — avertir plutôt qu'affirmer, ne pas bloquer sans base. Ce fichier tient donc des
  * RAPPELS et des libellés honnêtes, pas des règles de droit :
- *  - pièces demandées (P0-04) : le « RIB » n'est plus proposé d'un clic ; avant tout bail signé, un rappel dit que
- *    la liste des pièces est encadrée ; le libellé reste libre, rien n'est bloqué ;
+ *  - pièces demandées (P0-04) : le « RIB » n'est plus proposé ; depuis le lot T3 (texte du décret lu dans le recueil), la
+ *    pièce se choisit dans la liste du décret avant tout bail signé et pour une caution ;
  *  - notice d'information (P0-07) : le document et l'écran disent que c'est un résumé, qui ne remplace pas la notice
  *    officielle ;
  *  - congé du bailleur (P0-08) : « à faire relire » pour la vente et la reprise ; l'adresse du bénéficiaire et les
@@ -53,6 +53,11 @@ const SANS_REFERENCE = /\b(article|art\.|décret|arrêté|loi n°|code civil)\b/
 
 beforeEach(() => { vi.mocked(chargerContexteBail).mockReset(); });
 
+// Textes officiels, lot T3 (R19-A1, 25/11/2026) : ce bloc tenait un simple RAPPEL (« encadrées par la réglementation […]
+// Gerimmo ne contrôle pas ce que vous demandez », libellé libre dans tous les cas), faute d'avoir pu lire le texte. Le décret
+// n° 2015-1437 est maintenant dans le recueil fourni par le dirigeant : avant tout bail signé, et pour une caution, la pièce
+// se CHOISIT dans la liste du décret ; le libellé libre ne reste que pour le locataire en place. Les assertions suivent ce
+// nouvel état ; le détail (liste mot pour mot, refus côté serveur) est dans tests/textes-t3.test.ts.
 describe("P0-04 — pièces demandées", () => {
   const CARTE = "src/app/agence/[orgId]/personnes/[personId]/carte-pieces-demandees.tsx";
   const rendre = async (props: Record<string, unknown>) => {
@@ -60,37 +65,42 @@ describe("P0-04 — pièces demandées", () => {
     return renderToStaticMarkup(createElement(CartePiecesDemandees, { orgId: "org", personId: "p1", demandes: [], ...props } as never));
   };
 
-  it("le « RIB » n'est plus proposé d'un clic ni donné en exemple ; les trois autres demandes fréquentes restent", async () => {
-    const html = await rendre({ avantBail: true });
+  it("le « RIB » n'est proposé nulle part ; après la signature, les trois demandes fréquentes et le libellé libre restent", async () => {
+    const html = await rendre({ annexes: [] });
     const boutons = [...html.matchAll(/<button[^>]*type="button"[^>]*>([\s\S]*?)<\/button>/g)].map((m) => texteDe(m[1]).trim());
     expect(boutons).toEqual(["+ Avis d'imposition", "+ Justificatif de domicile", "+ Pièce d'identité"]);
-    expect(html).not.toMatch(/\bRIB\b/);
     expect(html).toContain('placeholder="Pièce à demander (ex. : avis d’imposition)"');
+    for (const h of [html, await rendre({ annexes: ["I"] }), await rendre({ annexes: ["II"] })]) expect(h).not.toMatch(/\bRIB\b|relevé d'identité bancaire/i);
     expect(sansCommentaires(source(CARTE))).not.toMatch(/\bRIB\b/);
     expect(sansCommentaires(source("src/app/actions/pieces-demandees.ts"))).not.toMatch(/\bRIB\b/);
+    expect(sansCommentaires(source("src/lib/pieces-decret-2015.ts"))).not.toMatch(/\bRIB\b|relevé d'identité bancaire/i);
   });
 
-  it("avant tout bail signé, la carte rappelle que la liste des pièces est encadrée — sans citer de texte", async () => {
-    const html = await rendre({ avantBail: true });
+  it("avant tout bail signé, la carte dit que seules les pièces de la liste du décret peuvent être exigées", async () => {
+    const html = await rendre({ annexes: ["I"] });
     const rappel = /<p[^>]*data-rappel-pieces-avant-bail[^>]*>([\s\S]*?)<\/p>/.exec(html)?.[1] ?? "";
-    expect(texteDe(rappel)).toContain("Avant la signature du bail, les pièces qu'un bailleur peut demander à un candidat locataire ou à sa caution sont encadrées par la réglementation.");
-    expect(texteDe(rappel)).toContain("Gerimmo ne contrôle pas ce que vous demandez");
-    expect(texteDe(rappel)).not.toMatch(SANS_REFERENCE);
+    expect(texteDe(rappel)).toContain("Avant la signature du bail, et pour une caution, seules les pièces de la liste ci-dessous peuvent être exigées (décret n° 2015-1437 du 5 novembre 2015, annexe I, en vigueur depuis le 1er janvier 2023).");
+    expect(texteDe(rappel)).toContain("il ne contrôle pas ce que vous demandez par un autre moyen");
+    expect(texteDe(rappel)).not.toMatch(/conforme/i);
   });
 
-  it("une fois le bail signé, le rappel n'est plus affiché ; le libellé reste libre dans les deux cas", async () => {
-    const apres = await rendre({ avantBail: false });
+  it("avant le bail : plus de libellé libre ni de raccourci, un choix obligatoire dans la liste ; après : pas de rappel, libellé libre", async () => {
+    const avant = await rendre({ annexes: ["I"] });
+    expect(avant).not.toContain('name="libelle"');
+    expect(avant).not.toMatch(/<button[^>]*type="button"/);
+    const choix = /<select[^>]*name="piece_decret"[^>]*>/.exec(avant)?.[0] ?? "";
+    expect(choix).toContain("required");
+    const apres = await rendre({ annexes: [] });
     expect(apres).not.toContain("data-rappel-pieces-avant-bail");
     expect(await rendre({})).not.toContain("data-rappel-pieces-avant-bail");
-    for (const html of [apres, await rendre({ avantBail: true })]) {
-      const champ = (html.match(/<input[^>]*>/g) ?? []).find((b) => b.includes('name="libelle"')) ?? "";
-      expect(champ).toContain('maxLength="120"');
-      expect(champ).not.toMatch(/disabled|readonly|pattern=/i);
-    }
+    const champ = (apres.match(/<input[^>]*>/g) ?? []).find((b) => b.includes('name="libelle"')) ?? "";
+    expect(champ).toContain('maxLength="120"');
+    expect(champ).not.toMatch(/disabled|readonly|pattern=/i);
+    expect(apres).not.toContain('name="piece_decret"');
   });
 
-  it("la fiche de la personne passe « avant bail » tant que la personne n'a aucun bail signé", () => {
-    expect(source("src/app/agence/[orgId]/personnes/[personId]/page.tsx")).toContain("avantBail={!estLocataire}");
+  it("la fiche de la personne tire les annexes à proposer de sa place : locataire d'un bail signé, caution, candidat", () => {
+    expect(source("src/app/agence/[orgId]/personnes/[personId]/page.tsx")).toContain("annexes={regimePieces({ locataireBailSigne: estLocataire, caution: estGarant || garantEnPreparation, locataireEnPreparation }).annexes}");
   });
 });
 

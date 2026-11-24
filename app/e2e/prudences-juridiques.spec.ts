@@ -8,8 +8,8 @@ import { connecterVers, debordementHorizontal, sansSyntheseAlertes } from "./aid
 //
 // Un espace fictif propre à l'essai : un candidat sans bail, et un logement loué à Camille avec un garant.
 // Sur téléphone, le propriétaire :
-//   1. ouvre la fiche du candidat : le « RIB » n'est plus proposé d'un clic, et un rappel dit que les pièces qu'on
-//      peut demander avant le bail sont encadrées ; le libellé reste libre ;
+//   1. ouvre la fiche du candidat : la pièce à demander se choisit dans la liste du décret n° 2015-1437 (lot T3) ; ni
+//      « RIB », ni libellé libre ;
 //   2. ouvre la fiche de la locataire en place : le rappel n'y est pas ;
 //   3. ouvre le bail : la notice est dite « résumé », qui ne remplace pas la notice officielle ;
 //   4. lit, sur le cautionnement, le rappel pour le bailleur en société ;
@@ -75,20 +75,22 @@ test("pièces demandées, notice, cautionnement et congé : Gerimmo avertit et d
     await page.getByText("Ajouter ou demander un justificatif", { exact: false }).first().click();
     // Le volet s'ouvre sur « Déposer moi-même » ; le rappel accompagne la demande faite à la personne.
     await page.getByRole("button", { name: /^Demander à la personne/ }).click();
+    // Textes officiels, lot T3 (R19-A1) : le rappel « encadrées par la réglementation », le libellé libre et les trois
+    // raccourcis laissent la place, avant tout bail signé, au choix dans la liste du décret n° 2015-1437 (texte lu dans le
+    // recueil). Ce passage affirmait l'ancien état ; rien n'est envoyé ici non plus.
     const rappelPieces = page.locator("[data-rappel-pieces-avant-bail]:visible");
-    await expect(rappelPieces).toContainText("Avant la signature du bail, les pièces qu’un bailleur peut demander à un candidat locataire ou à sa caution sont encadrées par la réglementation.");
-    await expect(rappelPieces).toContainText("Gerimmo ne contrôle pas ce que vous demandez.");
+    await expect(rappelPieces).toContainText("Avant la signature du bail, et pour une caution, seules les pièces de la liste ci-dessous peuvent être exigées (décret n° 2015-1437 du 5 novembre 2015, annexe I, en vigueur depuis le 1er janvier 2023).");
     await tientDansLEcran(page, rappelPieces);
-    const formulaire = page.locator("form:visible").filter({ has: page.locator('input[name="libelle"]') });
-    await expect(formulaire.getByRole("button", { name: /Avis d'imposition/ })).toBeVisible();
-    await expect(formulaire.getByRole("button", { name: /Justificatif de domicile/ })).toBeVisible();
-    await expect(formulaire.getByRole("button", { name: /Pièce d'identité/ })).toBeVisible();
-    await expect(formulaire.getByRole("button", { name: /RIB/ })).toHaveCount(0);
-    await expect(formulaire.locator('input[name="libelle"]')).toHaveAttribute("placeholder", "Pièce à demander (ex. : avis d’imposition)");
-    // Le libellé reste libre : le rappel n'empêche pas d'écrire ce qu'on veut (rien n'est envoyé ici).
-    await formulaire.locator('input[name="libelle"]').fill("Dernier bulletin de salaire");
-    await expect(formulaire.locator('input[name="libelle"]')).toHaveValue("Dernier bulletin de salaire");
-    await formulaire.locator('input[name="libelle"]').fill("");
+    const formulaire = page.locator("form:visible").filter({ has: page.locator('select[name="piece_decret"]') });
+    await expect(formulaire.locator('input[name="libelle"]')).toHaveCount(0);
+    await expect(formulaire.getByRole("button", { name: /RIB|Avis d'imposition|Justificatif de domicile/ })).toHaveCount(0);
+    const choix = formulaire.locator('select[name="piece_decret"]');
+    await expect(choix.locator("option")).toHaveCount(19); // « Choisir… » et les 18 choix de l'annexe I
+    await expect(choix.locator("option", { hasText: /bancaire|\bRIB\b/ })).toHaveCount(0);
+    await choix.selectOption("I-B");
+    await expect(formulaire.locator("[data-texte-piece-decret]")).toContainText("Une seule pièce justificative de domicile parmi les documents suivants : 1. Trois dernières quittances de loyer ou, à défaut, attestation du précédent bailleur");
+    await tientDansLEcran(page, formulaire.locator("[data-texte-piece-decret]"));
+    await choix.selectOption("");
     await page.screenshot({ path: info.outputPath("prudences-pieces-candidat.png"), fullPage: true });
 
     // ── 2. La locataire en place : pas de rappel « avant bail ».

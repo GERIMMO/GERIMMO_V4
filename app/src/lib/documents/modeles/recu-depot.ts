@@ -14,6 +14,7 @@ import {
   tableau,
   titre,
 } from "../gabarit";
+import { moisDepotGarantie } from "@/lib/depot-garantie";
 import {
   chargerContexteBail,
   expediteur,
@@ -130,6 +131,7 @@ export async function assemblerRecuDepot(
   ]);
 
   const f = new Fusion();
+  const meubleSelonBail = moisDepotGarantie(ctx.bail.type, ctx.lot.meuble) === 2;
   // Phase 3 (lot 36) : le code du sélecteur « Payé par » (« virement », « cheque ») s'imprime avec le libellé de la quittance,
   // initiale en capitale ; un moyen saisi en clair (« Virement bancaire ») reste tel quel.
   const moyen = libelleMode(e.moyen);
@@ -141,8 +143,12 @@ export async function assemblerRecuDepot(
     versant: e.versant_libelle ?? nomPersonne(versantPersonne),
     depotConvenu: ctx.bail.depot_garantie === null ? null : Number(ctx.bail.depot_garantie),
     totalEncaisse: (tous ?? []).reduce((s, x) => s + Number(x.montant), 0),
-    plafond: ctx.lot.meuble ? "deux mois de loyer hors charges" : "un mois de loyer hors charges",
-    meuble: ctx.lot.meuble,
+    // Lot T3 (R11-A2) : le plafond imprimé suit le BAIL, avec la règle même de la base (plafond_depot_mois) : bail meublé
+    // → deux mois, bail nu → un mois, bail « colocation » → selon l'ameublement du logement. Avant, seul le logement
+    // décidait : un bail nu signé sur un logement coché « meublé » recevait un reçu « deux mois » alors que la base et
+    // le bail disaient un mois (et l'inverse pour un bail meublé sur un logement non coché).
+    plafond: meubleSelonBail ? "deux mois de loyer hors charges" : "un mois de loyer hors charges",
+    meuble: meubleSelonBail,
     bailleurNom: nomsBailleurs(f, ctx.bailleurs),
     locatairesNoms: nomsLocataires(f, ctx.locataires),
     logementAdresse: adresseLogement(ctx.lot, ctx.bien),

@@ -33,6 +33,9 @@ import {
   numeroTrimestreIrl,
   exerciceRegularisationParDefaut,
   exerciceNonTermine,
+  exerciceDePlusDeTroisAns,
+  avertissementExerciceAncien,
+  LIBELLE_CONFIRMATION_EXERCICE_ANCIEN,
   avertissementExerciceNonTermine,
   aideSoldeNonAppele,
   LIBELLE_CONFIRMATION_EXERCICE_NON_TERMINE,
@@ -41,6 +44,7 @@ import {
 import { anneeTrimestreIrl, indiceAttendu } from "@/lib/indice-revision";
 import { ChampFichier } from "@/components/champ-fichier";
 import { relancesSuspenduesDepuis } from "@/lib/paliers-reception-loyer";
+import { LIMITES_INFORMATION_CAUTION, TEXTE_ARTICLE_2303, rappelInformationCaution } from "@/lib/information-caution";
 import { RACINE_AGENCE, baseDepuisRacine } from "@/lib/racine-espace";
 import { CleEnvoi } from "@/components/cle-envoi";
 import { ConfirmationEncaissement } from "@/components/confirmation-encaissement";
@@ -257,9 +261,12 @@ export function FormulaireLoyers({
   decompteSortie = "non_finalise",
   planApurement = null,
   avertissementDpe = null,
+  cautionAuBail = false,
 }: {
   /** Décision du 24/11/2026 (Q28) : avertissement « plusieurs DPE », affiché près de la révision (refusée en classe F ou G). */
   avertissementDpe?: React.ReactNode;
+  /** Lot T3 (R24-A1) : vrai quand le bail a au moins une caution (garant rattaché, non parti). */
+  cautionAuBail?: boolean;
   orgId: string;
   bailId: string;
   echeancier: LigneEcheance[];
@@ -313,6 +320,7 @@ export function FormulaireLoyers({
   const idNumeroRecommande = useId();
   const recouvrementOuvert = decompteSortie === "non_finalise";
   const impaye = recouvrementOuvert && echeancier.some((l) => l.statut === "impaye");
+  const rappelCaution = rappelInformationCaution(echeancier, cautionAuBail, aujourdhui);
   // Audit du 27/09 : l'exercice proposé est couvert par le bail.
   // Date de bascule (20/11/2026) : pour un bail repris en cours, on ne propose pas un exercice que la base refusera
   // (commencé avant le premier mois suivi) dès lors qu'un exercice régularisable a commencé.
@@ -324,6 +332,7 @@ export function FormulaireLoyers({
   const [anneeReg, setAnneeReg] = useState(String(anneeDefaut));
   const exerciceReg = Number(anneeReg);
   const exerciceEnCours = /^\d{4}$/.test(anneeReg) && exerciceNonTermine(exerciceReg, aujourdhui);
+  const exerciceAncien = /^\d{4}$/.test(anneeReg) && exerciceDePlusDeTroisAns(exerciceReg, aujourdhui);
   // Révision IRL : l'indice de référence est celui de la dernière révision,
   // à défaut celui figé au bail (RM-3.8.7). Décisions du 24/11/2026 : le loyer révisé s'applique au premier terme
   // qui suit la demande (Q43) ; la révision d'une année se demande au plus tard un an après sa date (Q23).
@@ -825,6 +834,18 @@ export function FormulaireLoyers({
         <p className="text-sm font-medium">
           Relances{impaye && <span className="ml-2 text-sm text-destructive">impayé en cours</span>}
         </p>
+        {/* Lot T3 (R24-A1) : bail avec caution et terme échu impayé — la date à ne pas dépasser pour informer la caution
+            (article 2303 du code civil), et ce que Gerimmo ne fait pas. Affichage seul : aucun envoi, aucun calcul d'argent. */}
+        {recouvrementOuvert && rappelCaution && (
+          <div role="note" data-information-caution className="space-y-1 rounded-lg border border-[var(--or-filet)] bg-[var(--or-clair)] p-3 text-sm">
+            <p className="font-medium">
+              {rappelCaution.depassee
+                ? `Ce bail a une caution : le loyer exigible le ${formaterDate(rappelCaution.echeance)} est impayé depuis plus d’un mois. Si elle n’a pas été informée, informez-la sans attendre.`
+                : `Ce bail a une caution : par prudence, informez-la du loyer impayé exigible le ${formaterDate(rappelCaution.echeance)} au plus tard le ${formaterDate(rappelCaution.limite)} (un mois après l’échéance).`}
+            </p>
+            <p className="text-xs text-muted-foreground">{TEXTE_ARTICLE_2303} {LIMITES_INFORMATION_CAUTION}</p>
+          </div>
+        )}
         {relances.length > 0 && (
           <ul className="divide-y divide-border">
             {relances.map((r) => (
@@ -984,6 +1005,24 @@ export function FormulaireLoyers({
               </label>
             </div>
           )}
+          {/* Lot T3 (R16-A1) : exercice clos depuis plus de trois ans = avertissement + confirmation explicite ; la base ne
+              refuse plus (elle disait « prescrit » en comptant depuis la fin de l'exercice). Le serveur refuse sans la case. */}
+          {exerciceAncien && (
+            <div role="alert" data-exercice-ancien className="w-full space-y-2 rounded-lg border border-[var(--or-filet)] bg-[var(--or-clair)] p-3 text-sm">
+              <p className="font-medium">{avertissementExerciceAncien(exerciceReg)}</p>
+              <label className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  name="confirmer_exercice_ancien"
+                  value="oui"
+                  required
+                  className="mt-0.5 size-4"
+                  defaultChecked={etatReg.valeurs?.confirmer_exercice_ancien === "oui"}
+                />
+                <span>{LIBELLE_CONFIRMATION_EXERCICE_ANCIEN}</span>
+              </label>
+            </div>
+          )}
           <BoutonEnvoi size="sm" variant="outline">
             Régulariser
           </BoutonEnvoi>
@@ -998,7 +1037,9 @@ export function FormulaireLoyers({
             part déjà proratisée). Provisions calculées depuis les appels de l&apos;année ;
             justificatif obligatoire, joint au décompte du locataire. Contrat individuel de
             colocation : seule la part de la chambre (sa surface sur celle des chambres) est
-            imputée. Un complément ne se réclame plus au-delà de trois ans (art. 7-1).
+            imputée. Un complément se prescrit par trois ans à compter du jour où le bailleur a connu
+            les dépenses (art. 7-1) : pour un exercice de plus de trois ans, Gerimmo avertit et demande
+            une confirmation.
             {aideSoldeNonAppele(decompteSortie)}
           </p>
         )}

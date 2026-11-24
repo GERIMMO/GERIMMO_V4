@@ -13,6 +13,35 @@ import { detecterMimeReel, pdfComplet, EXTENSIONS } from "@/lib/file-type";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 // 25/09 : le locataire est prévenu par e-mail de la demande et de la relance.
 import { notifierPieceDemandee } from "@/lib/notifications";
+import { REFERENCE_PIECES_DECRET, demandeUniqueDejaFaite, noteDecret, pieceDecret, regimePieces, type RegimePieces } from "@/lib/pieces-decret-2015";
+import { aujourdhuiParis } from "@/lib/ged";
+
+// Lot T3 (R19-A1) : la place de la personne, relue en base avec les mêmes règles que sa fiche (page de la personne) :
+// locataire d'un bail signé (titulaire, ou colocataire non parti), caution d'un bail vivant, bail en préparation.
+// Une lecture qui échoue ne laisse rien passer : la demande est refusée.
+async function lireRegimePieces(supabase: Awaited<ReturnType<typeof verifierGerant>>["supabase"], orgId: string, personId: string): Promise<RegimePieces | { erreur: string }> {
+  const echec = { erreur: "Impossible de vérifier la situation de cette personne (bail signé ou non). Réessayez." };
+  const [liens, principal] = await Promise.all([
+    supabase.from("bail_personnes").select("bail_id, role").eq("organization_id", orgId).eq("person_id", personId)
+      .or(`date_depart.is.null,date_depart.gte.${aujourdhuiParis()}`),
+    supabase.from("baux").select("id, etat").eq("organization_id", orgId).eq("locataire_principal", personId).in("etat", ["brouillon", "actif", "preavis"]),
+  ]);
+  if (liens.error || principal.error) return echec;
+  const lignes = (liens.data ?? []) as { bail_id: string; role: string }[];
+  const ids = [...new Set(lignes.map((l) => l.bail_id))];
+  const lies = ids.length
+    ? await supabase.from("baux").select("id, etat").eq("organization_id", orgId).in("id", ids).in("etat", ["brouillon", "actif", "preavis"])
+    : { data: [], error: null };
+  if (lies.error) return echec;
+  const etat = new Map(((lies.data ?? []) as { id: string; etat: string }[]).map((b) => [b.id, b.etat]));
+  const titulaires = (principal.data ?? []) as { etat: string }[];
+  const sur = (role: string, signe: boolean) => lignes.some((l) => l.role === role && etat.has(l.bail_id) && (etat.get(l.bail_id) !== "brouillon") === signe);
+  return regimePieces({
+    locataireBailSigne: titulaires.some((b) => b.etat !== "brouillon") || sur("colocataire", true),
+    caution: sur("garant", true) || sur("garant", false),
+    locataireEnPreparation: titulaires.some((b) => b.etat === "brouillon") || sur("colocataire", false),
+  });
+}
 
 export type EtatPieceDemandee = {
   erreur?: string;
@@ -40,17 +69,45 @@ export async function demanderPieceLocataire(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
-  const libelle = String(formData.get("libelle") ?? "").trim();
-  const type = String(formData.get("type") ?? "justificatif");
-  const note = String(formData.get("note") ?? "").trim();
-  if (!libelle) return { erreur: "Nommez la pièce demandée (ex. : avis d'imposition, justificatif de domicile).", valeurs };
-  if (libelle.length > 120) return { erreur: "Le nom de la pièce doit tenir sur 120 caractères.", valeurs };
-  if (!["piece_identite", "justificatif", "attestation_assurance"].includes(type))
-    return { erreur: "Type de pièce invalide.", valeurs };
+  let libelle = String(formData.get("libelle") ?? "").trim();
+  let type = String(formData.get("type") ?? "justificatif");
+  let note = String(formData.get("note") ?? "").trim();
 
   const { data: personne, error: erreurPersonne } = await supabase.from("persons")
     .select("id, account_id").eq("id", personId).eq("organization_id", orgId).is("archived_at", null).maybeSingle();
   if (erreurPersonne || !personne) return { erreur: "Cette fiche est introuvable ou inaccessible.", valeurs };
+
+  // Lot T3 (R19-A1) : avant la signature du bail, et pour une caution, la pièce se choisit dans les listes du décret du
+  // 5 novembre 2015 (annexes I et II) ; le nom libre est refusé ICI, côté serveur, même pour une requête directe. Après
+  // la signature, la demande faite au locataire reste libre, comme avant. Les demandes déjà enregistrées ne sont pas touchées.
+  const regime = await lireRegimePieces(supabase, orgId, personId);
+  if ("erreur" in regime) return { erreur: regime.erreur, valeurs };
+  if (!regime.libre) {
+    const piece = pieceDecret(String(formData.get("piece_decret") ?? ""), regime.annexes);
+    if (!piece)
+      return {
+        erreur: `Choisissez la pièce dans la liste : avant la signature du bail, et pour une caution, seules les pièces de la liste du ${REFERENCE_PIECES_DECRET} peuvent être exigées.`,
+        valeurs,
+      };
+    if (piece.unique) {
+      // « Une pièce », « une seule pièce » : pas de seconde demande de la même rubrique, en cours ou déjà reçue.
+      const { data: existantes, error: erreurExistantes } = await supabase.from("pieces_demandees")
+        .select("libelle").eq("organization_id", orgId).eq("person_id", personId);
+      if (erreurExistantes) return { erreur: "Impossible de vérifier les demandes déjà faites. Réessayez.", valeurs };
+      if (demandeUniqueDejaFaite(piece, (existantes ?? []).map((d) => String(d.libelle))))
+        return {
+          erreur: `Cette demande est déjà faite pour cette personne (« ${piece.libelle} ») : le décret ne permet d’exiger qu’une pièce de cette rubrique. Annulez la demande en cours pour la refaire.`,
+          valeurs,
+        };
+    }
+    libelle = piece.libelle;
+    type = piece.type;
+    note = noteDecret(piece) ?? "";
+  }
+  if (!libelle) return { erreur: "Nommez la pièce demandée (ex. : avis d'imposition, justificatif de domicile).", valeurs };
+  if (libelle.length > 120) return { erreur: "Le nom de la pièce doit tenir sur 120 caractères.", valeurs };
+  if (!["piece_identite", "justificatif", "attestation_assurance"].includes(type))
+    return { erreur: "Type de pièce invalide.", valeurs };
 
   const { data: demande, error } = await supabase
     .from("pieces_demandees")

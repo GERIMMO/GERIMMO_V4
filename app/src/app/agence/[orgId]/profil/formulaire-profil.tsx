@@ -60,6 +60,11 @@ const CASE = "size-5 shrink-0 accent-[var(--marque)]";
  * Audit palier 1 (P1-08) : l'avis d'échéance et la relance automatique ne se proposent à un espace que si le
  * superviseur a ouvert l'envoi. Fermé (le défaut) : l'écran affiche « suspendu », comme avant, et ne demande rien.
  */
+// Lot T3 (R24-A1) : l'e-mail à la caution suit la seconde relance, que ce réglage peut placer après le mois de l'article
+// 2303 du code civil, et que d'autres attentes retardent (confirmation, plan d'apurement, seuil). L'écran le dit.
+const CAUTION_ET_RELANCES =
+  "Caution : Gerimmo ne l’informe par e-mail qu’avec la seconde relance. Réglée au-delà de 30 jours, ou retardée (confirmation attendue, plan d’apurement, dette sous le seuil, e-mail inconnu), cette information part plus d’un mois après l’échéance. L’article 2303 du code civil demande au créancier professionnel d’informer la caution personne physique du premier loyer resté impayé un mois : informez-la vous-même dans ce délai ; les loyers du bail affichent la date.";
+
 export type EnvoisProposesAuProfil = { avis: boolean; relances: boolean };
 const RIEN_DE_PROPOSE: EnvoisProposesAuProfil = { avis: false, relances: false };
 
@@ -434,7 +439,7 @@ function Formulaire({
             />
           </label>
         </div>
-        {estProprietaire ? <Fonctionnement titre="relances d’impayés"><p>Chaque matin, le loyer impayé le plus ancien de chaque bail est vérifié. La première relance suit le premier délai, puis la seconde le second : jamais deux le même jour. Les relances manuelles comptent aussi et chaque envoi est conservé dans le bail. Une dette totale inférieure au seuil n’est pas relancée.</p></Fonctionnement> : <p className="text-sm text-muted-foreground">
+        {estProprietaire ? <Fonctionnement titre="relances d’impayés"><p>Chaque matin, le loyer impayé le plus ancien de chaque bail est vérifié. La première relance suit le premier délai, puis la seconde le second : jamais deux le même jour. Les relances manuelles comptent aussi et chaque envoi est conservé dans le bail. Une dette totale inférieure au seuil n’est pas relancée.</p><p data-caution-relance>{CAUTION_ET_RELANCES}</p></Fonctionnement> : <p className="text-sm text-muted-foreground">
           Chaque matin, le terme impayé le plus ancien de chaque bail reçoit sa
           première relance passé le premier délai, puis la seconde passé le
           second — jamais deux courriers le même jour, et une relance que vous
@@ -442,7 +447,8 @@ function Formulaire({
           c&apos;est un recommandé. Chaque relance envoyée s&apos;inscrit sur
           le bail, comme si vous l&apos;aviez saisie. Une dette totale sous le
           seuil n&apos;est pas relancée ; à la seconde relance, la caution du
-          bail (si son e-mail est connu) est informée de l&apos;incident.
+          bail (si son e-mail est connu) est informée de l&apos;incident.{" "}
+          <span data-caution-relance>{CAUTION_ET_RELANCES}</span>
         </p>}
       </SousSection>
       </div>,

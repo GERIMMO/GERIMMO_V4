@@ -15,7 +15,7 @@ export function EdlConsultation({ mentions, lignes, compteurs, cles, indisponibl
         ["Détecteur de fumée présent", ouiNon(mentions.detecteur_fumee_present)],
         ["État du détecteur", mentions.detecteur_fumee_etat],
         ["Attestation d’assurance fournie", ouiNon(mentions.attestation_assurance_fournie)],
-        ["Adresse de restitution du dépôt", mentions.adresse_restitution_depot],
+        ["Nouveau domicile ou lieu d’hébergement du locataire", mentions.adresse_restitution_depot],
         ["Observations", mentions.observations],
       ].map(([titre, valeur]) => <div key={titre}><dt className="text-muted-foreground">{titre}</dt><dd>{valeur || "Non renseigné"}</dd></div>)}</dl>
     </section>

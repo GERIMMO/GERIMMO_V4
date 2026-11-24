@@ -54,7 +54,7 @@ export async function enregistrerMentionsEdl(
     maj.attestation_assurance_fournie = assurance === "oui";
   } else {
     const adresse = texte("adresse_restitution_depot");
-    if (!adresse) return { erreur: "L'adresse de restitution du dépôt de garantie est obligatoire.", valeurs };
+    if (!adresse) return { erreur: "L’adresse du nouveau domicile ou du lieu d’hébergement du locataire est obligatoire.", valeurs };
     maj.adresse_restitution_depot = adresse;
   }
   const { error } = await supabase.from("etats_des_lieux").update(maj)

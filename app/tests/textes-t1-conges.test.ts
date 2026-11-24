@@ -204,7 +204,10 @@ describe("la lettre de congé du bailleur", () => {
 
   it("vente d'un logement nu : désignation des locaux reprise du bail, prix et conditions de la vente", async () => {
     const { texte } = await lettre(VENTE);
-    expect(texte).toContain("Désignation des locaux loués, telle qu'elle figure au bail :");
+    // Reprise T1R-6 (lot T3) : « telle qu'elle figure au bail » était inexact quand le bail a été signé ailleurs (la
+    // désignation vient des fiches de Gerimmo) ; la lettre dit seulement « Désignation des locaux loués : ».
+    expect(texte).toContain("Désignation des locaux loués :");
+    expect(texte).not.toContain("telle qu'elle figure au bail");
     // Le nombre de pièces s'imprime quand il est connu, sans bloquer (sur un lot loué, la base le verrouille).
     expect(texte).toContain("Autres parties du logement :");
     const sansPieces = await lettre(VENTE, bail((c) => { c.lot.pieces = null; }));

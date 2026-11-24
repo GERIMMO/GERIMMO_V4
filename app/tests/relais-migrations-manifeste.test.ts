@@ -305,6 +305,9 @@ const MISSION_OCTOBRE = [
   // 25/11, textes officiels, lot T1 (congés) : date limite du congé du bailleur comptée jusqu'au dernier jour du bail, préavis
   // d'un mois en zone tendue seulement s'il est demandé, reprise refusée à une société non familiale (location nue).
   "20261125101500_conge_textes_officiels_t1.sql",
+  // 25/11, textes officiels, lot T3 : complément de charges d'un exercice de plus de trois ans plus refusé comme « prescrit »
+  // (l'application avertit et fait confirmer) ; terme d'un bail commencé un 29 février (reprise T1R-2).
+  "20261125111000_textes_officiels_t3.sql",
 
 
 ];

@@ -62,8 +62,10 @@ export function CarteConge({
           <div className="loc-etape">
             <span className="pt" />
             <span>
-              Dépôt de garantie restitué sous 1 mois après un état des lieux
-              conforme (2 mois si des retenues sont justifiées)
+              {/* Lot T3 (R11-A3) : le critère de l'article 22 est la conformité de l'état des lieux de sortie à celui
+                  d'entrée, pas l'existence de retenues (« 2 mois si des retenues sont justifiées »). */}
+              Dépôt de garantie restitué sous 1 mois après un état des lieux de
+              sortie conforme à celui d’entrée (2 mois sinon)
             </span>
           </div>
         </div>

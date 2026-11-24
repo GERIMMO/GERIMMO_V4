@@ -3,6 +3,8 @@ import { lireAnneeExercice } from "@/lib/annee-exercice";
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
 import { estUuid } from "@/lib/identifiants";
+import { avertissementExerciceAncien, exerciceDePlusDeTroisAns } from "@/lib/baux";
+import { aujourdhuiParis } from "@/lib/ged";
 import { sansJargon } from "@/lib/erreurs";
 import { documentRegularisationFournitures, type BrouillonRegularisationFourniture } from "@/lib/regularisation-fournitures";
 import { rendrePdf } from "@/lib/documents/rendu";
@@ -45,6 +47,10 @@ export async function emettreRegularisationFournitures(orgId: string, bailId: st
   if (f.get("empreinte") !== d.empreinte) return { erreur: "Le brouillon a changé. Recalculez-le puis vérifiez les nouveaux montants." };
   if (f.get("complet") !== "on") return { erreur: "Confirmez que toutes les charges de l’exercice sont présentes." };
   const etaler = f.get("etaler") === "on";
+  // Lot T3 (R16-A1) : complément d'un exercice clos depuis plus de trois ans — la base ne le refuse plus comme « prescrit » ;
+  // il s'enregistre sur confirmation explicite, vérifiée ici (le solde du brouillon est connu : seul un complément est visé).
+  if (Number(d.source.ecart) < 0 && exerciceDePlusDeTroisAns(d.annee, aujourdhuiParis()) && f.get("exercice_ancien") !== "on")
+    return { erreur: `${avertissementExerciceAncien(d.annee)} Cochez la confirmation pour l’enregistrer malgré tout.` };
   // Reprise du lot 37 : le décompte renvoie le locataire au gestionnaire en agence, au bailleur ailleurs (type de l'espace).
   const organisation = await supabase.from("organizations").select("type").eq("id", orgId).maybeSingle();
   if (organisation.error || !organisation.data) return { erreur: "L’espace de gestion ne peut pas être vérifié. Réessayez." };

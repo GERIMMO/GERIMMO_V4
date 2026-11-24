@@ -9,7 +9,10 @@ function acces(compte: string | null, existe=true, connecte=true) {
   q.select.mockReturnValue(q); q.eq.mockReturnValue(q); q.is.mockReturnValue(q);
   const d={insert:m.insert,update:m.update,select:vi.fn(),single:vi.fn().mockResolvedValue({data:{id:"demande"},error:null})};
   m.insert.mockReturnValue(d); d.select.mockReturnValue(d);
-  m.acces.mockResolvedValue({user:connecte?{id:"proprietaire"}:null,supabase:{from:(table:string)=>table==="persons"?q:d}});
+  // Lot T3 (R19-A1) : l'action relit la place de la personne (liens de bail, baux) avant d'accepter un libellé libre.
+  // Ici, la personne est locataire d'un bail signé : le libellé libre reste admis, comme avant ce lot.
+  const lecture = (lignes: unknown[]) => { const l: Record<string, unknown> = {}; for (const k of ["select","eq","or","in"]) l[k]=()=>l; l.then=(ok:(v:unknown)=>unknown)=>Promise.resolve({data:lignes,error:null}).then(ok); return l; };
+  m.acces.mockResolvedValue({user:connecte?{id:"proprietaire"}:null,supabase:{from:(table:string)=>table==="persons"?q:table==="bail_personnes"?lecture([]):table==="baux"?lecture([{id:"bail",etat:"actif"}]):d}});
 }
 function form(){const f=new FormData();f.set("type","piece_identite");f.set("libelle","Identité");return f;}
 beforeEach(()=>{vi.clearAllMocks();acces(null);m.notifier.mockResolvedValue({envoyee:true});});

@@ -177,7 +177,9 @@ export default async function PageLogementLocataire(
             <span>Préavis si vous partez</span>
             <span className="text-right">
               {zoneInconnue
-                ? `1 mois si le logement est en zone tendue, 3 mois sinon (zone en cours de vérification par votre ${qui})`
+                ? // Reprise T1R-3 : en zone tendue, le mois de préavis n'est pas acquis d'office (article 15 I : le locataire précise
+                  // le motif et le justifie dans sa lettre ; à défaut, trois mois). Le texte de la zone inconnue le promettait encore.
+                  `1 mois si le logement est en zone tendue et que votre lettre le précise et le justifie, 3 mois sinon (zone en cours de vérification par votre ${qui})`
                 : <>
                     {zoneTendue
                       ? "1 mois si votre lettre de congé précise que le logement est en zone tendue et le justifie ; sinon 3 mois"
@@ -230,8 +232,8 @@ export default async function PageLogementLocataire(
           <p className="mt-3 text-[13px] text-muted-foreground">
             {depotRecu > 0 ? "Cet argent reste le vôtre" : "Une fois versé, cet argent reste le vôtre"}{" "}
             : il vous est restitué sous 1 mois après un état des lieux de sortie
-            conforme (2 mois si des retenues sont justifiées, pièces à
-            l&apos;appui), l&apos;usure normale déduite.
+            conforme à celui d&apos;entrée (2 mois sinon ; toute retenue doit
+            être justifiée, pièces à l&apos;appui), l&apos;usure normale déduite.
           </p>
         )}
         <div className="mt-4 flex flex-wrap gap-2">

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormulairePiece } from "./formulaire-piece";
-import { useId } from "react";
+import { useId, useState } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {
   demanderPieceLocataire,
@@ -14,6 +14,7 @@ import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { buttonVariants } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { formaterDate } from "@/lib/ged";
+import { GROUPES_DECRET, PIECES_DECRET, REFERENCE_PIECES_DECRET, RUBRIQUES_DECRET, type AnnexeDecret } from "@/lib/pieces-decret-2015";
 
 export type PieceDemandee = {
   id: string;
@@ -28,7 +29,9 @@ export type PieceDemandee = {
 // Libellés proposés d'un clic — les demandes qui reviennent tout le temps.
 // Audit palier 1 (P0-04, 23/11/2026) : le « RIB » n'est plus proposé. Les pièces qu'un bailleur peut demander à un
 // candidat sont encadrées, et le texte officiel n'a pas pu être relu : Gerimmo ne suggère plus une pièce dont il ne
-// peut pas dire qu'elle est permise avant la signature du bail. Le libellé reste libre : rien n'est bloqué.
+// peut pas dire qu'elle est permise avant la signature du bail.
+// Lot T3 (R19-A1) : ces raccourcis et le nom libre ne servent plus qu'APRÈS la signature du bail (locataire en place).
+// Avant, et pour une caution, la pièce se choisit dans les listes du décret du 5 novembre 2015 (`annexes`).
 const LIBELLES_COURANTS: [string, string][] = [
   ["Avis d'imposition", "justificatif"],
   ["Justificatif de domicile", "justificatif"],
@@ -85,22 +88,28 @@ export function CartePiecesDemandees({
   // plutôt que de laisser croire à un historique complet.
   tronquees = false,
   aUnAcces = true,
-  // Vrai tant que la personne n'a aucun bail signé (candidat, ou bail encore en préparation) : la carte rappelle
-  // alors que la liste des pièces est encadrée. Elle ne contrôle rien : c'est un rappel, pas un blocage.
-  avantBail = false,
+  // Lot T3 (R19-A1) : les annexes du décret à proposer. Non vide tant que la personne n'a aucun bail signé comme
+  // locataire (candidat : annexe I) ou qu'elle est caution (annexe II) : la pièce se choisit alors dans la liste, le nom
+  // libre disparaît, et le serveur refuse toute autre demande. Vide : locataire en place, nom libre comme avant.
+  annexes = [],
 }: {
   orgId: string;
   personId: string;
   demandes: PieceDemandee[];
   tronquees?: boolean;
   aUnAcces?: boolean;
-  avantBail?: boolean;
+  annexes?: AnnexeDecret[];
 }) {
   const [etat, action] = useActionState<EtatPieceDemandee, FormData>(
     demanderPieceLocataire.bind(null, orgId, personId),
     {}
   );
   const idLibelle = useId();
+  const idPiece = useId();
+  const avecListe = annexes.length > 0;
+  const proposees = PIECES_DECRET.filter((p) => annexes.includes(p.annexe));
+  const [codeChoisi, setCodeChoisi] = useState(etat.valeurs?.piece_decret ?? "");
+  const choisie = proposees.find((p) => p.code === codeChoisi) ?? null;
   const idType = useId();
   const enAttente = demandes.filter((d) => !d.satisfaite_le);
   const recues = demandes.filter((d) => d.satisfaite_le);
@@ -156,13 +165,46 @@ export function CartePiecesDemandees({
         {/* Des BOUTONS « + Avis d'imposition »… sous un libellé : en pastilles grises, ils
             avaient l'apparence exacte des états « en attente » / « reçue »,
             rien ne disait qu'on pouvait cliquer (24/09). `.puce` = un état. */}
-        {avantBail && (
-          <p className="rounded-lg border border-border bg-muted/30 p-3 text-sm" data-rappel-pieces-avant-bail>
-            Avant la signature du bail, les pièces qu’un bailleur peut demander à un candidat locataire ou à sa
-            caution sont encadrées par la réglementation. Vérifiez la liste sur le site officiel de l’administration
-            (service-public.fr) avant d’envoyer une demande : Gerimmo ne contrôle pas ce que vous demandez.
-          </p>
-        )}
+        {avecListe ? (
+          <>
+            <p className="rounded-lg border border-border bg-muted/30 p-3 text-sm" data-rappel-pieces-avant-bail>
+              Avant la signature du bail, et pour une caution, seules les pièces de la liste ci-dessous peuvent être
+              exigées ({REFERENCE_PIECES_DECRET}, {annexes.map((a) => `annexe ${a}`).join(" et ")}, en vigueur depuis le
+              1er janvier 2023). Gerimmo ne laisse pas en demander d’autre ici ; il ne contrôle pas ce que vous
+              demandez par un autre moyen.
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor={idPiece} className="text-sm">Pièce à demander</Label>
+              <select
+                id={idPiece}
+                name="piece_decret"
+                required
+                value={codeChoisi}
+                onChange={(e) => setCodeChoisi(e.target.value)}
+                className="h-9 w-full max-w-full rounded-lg border border-input bg-transparent px-2.5 text-sm"
+              >
+                <option value="">Choisir dans la liste…</option>
+                {annexes.flatMap((annexe) =>
+                  Object.keys(RUBRIQUES_DECRET[annexe]).map((rubrique) => (
+                    <optgroup key={`${annexe}-${rubrique}`} label={`${annexe === "II" ? "Caution" : "Candidat"} — ${GROUPES_DECRET[annexe][rubrique]}`}>
+                      {proposees.filter((p) => p.annexe === annexe && p.rubrique === rubrique).map((p) => (
+                        <option key={p.code} value={p.code}>{p.libelle}</option>
+                      ))}
+                    </optgroup>
+                  ))
+                )}
+              </select>
+              {choisie && (
+                <p className="text-xs text-muted-foreground" data-texte-piece-decret>
+                  {choisie.unique ? "" : `${RUBRIQUES_DECRET[choisie.annexe][choisie.rubrique]} `}
+                  {choisie.texte}
+                  {choisie.unique ? " La personne fournit l’un de ces documents : une seule demande pour cette rubrique." : ""}
+                </p>
+              )}
+            </div>
+          </>
+        ) : (
+        <>
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-xs text-muted-foreground">Demandes fréquentes :</span>
           {LIBELLES_COURANTS.map(([libelle]) => (
@@ -183,7 +225,10 @@ export function CartePiecesDemandees({
             </button>
           ))}
         </div>
+        </>
+        )}
         <div className="flex flex-wrap items-end gap-2">
+          {!avecListe && <>
           {/* Ligne compacte : libellés réservés à la synthèse vocale */}
           <Label htmlFor={idLibelle} className="sr-only">
             Nom de la pièce demandée
@@ -213,6 +258,7 @@ export function CartePiecesDemandees({
             <option value="justificatif">Justificatif</option>
             <option value="piece_identite">Pièce d&apos;identité</option>
           </select>
+          </>}
           {/* Taille par défaut (h-8) : à côté d'un champ h-8, le bouton sm
               paraissait plus petit que son voisin (24/09). */}
           <BoutonEnvoi variant="outline">{aUnAcces ? "Envoyer la demande" : "Préparer la demande"}</BoutonEnvoi>

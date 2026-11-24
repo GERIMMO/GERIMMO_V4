@@ -185,12 +185,17 @@ describe.skipIf(!DB_URL)("Audit gestion du 29/09 — corrections en base", () =>
     expect(Number(rows[0].quote_part_colocation)).toBe(0.25);
   });
 
-  it("prescription triennale : complément refusé au-delà de trois ans, trop-perçu toujours rendu", async () => {
+  // Textes officiels, lot T3 (R16-A1, migration 20261125111000) : ce test affirmait le refus « prescrit » de la base pour
+  // tout complément d'un exercice clos depuis plus de trois ans. L'article 7-1 fait courir le délai du jour où le bailleur
+  // a connu les dépenses, que la base ne connaît pas : elle ne refuse plus (l'application avertit et fait confirmer, voir
+  // tests/textes-t3.test.ts). Le complément s'enregistre, au même montant que pour un exercice récent.
+  it("exercice de plus de trois ans : le complément n'est plus refusé comme « prescrit », le trop-perçu est toujours rendu", async () => {
     const vieux = annee - 4;
     const b1 = await bail({ lot_id: await lot(), date_debut: `${vieux - 1}-01-01` });
     const doc1 = await justificatif();
     await enGerant();
-    await echoue(/prescrit/, `select public.regulariser_charges($1,$2,100,$3)`, [b1, vieux, doc1]);
+    const { rows: [complement] } = await db.query(`select public.regulariser_charges($1,$2,100,$3) as ecart`, [b1, vieux, doc1]);
+    expect(Number(complement.ecart)).toBe(-100);
 
     const b2 = await bail({ lot_id: await lot(), date_debut: `${vieux - 1}-01-01` });
     await db.query("reset role");

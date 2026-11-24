@@ -241,7 +241,7 @@ export async function assemblerCongeBailleur(
          nue, ne s'applique pas ici.</p>`
       : `<p>Le présent congé vous est délivré en vue de la <b>vente</b> du logement désigné
          ci-dessus.</p>
-         <p>Désignation des locaux loués, telle qu'elle figure au bail :<br/>${designation}</p>
+         <p>Désignation des locaux loués :<br/>${designation}</p>
          <p>Prix de la vente projetée : ${prixHtml}.<br/>
          Conditions de la vente projetée : ${f.champ(conditions, "conditions de la vente projetée", "conditions de la vente")}${pointFinal(conditions)}</p>
          <p>Le présent congé <b>vaut offre de vente</b> à votre profit. Cette offre est valable pendant les

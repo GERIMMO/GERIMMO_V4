@@ -193,7 +193,12 @@ describe("W33 — garde : le HTML des documents signés en ligne ne change pas (
     bail_nu: "1879fd7a97f6e8bc9c8a966cec3973e17fb25ac2adf7e3d9f62d33c9490cd33c",
     cautionnement: "7bd6bac8cc0599899c74c90ea0372b8402aa5b2ae9d45dedcdfb2d1898946b06",
     edl_entree: "200466aa191403c439ec7ba0aba70e9bc255f06cec214a3a70aac0c4f78cf6cf",
-    edl_sortie: "7b7b1f541e38f105cd3ebd5addcb4b95a99e7a190338fea149000cb381ac8752",
+    // Textes officiels, lot T3 (R15-A1) : empreinte changée VOLONTAIREMENT. L'état des lieux de sortie imprime la mention du
+    // décret du 30 mars 2016 (« Adresse du nouveau domicile ou du lieu d'hébergement du locataire ») à la place de
+    // « Adresse de restitution du dépôt de garantie ». Un état des lieux de sortie préparé pour la signature mais pas encore
+    // envoyé se prépare de nouveau (règle de Q40). Ancienne empreinte :
+    //   edl_sortie 7b7b1f541e38f105cd3ebd5addcb4b95a99e7a190338fea149000cb381ac8752
+    edl_sortie: "384b844b3a3d2744d1e21e9a26630414b79aad18d1d25c7d18ef5d927c07a0e5",
     notice: "41173fa67be66a45b3f10509968d7069f8286c2cffbdbd8aacb56b6124578452",
     // Relecture des reprises 52-53 : l'IBAN du contexte d'essai (« FR76 3000 4000 0500 0012 3456 789 ») est fictif et sa clé de
     // contrôle est fausse ; ibanLisible ne le regroupe plus, il s'imprime tel que saisi. Seul un protocole dont l'IBAN enregistré

@@ -187,6 +187,24 @@ export function avertissementExerciceNonTermine(annee: number, decompte: EtatDec
 export const LIBELLE_CONFIRMATION_EXERCICE_NON_TERMINE =
   "Exercice non terminé : comparaison non homogène. Je confirme l’enregistrement de cette régularisation, qui ne pourra plus être modifiée.";
 
+// Lot T3 (R16-A1) — complément de charges d'un exercice ancien. L'article 7-1 de la loi du 6 juillet 1989 fait courir les
+// trois ans « à compter du jour où le titulaire d'un droit a connu ou aurait dû connaître les faits lui permettant d'exercer
+// ce droit » ; Gerimmo comptait depuis le 31 décembre de l'exercice et REFUSAIT le complément en le disant « prescrit », alors
+// qu'il ne connaît pas ce jour (comptes de copropriété approuvés plus tard, délai interrompu…). Il avertit maintenant et
+// demande une confirmation explicite ; il ne refuse plus et ne dit plus « prescrit ».
+// Même seuil que l'ancien refus de la base (31/12 de l'exercice antérieur à aujourd'hui moins trois ans) : au 24/11/2026,
+// 2022 et avant ; 2023 à partir du 1er janvier 2027. `aujourdhui` : le jour de Paris (AAAA-MM-JJ).
+export function exerciceDePlusDeTroisAns(annee: number, aujourdhui: string): boolean {
+  return annee + 3 < Number(aujourdhui.slice(0, 4));
+}
+
+export function avertissementExerciceAncien(annee: number): string {
+  return `Exercice ${annee} clos depuis plus de trois ans : un complément de charges à la charge du locataire est peut-être prescrit. Le délai de trois ans court du jour où le bailleur a connu ou aurait dû connaître ces dépenses (article 7-1 de la loi du 6 juillet 1989) : Gerimmo ne connaît pas ce jour et ne se prononce pas. Un trop-perçu peut toujours être rendu au locataire.`;
+}
+
+export const LIBELLE_CONFIRMATION_EXERCICE_ANCIEN =
+  "Exercice de plus de trois ans : je confirme l’enregistrement de cette régularisation, en sachant qu’un complément réclamé au locataire est peut-être prescrit.";
+
 // D40 (CHF-06, option A) : une régularisation émise en cours de bail n'écrit ni appel ni écriture au livre. Son solde est repris au décompte
 // de sortie (montants_reels_bail), tant qu'il n'est pas finalisé. L'appel complémentaire ou l'avoir (option B) est différé : avis spécialisé.
 export const MESSAGE_SOLDE_NON_APPELE = "Ce solde n’est pas appelé : il sera repris au décompte de sortie.";

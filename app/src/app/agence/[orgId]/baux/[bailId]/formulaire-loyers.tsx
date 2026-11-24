@@ -38,7 +38,7 @@ import {
   LIBELLE_CONFIRMATION_EXERCICE_NON_TERMINE,
   type EtatDecompteSortie,
 } from "@/lib/baux";
-import { anneeTrimestreIrl } from "@/lib/indice-revision";
+import { anneeTrimestreIrl, indiceAttendu } from "@/lib/indice-revision";
 import { ChampFichier } from "@/components/champ-fichier";
 import { relancesSuspenduesDepuis } from "@/lib/paliers-reception-loyer";
 import { RACINE_AGENCE, baseDepuisRacine } from "@/lib/racine-espace";
@@ -345,9 +345,19 @@ export function FormulaireLoyers({
   // dans ce cas. Seconde reprise : ce cas se reconnaît comme dans la base (`reviser_loyer`, migration 20261124150000) —
   // d'abord à l'année de bail (aucune révision pour l'année de bail précédente, d'après la date de la demande saisie),
   // ou à l'année de l'indice saisi quand elle dépasse de plus d'un an celle, lisible, de l'indice de référence.
+  // Troisième reprise (migration 20261124170000) : l'indice attendu est celui de la date de révision à laquelle la
+  // demande est rattachée (`indiceAttendu`, règle B). Quand le bail porte son indice d'origine, la base n'accepte que
+  // cette année-là : c'est elle qui dit si l'indice précédent sera exigé, quelle que soit l'année saisie. Sinon, c'est
+  // l'année saisie, et à défaut l'année attendue. L'indice précédent n'est pas exigé quand l'indice du bail est déjà
+  // celui de l'année précédente (bail repris en cours, révisé ailleurs l'an dernier : règle C3).
+  const attendu = indiceAttendu({ dateDebut, irlTrimestreBail: irlTrimestre, revisions, dateDemande: demandeApercu });
+  const anneeIndiceRetenue = attendu?.exact ? attendu.annee : Number.isFinite(anneeSaisie) ? anneeSaisie : attendu?.annee ?? NaN;
   const anneeSautee =
-    indicePrecedentExige(dateDebut, demandeApercu, revisions) ||
-    (anneeReference !== null && Number.isFinite(anneeSaisie) && anneeSaisie > anneeReference + 1);
+    indicePrecedentExige(dateDebut, demandeApercu, revisions, {
+      anneeIndice: Number.isFinite(anneeIndiceRetenue) ? anneeIndiceRetenue : null,
+      anneeIndiceBail: anneeTrimestreIrl(irlTrimestre),
+    }) ||
+    (anneeReference !== null && Number.isFinite(anneeIndiceRetenue) && anneeIndiceRetenue > anneeReference + 1);
   const reporterIndice = (p: { valeur: number; trimestre: number; annee: number; precedent: number | null }) => {
     const poser = (champ: HTMLInputElement | HTMLSelectElement | null, valeur: string) => {
       if (!champ) return;
@@ -669,7 +679,7 @@ export function FormulaireLoyers({
           )}
           {/* En erreur, la saisie est reposée via etatRev.valeurs (recette 22/08) */}
           <form data-saisie-confirmee action={formRev} className="flex flex-wrap items-end gap-2">
-            <IndicePropose orgId={orgId} bailId={bailId} surProposition={reporterIndice} />
+            <IndicePropose orgId={orgId} bailId={bailId} dateDemande={demandeApercu} surProposition={reporterIndice} />
             <div className="space-y-1">
               <p className="text-xs">
                 {derniereRevision ? "IRL de référence (dernière révision)" : "IRL de référence (figé au bail)"}
@@ -728,7 +738,7 @@ export function FormulaireLoyers({
                 <Label htmlFor="irl-precedent" className="text-sm">
                   {/* Seconde reprise du lot D2 : le champ peut paraître avant que l'année de l'indice soit saisie. */}
                   IRL du {trimestreReference ? `T${trimestreReference} ` : "même trimestre "}
-                  {Number.isFinite(anneeSaisie) ? anneeSaisie - 1 : "de l’année précédente"}
+                  {Number.isFinite(anneeIndiceRetenue) ? anneeIndiceRetenue - 1 : "de l’année précédente"}
                 </Label>
                 <Input key={precedentPropose ?? "saisie"} id="irl-precedent" name="irl_precedent" type="text" inputMode="decimal" placeholder="ex. 144,05" defaultValue={precedentPropose ?? etatRev.valeurs?.irl_precedent} className="h-9 w-28" />
               </div>
@@ -746,8 +756,18 @@ export function FormulaireLoyers({
               <p className="w-full text-sm text-warning-soft-foreground" data-revision-annee-sautee>
                 Aucune révision n&apos;est enregistrée pour l&apos;année de bail précédente, ou l&apos;indice de référence de ce
                 bail est plus ancien. Une révision qui n&apos;a pas été faite n&apos;est pas rattrapée : le loyer se révise sur un an, avec l&apos;indice du même trimestre de
-                l&apos;année précédente{Number.isFinite(anneeSaisie) ? ` (${anneeSaisie - 1})` : ""}, à saisir ci-dessus.
-                {Number.isFinite(anneeSaisie) ? ` Le calcul devient : loyer actuel × IRL ${anneeSaisie} / IRL ${anneeSaisie - 1}.` : ""}
+                l&apos;année précédente{Number.isFinite(anneeIndiceRetenue) ? ` (${anneeIndiceRetenue - 1})` : ""}, à saisir ci-dessus.
+                {Number.isFinite(anneeIndiceRetenue) ? ` Le calcul devient : loyer actuel × IRL ${anneeIndiceRetenue} / IRL ${anneeIndiceRetenue - 1}.` : ""}
+              </p>
+            )}
+            {/* Troisième reprise du lot D2 : l'indice attendu pour la date de révision, dit avant la saisie. La base
+                n'accepte que lui quand le bail porte son indice d'origine (`attendu.exact`). Rien n'est dit quand le
+                loyer porte déjà cet indice (révision de cette date déjà enregistrée). */}
+            {attendu?.exact && (anneeReference === null || attendu.annee > anneeReference) && (
+              <p className="w-full text-sm text-muted-foreground" data-indice-attendu>
+                Pour la révision prévue le {formaterDate(attendu.echeance)}, l&apos;indice attendu est celui du{" "}
+                <span className="font-medium text-foreground">T{attendu.trimestre} {attendu.annee}</span> : le trimestre de
+                l&apos;indice du bail, une année de plus par année de bail écoulée. Un indice d&apos;une autre année est refusé.
               </p>
             )}
             {etatRev.erreur && <p className="w-full text-sm text-destructive">{etatRev.erreur}</p>}

@@ -287,6 +287,9 @@ const MISSION_OCTOBRE = [
   // 24/11, décisions du dirigeant (lot D2, seconde reprise après relecture) : année non faite reconnue à l'année de bail,
   // indices invraisemblables et indice de la révision suivante refusés, terme appelé en retard autour d'un avenant.
   "20261124150000_revision_loyer_seconde_reprise_d2.sql",
+  // 24/11, décisions du dirigeant (lot D2, troisième reprise après relecture) : l'indice attendu est celui de l'échéance
+  // (ni celui de la révision suivante, ni un plus ancien) ; bail repris révisé ailleurs l'an dernier : indice du bail en référence.
+  "20261124170000_revision_loyer_troisieme_reprise_d2.sql",
 
 
 ];

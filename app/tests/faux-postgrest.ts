@@ -247,8 +247,9 @@ export const SCHEMA_CONNU = {
     integrees: [],
   },
   // Audit palier 1, P1-13 : la recherche de l'indice de révision relit le bail et ses révisions passées.
+  // Troisième reprise du lot D2 (24/11) : elle lit aussi le début du bail, qui dit de quelle date de révision on cherche l'indice.
   baux: {
-    colonnes: ["id", "organization_id", "revision_irl", "irl_trimestre", "irl_valeur"],
+    colonnes: ["id", "organization_id", "revision_irl", "irl_trimestre", "irl_valeur", "date_debut"],
     integrees: [],
   },
   revisions_loyer: {

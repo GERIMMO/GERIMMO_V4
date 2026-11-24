@@ -38,7 +38,11 @@ const retour = () => lire(`supabase/retours-arriere/${NOM}.retour.sql`);
 // l'année non faite et son message). Tant qu'elle est en place, le rejeu et le retour de celle-ci s'arrêtent sans rien
 // modifier (tenu par tests/revision-loyer-seconde-reprise-d2-base.test.ts). Les tests qui rejouent ou défont CETTE migration
 // jouent donc d'abord le retour de la seconde reprise, dans leur transaction : c'est l'ordre du LISEZ-MOI.
-const retourSecondeReprise = () => lire("supabase/retours-arriere/20261124150000_revision_loyer_seconde_reprise_d2.retour.sql");
+// Troisième reprise (24/11) : la migration 20261124170000 modifie à son tour deux lignes de la seconde reprise. Son retour
+// se joue donc en premier, puis celui de la seconde reprise : les deux scripts sont joués à la suite, dans cet ordre.
+const retourSecondeReprise = () =>
+  lire("supabase/retours-arriere/20261124170000_revision_loyer_troisieme_reprise_d2.retour.sql") + "\n" +
+  lire("supabase/retours-arriere/20261124150000_revision_loyer_seconde_reprise_d2.retour.sql");
 
 describe("révision du loyer, reprise du lot D2 — manifeste, retour et écriture de la migration (sans base)", () => {
   it("la migration est au manifeste une seule fois, après celle du lot D2, avec son retour listé et en tête de l'ordre des retours", () => {
@@ -203,19 +207,22 @@ describe.skipIf(!url)("révision du loyer, reprise du lot D2 (avec base)", () =>
       expect(await revisions(b)).toEqual([{ ancien: 700, nouveau: 720.39, reference: 103, indice: 106, trimestre: "T2 2025", reference_trimestre: "T2 2024", premier_terme: "2025-12-01" }]);
     });
 
-    it("variante du relecteur : indice T2 2024 en 2025, puis T2 2026 un an après — la seconde se calcule avec le T2 2025, pas avec le T2 2024", async () => {
-      await nousSommesLe("2025-11-24");
+    it("variante du relecteur : indice T2 2024 pour la première année, rien la deuxième, puis T2 2026 — la dernière se calcule avec le T2 2025, pas avec le T2 2024", async () => {
+      // Troisième reprise du lot D2 (24/11) : ce test enregistrait le 24/11/2025 (deuxième année de bail) une révision avec
+      // l'indice T2 2024. C'était le défaut relevé ensuite par le relecteur (pas de borne basse) : la révision du
+      // 15/10/2025 attend T2 2025, et la base refuse désormais T2 2024 ce jour-là. La première révision est donc faite
+      // dans sa propre année (le 01/09/2025, pour le 15/10/2024), à quatre paramètres ; la suite est inchangée.
+      await nousSommesLe("2025-09-01");
       const b = await bail({ date_debut: "2023-10-15", irl_trimestre: "T2 2023" });
-      // Première révision : un an d'écart entre les indices (T2 2023 → T2 2024).
-      // Seconde reprise du lot D2 : ce bail est dans sa deuxième année sans révision la première ; l'indice de l'année
-      // précédente est désormais exigé même ici (c'est celui du bail, 100). Même montant, et son trimestre est écrit.
-      expect(await reviser(b, 103, "T2 2024", "2025-11-24", 100)).toBe(721);
+      expect(await reviser(b, 103, "T2 2024", "2025-09-01")).toBe(721);
+      await nousSommesLe("2025-11-24");
+      expect(await refusRevision(b, 103, "T2 2024", "2025-11-24", 100)).toContain("son indice est celui du T2 2025");
       await nousSommesLe("2026-10-15");
       // Seconde : T2 2026 contre une référence T2 2024. Avant la reprise : 721 × 109 / 103 = 763,00 €.
       expect(await refusRevision(b, 109, "T2 2026", "2026-10-15")).toContain("Indice du T2 2025 obligatoire");
       expect(await reviser(b, 109, "T2 2026", "2026-10-15", 106)).toBe(741.41); // 721 × 109 / 106
       expect((await revisions(b)).map((r) => [r.ancien, r.nouveau, r.reference, r.indice, r.reference_trimestre])).toEqual([
-        [700, 721, 100, 103, "T2 2023"],
+        [700, 721, 100, 103, null],
         [721, 741.41, 106, 109, "T2 2025"],
       ]);
     });
@@ -254,8 +261,14 @@ describe.skipIf(!url)("révision du loyer, reprise du lot D2 (avec base)", () =>
     it("les refus d'avant restent : même année que la référence, autre trimestre", async () => {
       await nousSommesLe("2025-10-15");
       const b = await bail();
-      expect(await refusRevision(b, 101, "T2 2024", "2025-10-15", 99)).toMatch(/l'indice de référence est déjà celui de 2024/);
+      // Troisième reprise du lot D2 (24/11) : pour ce bail (indice d'origine), l'indice du bail lui-même reste refusé, mais
+      // par la règle « l'indice attendu est celui de la date de révision », qui passe avant et nomme l'indice à saisir.
+      expect(await refusRevision(b, 101, "T2 2024", "2025-10-15", 99)).toMatch(/la révision demandée est celle du 15\/10\/2025, et son indice est celui du T2 2025/);
       expect(await refusRevision(b, 101, "T3 2026", "2025-10-15", 99)).toMatch(/même trimestre/);
+      // L'ancien refus reste celui d'un bail repris en cours dont l'indice a été mis à jour (la base n'y compte pas les années).
+      await nousSommesLe("2026-10-15");
+      const repris = await bail({ date_debut: "2020-10-15", irl_trimestre: "T2 2025" });
+      expect(await refusRevision(repris, 101, "T2 2025", "2026-10-15", 99)).toMatch(/l'indice de référence est déjà celui de 2025/);
     });
   });
 

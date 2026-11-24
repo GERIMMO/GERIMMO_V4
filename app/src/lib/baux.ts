@@ -280,10 +280,16 @@ export function premierTermeRevise(dateDemande: string, jourEnregistrement: stri
 // trimestre de l'année précédente et calcule sur un an (elle ne se fie plus à la seule année lue dans le libellé du
 // trimestre, qui peut manquer). Miroir de `reviser_loyer` (migration 20261124150000) ; le formulaire s'en sert pour
 // afficher le champ de cet indice. L'année de bail d'une date est le nombre de dates anniversaires atteintes.
+//
+// Troisième reprise (24/11/2026, règle C3 de la migration 20261124170000) : quand AUCUNE révision n'est enregistrée dans
+// Gerimmo et que l'année de l'indice du bail est celle de l'indice demandé moins un (bail repris en cours, révisé ailleurs
+// l'an dernier, indice du bail à jour), l'indice du bail est déjà celui de l'année précédente : rien n'est exigé.
+// `indice` porte ces deux années quand elles sont connues ; sans lui, la fonction répond comme avant.
 export function indicePrecedentExige(
   dateDebut: string | null | undefined,
   dateDemande: string,
   revisions: { date_effet: string }[],
+  indice?: { anneeIndice: number | null; anneeIndiceBail: number | null },
 ): boolean {
   if (!dateDebut) return false;
   const anneeDeBail = (jour: string) => {
@@ -291,7 +297,11 @@ export function indicePrecedentExige(
     return anniversaire ? Number(anniversaire.slice(0, 4)) - Number(dateDebut.slice(0, 4)) : 0;
   };
   const annee = anneeDeBail(dateDemande);
-  return annee >= 2 && !revisions.some((r) => anneeDeBail(r.date_effet) === annee - 1);
+  if (annee < 2 || revisions.some((r) => anneeDeBail(r.date_effet) === annee - 1)) return false;
+  const indiceDuBailAJour =
+    revisions.length === 0 && indice != null && indice.anneeIndice !== null && indice.anneeIndiceBail !== null &&
+    indice.anneeIndiceBail === indice.anneeIndice - 1;
+  return !indiceDuBailAJour;
 }
 
 // Reprise du lot D2 (24/11/2026) : dès qu'une révision est enregistrée, le bail porte le loyer révisé, alors que ce loyer

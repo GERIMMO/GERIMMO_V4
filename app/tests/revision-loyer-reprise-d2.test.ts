@@ -208,7 +208,12 @@ describe("points 1 et 6 — formulaire de révision", () => {
   it("le champ de l'indice de l'année précédente n'apparaît que si la révision de l'année précédente manque, ou si l'année saisie dépasse de plus d'un an celle de la référence", () => {
     // Seconde reprise du lot D2 (24/11) : l'année non faite se reconnaît d'abord à l'année de bail, comme dans la base
     // (`indicePrecedentExige`) ; l'ancienne condition, sur l'année lue de la référence, reste en second.
-    expect(formulaire).toContain("indicePrecedentExige(dateDebut, demandeApercu, revisions) ||\n    (anneeReference !== null && Number.isFinite(anneeSaisie) && anneeSaisie > anneeReference + 1);");
+    // Troisième reprise (24/11) : l'année qui sert à ces deux conditions est celle de l'indice attendu pour la date de
+    // révision quand le bail porte son indice d'origine (la base n'en accepte pas d'autre), sinon l'année saisie ; et
+    // l'indice du bail déjà à jour (bail repris, révisé ailleurs l'an dernier) dispense de l'indice précédent.
+    expect(formulaire).toContain("const anneeIndiceRetenue = attendu?.exact ? attendu.annee : Number.isFinite(anneeSaisie) ? anneeSaisie : attendu?.annee ?? NaN;");
+    expect(formulaire).toContain("indicePrecedentExige(dateDebut, demandeApercu, revisions, {");
+    expect(formulaire).toContain("(anneeReference !== null && Number.isFinite(anneeIndiceRetenue) && anneeIndiceRetenue > anneeReference + 1);");
     expect(formulaire).toContain("{anneeSautee && (\n              <div className=\"space-y-1\" data-irl-precedent>");
     expect(formulaire).toContain('name="irl_precedent"');
     expect(formulaire).toContain("Une révision qui n&apos;a pas été faite n&apos;est pas rattrapée : le loyer se révise sur un an");

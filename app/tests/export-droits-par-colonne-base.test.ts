@@ -34,9 +34,13 @@ describe("export et droits par colonne — manifeste et écriture de la migratio
   it("la migration est au manifeste une seule fois, avec son retour listé et son test en série", () => {
     const manifeste = lireFichier("e2e/local/ordre-migrations.txt").trim().split(/\r?\n/);
     expect(manifeste.filter((l) => l === `${NOM}.sql`)).toHaveLength(1);
-    // Seconde reprise du lot D2 (24/11) : la migration 20261124150000 la suit au manifeste ; elle n'est plus la dernière,
-    // mais elle reste après celle qu'elle complète.
-    expect(manifeste.indexOf(`${NOM}.sql`)).toBeGreaterThan(manifeste.indexOf("20261124120000_motif_retrait_reserve_a_l_auteur.sql"));
+    // Seconde reprise du lot D2 (24/11) : la migration 20261124150000 la suit au manifeste ; elle n'est plus la dernière.
+    // Relecture du 24/11 (troisième reprise du lot D2, point 5) : « après 20261124120000 » ne tenait pas sa place. Elle est
+    // exigée exactement : juste après 20261124130000, juste avant 20261124150000, et après celle qu'elle complète.
+    const place = manifeste.indexOf(`${NOM}.sql`);
+    expect(manifeste[place - 1]).toBe("20261124130000_revision_loyer_reprise_d2.sql");
+    expect(manifeste[place + 1]).toBe("20261124150000_revision_loyer_seconde_reprise_d2.sql");
+    expect(place).toBeGreaterThan(manifeste.indexOf("20261124120000_motif_retrait_reserve_a_l_auteur.sql"));
     expect(existsSync(`supabase/retours-arriere/${NOM}.retour.sql`)).toBe(true);
     expect(lireFichier("supabase/retours-arriere/LISEZ-MOI.md")).toContain(`| \`${NOM}.retour.sql\` | \`${NOM}.sql\``);
     expect(lireFichier("tests/relais-migrations-manifeste.test.ts")).toContain(`"${NOM}.sql",`);

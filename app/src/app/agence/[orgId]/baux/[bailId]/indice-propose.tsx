@@ -23,10 +23,13 @@ const LienSerie = ({ children }: { children: string }) => (
 export function IndicePropose({
   orgId,
   bailId,
+  dateDemande,
   surProposition,
 }: {
   orgId: string;
   bailId: string;
+  /** La date de la demande saisie dans le formulaire : elle dit de quelle date de révision on cherche l'indice. */
+  dateDemande?: string;
   /** Reporte la proposition dans les champs du formulaire de révision. */
   surProposition: (p: { valeur: number; trimestre: number; annee: number; precedent: number | null }) => void;
 }) {
@@ -36,7 +39,7 @@ export function IndicePropose({
 
   const chercher = () => demarrer(async () => {
     try {
-      const r = await chercherIndiceRevision(orgId, bailId);
+      const r = await chercherIndiceRevision(orgId, bailId, dateDemande);
       setRetour(r);
       if ("proposition" in r && r.proposition.etat === "propose") {
         surProposition({ valeur: r.proposition.valeur, trimestre: r.proposition.trimestre, annee: r.proposition.annee, precedent: r.proposition.precedent?.valeur ?? null });
@@ -70,15 +73,21 @@ export function MessageIndicePropose({ retour }: { retour: RetourPropositionIndi
               <strong>Indice du T{p.trimestre} {p.annee} publié par l’Insee : {indiceEnClair(p.valeur)}.</strong>{" "}
               Il est reporté dans le formulaire : vérifiez-le avant de réviser.
             </p>
+            {/* Troisième reprise du lot D2 : l'indice proposé est celui de la date de révision, pas le dernier publié. */}
+            <p className="text-muted-foreground" data-indice-echeance>
+              C’est l’indice de la révision prévue le {formaterDate(p.echeance)}.
+            </p>
             <p className="text-muted-foreground">
               Source : <LienSerie>série n° 001515333 de l’Insee</LienSerie> (indice de référence des loyers), lue le{" "}
               {formaterDate(retour.luLe)}.
             </p>
-            {/* Reprise du lot D2 : la révision d'une année n'a pas été faite. Elle n'est pas rattrapée : calcul sur un an. */}
+            {/* Reprise du lot D2 : une révision non faite n'est pas rattrapée, calcul sur un an. Troisième reprise : même
+                phrase que le formulaire et la base, qui savent seulement qu'aucune révision n'est enregistrée. */}
             {p.precedent && (
               <p className="text-warning-soft-foreground" data-indice-annee-sautee>
-                L’indice de référence de ce bail est celui de {p.anneeReference} : la révision d’une année au moins n’a pas
-                été faite. Elle n’est pas rattrapée : le loyer se révise sur un an, avec l’indice du T{p.trimestre}{" "}
+                Aucune révision n’est enregistrée pour l’année de bail précédente, ou l’indice de référence de ce bail est
+                plus ancien. Une révision qui n’a pas été faite n’est pas rattrapée : le loyer se révise sur un an, avec
+                l’indice du T{p.trimestre}{" "}
                 {p.precedent.annee}
                 {p.precedent.valeur !== null
                   ? ` (${indiceEnClair(p.precedent.valeur)} selon l’Insee, reporté dans le formulaire : vérifiez-le).`
@@ -95,8 +104,14 @@ export function MessageIndicePropose({ retour }: { retour: RetourPropositionIndi
         )}
         {p?.etat === "pas_encore_publie" && (
           <p data-indice-etat="pas_encore_publie">
-            Aucun indice du T{p.trimestre} n’est publié après celui de {p.anneeReference} : il n’y a rien à proposer pour
-            l’instant.
+            L’indice du T{p.trimestre} {p.annee} n’est pas dans la série publiée par l’Insee : il n’y a rien à proposer
+            pour l’instant.
+          </p>
+        )}
+        {p?.etat === "deja_applique" && (
+          <p data-indice-etat="deja_applique">
+            L’indice de la révision prévue le {formaterDate(p.echeance)} (T{p.trimestre} {p.annee}) est déjà l’indice de
+            référence de ce bail : il n’y a rien à réviser pour cette date.
           </p>
         )}
         {p?.etat === "sans_reference" && (

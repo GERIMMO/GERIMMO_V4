@@ -99,21 +99,21 @@ test("révision annuelle : rappelée à la date anniversaire, indice cherché ch
     expect(await debordementHorizontal(page)).toBeLessThanOrEqual(1);
     await revision.screenshot({ path: info.outputPath("revision-indice.png") });
 
-    // ── Reprise du lot D2 (24/11) : un indice postérieur de plus d'un an à l'indice de référence (ici « T2 » de cette
-    // année contre « T2 » d'il y a deux ans) signale une révision annuelle non faite. Elle n'est pas rattrapée : le
-    // formulaire demande alors l'indice du même trimestre de l'année précédente, et la base refuse sans lui.
+    // ── Troisième reprise du lot D2 (24/11) : l'indice attendu est celui de la date de révision — le « T2 » de l'an
+    // dernier, un an après l'indice du bail. Le formulaire le dit avant toute saisie. Le « T2 » de cette année est l'indice
+    // de la révision SUIVANTE : la base le refuse en nommant l'indice attendu, et rien n'est enregistré. (Avant, cette
+    // saisie affichait le champ de l'indice de l'année précédente et s'enregistrait avec lui : le défaut relevé à la
+    // relecture. Le calcul sur un an avec l'indice précédent reste tenu par les tests de base et du formulaire rendu.)
+    await expect(revision.locator("[data-indice-attendu]")).toContainText(`Pour la révision prévue le ${fr(d.anniversaire)}, l'indice attendu est celui du T2 ${d.annee - 1}`);
     await revision.locator("#irl-nouv").fill("142");
     await revision.locator("#irl-trim").selectOption("2");
     await revision.locator("#irl-annee").fill(String(d.annee));
-    await expect(revision.locator("[data-irl-precedent]")).toBeVisible();
-    await expect(revision.locator("[data-irl-precedent] label")).toHaveText(`IRL du T2 ${d.annee - 1}`);
-    await expect(revision.locator("[data-revision-annee-sautee]")).toContainText("Une révision qui n'a pas été faite n'est pas rattrapée : le loyer se révise sur un an");
-    await revision.locator("#irl-precedent").fill("");
+    await expect(revision.locator("[data-irl-precedent]")).toHaveCount(0);
     await revision.getByRole("button", { name: "Réviser le loyer" }).click();
-    await expect(revision.getByText(`Indice du T2 ${d.annee - 1} obligatoire`)).toBeVisible();
+    await expect(revision.getByText(`Indice du T2 ${d.annee} refusé : la révision demandée est celle du ${fr(d.anniversaire)}, et son indice est celui du T2 ${d.annee - 1}`, { exact: false })).toBeVisible();
     expect((await db.query("select count(*)::int n from revisions_loyer where bail_id=$1", [bail])).rows[0].n).toBe(0);
     expect(await debordementHorizontal(page)).toBeLessThanOrEqual(1);
-    await revision.screenshot({ path: info.outputPath("revision-annee-sautee.png") });
+    await revision.screenshot({ path: info.outputPath("revision-indice-suivant.png") });
 
     // ── Seconde reprise du lot D2 (24/11) : un indice invraisemblable (faute de frappe, « 1420 » pour « 142 ») est refusé
     // par la base avec une phrase claire, et rien n'est enregistré. C'est un garde-fou de saisie.

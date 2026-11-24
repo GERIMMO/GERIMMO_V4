@@ -227,7 +227,10 @@ describe.skipIf(!DB_URL)("Audit baux et actes du 29/09 — corrections en base",
     await enGerant();
     await echec(/format/i, `select public.reviser_loyer($1, 148.03, '2026')`, [b]);
     await echec(/même trimestre/i, `select public.reviser_loyer($1, 148.03, 'T3 2026')`, [b]);
-    await echec(/année postérieure/i, `select public.reviser_loyer($1, 148.03, 'T2 2025')`, [b]);
+    // Troisième reprise du lot D2 (24/11/2026) : l'indice du bail lui-même reste refusé, mais par la règle « l'indice
+    // attendu est celui de la date de révision » (migration 20261124170000), qui passe avant l'ancien contrôle « année
+    // postérieure » et nomme l'indice à saisir.
+    await echec(/son indice est celui du T2 \d{4}/i, `select public.reviser_loyer($1, 148.03, 'T2 2025')`, [b]);
     await db.query(`select public.reviser_loyer($1, 148.03, 't2  2026')`, [b]);
   });
 

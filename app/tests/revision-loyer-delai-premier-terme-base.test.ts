@@ -401,6 +401,9 @@ describe.skipIf(!url)("révision du loyer, lot D2 (avec base)", () => {
       // avant, le retour et le rejeu de CE lot.
       // Seconde reprise (24/11) : la migration 20261124150000 modifie deux lignes de la reprise ; son retour se joue encore
       // avant (même ordre du LISEZ-MOI, tenu par tests/revision-loyer-seconde-reprise-d2-base.test.ts).
+      // Troisième reprise (24/11) : la migration 20261124170000 modifie deux lignes de la seconde reprise ; son retour se
+      // joue en premier (même ordre du LISEZ-MOI, tenu par tests/revision-loyer-troisieme-reprise-d2-base.test.ts).
+      await db.query(lire("supabase/retours-arriere/20261124170000_revision_loyer_troisieme_reprise_d2.retour.sql"));
       await db.query(lire("supabase/retours-arriere/20261124150000_revision_loyer_seconde_reprise_d2.retour.sql"));
       await db.query(lire("supabase/retours-arriere/20261124130000_revision_loyer_reprise_d2.retour.sql"));
       await nousSommesLe("2025-12-03");

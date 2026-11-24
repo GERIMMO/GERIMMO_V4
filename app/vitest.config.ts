@@ -85,6 +85,9 @@ export const FICHIERS_EN_SERIE = [
   // Seconde reprise du lot D2 (24/11) : rejeu de 20261124150000 et de son retour (reviser_loyer et déclencheur des appels
   // réécrits) dans la transaction du fichier, et `aujourdhui_paris()` figée.
   "tests/revision-loyer-seconde-reprise-d2-base.test.ts",
+  // Troisième reprise du lot D2 (24/11) : rejeu de 20261124170000, de son retour et de l'ordre complet des quatre retours
+  // (reviser_loyer réécrite) dans la transaction du fichier, et `aujourdhui_paris()` figée.
+  "tests/revision-loyer-troisieme-reprise-d2-base.test.ts",
   // Seconde reprise du lot D1 (24/11) : rejeu de 20261124140000 et de son retour (`lignes_lisibles_par` réécrite).
   "tests/export-droits-par-colonne-base.test.ts",
   // Réserve du relecteur du lot D2 : ces trois fichiers figent le jour de Paris (`create or replace` de

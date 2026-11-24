@@ -579,15 +579,22 @@ export async function reviserLoyer(
       erreur: "Indice IRL, trimestre et année de l'indice, et date de la demande obligatoires.",
       valeurs,
     };
+  // Reprise du lot D2 (24/11/2026) : l'indice du même trimestre de l'année précédente, demandé par le formulaire quand la
+  // révision d'une année n'a pas été faite. La base l'exige dans ce cas, calcule alors sur un an, et ne le lit pas sinon.
+  // Il n'est transmis que s'il est saisi : la révision ordinaire reste l'appel à quatre arguments.
+  const precedentSaisi = String(formData.get("irl_precedent") ?? "").trim();
+  const precedentLu = precedentSaisi ? lireDecimal(precedentSaisi) : null;
+  if (precedentLu && "erreur" in precedentLu) return { erreur: erreurDuChamp("Indice IRL de l’année précédente", precedentLu.erreur), valeurs };
   const { data, error } = await supabase.rpc("reviser_loyer", {
     p_bail: bailId,
     p_irl_nouveau: nouv,
     p_irl_trimestre: `T${trimestre} ${anneeIndice}`,
     p_date_demande: dateDemande,
+    ...(precedentLu ? { p_irl_precedent: precedentLu.valeur } : {}),
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
-  return { succes: `Loyer révisé à ${data} € HC. Il s’applique au premier terme dont la période commence après la demande : la lettre PDF donne ce terme.` };
+  return { succes: `Loyer révisé à ${data} € HC. Il s’applique au premier terme dont la période commence après la demande et après son enregistrement : la lettre PDF donne ce terme.` };
 }
 
 // Rattrapage manuel : régénérer les reçus (paiements partiels) et quittances

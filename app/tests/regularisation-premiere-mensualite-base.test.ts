@@ -46,11 +46,19 @@ describe("première mensualité — manifeste, retour et écriture de la migrati
     expect(existsSync(`supabase/retours-arriere/${NOM}.retour.sql`)).toBe(true);
     const lisezMoi = lire("supabase/retours-arriere/LISEZ-MOI.md");
     expect(lisezMoi).toContain(`| \`${NOM}.retour.sql\` | \`${NOM}.sql\``);
-    // Elle cite la fonction du jour de Paris : son retour précède celui de 20261014500000, en tête de la chaîne (la plus récente).
+    // Elle cite la fonction du jour de Paris : son retour précède celui de 20261014500000, à sa place dans l'ordre des
+    // retours, qui va du plus récent au plus ancien. Ce que le test tient, c'est cet ORDRE : son retour est dans la chaîne,
+    // seuls des retours de migrations PLUS RÉCENTES le précèdent, et il reste juste devant celui qui le suivait à sa
+    // livraison (20261123090000).
+    // Reprise du lot D2 (24/11, constat 8) : le test attendait « en tête » (codes[0]). La tête de la chaîne change à chaque
+    // migration plus récente qui y entre (20261124100000, lot D2, puis sa reprise 20261124130000) : c'est attendu. La
+    // vérification de l'ordre est gardée entière, comme dans tests/artisan-absences-semaine-type-base.test.ts.
     const chaine = lisezMoi.split("Ordre complet si tout doit être défait :")[1] ?? "";
     const codes = [...chaine.split("puis `500000`")[0].matchAll(/`(\d{14})`/g)].map((m) => m[1]);
-    expect(codes[0]).toBe(CODE);
-    expect(codes[1]).toBe("20261123090000");
+    const rang = codes.indexOf(CODE);
+    expect(rang).toBeGreaterThanOrEqual(0);
+    expect(codes.slice(0, rang).every((c) => c > CODE)).toBe(true);
+    expect(codes[rang + 1]).toBe("20261123090000");
     expect(lire("tests/relais-migrations-manifeste.test.ts")).toContain(`"${NOM}.sql",`);
     expect(lire("vitest.config.ts")).toContain('"tests/regularisation-premiere-mensualite-base.test.ts"');
   });

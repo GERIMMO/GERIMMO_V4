@@ -28,7 +28,7 @@ export function IndicePropose({
   orgId: string;
   bailId: string;
   /** Reporte la proposition dans les champs du formulaire de révision. */
-  surProposition: (p: { valeur: number; trimestre: number; annee: number }) => void;
+  surProposition: (p: { valeur: number; trimestre: number; annee: number; precedent: number | null }) => void;
 }) {
   const pret = useHydrate();
   const [enCours, demarrer] = useTransition();
@@ -39,7 +39,7 @@ export function IndicePropose({
       const r = await chercherIndiceRevision(orgId, bailId);
       setRetour(r);
       if ("proposition" in r && r.proposition.etat === "propose") {
-        surProposition({ valeur: r.proposition.valeur, trimestre: r.proposition.trimestre, annee: r.proposition.annee });
+        surProposition({ valeur: r.proposition.valeur, trimestre: r.proposition.trimestre, annee: r.proposition.annee, precedent: r.proposition.precedent?.valeur ?? null });
       }
     } catch {
       setRetour({ erreur: "La recherche n’a pas abouti. Saisissez l’indice vous-même." });
@@ -74,6 +74,17 @@ export function MessageIndicePropose({ retour }: { retour: RetourPropositionIndi
               Source : <LienSerie>série n° 001515333 de l’Insee</LienSerie> (indice de référence des loyers), lue le{" "}
               {formaterDate(retour.luLe)}.
             </p>
+            {/* Reprise du lot D2 : la révision d'une année n'a pas été faite. Elle n'est pas rattrapée : calcul sur un an. */}
+            {p.precedent && (
+              <p className="text-warning-soft-foreground" data-indice-annee-sautee>
+                L’indice de référence de ce bail est celui de {p.anneeReference} : la révision d’une année au moins n’a pas
+                été faite. Elle n’est pas rattrapée : le loyer se révise sur un an, avec l’indice du T{p.trimestre}{" "}
+                {p.precedent.annee}
+                {p.precedent.valeur !== null
+                  ? ` (${indiceEnClair(p.precedent.valeur)} selon l’Insee, reporté dans le formulaire : vérifiez-le).`
+                  : ", que l’Insee ne publie pas dans cette série : saisissez-le vous-même."}
+              </p>
+            )}
             {p.referencePubliee !== null && p.referenceBail !== null && !memeIndice(p.referencePubliee, p.referenceBail) && (
               <p className="text-warning-soft-foreground" data-indice-ecart>
                 Attention : pour le T{p.trimestre} {p.anneeReference}, l’Insee publie {indiceEnClair(p.referencePubliee)},

@@ -79,6 +79,15 @@ export const FICHIERS_EN_SERIE = [
   "tests/regularisation-premiere-mensualite-base.test.ts",
   "tests/contrat-individuel-message-plafond-base.test.ts",
   "tests/revision-loyer-delai-premier-terme-base.test.ts",
+  // Reprise du lot D2 (24/11) : rejeu de 20261124130000 et de son retour (reviser_loyer change de signature, déclencheur
+  // des appels réécrit) dans la transaction du fichier, et `aujourdhui_paris()` figée.
+  "tests/revision-loyer-reprise-d2-base.test.ts",
+  // Réserve du relecteur du lot D2 : ces trois fichiers figent le jour de Paris (`create or replace` de
+  // `aujourdhui_paris()` dans leur transaction, tests/fixtures/jour-de-paris-fige.ts) : le verrou pris sur la fonction
+  // ferait attendre les fichiers lancés en parallèle.
+  "tests/durcissement-audit-2026-09-10.test.ts",
+  "tests/audit-baux-documents-2026-09-29-base.test.ts",
+  "tests/audit-metier-2026-09-27.test.ts",
   "tests/publications-origine-base.test.ts",
   "tests/motif-retrait-auteur-base.test.ts",
   "tests/artisan-activation-securite.test.ts",

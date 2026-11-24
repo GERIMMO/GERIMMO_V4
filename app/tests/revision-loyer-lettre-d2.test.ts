@@ -89,11 +89,14 @@ describe("lettre de révision — le loyer révisé s'applique au premier terme 
     expect(fini).not.toContain("appelé à compter du terme");
   });
 
-  it("mentions : ce que fait Gerimmo et le délai d'un an selon la fiche officielle lue ; aucune formule d'un article non lu", () => {
+  // Reprise du lot D2 : le renvoi à la fiche Service-Public est retiré du courrier adressé au locataire (constat 5 du
+  // relecteur) ; il reste dans le message de refus et dans l'aide du formulaire, lus par le gérant. Ce test attendait le renvoi.
+  it("mentions : ce que fait Gerimmo et le délai d'un an, sans renvoi à une fiche ni formule d'un article non lu", () => {
     le("2026-10-15");
     const texte = lettre();
     expect(texte).toContain("Le loyer révisé ne s'applique jamais à des jours antérieurs à la demande du bailleur : il s'applique au premier terme dont la période commence après la date de cette demande, et un terme déjà appelé n'est pas modifié.");
-    expect(texte).toContain("La révision d'une année peut être demandée pendant un an à compter de la date de révision ; passé ce délai, elle n'est plus possible pour cette année-là (selon la fiche officielle Service-Public « Augmentation et révision du loyer en cours de bail d'habitation », consultée le 24/11/2026).");
+    expect(texte).toContain("La révision d'une année peut être demandée pendant un an à compter de la date de révision ; passé ce délai, elle n'est plus possible pour cette année-là. Fait à");
+    expect(texte).not.toMatch(/Service-Public|fiche officielle|consultée le/);
     expect(texte).not.toMatch(/réputé y avoir renoncé|17-1 I|rédaction issue|sans rétroactivité|conforme/);
     // La seule référence d'article est celle que le document portait déjà dans son titre.
     expect(texte.match(/article/gi)).toHaveLength(1);
@@ -152,7 +155,11 @@ describe("écran de la révision — date limite, premier terme, refus (Q23, Q43
   it("le formulaire affiche la date limite et le premier terme d'une demande faite aujourd'hui", () => {
     expect(formulaire).toContain("const limiteDuJour = datesDuJour ? dateLimiteRevision(dateDebut, datesDuJour.echeance) : null;");
     expect(formulaire).toContain("data-revision-limite>{formaterDate(limiteDuJour)}</span>");
-    expect(formulaire).toContain("terme {deElide(moisDuTerme(premierTermeApresDemande(aujourdhui)))}");
+    // Reprise du lot D2 (constat 6) : l'aperçu ne calcule plus « le mois qui suit aujourd'hui » de son côté ; il suit la date
+    // de demande saisie et calcule comme la base (`premierTermeRevise` : demande, jour d'enregistrement, dernier terme appelé).
+    expect(formulaire).toContain("const premierTermeApercu = premierTermeRevise(demandeApercu, aujourdhui, dernierTermeAppele);");
+    expect(formulaire).toContain("terme {deElide(moisDuTerme(premierTermeApercu))}");
+    expect(formulaire).not.toContain("premierTermeApresDemande(aujourdhui)");
     expect(formulaire).not.toContain("prendrait effet le");
   });
 

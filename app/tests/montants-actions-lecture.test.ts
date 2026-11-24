@@ -365,6 +365,20 @@ describe("règles de calcul inchangées", () => {
     expect(r.erreur).toBeUndefined();
     expect(rpcDe("reviser_loyer")).toMatchObject({ p_bail: "bail-test", p_irl_nouveau: 145.17, p_irl_trimestre: "T2 2026", p_date_demande: "2026-10-01" });
   });
+
+  // Reprise du lot D2 (24/11) : l'indice du même trimestre de l'année précédente n'est transmis que s'il est saisi.
+  it("indice IRL de l'année précédente : absent, la révision reste l'appel à quatre arguments ; saisi, il est transmis tel que lu", async () => {
+    const champs = { irl_nouveau: "145,17", irl_trimestre_numero: "2", irl_trimestre_annee: "2026", date_demande: "2026-10-01" };
+    await reviserLoyer(ORG, "bail-test", {}, formulaire(champs));
+    expect(Object.keys(rpcDe("reviser_loyer") ?? {}).sort()).toEqual(["p_bail", "p_date_demande", "p_irl_nouveau", "p_irl_trimestre"]);
+    banc.etat.rpcs.length = 0;
+    await reviserLoyer(ORG, "bail-test", {}, formulaire({ ...champs, irl_precedent: "143,06" }));
+    expect(rpcDe("reviser_loyer")).toEqual({ p_bail: "bail-test", p_irl_nouveau: 145.17, p_irl_trimestre: "T2 2026", p_date_demande: "2026-10-01", p_irl_precedent: 143.06 });
+    banc.etat.rpcs.length = 0;
+    const refus = await reviserLoyer(ORG, "bail-test", {}, formulaire({ ...champs, irl_precedent: "abc" }));
+    expect(refus.erreur).toMatch(/Indice IRL de l’année précédente/);
+    expect(rpcDe("reviser_loyer")).toBeUndefined();
+  });
 });
 
 // Le parcours de bail lit l'indice IRL par `lireEtapeBail` (FormData, texte tapé) : sa lecture accepte déjà la

@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { Fusion, assemblerPage, cadreSignature, blocSignatureEmetteur, cartouches, enTete, faitA, faitALaSignature, section, tableau, titre, eur, nombreFr, pointFinal, facultatif, ouNeant, echapper, formaterDateFr } from "../gabarit";
+import { Fusion, assemblerPage, cadreSignature, blocSignatureEmetteur, cartouches, enTete, faitA, faitALaSignature, section, tableau, titre, eur, nombreFr, pointFinal, facultatif, ouNeant, echapper, formaterDateFr, moisEnToutesLettres } from "../gabarit";
 import { CATALOGUE_DOCUMENTS } from "../catalogue";
 import { signatureOrganisation, chargerContexteBail, expediteur, adresseLogement, adressePostaleLogement, nomsBailleurs, nomsLocataires, nomPersonne, liensLocataires, referenceCourte, referenceAvenant, libellePeriodeTerme, interlocuteurLocataire, libelleSignataireBailleur, coordonneesBancaires, ibanLisible, demandeVirement } from "./communs";
 import { TYPES_DIAGNOSTIC } from "@/lib/parc";
@@ -8,6 +8,8 @@ import { modeSignatureDocument } from "@/lib/politique-signature";
 import type { Assemblage } from "./index";
 import { verifierCourrierDuBail } from "@/lib/rappels-loyers";
 import { aujourdhuiParis } from "@/lib/ged";
+import { loyerDuTermeEnCours, type RevisionDuLoyer } from "@/lib/baux";
+import { deElide } from "@/lib/elision";
 import { echeanceReglementaire } from "@/lib/documents-bail";
 
 // Reprise du lot 38 (S09, C40) : la liste des dossiers du catalogue (catalogue-cibles) écarte les mêmes cas, avec le même motif.
@@ -148,11 +150,19 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
       // Lot 52 : dans ce paragraphe, le « € » passait seul à la ligne (« 40,00 » / « € (forfait) ») ; une espace insécable le
       // garde avec le nombre, comme le plafond de l'acte de cautionnement (lot 51, W13). eur() n'est pas touché.
       const montantInsecable = (n: number | null) => f.montant(n).replace(/ €</, "\u00a0€<");
+      // Reprise du lot D2 (24/11/2026) : le bail porte le loyer révisé dès l'enregistrement de la révision, avant son premier
+      // terme. Le document attestait ce loyer comme s'il était déjà appliqué : il dit le loyer du terme en cours, puis le
+      // loyer révisé avec le terme à partir duquel il s'applique (même fonction que l'espace du locataire).
+      const revisions = await lireLignes(supabase.from("revisions_loyer").select("ancien_loyer, nouveau_loyer, premier_terme").eq("organization_id", orgId).eq("bail_id", bailId).not("premier_terme", "is", null));
+      const duTerme = loyerDuTermeEnCours(ctx.bail.loyer_hc, revisions as unknown as RevisionDuLoyer[], aujourdhui);
+      const loyerAtteste = duTerme.aVenir
+        ? `${montantInsecable(duTerme.loyer)} jusqu’au terme ${deElide(moisEnToutesLettres(duTerme.aVenir.dernierTermeAvant))}, ${montantInsecable(duTerme.aVenir.loyer)} à compter du terme ${deElide(moisEnToutesLettres(duTerme.aVenir.premierTerme))} (révision annuelle du loyer)`
+        : montantInsecable(ctx.bail.loyer_hc);
       contenu = `${section("Situation locative")}
         <p>${caf ? "Le" : "Le bailleur atteste que le"} locataire désigné est titulaire du contrat relatif aux locaux désignés, prenant effet le ${f.date(ctx.bail.date_debut)}.
         ${/* Phase 3 (C60, C61) : un bail en préavis a une fin connue ; l'attestation la dit (elle ne disait que la date d'effet). */
           ctx.bail.etat === "preavis" ? `Un congé est enregistré : le contrat prend fin le ${f.date(ctx.bail.date_fin, "date de fin du contrat (congé enregistré)")}.` : ""}
-        Loyer mensuel hors charges : ${montantInsecable(ctx.bail.loyer_hc)} ; charges mensuelles : ${montantInsecable(ctx.bail.charges)} (${ctx.bail.charges_mode === "forfait" ? "forfait" : "provisions"}).
+        Loyer mensuel hors charges : ${loyerAtteste} ; charges mensuelles : ${montantInsecable(ctx.bail.charges)} (${ctx.bail.charges_mode === "forfait" ? "forfait" : "provisions"}).
         ${ctx.chambre ? "Les montants concernent exclusivement la chambre et le droit d’usage des espaces partagés de ce contrat individuel." : ""}</p>
         <p>${caf ? "Caisse concernée" : "Destinataire"} : ${opt("destinataire","organisme ou destinataire")}${pointFinal(options.destinataire)}</p>
         <p>${caf ? "Ce récapitulatif reprend" : "Cette attestation décrit"} les conditions du bail ; les paiements effectifs sont justifiés par les quittances ou reçus.</p>`;

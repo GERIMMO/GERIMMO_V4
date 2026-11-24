@@ -1,7 +1,8 @@
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { aujourdhuiParis, eur, formaterDate } from "@/lib/ged";
-import { TYPES_BAIL } from "@/lib/baux";
+import { TYPES_BAIL, loyerDuTermeEnCours, type RevisionDuLoyer } from "@/lib/baux";
+import { deElide } from "@/lib/elision";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { buttonVariants } from "@/components/ui/button";
 import { FenetreLotProvider, BoutonLot } from "@/components/fenetre-lot";
@@ -31,6 +32,7 @@ export default async function PageLogementLocataire(
     { data: infosRows, error: eInfos },
     { data: intentions, error: eIntentions },
     { data: edlRows, error: eEdl },
+    { data: revisions },
   ] =
     await Promise.all([
       supabase.rpc("mon_bail_locataire", { p_org: orgId }),
@@ -38,6 +40,9 @@ export default async function PageLogementLocataire(
       supabase.rpc("mes_infos_pratiques_locataire", { p_org: orgId }),
       supabase.rpc("mon_intention_conge", { p_org: orgId }),
       supabase.rpc("mes_edl_locataire", { p_org: orgId }),
+      // Reprise du lot D2 (24/11) : les révisions du bail, pour afficher le loyer du terme en cours et annoncer le loyer
+      // révisé avec son premier terme. Lecture ratée : le loyer du bail s'affiche comme avant, sans annonce.
+      supabase.rpc("revisions_de_mon_loyer_locataire", { p_org: orgId }),
     ]);
   // L'identifiant du lot : `mon_bail_locataire` n'en rend que le nom, et la
   // fenêtre du lot — la même que voit son gestionnaire, à sa portée à lui —
@@ -80,6 +85,15 @@ export default async function PageLogementLocataire(
   // l'écran ne tranche pas à la place de la loi.
   const zoneInconnue = !bailMeuble && bail.zone_tendue == null;
   const forfait = bail.charges_mode === "forfait";
+  // Reprise du lot D2 : le bail porte le loyer révisé dès l'enregistrement de la révision ; avant son premier terme,
+  // l'écran affiche le loyer du terme en cours et annonce le suivant.
+  const duTerme = loyerDuTermeEnCours(
+    bail.loyer_hc,
+    ((revisions ?? []) as (RevisionDuLoyer & { bail_id: string })[]).filter((r) => r.bail_id === bail.bail_id),
+    aujourdhuiParis(),
+  );
+  const moisDuTerme = (terme: string) =>
+    new Date(`${terme}T12:00:00Z`).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
   const depotDu = Number(depot?.depot_du ?? 0);
   const depotRecu = Number(depot?.encaisse ?? 0);
 
@@ -168,8 +182,15 @@ export default async function PageLogementLocataire(
           <div className="ligne-info">
             <span>Loyer</span>
             <span className="montant text-right">
-              {eur(Number(bail.loyer_hc ?? 0))} + {eur(Number(bail.charges ?? 0))} de{" "}
+              {eur(Number(duTerme.loyer ?? 0))} + {eur(Number(bail.charges ?? 0))} de{" "}
               {forfait ? "forfait" : "provision"} de charges
+              {duTerme.aVenir && (
+                <span className="block text-xs font-normal text-muted-foreground" data-loyer-a-venir>
+                  loyer de {eur(Number(duTerme.loyer ?? 0))} jusqu&apos;au terme {deElide(moisDuTerme(duTerme.aVenir.dernierTermeAvant))},{" "}
+                  {eur(duTerme.aVenir.loyer)} à compter du terme {deElide(moisDuTerme(duTerme.aVenir.premierTerme))}{" "}
+                  (révision annuelle du loyer)
+                </span>
+              )}
             </span>
           </div>
           {/* Le montant DÛ d'abord, l'état du versement en mention (24/09) :

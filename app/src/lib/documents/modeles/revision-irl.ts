@@ -47,6 +47,17 @@ export type DonneesRevisionIrl = {
    * null ou absent : révision enregistrée avant cette décision ; le document garde alors sa rédaction d'avant.
    */
   premierTerme?: string | null;
+  /**
+   * Reprise du lot D2 : jour (de Paris) où la révision a été enregistrée. Une demande antidatée ne fait pas gagner un
+   * terme : la lettre dit alors que le premier terme révisé suit aussi cet enregistrement.
+   */
+  enregistreLe?: string | null;
+  /**
+   * Reprise du lot D2 : trimestre de l'indice de référence (« T2 2024 ») quand c'est l'indice du même trimestre de l'année
+   * précédente, parce que la révision d'une année n'avait pas été faite (`revisions_loyer.irl_reference_trimestre`).
+   * null ou absent : cas normal.
+   */
+  referenceAnneePrecedente?: string | null;
   /** Fin du bail enregistrée (congé), pour dire qu'aucun terme ne suit. */
   dateFinBail?: string | null;
   ancienLoyer: number;
@@ -189,6 +200,7 @@ function phraseApplication(application: ApplicationRevision | null | undefined, 
  */
 export function phrasePremierTerme(d: {
   premierTerme: string; dateDemande: string | null | undefined; ancienLoyer: number; nouveauLoyer: number; dateFinBail?: string | null;
+  enregistreLe?: string | null;
 }): string {
   if (centimes(d.nouveauLoyer) === centimes(d.ancienLoyer)) {
     return `<p>Le loyer révisé est égal au loyer avant révision : la révision ne modifie le montant d'aucun terme.</p>`;
@@ -197,8 +209,14 @@ export function phrasePremierTerme(d: {
   const dernierInchange = veille(premierTerme);
   const termePrecedent = deElide(moisEnToutesLettres(dernierInchange));
   // Le premier terme après la demande est le mois suivant ; s'il est plus tardif, c'est que des termes étaient déjà appelés.
-  const [a, m] = (d.dateDemande ?? "").slice(0, 7).split("-").map(Number);
-  const dejaAppeles = Boolean(a && m && jourIso(new Date(Date.UTC(a, m, 1))) < premierTerme);
+  const apresDemande = d.dateDemande ? moisSuivant(d.dateDemande) : null;
+  // Reprise du lot D2 : une révision enregistrée un mois plus tard que la date de sa demande (demande antidatée) ne
+  // s'applique qu'après son enregistrement. La lettre le dit, avec la date — seulement si le premier terme enregistré
+  // suit bien cette règle (une révision enregistrée avant la reprise garde sa phrase).
+  const apresEnregistrement = d.enregistreLe ? moisSuivant(d.enregistreLe) : null;
+  const antidatee = Boolean(apresDemande && apresEnregistrement && apresEnregistrement > apresDemande && premierTerme >= apresEnregistrement);
+  const depart = antidatee ? apresEnregistrement : apresDemande;
+  const dejaAppeles = Boolean(depart && depart < premierTerme);
   const inchanges = `Le terme ${termePrecedent} et les termes antérieurs ne sont pas modifiés par cette révision
     (loyer avant révision : ${eur(d.ancienLoyer)}).`;
   if (d.dateFinBail && d.dateFinBail.slice(0, 10) < premierTerme) {
@@ -208,7 +226,7 @@ export function phrasePremierTerme(d: {
   }
   return `<p>Le loyer révisé ne s'applique à aucun jour antérieur à la demande. Il s'applique à partir du
     <b>terme ${deElide(moisEnToutesLettres(premierTerme))}</b> (période commençant le ${formaterDateFr(premierTerme)}), premier terme
-    dont la période commence après la date de la demande${dejaAppeles ? " et qui n'était pas déjà appelé lorsque la révision a été enregistrée" : ""}.
+    dont la période commence après la date de la demande${antidatee ? ` et après l'enregistrement de la révision (${formaterDateFr(d.enregistreLe!)})` : ""}${dejaAppeles ? " et qui n'était pas déjà appelé lorsque la révision a été enregistrée" : ""}.
     ${inchanges}</p>`;
 }
 
@@ -247,7 +265,9 @@ export function origineReference(
   return memeValeur(bail.irl_valeur) ? { bail: true, trimestre: bail.irl_trimestre } : null;
 }
 
-function libelleIndiceReference(o: OrigineReference | null | undefined): string {
+function libelleIndiceReference(o: OrigineReference | null | undefined, anneePrecedente?: string | null): string {
+  // Reprise du lot D2 : la révision d'une année n'avait pas été faite, le calcul a pris l'indice de l'année précédente.
+  if (anneePrecedente) return `Indice de référence (même trimestre de l'année précédente, ${anneePrecedente})`;
   if (!o) return "Indice de référence (dernière révision, à défaut indice figé au bail)";
   const trimestre = o.trimestre ? `, ${o.trimestre}` : "";
   return "bail" in o
@@ -286,12 +306,21 @@ export function construireRevisionIrl(d: DonneesRevisionIrl) {
   // lendemain de la date d'effet, le courrier imprimait ce lendemain sans dire qu'il était établi après cette date.
   const etabliLe = aujourdhuiParis();
   const tardive = Boolean(d.dateDemande && d.dateEcheance && d.dateDemande > d.dateEcheance);
+  // Le premier terme révisé imprimé dans le tableau : celui de la révision (Q43) ; à défaut, celui lu sur les appels (C54).
+  // Aucun si le loyer ne change pas ou si le bail prend fin avant.
+  const premierTermeAppele = d.premierTerme
+    ? (centimes(d.nouveauLoyer) === centimes(d.ancienLoyer) || (d.dateFinBail && d.dateFinBail.slice(0, 10) < d.premierTerme.slice(0, 10)) ? null : d.premierTerme)
+    : d.application?.premierTerme ?? null;
+  // Reprise du lot D2 : une lettre établie alors que le premier terme révisé a déjà commencé le dit, avec les dates réelles.
+  const apresPremierTerme = Boolean(d.premierTerme && premierTermeAppele && etabliLe.slice(0, 10) >= premierTermeAppele.slice(0, 10));
   // Décision Q43 du 24/11/2026 : pour une révision qui porte son premier terme, la lettre ne parle plus d'une « date
   // d'effet » en cours de mois ; elle dit la date de révision, la date de la demande et le premier terme révisé.
   const phraseEffet = d.premierTerme
     ? `<p>La révision se rattache à la date de révision annuelle du ${f.date(echeance)}. Le bailleur l'a demandée le
        <b>${f.date(d.dateDemande)}</b>${tardive ? ", après cette date" : ""}.${
-        d.dateDemande && d.dateDemande.slice(0, 10) < etabliLe.slice(0, 10) ? ` Le présent courrier est établi le ${f.date(etabliLe)}.` : ""
+        d.dateDemande && d.dateDemande.slice(0, 10) < etabliLe.slice(0, 10)
+          ? ` Le présent courrier est établi le ${f.date(etabliLe)}${apresPremierTerme ? `, après le début du premier terme appelé au loyer révisé (période commençant le ${f.date(premierTermeAppele)})` : ""}.`
+          : ""
       }</p>`
     : tardive
     ? `<p>La révision se rattache à l'échéance annuelle du ${f.date(echeance)}. Demandée le
@@ -308,20 +337,16 @@ export function construireRevisionIrl(d: DonneesRevisionIrl) {
         d.dateEffet.slice(0, 10) < etabliLe.slice(0, 10) ? ` Le présent courrier est établi le ${f.date(etabliLe)}, après cette date d'effet.` : ""
       }</p>`;
 
-  // Le premier terme révisé imprimé dans le tableau : celui de la révision (Q43) ; à défaut, celui lu sur les appels (C54).
-  // Aucun si le loyer ne change pas ou si le bail prend fin avant.
-  const premierTermeAppele = d.premierTerme
-    ? (centimes(d.nouveauLoyer) === centimes(d.ancienLoyer) || (d.dateFinBail && d.dateFinBail.slice(0, 10) < d.premierTerme.slice(0, 10)) ? null : d.premierTerme)
-    : d.application?.premierTerme ?? null;
   // Décision Q43 : les mentions d'une révision d'après le 24/11 disent ce que fait Gerimmo (premier terme après la demande)
-  // et le délai d'un an tel que le donne la fiche officielle lue ; elles ne reprennent pas la formule d'un article non lu.
+  // et le délai d'un an ; elles ne reprennent pas la formule d'un article non lu.
+  // Reprise du lot D2 : le renvoi à la fiche Service-Public est retiré de ce courrier adressé au locataire (il reste dans le
+  // message de refus et dans l'aide du formulaire, lus par le gérant).
   const mentions = d.premierTerme
     ? `<p>La révision ne peut excéder la variation de l'IRL, apprécié sur le même trimestre que
       l'indice de référence. Le loyer révisé ne s'applique jamais à des jours antérieurs à la demande du bailleur : il
       s'applique au premier terme dont la période commence après la date de cette demande, et un terme déjà appelé n'est
       pas modifié. La révision d'une année peut être demandée pendant un an à compter de la date de révision ; passé ce
-      délai, elle n'est plus possible pour cette année-là (selon la fiche officielle Service-Public « Augmentation et
-      révision du loyer en cours de bail d'habitation », consultée le 24/11/2026).</p>`
+      délai, elle n'est plus possible pour cette année-là.</p>`
     : `<p>La révision ne peut excéder la variation de l'IRL, apprécié sur le même trimestre que
       l'indice de référence. Elle prend effet à la date convenue au bail si elle est demandée à
       cette date ; demandée après, elle prend effet à la date de la demande, sans rétroactivité.
@@ -344,8 +369,14 @@ export function construireRevisionIrl(d: DonneesRevisionIrl) {
     variation de l'indice de référence des loyers publié par l'INSEE.</p>
     ${phraseEffet}
     ${d.premierTerme
-      ? phrasePremierTerme({ premierTerme: d.premierTerme, dateDemande: d.dateDemande, ancienLoyer: d.ancienLoyer, nouveauLoyer: d.nouveauLoyer, dateFinBail: d.dateFinBail })
+      ? phrasePremierTerme({ premierTerme: d.premierTerme, dateDemande: d.dateDemande, ancienLoyer: d.ancienLoyer, nouveauLoyer: d.nouveauLoyer, dateFinBail: d.dateFinBail, enregistreLe: d.enregistreLe })
       : phraseApplication(d.application, d.dateFinBail, d.nouveauLoyer)}
+    ${/* Reprise du lot D2 : dit de façon neutre, avec les deux indices réellement utilisés (tableau « Indices retenus »). */
+      d.referenceAnneePrecedente
+        ? `<p>La révision annuelle de l'année précédente n'a pas été appliquée ; elle n'est pas rattrapée. Le calcul porte sur une
+          seule année : de l'indice du ${echapper(d.referenceAnneePrecedente)} (même trimestre, année précédente) à l'indice du
+          ${echapper(d.trimestreNouveau ?? "trimestre de la révision")}.</p>`
+        : ""}
     ${section("Nouveau montant")}
     ${tableau(
       [{ libelle: "Nature" }, { libelle: "Montant", droite: true }],
@@ -365,7 +396,7 @@ export function construireRevisionIrl(d: DonneesRevisionIrl) {
         ["Trimestre du nouvel indice (même trimestre que la référence)", f.champ(d.trimestreNouveau, "ex. T2 2026")],
         ["Nouvel indice retenu", f.champ(indice(d.irlNouveau), "indice du trimestre de révision")],
         [
-          echapper(libelleIndiceReference(d.origineReference)),
+          echapper(libelleIndiceReference(d.origineReference, d.referenceAnneePrecedente)),
           f.champ(indice(d.irlReference), "indice de référence"),
         ],
         ["Variation", f.champ(variation, "en pourcentage")],
@@ -398,7 +429,7 @@ export async function assemblerRevisionIrl(
 ): Promise<Assemblage> {
   const { data: r } = await supabase
     .from("revisions_loyer")
-    .select("id, bail_id, date_effet, date_echeance, date_demande, premier_terme, irl_trimestre, ancien_loyer, nouveau_loyer, irl_reference, irl_nouveau")
+    .select("id, bail_id, date_effet, date_echeance, date_demande, premier_terme, irl_trimestre, ancien_loyer, nouveau_loyer, irl_reference, irl_nouveau, irl_reference_trimestre, created_at")
     .eq("id", revisionId)
     .eq("organization_id", orgId)
     .maybeSingle();
@@ -436,6 +467,9 @@ export async function assemblerRevisionIrl(
     dateEcheance: r.date_echeance,
     dateDemande: r.date_demande,
     premierTerme: r.premier_terme,
+    // Le jour de Paris de l'enregistrement, comme la base l'a lu (`aujourdhui_paris()`).
+    enregistreLe: r.created_at ? new Date(r.created_at).toLocaleDateString("en-CA", { timeZone: "Europe/Paris" }) : null,
+    referenceAnneePrecedente: r.irl_reference_trimestre,
     trimestreNouveau: r.irl_trimestre,
     dateFinBail: ctx.bail.date_fin,
     application: applicationRevision(r.date_effet, Number(r.ancien_loyer), Number(r.nouveau_loyer), (appels ?? []) as AppelRevision[], ctx.bail.date_fin),

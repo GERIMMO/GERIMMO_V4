@@ -55,8 +55,11 @@ describe("choix de l'indice dans la série", () => {
   });
 
   it("sans révision passée : même trimestre que le bail, dernière année publiée après son indice", () => {
+    // Reprise du lot D2 (24/11) : l'indice proposé (2026) est postérieur de plus d'un an à la référence (2024). La révision
+    // de 2025 n'a pas été faite et n'est pas rattrapée : la proposition rend aussi l'indice du T2 2025, lu dans la série.
     expect(proposerIndice({ serie: SERIE, irlTrimestreBail: "T2 2024", irlValeurBail: "200.20", revisions: [] })).toEqual({
       etat: "propose", trimestre: 2, annee: 2026, valeur: 220.25, referencePubliee: 200.2, referenceBail: 200.2, anneeReference: 2024,
+      precedent: { annee: 2025, valeur: 210.2 },
     });
     // Le T3 2026 n'est pas publié : le dernier T3 publié après la référence est celui de 2025.
     expect(proposerIndice({ serie: SERIE, irlTrimestreBail: "3e trimestre 2024", irlValeurBail: 200.3, revisions: [] }))
@@ -70,7 +73,20 @@ describe("choix de l'indice dans la série", () => {
     ];
     expect(proposerIndice({ serie: SERIE, irlTrimestreBail: "T2 2023", irlValeurBail: 190, revisions })).toEqual({
       etat: "propose", trimestre: 2, annee: 2026, valeur: 220.25, referencePubliee: 210.2, referenceBail: 210.2, anneeReference: 2025,
+      precedent: null, // un an d'écart : cas normal, rien de plus à fournir
     });
+  });
+
+  it("reprise D2 — année sautée : l'indice du même trimestre de l'année précédente est rendu ; absent de la série, il reste à saisir", () => {
+    // Référence T2 2024, dernier T2 publié : 2026. La série est lue en entier : le T2 2025 s'y trouve.
+    expect(proposerIndice({ serie: SERIE, irlTrimestreBail: "T2 2024", irlValeurBail: 200.2, revisions: [] }))
+      .toMatchObject({ etat: "propose", annee: 2026, anneeReference: 2024, precedent: { annee: 2025, valeur: 210.2 } });
+    // Série amputée de 2025 : l'année précédente est dite, sans valeur supposée.
+    expect(proposerIndice({ serie: SERIE.filter((i) => i.annee !== 2025), irlTrimestreBail: "T2 2024", irlValeurBail: 200.2, revisions: [] }))
+      .toMatchObject({ etat: "propose", annee: 2026, precedent: { annee: 2025, valeur: null } });
+    // Écart d'un an : rien.
+    expect(proposerIndice({ serie: SERIE, irlTrimestreBail: "T2 2025", irlValeurBail: 210.2, revisions: [] }))
+      .toMatchObject({ etat: "propose", annee: 2026, precedent: null });
   });
 
   it("bail ancien sans trimestre lisible : sa première révision a fixé le trimestre", () => {
@@ -146,7 +162,7 @@ describe("action chercherIndiceRevision", () => {
 
   it("proposition : l'indice du trimestre du bail, avec le jour de la lecture ; les révisions du bail (et d'elles seules) sont prises en compte", async () => {
     expect(await chercherIndiceRevision(ORG, BAIL)).toEqual({
-      proposition: { etat: "propose", trimestre: 2, annee: 2026, valeur: 220.25, referencePubliee: 200.2, referenceBail: 200.2, anneeReference: 2024 },
+      proposition: { etat: "propose", trimestre: 2, annee: 2026, valeur: 220.25, referencePubliee: 200.2, referenceBail: 200.2, anneeReference: 2024, precedent: { annee: 2025, valeur: 210.2 } },
       luLe: "2026-11-22",
     });
     expect(banc.serie).toHaveBeenCalledTimes(1);
@@ -156,7 +172,7 @@ describe("action chercherIndiceRevision", () => {
       { id: "r2", organization_id: ORG, bail_id: "44444444-4444-4444-8444-444444444444", date_effet: "2026-07-01", irl_trimestre: "T2 2026", irl_nouveau: 220.25 },
       { id: "r3", organization_id: "33333333-3333-4333-8333-333333333333", bail_id: BAIL, date_effet: "2026-07-01", irl_trimestre: "T2 2026", irl_nouveau: 220.25 },
     ] }) });
-    expect(await chercherIndiceRevision(ORG, BAIL)).toMatchObject({ proposition: { etat: "propose", annee: 2026, anneeReference: 2025, referenceBail: 210.2 } });
+    expect(await chercherIndiceRevision(ORG, BAIL)).toMatchObject({ proposition: { etat: "propose", annee: 2026, anneeReference: 2025, referenceBail: 210.2, precedent: null } });
   });
 
   it("l'Insee ne répond pas : « indisponible », jamais une valeur supposée", async () => {
@@ -174,17 +190,26 @@ describe("message de la recherche", () => {
   });
 
   it("proposition : l'indice, la consigne de vérifier, la source et le jour de lecture", () => {
-    const html = rendre({ proposition: { etat: "propose", trimestre: 2, annee: 2026, valeur: 220.2, referencePubliee: 200.2, referenceBail: 200.2, anneeReference: 2024 }, luLe: "2026-11-22" });
+    const html = rendre({ proposition: { etat: "propose", trimestre: 2, annee: 2026, valeur: 220.2, referencePubliee: 200.2, referenceBail: 200.2, anneeReference: 2025, precedent: null }, luLe: "2026-11-22" });
     const t = texte(html);
     expect(t).toContain("Indice du T2 2026 publié par l’Insee : 220,20.");
     expect(t).toContain("Il est reporté dans le formulaire : vérifiez-le avant de réviser.");
     expect(t).toContain("Source : série n° 001515333 de l’Insee (indice de référence des loyers), lue le 22/11/2026.");
     expect(html).toContain('href="https://www.insee.fr/fr/statistiques/serie/001515333"');
     expect(html).not.toContain("data-indice-ecart");
+    expect(html).not.toContain("data-indice-annee-sautee");
+  });
+
+  it("reprise D2 — année sautée : le message dit que la révision non faite n'est pas rattrapée et donne l'indice de l'année précédente", () => {
+    const avec = rendre({ proposition: { etat: "propose", trimestre: 2, annee: 2026, valeur: 220.25, referencePubliee: 200.2, referenceBail: 200.2, anneeReference: 2024, precedent: { annee: 2025, valeur: 210.2 } }, luLe: "2026-11-22" });
+    expect(avec).toContain("data-indice-annee-sautee");
+    expect(texte(avec)).toContain("L’indice de référence de ce bail est celui de 2024 : la révision d’une année au moins n’a pas été faite. Elle n’est pas rattrapée : le loyer se révise sur un an, avec l’indice du T2 2025 (210,20 selon l’Insee, reporté dans le formulaire : vérifiez-le).");
+    const sans = rendre({ proposition: { etat: "propose", trimestre: 2, annee: 2026, valeur: 220.25, referencePubliee: 200.2, referenceBail: 200.2, anneeReference: 2024, precedent: { annee: 2025, valeur: null } }, luLe: "2026-11-22" });
+    expect(texte(sans)).toContain("avec l’indice du T2 2025, que l’Insee ne publie pas dans cette série : saisissez-le vous-même.");
   });
 
   it("l'indice de référence du bail n'est pas celui que publie l'Insee : c'est dit, avec les deux valeurs", () => {
-    const html = rendre({ proposition: { etat: "propose", trimestre: 2, annee: 2026, valeur: 220.25, referencePubliee: 200.2, referenceBail: 199.5, anneeReference: 2024 }, luLe: "2026-11-22" });
+    const html = rendre({ proposition: { etat: "propose", trimestre: 2, annee: 2026, valeur: 220.25, referencePubliee: 200.2, referenceBail: 199.5, anneeReference: 2024, precedent: null }, luLe: "2026-11-22" });
     expect(html).toContain("data-indice-ecart");
     expect(texte(html)).toContain("Attention : pour le T2 2024, l’Insee publie 200,20, alors que l’indice de référence de ce bail est 199,50. Vérifiez-le avant de réviser.");
   });

@@ -266,6 +266,45 @@ export function premierTermeApresDemande(dateDemande: string): string {
   return new Date(Date.UTC(a, m, 1)).toISOString().slice(0, 10);
 }
 
+// Reprise du lot D2 (24/11/2026) : le premier terme appelé au loyer révisé, tel que `reviser_loyer` l'écrit sur la révision
+// (migration 20261124130000). Antidater la demande ne fait pas gagner un terme : on part du plus tardif entre la date de
+// la demande et le jour de l'enregistrement, et le terme retenu suit toujours le dernier terme déjà appelé.
+export function premierTermeRevise(dateDemande: string, jourEnregistrement: string, dernierTermeAppele?: string | null): string {
+  const terme = premierTermeApresDemande(dateDemande > jourEnregistrement ? dateDemande : jourEnregistrement);
+  const apresAppels = dernierTermeAppele ? premierTermeApresDemande(dernierTermeAppele) : terme;
+  return apresAppels > terme ? apresAppels : terme;
+}
+
+// Reprise du lot D2 (24/11/2026) : dès qu'une révision est enregistrée, le bail porte le loyer révisé, alors que ce loyer
+// ne s'applique qu'à partir de son premier terme. Tant que ce terme n'est pas commencé, ce qu'on affiche ou atteste comme
+// « le loyer » est celui du terme en cours (le loyer d'avant la révision), et le loyer révisé s'annonce avec son terme.
+// Une seule fonction pour l'attestation de loyer, le dossier CAF, l'attestation du locataire et son espace.
+export type RevisionDuLoyer = { ancien_loyer: number | string; nouveau_loyer: number | string; premier_terme: string | null };
+export type LoyerDuTerme = {
+  /** Le loyer hors charges du terme en cours. */
+  loyer: number | null;
+  /** Le loyer révisé qui n'est pas encore appliqué : son montant, son premier terme et le dernier terme à l'ancien loyer (1er du mois). */
+  aVenir: { loyer: number; premierTerme: string; dernierTermeAvant: string } | null;
+};
+export function loyerDuTermeEnCours(loyerDuBail: number | string | null, revisions: RevisionDuLoyer[], aujourdhui: string): LoyerDuTerme {
+  const loyer = loyerDuBail === null ? null : Number(loyerDuBail);
+  const moisEnCours = `${aujourdhui.slice(0, 7)}-01`;
+  const centimes = (v: number | string) => Math.round(Number(v) * 100);
+  // La révision en attente : son premier terme est après le mois en cours. S'il y en a plusieurs, la plus proche.
+  const enAttente = revisions
+    .filter((r) => r.premier_terme !== null && r.premier_terme.slice(0, 10) > moisEnCours)
+    .sort((a, b) => a.premier_terme!.localeCompare(b.premier_terme!))[0];
+  // Rien n'est annoncé si le bail ne porte pas le loyer de cette révision (un avenant est passé depuis) ou si le loyer
+  // ne change pas : on s'en tient alors au loyer du bail.
+  if (!enAttente || loyer === null || centimes(enAttente.nouveau_loyer) !== centimes(loyer) || centimes(enAttente.ancien_loyer) === centimes(loyer)) {
+    return { loyer, aVenir: null };
+  }
+  const premierTerme = enAttente.premier_terme!.slice(0, 10);
+  const [a, m] = premierTerme.split("-").map(Number);
+  const dernierTermeAvant = new Date(Date.UTC(a, m - 2, 1)).toISOString().slice(0, 10);
+  return { loyer: Number(enAttente.ancien_loyer), aVenir: { loyer, premierTerme, dernierTermeAvant } };
+}
+
 // Numéro (1 à 4) du trimestre IRL lu dans un libellé libre : « T2 2026 »,
 // « 2e trimestre 2026 », « deuxième trimestre »… — miroir de
 // `trimestre_irl_numero`. null quand le libellé ne se lit pas.

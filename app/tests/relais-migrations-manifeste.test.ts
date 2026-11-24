@@ -277,6 +277,10 @@ const MISSION_OCTOBRE = [
   // l'IA » ne s'affiche que pour l'origine « ia ») ; motif du retrait d'une note lu par son seul auteur (Q20).
   "20261124110000_publications_origine.sql",
   "20261124120000_motif_retrait_reserve_a_l_auteur.sql",
+  // 24/11, décisions du dirigeant (lot D2, reprise après relecture) : une révision non faite n'est plus rattrapée l'année
+  // suivante (calcul sur un an, indice de l'année précédente exigé) ; terme rattrapé après un avenant ; demande antidatée ;
+  // bail terminé ; le locataire lit les révisions de son bail.
+  "20261124130000_revision_loyer_reprise_d2.sql",
 
 
 ];

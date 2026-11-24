@@ -15,6 +15,7 @@ import { aEchoue, PanneLecture } from "@/app/locataire/[orgId]/panne-lecture";
 import { interlocuteurDeLIdentite } from "@/lib/identite-contact-locataire";
 import { completerIdentiteContact } from "@/lib/interlocuteur-locataire-serveur";
 import type { BailLocataire } from "@/app/locataire/[orgId]/types";
+import { loyerDuTermeEnCours, type RevisionDuLoyer } from "@/lib/baux";
 
 // Le titre de l'onglet porte la marque de l'émetteur, jamais « Gerimmo »
 // (25/09, D04 ; relevé à nouveau le 27/09).
@@ -47,11 +48,15 @@ export default async function PageAttestationLoyer(
     { data: baux, error: eBail },
     { data: echeancier, error: eEcheancier },
     { data: emetteurBrut, error: eEmetteur },
+    { data: revisions },
   ] = await Promise.all([
     supabase.rpc("mon_bail_locataire", { p_org: orgId }),
     supabase.rpc("mon_echeancier_locataire", { p_org: orgId }),
     // L'identité de l'émetteur (27/09) : nom, adresse, qualité.
     supabase.rpc("attestation_emetteur_locataire", { p_org: orgId }),
+    // Reprise du lot D2 (24/11) : les révisions du bail, pour attester le loyer du terme en cours et non un loyer révisé
+    // qui ne s'applique pas encore. Lecture ratée : le loyer du bail s'affiche comme avant, sans annonce.
+    supabase.rpc("revisions_de_mon_loyer_locataire", { p_org: orgId }),
   ]);
   // Une lecture tombée donnait ici le pire des écrans : un échéancier vide se
   // lit « après votre premier loyer réglé » — on annonçait à un locataire de
@@ -89,9 +94,15 @@ export default async function PageAttestationLoyer(
   const moisPayes = moisEchus.filter((l) => l.statut === "paye");
   // Loyer charges comprises : inconnu tant que rien n'est renseigné. `eur`
   // imprime « — » ; additionner deux absences donnerait un loyer de 0,00 €.
+  // Reprise du lot D2 : tant que le premier terme révisé n'est pas commencé, le loyer attesté est celui du terme en cours.
+  const duTerme = loyerDuTermeEnCours(
+    bail?.loyer_hc ?? null,
+    ((revisions ?? []) as (RevisionDuLoyer & { bail_id: string })[]).filter((r) => r.bail_id === bail?.bail_id),
+    aujourdhui,
+  );
   const loyerCc =
-    bail && (bail.loyer_hc !== null || bail.charges !== null)
-      ? Number(bail.loyer_hc ?? 0) + Number(bail.charges ?? 0)
+    bail && (duTerme.loyer !== null || bail.charges !== null)
+      ? Number(duTerme.loyer ?? 0) + Number(bail.charges ?? 0)
       : null;
 
   let contenu: ReactNode;
@@ -172,7 +183,16 @@ export default async function PageAttestationLoyer(
         <div>
           <div className="ligne-info">
             <span>Loyer mensuel charges comprises</span>
-            <span className="montant">{eur(loyerCc)}</span>
+            <span className="montant text-right" data-loyer-atteste>
+              {eur(loyerCc)}
+              {duTerme.aVenir && (
+                <span className="block text-xs font-normal">
+                  jusqu&apos;au terme {deElide(moisLong(duTerme.aVenir.dernierTermeAvant))} ;{" "}
+                  {eur(duTerme.aVenir.loyer + Number(bail.charges ?? 0))} à compter du terme{" "}
+                  {deElide(moisLong(duTerme.aVenir.premierTerme))} (révision annuelle du loyer)
+                </span>
+              )}
+            </span>
           </div>
           <div className="ligne-info">
             <span>Mois réglés à ce jour</span>

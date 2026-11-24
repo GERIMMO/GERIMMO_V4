@@ -7,6 +7,10 @@
 // règle nouvelle : le choix est celui de l'outil public (`choisirIndices` — même trimestre que l'indice de référence,
 // dernière année publiée après lui), et la référence se lit comme la base la lit dans `reviser_loyer` (l'indice de la
 // dernière révision, à défaut celui figé au bail). La base reste seule juge : la proposition se vérifie avant de valider.
+//
+// Reprise du lot D2 (24/11/2026) : quand l'indice proposé est postérieur de plus d'un an à l'indice de référence, la
+// révision d'une année n'a pas été faite. Elle n'est pas rattrapée : la base calcule sur un an et exige l'indice du même
+// trimestre de l'année précédente. La proposition le rend donc aussi (`precedent`).
 
 import { numeroTrimestreIrl } from "@/lib/baux";
 import { choisirIndices, type CodeTrimestre, type ObservationIrl } from "@/lib/outils/irl-insee";
@@ -24,6 +28,13 @@ export type PropositionIndice =
       /** L'indice de référence enregistré sur le bail (ou celui de sa dernière révision). */
       referenceBail: number | null;
       anneeReference: number;
+      /**
+       * Reprise du lot D2 (24/11/2026). Rempli seulement quand l'indice proposé est postérieur de plus d'un an à l'indice
+       * de référence (la révision d'une année au moins n'a pas été faite) : la révision se calcule alors sur un an, avec
+       * l'indice du même trimestre de l'année précédente. `valeur` est celle que publie l'Insee (null : absente de la
+       * série, à saisir à la main). null dans le cas normal.
+       */
+      precedent: { annee: number; valeur: number | null } | null;
     }
   /** Le trimestre ou l'année de l'indice de référence ne se lisent pas sur le bail. */
   | { etat: "sans_reference" }
@@ -75,6 +86,10 @@ export function proposerIndice(o: {
     referencePubliee: reference?.valeur ?? null,
     referenceBail: derniere ? nombre(derniere.irl_nouveau) : nombre(o.irlValeurBail),
     anneeReference,
+    // La série est lue en entier : l'indice du même trimestre de l'année précédente s'y trouve.
+    precedent: nouveau.annee > anneeReference + 1
+      ? { annee: nouveau.annee - 1, valeur: o.serie.find((i) => i.trimestre === nouveau.trimestre && i.annee === nouveau.annee - 1)?.valeur ?? null }
+      : null,
   };
 }
 

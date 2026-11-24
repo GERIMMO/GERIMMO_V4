@@ -341,8 +341,15 @@ describe.skipIf(!url)("révision du loyer, lot D2 (avec base)", () => {
       await nousSommesLe("2026-10-16");
       const b = await bail();
       await appeler(b);
-      expect(await reviser(b, 104, "T2 2026", "2026-10-16")).toBe(728);
-      expect(await revisions(b)).toEqual([{ echeance: "2026-10-15", demande: "2026-10-16", effet: "2026-10-16", premier_terme: "2026-11-01", ancien: 700, nouveau: 728 }]);
+      // Reprise du lot D2 (24/11) : ce test enregistrait ici l'indice T2 2026 contre la référence T2 2024 du bail, soit
+      // 700 × 104 / 100 = 728 € — le rattrapage de deux années que la reprise a retiré. La révision de la nouvelle année
+      // reste possible (c'est ce que tient ce test) ; elle se calcule sur un an, avec l'indice du T2 2025 (102), par la
+      // signature à cinq paramètres : 700 × 104 / 102 = 713,73 €.
+      expect(await refusRevision(b, 104, "T2 2026", "2026-10-16")).toMatch(/Indice du T2 2025 obligatoire/);
+      await enGerant();
+      expect(Number((await un("select public.reviser_loyer($1,104,'T2 2026','2026-10-16'::date,102)::float8 as loyer", [b])).loyer)).toBe(713.73);
+      await base();
+      expect(await revisions(b)).toEqual([{ echeance: "2026-10-15", demande: "2026-10-16", effet: "2026-10-16", premier_terme: "2026-11-01", ancien: 700, nouveau: 713.73 }]);
     });
 
     it("les autres refus restent en place : demande datée de demain, deuxième révision de la même année", async () => {
@@ -388,6 +395,11 @@ describe.skipIf(!url)("révision du loyer, lot D2 (avec base)", () => {
     });
 
     it("le retour rend la définition d'avant sans supprimer la colonne ni les révisions, se rejoue ; la migration se rejoue ensuite", async () => {
+      // Reprise du lot D2 (24/11) : la migration 20261124130000 complète la même fonction avec des lignes qui se servent des
+      // variables de ce lot. Son retour se joue donc d'abord (ordre du LISEZ-MOI) ; joué avant lui, le retour de ce lot
+      // s'arrête sans rien modifier (tenu par tests/revision-loyer-reprise-d2-base.test.ts). Ce test vérifie ensuite, comme
+      // avant, le retour et le rejeu de CE lot.
+      await db.query(lire("supabase/retours-arriere/20261124130000_revision_loyer_reprise_d2.retour.sql"));
       await nousSommesLe("2025-12-03");
       const b = await bail();
       await reviser(b, 102, "T2 2025", "2025-12-03");

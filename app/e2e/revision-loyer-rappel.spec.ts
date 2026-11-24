@@ -99,10 +99,28 @@ test("révision annuelle : rappelée à la date anniversaire, indice cherché ch
     expect(await debordementHorizontal(page)).toBeLessThanOrEqual(1);
     await revision.screenshot({ path: info.outputPath("revision-indice.png") });
 
-    // ── La saisie à la main reste possible (valeurs fictives) : la révision s'enregistre.
+    // ── Reprise du lot D2 (24/11) : un indice postérieur de plus d'un an à l'indice de référence (ici « T2 » de cette
+    // année contre « T2 » d'il y a deux ans) signale une révision annuelle non faite. Elle n'est pas rattrapée : le
+    // formulaire demande alors l'indice du même trimestre de l'année précédente, et la base refuse sans lui.
+    await revision.locator("#irl-nouv").fill("142");
+    await revision.locator("#irl-trim").selectOption("2");
+    await revision.locator("#irl-annee").fill(String(d.annee));
+    await expect(revision.locator("[data-irl-precedent]")).toBeVisible();
+    await expect(revision.locator("[data-irl-precedent] label")).toHaveText(`IRL du T2 ${d.annee - 1}`);
+    await expect(revision.locator("[data-revision-annee-sautee]")).toContainText("Elle n'est pas rattrapée : le loyer se révise sur un an");
+    await revision.locator("#irl-precedent").fill("");
+    await revision.getByRole("button", { name: "Réviser le loyer" }).click();
+    await expect(revision.getByText(`Indice du T2 ${d.annee - 1} obligatoire`)).toBeVisible();
+    expect((await db.query("select count(*)::int n from revisions_loyer where bail_id=$1", [bail])).rows[0].n).toBe(0);
+    expect(await debordementHorizontal(page)).toBeLessThanOrEqual(1);
+    await revision.screenshot({ path: info.outputPath("revision-annee-sautee.png") });
+
+    // ── La saisie à la main reste possible (valeurs fictives) : avec l'indice de l'année qui suit la référence (un an
+    // d'écart, cas normal), le champ de l'année précédente disparaît et la révision s'enregistre.
     await revision.locator("#irl-nouv").fill("142");
     await revision.locator("#irl-trim").selectOption("2");
     await revision.locator("#irl-annee").fill(String(d.annee - 1));
+    await expect(revision.locator("[data-irl-precedent]")).toHaveCount(0);
     await expect(revision.locator("#irl-demande")).not.toHaveValue("");
     await revision.getByRole("button", { name: "Réviser le loyer" }).click();
     await expect(revision.getByText(/Loyer révisé à 710(?:[.,]00)? € HC\./)).toBeVisible();

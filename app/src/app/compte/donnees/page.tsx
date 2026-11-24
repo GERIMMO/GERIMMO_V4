@@ -44,15 +44,23 @@ export default async function PageDonnees({ searchParams }: { searchParams: Prom
     <header><p className="eyebrow">Votre confidentialité</p><h1>Mes données personnelles</h1><p className="mt-2 text-muted-foreground">Consulter, corriger, demander un effacement ou la fermeture de votre compte : retrouvez ici le suivi de votre démarche.</p></header>
     {/* Le renvoi passe AVANT le formulaire : c'est là que le locataire choisissait le mauvais destinataire. Un seul
         espace de locataire : son interlocuteur est nommé, avec le lien ; plusieurs : la tournure de /compte. */}
-    {contactLocataire && <section className="loc-carte space-y-2" data-renvoi-location>
+    {/* Lot 61 (reprise, M1) : un ANCIEN locataire (bail terminé, adhésion inactive) n'a plus d'adhésion active :
+        `contactLocataire` est nul, et il ne lisait ici aucun renvoi alors que /compte, juste avant, lui dit de
+        s'adresser à son bailleur ou à son gestionnaire. Tout compte qui n'est pas celui d'un artisan lit donc au moins
+        la tournure générique de /compte (celle qu'y lisent aussi un propriétaire ou une agence). */}
+    {contactLocataire ? <section className="loc-carte space-y-2" data-renvoi-location>
       <h2 className="titre-carte">Les données de votre location</h2>
       <p className="text-sm">{espaceLocataire
         ? <RenvoiDonneesLocation espace={espaceLocataire} identite={contactLocataire.identite ?? identiteContactLocataire(null)} />
         : <>Pour les données d&apos;une location, adressez-vous à son bailleur ou à son gestionnaire, depuis la messagerie de l&apos;espace concerné.</>}</p>
       <p className="text-sm text-muted-foreground">Le formulaire ci-dessous ne lui est pas transmis : il sert aux demandes sur votre compte lui-même (copie ou correction de ses données, fermeture du compte).</p>
+    </section> : !estArtisan && <section className="loc-carte space-y-2" data-renvoi-location="generique">
+      <h2 className="titre-carte">Les données d&apos;une location</h2>
+      <p className="text-sm">Pour les données d&apos;une location, adressez-vous à son bailleur ou à son gestionnaire.</p>
+      <p className="text-sm text-muted-foreground">Le formulaire ci-dessous ne lui est pas transmis : il sert aux demandes sur votre compte lui-même (copie ou correction de ses données, fermeture du compte).</p>
     </section>}
     <ArchiveComplete etat={parametres.archive}/>
-    <section className="loc-carte space-y-4"><h2 className="titre-carte">{contactLocataire ? "Faire une demande sur mon compte" : "Faire une demande"}</h2><p className="text-sm">Nous vous répondons dans un délai d’un mois. Une prolongation motivée peut être nécessaire pour une demande complexe et vous sera expliquée dans ce délai.</p><FormulaireDonnees cle={randomUUID()}/></section>
+    <section className="loc-carte space-y-4"><h2 className="titre-carte">{contactLocataire || !estArtisan ? "Faire une demande sur mon compte" : "Faire une demande"}</h2><p className="text-sm">Nous vous répondons dans un délai d’un mois. Une prolongation motivée peut être nécessaire pour une demande complexe et vous sera expliquée dans ce délai.</p><FormulaireDonnees cle={randomUUID()}/></section>
     {/* E020, E142 : « Mes demandes » est aussi le titre des demandes de réparation de l'espace locataire, et « Aucune
         demande sur cette page » laissait croire à d'autres pages. Le titre dit de quelles demandes il s'agit ; la
         première page vide dit qu'il n'y en a aucune (comme /assistance). E023 : le titre de chaque demande est un h3. */}

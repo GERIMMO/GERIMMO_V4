@@ -12,6 +12,10 @@
  * Et les défauts mineurs : textes (E015, E016, E017, E018, E020, E022, E132, E136, E142), titres (E023), initiales
  * (E137), ancienne adresse des règles (E138).
  *
+ * Reprise du lot 61 (relecture de 4405265a, M1 à M5) : l'ancien locataire sur /compte/donnees, la promesse de quittance
+ * chez un émetteur au profil incomplet AVANT tout document, « loyers échus », la cible tactile du lien de
+ * confidentialité, et la discussion d'une demande déclarée par un autre occupant.
+ *
  * Sans base : la session et les lectures sont des doublures ; aucun appel réel.
  */
 import { createElement } from "react";
@@ -26,6 +30,9 @@ const banc = vi.hoisted(() => ({
   type: "agence" as "agence" | "proprietaire_direct",
   adhesions: [] as { role: string; organization_id: string }[],
   demandesDonnees: [] as Record<string, unknown>[],
+  // Reprise (M2) : ce que rend `attestation_emetteur_locataire`. `undefined` : l'émetteur complet du type courant ;
+  // `null` : aucune ligne ; "erreur" : lecture en échec.
+  emetteur: undefined as Record<string, unknown> | null | "erreur" | undefined,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -42,11 +49,16 @@ vi.mock("next/navigation", () => ({
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/components/suivi-echeanciers-charges", () => ({ SuiviEcheanciersCharges: () => null }));
 vi.mock("@/lib/marque-organisation-serveur", () => ({ chargerMarque: async () => null }));
-vi.mock("@/lib/quittance-conforme", () => ({ disponibilitesQuittances: async () => banc.disponibilites }));
-// La discussion est un composant serveur asynchrone : une doublure qui dit quelle intervention et quelle demande.
+// Reprise (M2) : seule la lecture des documents est doublée ; le contrôle de l'émetteur est le vrai.
+vi.mock("@/lib/quittance-conforme", async (original) => ({
+  ...(await original<typeof import("@/lib/quittance-conforme")>()),
+  disponibilitesQuittances: async () => banc.disponibilites,
+}));
+// La discussion est un composant serveur asynchrone : une doublure qui dit quelle intervention et quelle demande
+// (reprise, M5 : et si la demande est celle d'un autre occupant).
 vi.mock("@/components/echanges-intervention", () => ({
-  EchangesIntervention: ({ intervention, demande }: { intervention: string; demande?: string }) =>
-    createElement("section", { "data-discussion": intervention }, `Discussion ${intervention} | ${demande ?? "sans demande"}`),
+  EchangesIntervention: ({ intervention, demande, demandeDUnAutre }: { intervention: string; demande?: string; demandeDUnAutre?: boolean }) =>
+    createElement("section", { "data-discussion": intervention }, `Discussion ${intervention} | ${demande ?? "sans demande"}${demandeDUnAutre ? " | d'un autre" : ""}`),
 }));
 vi.mock("@/app/compte/formulaire-mot-de-passe", () => ({ FormulaireMotDePasse: () => null }));
 vi.mock("@/app/compte/second-facteur", () => ({ SecondFacteur: () => null }));
@@ -54,6 +66,11 @@ vi.mock("@/app/compte/conditions-acceptees", () => ({ ConditionsAcceptees: () =>
 vi.mock("@/app/compte/donnees/archive", () => ({ ArchiveComplete: () => null }));
 vi.mock("@/app/compte/donnees/formulaire", () => ({ FormulaireDonnees: () => createElement("form", null, "Formulaire de demande") }));
 
+/** L'émetteur au profil COMPLET de l'espace courant (agence ou propriétaire), tel que la base le rend au locataire. */
+const emetteurComplet = () => ({
+  type: banc.type, nom: "ESSAI espace", adresse: "12 rue des Essais", code_postal: "69003", ville: "Lyon",
+  email: "espace@exemple.invalid", siret: null, bailleurs: [{ prenom: "Claire", nom: "Moreau" }],
+});
 // Une base minimale : les RPC rendent ce que le test a posé ; les tables, des listes.
 function client() {
   const table = (nom: string) => {
@@ -69,9 +86,10 @@ function client() {
     auth: { getUser: async () => ({ data: { user: { id: "compte-1", email: "zoe@exemple.invalid", last_sign_in_at: null } } }) },
     from: table,
     rpc: (nom: string) => {
+      const emetteur = banc.emetteur === undefined ? emetteurComplet() : banc.emetteur === "erreur" ? null : banc.emetteur;
       const resultat = {
-        data: nom === "attestation_emetteur_locataire" ? { type: banc.type, nom: "ESSAI espace", bailleurs: [{ prenom: "Claire", nom: "Moreau" }] } : (banc.donnees[nom] ?? []),
-        error: null,
+        data: nom === "attestation_emetteur_locataire" ? emetteur : (banc.donnees[nom] ?? []),
+        error: nom === "attestation_emetteur_locataire" && banc.emetteur === "erreur" ? { message: "lecture en échec" } : null,
         count: ((banc.donnees[nom] as unknown[] | undefined) ?? []).length,
       };
       const q = { order: () => q, range: () => Promise.resolve(resultat), then: (ok: (r: typeof resultat) => unknown) => Promise.resolve(resultat).then(ok) };
@@ -99,6 +117,7 @@ import PageDonnees from "@/app/compte/donnees/page";
 import PageVeille from "@/app/veille/page";
 import { IncidentsLocataire, type IncidentLocataire } from "@/app/locataire/[orgId]/incidents-locataire";
 import { nomDemande } from "@/lib/incidents";
+import { manquantsEmetteurQuittance } from "@/lib/quittance-conforme";
 
 const texteDe = (html: string) =>
   html.replace(/<!--.*?-->/g, "").replace(/<[^>]+>/g, "").replace(/&#x27;/g, "'").replace(/&nbsp;| /g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ");
@@ -115,6 +134,7 @@ beforeEach(() => {
   banc.type = "agence";
   banc.adhesions = [{ role: "locataire", organization_id: ORG }];
   banc.demandesDonnees = [];
+  banc.emetteur = undefined;
 });
 
 // ─── 1. La quittance promise (E013, E130) ────────────────────────────────────────────────────────────────────────────
@@ -149,6 +169,60 @@ describe("Mes paiements : la promesse de quittance suit l'état réel du documen
     expect(texte).not.toContain("aura complété les informations obligatoires");
   });
 
+  // ── Reprise (M2) : le NOUVEAU locataire, sans aucun reçu, chez un émetteur au profil incomplet.
+  const attendu = { periode: "2026-11-01", montant_du: 700, montant_couvert: 0, statut: "attendu", quittance_id: null };
+  for (const cas of [{ type: "agence" as const, qui: "gestionnaire" }, { type: "proprietaire_direct" as const, qui: "bailleur" }]) {
+    it(`aucun document, émetteur (${cas.type}) sans adresse : la phrase bascule déjà, plus « rien à demander »`, async () => {
+      banc.type = cas.type;
+      banc.emetteur = { ...emetteurComplet(), adresse: null, code_postal: null, ville: null };
+      banc.donnees = { mon_echeancier_locataire: [attendu], mon_bail_locataire: [bail] };
+      const html = await rendre(PageLoyers);
+      const texte = texteDe(html);
+      // Avant la reprise : aucun document dans l'historique, donc « rien à demander ».
+      expect(texte).not.toContain("Document en préparation");
+      expect(html).toContain('data-phrase-quittance="en-preparation"');
+      expect(texte).toContain(`votre quittance sera disponible ici dès que votre ${cas.qui} aura complété les informations obligatoires du document`);
+      expect(texte).not.toContain("rien à demander");
+    });
+  }
+  it("aucun document, propriétaire qui gère lui-même sans bailleur nommé : la phrase bascule aussi", async () => {
+    banc.type = "proprietaire_direct";
+    banc.emetteur = { ...emetteurComplet(), bailleurs: [] };
+    banc.donnees = { mon_echeancier_locataire: [attendu], mon_bail_locataire: [bail] };
+    expect(await rendre(PageLoyers)).toContain('data-phrase-quittance="en-preparation"');
+  });
+  it("témoin : aucun document, émetteur complet (agence puis propriétaire) : la phrase d'origine", async () => {
+    for (const type of ["agence", "proprietaire_direct"] as const) {
+      banc.type = type;
+      banc.donnees = { mon_echeancier_locataire: [attendu], mon_bail_locataire: [bail] };
+      const html = await rendre(PageLoyers);
+      expect(html).toContain('data-phrase-quittance="disponible"');
+      expect(texteDe(html)).toContain("Après paiement intégral, votre quittance est établie et disponible ici — rien à demander.");
+    }
+  });
+  for (const illisible of [null, "erreur"] as const) {
+    it(`émetteur illisible (${illisible ?? "aucune ligne"}) : on ne promet pas sans savoir — « en principe », comme la FAQ`, async () => {
+      banc.emetteur = illisible;
+      banc.donnees = { mon_echeancier_locataire: [attendu], mon_bail_locataire: [bail] };
+      const html = await rendre(PageLoyers);
+      expect(html).toContain('data-phrase-quittance="en-principe"');
+      expect(texteDe(html)).toContain("Après paiement intégral, votre quittance est établie et disponible ici — en principe, rien à demander.");
+    });
+  }
+  it("le contrôle de l'émetteur est la barrière de la vraie quittance : rien ne manque à un émetteur complet, et chaque champ obligatoire vide est relevé", () => {
+    const agence = { type: "agence", nom: "ESSAI Agence", adresse: "12 rue des Essais", code_postal: "69003", ville: "Lyon", email: "a@exemple.invalid", siret: null, bailleurs: [{ nom: "Moreau", prenom: "Claire" }] };
+    const parc = { ...agence, type: "proprietaire_direct", nom: "Parc de Claire Moreau" };
+    expect(manquantsEmetteurQuittance(agence)).toEqual([]);
+    expect(manquantsEmetteurQuittance(parc)).toEqual([]);
+    expect(manquantsEmetteurQuittance({ ...agence, adresse: null }).length).toBeGreaterThan(0);
+    expect(manquantsEmetteurQuittance({ ...agence, ville: "" }).length).toBeGreaterThan(0);
+    expect(manquantsEmetteurQuittance({ ...agence, email: null }).length).toBeGreaterThan(0);
+    expect(manquantsEmetteurQuittance({ ...agence, bailleurs: [] }).length).toBeGreaterThan(0);
+    // Chez un propriétaire qui gère lui-même, c'est le bailleur qui émet : sans bailleur, pas d'émetteur.
+    expect(manquantsEmetteurQuittance({ ...parc, bailleurs: [] }).length).toBeGreaterThan(0);
+    expect(manquantsEmetteurQuittance({}).length).toBeGreaterThan(0);
+  });
+
   it("la FAQ ne promet plus « Rien à demander » sans réserve", async () => {
     const texte = texteDe(await rendre(PageFaq));
     expect(texte).not.toContain("Mes documents. Rien à demander.");
@@ -175,7 +249,15 @@ describe("Mes paiements : historique et dette", () => {
     banc.donnees = { mon_echeancier_locataire: [novembre], mon_bail_locataire: [bail] };
     const texte = texteDe(await rendre(PageLoyers));
     expect(texte).not.toContain("Des loyers restent dus");
-    expect(texte).toMatch(/Il reste 400,00 € à régler sur vos loyers échus\./);
+    // Reprise (M3) : ce test affirmait « sur vos loyers échus », faux pour un terme pas encore échu et charges comprises.
+    expect(texte).toMatch(/Il reste 400,00 € à régler sur vos loyers et charges appelés\./);
+  });
+  it("reprise (M3) : un terme PAS ENCORE ÉCHU payé en partie n'est plus dit « échu »", async () => {
+    // « partiel » se dit en base dès qu'un versement entame le terme, que son échéance soit passée ou non.
+    banc.donnees = { mon_echeancier_locataire: [{ ...novembre, loyer_hc: 650, charges: 50 }], mon_bail_locataire: [{ ...bail, jour_echeance: 28 }] };
+    const texte = texteDe(await rendre(PageLoyers));
+    expect(texte).not.toContain("loyers échus");
+    expect(texte).toContain("Il reste 400,00 € à régler sur vos loyers et charges appelés.");
   });
 });
 
@@ -231,6 +313,18 @@ describe("Mes demandes : la discussion suit SA demande et la nomme", () => {
     expect(texteDe(html)).toContain("Discussion mission-b | " + nomDemande({ categorie: "plomberie_fuite", description: "Chasse d'eau" }));
   });
 
+  it("reprise (M5) : la demande d'un colocataire n'est pas dite « votre demande » à celui qui ne l'a pas déclarée", async () => {
+    banc.donnees = {
+      mes_incidents_locataire: [incident("a", "La mienne"), { ...incident("b", "Celle de mon colocataire"), est_declarant: false }],
+      mon_suivi_intervention: [suivi("a", "artisan_retenu", "mission-a"), suivi("b", "artisan_retenu", "mission-b")],
+      mon_bail_locataire: [bail],
+    };
+    const texte = texteDe(await rendre(PageDemandes));
+    expect(texte).toContain("Discussion mission-b | " + nomDemande({ categorie: "plomberie_fuite", description: "Celle de mon colocataire" }) + " | d'un autre");
+    // Témoin : sa propre demande reste « votre demande ».
+    expect(texte).toMatch(/Discussion mission-a \| [^|]*La mienne(?! \| d'un autre)/);
+  });
+
   it("la liste pose la discussion reçue juste sous la carte de sa demande (composant seul)", () => {
     const html = renderToStaticMarkup(createElement(IncidentsLocataire, {
       orgId: ORG, incidents: [incident("a", "Un"), incident("b", "Deux")], interlocuteur: "gestionnaire",
@@ -242,7 +336,8 @@ describe("Mes demandes : la discussion suit SA demande et la nomme", () => {
 
   it("le vrai composant de discussion affiche la demande concernée et la porte dans son nom accessible", () => {
     const source = readFileSync("src/components/echanges-intervention.tsx", "utf8");
-    expect(source).toContain("{demande&&<p data-demande-concernee className=\"text-sm\">Pour votre demande : <strong className=\"font-medium\">{demande}</strong></p>}");
+    // Reprise (M5) : « votre demande » pour le déclarant, « la demande » pour un autre occupant du bail.
+    expect(source).toContain("{demande&&<p data-demande-concernee className=\"text-sm\">Pour {demandeDUnAutre?\"la\":\"votre\"} demande : <strong className=\"font-medium\">{demande}</strong></p>}");
     expect(source).toContain("aria-label={demande?`Discussion de l’intervention — ${demande}`:\"Discussion de l’intervention\"}");
   });
 });
@@ -275,8 +370,31 @@ describe("/compte/donnees : même renvoi, même bandeau que /compte", () => {
     expect(texte).toContain("Pour les données d'une location, adressez-vous à son bailleur ou à son gestionnaire, depuis la messagerie de l'espace concerné.");
   });
 
-  it("témoin : un compte sans adhésion de locataire ne reçoit pas le renvoi et garde « Faire une demande »", async () => {
-    banc.adhesions = [{ role: "proprietaire_direct", organization_id: ORG }];
+  // Reprise (M1). Ce test affirmait qu'un compte sans adhésion ACTIVE de locataire ne recevait aucun renvoi : c'est
+  // aussi le cas de l'ANCIEN locataire (bail terminé, adhésion inactive), à qui /compte dit pourtant de s'adresser à son
+  // bailleur ou à son gestionnaire. Il lit désormais la tournure générique de /compte, avant le formulaire.
+  for (const cas of [
+    { nom: "ancien locataire (aucune adhésion active)", adhesions: [] },
+    { nom: "compte de propriétaire", adhesions: [{ role: "proprietaire_direct", organization_id: ORG }] },
+  ]) {
+    it(`${cas.nom} : la tournure générique de /compte, avant le formulaire, sans lien vers un espace`, async () => {
+      banc.adhesions = cas.adhesions;
+      const generique = "Pour les données d'une location, adressez-vous à son bailleur ou à son gestionnaire";
+      expect(texteDe(renderToStaticMarkup((await PageCompte()) as never))).toContain(generique);
+      const html = await donnees();
+      const texte = texteDe(html);
+      expect(html).toContain('data-renvoi-location="generique"');
+      expect(texte).toContain(`Les données d'une location${generique}.`);
+      expect(texte.indexOf(generique)).toBeLessThan(texte.indexOf("Formulaire de demande"));
+      expect(texte).toContain("Le formulaire ci-dessous ne lui est pas transmis");
+      expect(texte).toContain("Faire une demande sur mon compte");
+      expect(html).not.toContain("/contact");
+      expect(html.match(/<h1/g)).toHaveLength(1);
+    });
+  }
+  it("témoin : un artisan (qui n'a ni bailleur ni gestionnaire) ne reçoit pas le renvoi et garde « Faire une demande »", async () => {
+    banc.adhesions = [];
+    banc.donnees = { mon_artisan: [{ id: "artisan-1" }] };
     const html = await donnees();
     expect(html).not.toContain("data-renvoi-location");
     expect(texteDe(html)).toContain("Faire une demande");
@@ -308,7 +426,8 @@ describe("/compte/donnees : même renvoi, même bandeau que /compte", () => {
   });
 
   it("le lien vers la confidentialité porte le même nom et le même dessin sur les deux écrans (E022, E144, E139)", async () => {
-    const lien = /<a class="lien-texte inline-flex min-h-6 items-center text-sm" href="\/confidentialite">Lire la politique de confidentialité<\/a>/;
+    // Reprise (M4) : la hauteur tactile (44 px au doigt) que le passage de `.lien-discret` à `.lien-texte` avait retirée.
+    const lien = /<a class="lien-texte inline-flex min-h-6 items-center text-sm pointer-coarse:min-h-11" href="\/confidentialite">Lire la politique de confidentialité<\/a>/;
     expect(await donnees()).toMatch(lien);
     expect(renderToStaticMarkup((await PageCompte()) as never)).toMatch(lien);
     expect(await donnees()).not.toContain("règles de confidentialité");

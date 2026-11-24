@@ -90,8 +90,10 @@ export const lireContactCompteLocataire = cache(async function lireContactCompte
 });
 
 /** Le libellé et le dessin du lien vers /confidentialite, les mêmes sur /compte et /compte/donnees (E022, E144, E139) :
- *  souligné, et haut de 24 px au moins. */
-export const LIEN_CONFIDENTIALITE = "lien-texte inline-flex min-h-6 items-center text-sm";
+ *  souligné, et haut de 24 px au moins. Lot 61 (reprise, M4) : au doigt, ce lien isolé faisait 44 px quand il était
+ *  dessiné en `.lien-discret` ; `.lien-texte` (pensé pour un lien au fil d'une phrase) l'avait ramené à 24 px. Il
+ *  retrouve la hauteur tactile sur un écran tactile, sans changer à la souris. */
+export const LIEN_CONFIDENTIALITE = "lien-texte inline-flex min-h-6 items-center text-sm pointer-coarse:min-h-11";
 
 /** Le bandeau du compte : la marque, le retour à l'espace de la personne, la déconnexion. Les pages lui passent ce
  *  qu'elles ont déjà lu (`lireMarqueLocataire`, `lireEspaceLocataire`, la fiche d'artisan). */

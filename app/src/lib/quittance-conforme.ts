@@ -225,6 +225,45 @@ export function manquantsQuittance(doc: Pick<DocumentAssemble, "manquants">): st
   return refusDocumentIncomplet(doc)?.manquants ?? [];
 }
 
+/**
+ * Phase 3, lot 61 (reprise, M2) : ce qui manque à l'ÉMETTEUR pour qu'une quittance soit délivrée, AVANT qu'il existe le
+ * moindre document. Un nouveau locataire, sans reçu ni quittance dans son historique, lisait « quittance établie et
+ * disponible ici — rien à demander » chez un émetteur dont le profil incomplet retiendra pourtant la quittance.
+ *
+ * `emetteur` est ce que rend `attestation_emetteur_locataire`, une lecture DÉJÀ ouverte au locataire (aucun droit
+ * nouveau) : type, nom, adresse, e-mail de l'espace et bailleurs du logement. On assemble la quittance d'un terme
+ * d'essai entièrement renseigné, avec ce seul émetteur : la barrière est donc celle du vrai document
+ * (`assemblerQuittanceDelivree`, `manquantsQuittance`), pas une seconde liste de champs à tenir à jour.
+ */
+export function manquantsEmetteurQuittance(emetteur: {
+  type?: string | null;
+  nom?: string | null;
+  adresse?: string | null;
+  code_postal?: string | null;
+  ville?: string | null;
+  email?: string | null;
+  siret?: string | null;
+  bailleurs?: BailleurQuittanceDocument[] | null;
+}): string[] {
+  const essai = "00000000-0000-4000-8000-000000000000";
+  return manquantsQuittance(assemblerQuittanceDelivree({
+    quittance_id: essai, appel_id: essai, organization_id: essai, bail_id: essai,
+    est_quittance: true, montant: 100, montant_du: 100, loyer_hc: 90, charges: 10, prorata: false,
+    date_emission: "2026-01-31", periode: "2026-01-01", bail_date_debut: "2025-01-01", bail_date_fin: null, charges_mode: "provision",
+    organisation: {
+      type: emetteur.type ?? "", nom: emetteur.nom ?? "", siret: emetteur.siret ?? null, carte_pro: null,
+      adresse: emetteur.adresse ?? null, code_postal: emetteur.code_postal ?? null, ville: emetteur.ville ?? null,
+      telephone: null, email: emetteur.email ?? null,
+    },
+    bailleurs: emetteur.bailleurs ?? [],
+    locataires: [{ nom: "Essai", prenom: "Locataire" }],
+    logement: { lot_nom: "Lot unique", etage: null, adresse: "1 rue d'essai", code_postal: "75001", ville: "Paris" },
+    appels: [{ id: essai, periode: "2026-01-01", montant_du: 100 }],
+    encaissements: [{ date_paiement: "2026-01-05", mode: "virement", montant: 100, created_at: "2026-01-05T10:00:00Z" }],
+    vue_gestionnaire: false,
+  }));
+}
+
 /** Lecture sous l'identité de l'appelant (locataire, gérant ou tâche d'envoi). */
 export async function chargerQuittanceDocument(
   db: SupabaseClient,

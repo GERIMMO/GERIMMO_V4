@@ -272,6 +272,13 @@ export const FICHIERS_EN_SERIE = [
   // Décisions 2B et 3A du 22/11 : rejeu de 20261122090000 et de son retour (create or replace de
   // bail_blocages_mise_en_location et de activer_bail, que les deux fichiers ci-dessus rejouent aussi).
   "tests/bail-repris-dpe-g-edl-base.test.ts",
+  // Lot 61 (reprise) : ce fichier a échoué une fois en parallèle (« orchestration_cases violates foreign key constraint
+  // orchestration_cases_organization_id_fkey ») puis réussi seul. Cause reproduite à deux sessions : il appelle
+  // actualiser_orchestration(), qui parcourt les dossiers de TOUTE la base, donc aussi ceux qu'un autre fichier a validés
+  // puis retire au même moment (l'espace disparaît entre la lecture du dossier et le contrôle de la clé étrangère). La
+  // même fonction rend 0 sans rien faire tant qu'un autre fichier tient son verrou consultatif dans une transaction
+  // ouverte. Il passe donc après les fichiers parallèles, seul sur la base.
+  "tests/pilotage-dossiers.test.ts",
 ];
 
 export default defineConfig({

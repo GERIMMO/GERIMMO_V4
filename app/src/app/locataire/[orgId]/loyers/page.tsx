@@ -1,5 +1,5 @@
 import { SuiviEcheanciersCharges } from "@/components/suivi-echeanciers-charges";
-import { disponibilitesQuittances } from "@/lib/quittance-conforme";
+import { disponibilitesQuittances, manquantsEmetteurQuittance } from "@/lib/quittance-conforme";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { aujourdhuiParis, eur, formaterDate } from "@/lib/ged";
@@ -38,6 +38,7 @@ export default async function PagePaiementsLocataire(
     { data: beneficiaire },
     { data: plansRows },
     { data: demandePlan },
+    { data: emetteurBrut, error: eEmetteur },
   ] = await Promise.all([
     supabase.rpc("mon_echeancier_locataire", { p_org: orgId }),
     supabase.rpc("mon_bail_locataire", { p_org: orgId }),
@@ -53,6 +54,10 @@ export default async function PagePaiementsLocataire(
     // Plan d'apurement (02/11) : le plan vivant ou le dernier, et la demande en attente.
     supabase.rpc("mon_plan_apurement", { p_org: orgId }),
     supabase.rpc("ma_demande_plan_apurement", { p_org: orgId }),
+    // Lot 61 (reprise, M2) : l'émetteur de ses documents, pour ne pas promettre une quittance que son profil incomplet
+    // retiendra. Lecture déjà ouverte au locataire (celle de l'attestation et du titre « Mon gestionnaire ») : aucun
+    // droit nouveau.
+    supabase.rpc("attestation_emetteur_locataire", { p_org: orgId }),
   ]);
   const planApurement = ((plansRows ?? []) as MonPlanApurement[])[0] ?? null;
   const ibanBrut = String(beneficiaire?.iban ?? "").replace(/\s+/g, "").toUpperCase();
@@ -105,6 +110,17 @@ export default async function PagePaiementsLocataire(
   // Lot 61 : un document de l'historique est retenu faute d'informations obligatoires de l'émetteur (« Document en
   // préparation ») : la quittance du mois soldé le sera aussi, tant qu'elles manquent.
   const documentEnPreparation = Object.values(disponibilites).includes("en_preparation");
+  // Lot 61 (reprise, M2) : la phrase ne basculait que s'il existait DÉJÀ un document retenu dans l'historique. Un nouveau
+  // locataire (aucun reçu) chez un émetteur au profil incomplet lisait encore « rien à demander ». Trois cas :
+  //  - un document est retenu, ou l'émetteur a des informations obligatoires manquantes : « en préparation » ;
+  //  - l'émetteur est lu et complet : la phrase d'origine ;
+  //  - l'émetteur ne se lit pas (lecture en échec, ou aucune ligne) : on ne promet pas sans savoir — « en principe »,
+  //    comme la FAQ.
+  const emetteurLu = !eEmetteur && emetteurBrut && typeof emetteurBrut === "object" && !Array.isArray(emetteurBrut)
+    ? (emetteurBrut as Parameters<typeof manquantsEmetteurQuittance>[0]) : null;
+  const promesseQuittance: "en-preparation" | "disponible" | "en-principe" =
+    documentEnPreparation || (emetteurLu && manquantsEmetteurQuittance(emetteurLu).length > 0) ? "en-preparation"
+      : emetteurLu ? "disponible" : "en-principe";
   const sommesEchues = lignesLoyer.filter(l => l.statut === "impaye" || l.statut === "partiel");
   const soldeEchu = sommesEchues.reduce((s, l) => s + Math.max(0, Math.round((Number(l.montant_du) - Number(l.montant_couvert)) * 100)), 0) / 100;
   const bail = ((bauxRows ?? []) as BailLocataire[])[0];
@@ -238,9 +254,10 @@ export default async function PagePaiementsLocataire(
                 )}
                 {/* Phase 3, lot 61 (E013, E130) : la phrase promettait « rien à demander » alors qu'un document du même
                     historique attend que l'émetteur complète ses informations obligatoires — la même barrière
-                    retiendra la quittance. Dans ce cas, la phrase le dit et mène à l'interlocuteur. */}
-                <p className="mt-2 text-[13px] text-muted-foreground" data-phrase-quittance={documentEnPreparation ? "en-preparation" : "disponible"}>
-                  {documentEnPreparation ? (
+                    retiendra la quittance. Dans ce cas, la phrase le dit et mène à l'interlocuteur. Reprise (M2) : la
+                    même bascule sans document, quand le profil de l'émetteur est incomplet (`promesseQuittance`). */}
+                <p className="mt-2 text-[13px] text-muted-foreground" data-phrase-quittance={promesseQuittance}>
+                  {promesseQuittance === "en-preparation" ? (
                     <>
                       Après paiement intégral, votre quittance sera disponible ici dès que votre {qui} aura
                       complété les informations obligatoires du document. Vous pouvez le lui demander :{" "}
@@ -249,8 +266,10 @@ export default async function PagePaiementsLocataire(
                       </Link>
                       .
                     </>
-                  ) : (
+                  ) : promesseQuittance === "disponible" ? (
                     "Après paiement intégral, votre quittance est établie et disponible ici — rien à demander."
+                  ) : (
+                    "Après paiement intégral, votre quittance est établie et disponible ici — en principe, rien à demander."
                   )}
                   {prochaine.prorata &&
                     " Ce mois-ci est calculé au prorata de votre date d'entrée ou de sortie."}

@@ -129,7 +129,7 @@ export default async function PageDemandesLocataire(
     discussions[demande.id] = (
       <>
         {discussions[demande.id]}
-        <EchangesIntervention key={id} intervention={id} interlocuteur={interlocuteur} demande={nomDemande(demande)} />
+        <EchangesIntervention key={id} intervention={id} interlocuteur={interlocuteur} demande={nomDemande(demande)} demandeDUnAutre={!demande.est_declarant} />
       </>
     );
   }

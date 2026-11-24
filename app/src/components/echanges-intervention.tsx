@@ -10,7 +10,10 @@ const ROLES:Record<string,string>={gerant:"Propriétaire / gestionnaire",locatai
 // `organisations_portail`).
 // Phase 3, lot 61 (E014) : dans « Mes demandes » du locataire, plusieurs demandes se suivent ; `demande` nomme celle que
 // cette discussion concerne (catégorie et premiers mots du locataire). Les autres écrans n'en affichent qu'une : sans objet.
-export async function EchangesIntervention({intervention,interlocuteur,demande}:{intervention:string;interlocuteur?:InterlocuteurLocataire;demande?:string}){
+// Reprise du lot 61 (M5) : un colocataire lit aussi la discussion d'une demande déclarée par un autre occupant du bail
+// (la base la lui ouvre : `role_echange_intervention`). « Pour votre demande » était alors faux : `demandeDUnAutre`
+// fait écrire « Pour la demande ».
+export async function EchangesIntervention({intervention,interlocuteur,demande,demandeDUnAutre}:{intervention:string;interlocuteur?:InterlocuteurLocataire;demande?:string;demandeDUnAutre?:boolean}){
  const db=await createClient();const role=await db.rpc("contexte_echange_intervention",{p_intervention:intervention});
  if(role.error)return <p role="alert" className="text-sm text-destructive">La discussion de cette intervention est momentanément indisponible.</p>;
  const contexte=role.data?.[0] as {role_participant:string;statut_intervention:string} | undefined;
@@ -24,7 +27,7 @@ export async function EchangesIntervention({intervention,interlocuteur,demande}:
  const fermee=terminee||!!etat.data?.fermee_le;
  return <section id={`discussion-${intervention}`} className="space-y-3 rounded-[var(--rayon-carte)] border border-[var(--filet)] bg-[var(--carte)] p-4 shadow-[var(--ombre-1)] sm:p-5" aria-label={demande?`Discussion de l’intervention — ${demande}`:"Discussion de l’intervention"}>
   <header className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-semibold text-base">Discussion de l’intervention</h3><span className="text-xs text-muted-foreground">{fermee?"Fermée":`${interlocuteur==="gestionnaire"?interlocuteurMajuscule(interlocuteur):"Propriétaire"} · locataire · artisan`}</span></header>
-  {demande&&<p data-demande-concernee className="text-sm">Pour votre demande : <strong className="font-medium">{demande}</strong></p>}
+  {demande&&<p data-demande-concernee className="text-sm">Pour {demandeDUnAutre?"la":"votre"} demande : <strong className="font-medium">{demande}</strong></p>}
   <p className="text-xs text-muted-foreground">Les échanges sont partagés avec les participants autorisés à cette intervention.</p>
   {(messages.count??0)>50&&<p className="text-xs text-muted-foreground">Les 50 messages les plus récents.</p>}
   {messages.data?.length?<ol data-messages-intervention className="max-h-80 overflow-y-auto divide-y divide-[var(--filet)]">{[...messages.data].reverse().map(m=><li key={m.id} className="py-3 space-y-1"><div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground"><strong>{ROLES[m.auteur_role]??"Participant"}</strong><time dateTime={m.cree_le}>{formaterDateHeure(m.cree_le)}</time></div><p className="whitespace-pre-wrap break-words text-sm">{m.texte}</p></li>)}{/* Audit palier 1 (P1-05) : le repère de lecture suit le dernier message (messages.data[0], le plus récent). */}<li aria-hidden="true" className="!border-0 !p-0"><MarqueurLectureEchange intervention={intervention} dernierMessage={messages.data[0].id}/></li></ol>:null}

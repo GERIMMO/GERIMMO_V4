@@ -6,8 +6,8 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import * as bibliothequeIrl from "../src/lib/outils/irl";
 import {
-  EXEMPLE_IRL,
   URL_SERIE_INSEE_IRL,
   alertesIrl,
   calculerRevisionIrl,
@@ -18,10 +18,17 @@ import {
 import { arrondiCentime, formaterEuros, lireNombre } from "../src/lib/outils/nombres";
 
 const codes = (e: EntreeIrl) => alertesIrl(e).map((a) => a.code);
-// Défauts d'écran E054 = E167 : l'exemple de la page ne porte plus aucune valeur d'indice. Les calculs ci-dessous
-// prennent les deux indices du jeu d'essai de la série Insee (tests/fixtures/insee-irl-generic.xml, T2 2025 et T2 2026),
-// qui ne sont écrits que dans les tests.
-const ENTREE: EntreeIrl = { ...EXEMPLE_IRL, indiceReference: 146.68, indiceNouveau: 148.37 };
+// Défauts d'écran E054 = E167, puis décision du dirigeant du 25/11/2026 : la bibliothèque ne porte plus aucun exemple
+// (ni indice, ni loyer, ni trimestre). Les calculs ci-dessous prennent les deux indices du jeu d'essai de la série
+// Insee (tests/fixtures/insee-irl-generic.xml, T2 2025 et T2 2026), qui ne sont écrits que dans les tests.
+const ENTREE: EntreeIrl = {
+  loyer: 850,
+  indiceReference: 146.68,
+  trimestreReference: { trimestre: 2, annee: 2025 },
+  indiceNouveau: 148.37,
+  trimestreNouveau: { trimestre: 2, annee: 2026 },
+};
+const VIDE: EntreeIrl = { loyer: null, indiceReference: null, trimestreReference: null, indiceNouveau: null, trimestreNouveau: null };
 
 describe("calcul de la révision", () => {
   it("850 € × 148,37 ÷ 146,68 = 859,79 €", () => {
@@ -41,11 +48,30 @@ describe("calcul de la révision", () => {
     expect(r.manque).toContain("le nouvel indice");
   });
 
-  it("l'exemple de la page, sans indice saisi, ne donne aucun montant", () => {
-    const r = calculerRevisionIrl(EXEMPLE_IRL);
+  // Décision du 25/11/2026 : ce test partait de l'exemple de la page (loyer de 850 € et trimestres T2 2025 → T2 2026
+  // préremplis) ; plus rien n'est prérempli, le calcul part d'une saisie vide et dit tout ce qui manque.
+  it("une saisie vide ne donne aucun montant, et dit tout ce qui manque", () => {
+    const r = calculerRevisionIrl(VIDE);
     expect(r.ok).toBe(false);
     if (r.ok) return;
-    expect(r.manque).toEqual(["l'indice de référence", "le nouvel indice"]);
+    expect(r.manque).toEqual([
+      "le loyer hors charges actuel",
+      "le trimestre et l'année de l'indice de référence",
+      "l'indice de référence",
+      "le trimestre et l'année du nouvel indice",
+      "le nouvel indice",
+    ]);
+    expect(r.alertes).toEqual([]);
+  });
+
+  it("des indices sans leurs trimestres ne donnent aucun montant ni alerte de trimestre", () => {
+    const r = calculerRevisionIrl({ ...ENTREE, trimestreReference: null });
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.manque).toEqual(["le trimestre et l'année de l'indice de référence"]);
+    expect(r.alertes).toEqual([]);
+    const sansNouveau = calculerRevisionIrl({ ...ENTREE, trimestreNouveau: null });
+    expect(!sansNouveau.ok && sansNouveau.manque).toEqual(["le trimestre et l'année du nouvel indice"]);
   });
 });
 
@@ -96,13 +122,14 @@ describe("nombres saisis à la française", () => {
 describe("aucune valeur d'indice n'est embarquée", () => {
   // E054 = E167 : ce test admettait les deux indices de l'exemple (146.68 et 148.37), que l'écran préremplissait et
   // présentait comme lus chez l'Insee. Plus aucune valeur d'indice n'est écrite, ni dans la bibliothèque ni à l'écran.
-  it("ni la bibliothèque ni le calculateur ne contiennent d'indice, et ils renvoient vers l'Insee", () => {
+  // Décision du 25/11/2026 : l'exemple lui-même (loyer et trimestres) est retiré de la bibliothèque.
+  it("ni la bibliothèque ni le calculateur ne contiennent d'indice ni d'exemple, et ils renvoient vers l'Insee", () => {
     for (const fichier of ["../src/lib/outils/irl.ts", "../src/app/outils/calcul-irl/calculateur-irl.tsx", "../src/app/outils/calcul-irl/page.tsx"]) {
       const src = readFileSync(path.resolve(__dirname, fichier), "utf8");
       expect(src.match(/\b1[2-6]\d[.,]\d{2}\b/g) ?? [], fichier).toEqual([]);
     }
-    expect(EXEMPLE_IRL.indiceReference).toBeNull();
-    expect(EXEMPLE_IRL.indiceNouveau).toBeNull();
+    expect(Object.keys(bibliothequeIrl)).not.toContain("EXEMPLE_IRL");
+    expect(readFileSync(path.resolve(__dirname, "../src/app/outils/calcul-irl/calculateur-irl.tsx"), "utf8")).not.toMatch(/EXEMPLE_IRL|aujourdhuiIso/);
     expect(URL_SERIE_INSEE_IRL).toBe("https://www.insee.fr/fr/statistiques/serie/001515333");
   });
 });

@@ -8,6 +8,7 @@ import { EditeurPublication } from "./editeur-publication";
 import { sansJargon } from "@/lib/erreurs";
 import { libellePeriode } from "@/lib/periode-publication";
 import { santeFacebook } from "@/lib/marketing-meta";
+import { etatPageFacebook } from "@/lib/diffusion-facebook";
 
 // Un article existant se MODIFIE (audit 25/09, C18) ; « Écrire » est la page « nouvelle ».
 export const metadata = { title: "Modifier l’article" };
@@ -35,8 +36,7 @@ export default async function PagePublication({ params }: PageProps<"/admin/publ
   // Défaut d'écran E198 : l'éditeur affirmait une « Page Facebook connectée » et proposait « Publier sur Facebook »
   // alors que « Marketing et contenus » disait la Page « À relier ». Il lit la connexion de la même façon que cet écran
   // (admin/marketing/page.tsx).
-  const facebook = await santeFacebook();
-  const etatFacebook = facebook.configure && !facebook.erreur ? "relie" : facebook.configure ? "a_verifier" : "a_relier";
+  const etatFacebook = etatPageFacebook(await santeFacebook());
   // L'en-tête dit l'écran et l'état de l'article (24/09) : il répétait le
   // titre, premier champ éditable 60 px plus bas, sans suivre sa saisie, et
   // en 20 px au lieu du h1 commun.

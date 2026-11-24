@@ -395,7 +395,7 @@ export const CATALOGUE_DOCUMENTS: EntreeCatalogue[] = [
     "nom": "Justificatif d’écriture rectificative",
     "famille": "Gestion et fiscalité",
     "cible": "ecriture",
-    "description": "Contre-écriture et référence de la pièce corrigée.",
+    "description": "Contre-écriture et pièce corrigée : libellé, sens, montant, dates et motif.",
     "priorite": "P1",
     "code": "ecriture_rectificative"
   },

@@ -13,7 +13,11 @@ const conditions: ChampCatalogue = {cle:"conditions",libelle:"Conditions convenu
 const effet: ChampCatalogue = {cle:"date_effet",libelle:"Date d’effet",type:"date"};
 const modifications: ChampCatalogue = {cle:"modifications",libelle:"Modifications convenues",type:"textarea"};
 const annee: ChampCatalogue = {cle:"annee",libelle:"Année",type:"number"};
-const consultation: ChampCatalogue = {cle:"consultation",libelle:"Consultation des justificatifs",type:"textarea",aide:"Lieu ou lien, horaires et personne à contacter."};
+// Phase 3, lot 54 (W37) : les consignes à l'utilisateur sortent du courrier adressé au locataire et se lisent ici, sous le champ,
+// là où il prépare le document (texte affiché, jamais replié) : le justificatif n'est pas dans le PDF, et le PDF ne déclenche rien.
+const SANS_PRELEVEMENT = "Ce PDF ne déclenche aucun prélèvement ni envoi.";
+const consultation: ChampCatalogue = {cle:"consultation",libelle:"Consultation des justificatifs",type:"textarea",aide:`Lieu ou lien, horaires et personne à contacter. ${SANS_PRELEVEMENT}`};
+const consultationEtJustificatif: ChampCatalogue = {...consultation,aide:`Lieu ou lien, horaires et personne à contacter. Le justificatif enregistré avec la régularisation n’est pas dans ce PDF : joignez-le au courrier. ${SANS_PRELEVEMENT}`};
 // D39 (CHF-03) : saisi à la génération du document ; la régularisation émise ne se modifie pas et n'est pas touchée.
 const detailDepenses: ChampCatalogue = {cle:"detail_depenses",libelle:"Détail des dépenses par nature et clé de répartition",type:"textarea",repli:"detail_enregistre",aide:"Chaque nature de charges (eau, chauffage, ascenseur, entretien…) avec son montant et la clé de répartition retenue (tantièmes, surface, consommation…). Ce détail n’est écrit que dans ce document : la régularisation déjà enregistrée n’est pas modifiée."};
 export const OPTIONS_CATALOGUE: Record<string, ChampCatalogue[]> = {
@@ -40,7 +44,7 @@ export const OPTIONS_CATALOGUE: Record<string, ChampCatalogue[]> = {
   avenant_remplacement:[{cle:"sortant",libelle:"Colocataire sortant",aide:"Choisissez l’un des titulaires du contrat commun."},{cle:"entrant",libelle:"Identité, adresse et état civil de l’entrant",aide:"Première ligne : Nom Prénom (repris dans le cadre de signature). Lignes suivantes : date et lieu de naissance, adresse.",type:"textarea"},effet,{cle:"depot",libelle:"Accord relatif au dépôt",type:"textarea"}],
   attestation_loyer:[{cle:"destinataire",libelle:"Destinataire"}],
   attestation_caf:[{cle:"destinataire",libelle:"Caisse destinataire"},{cle:"allocataire",libelle:"Numéro allocataire"}],
-  regularisation_charges:[detailDepenses,consultation],decompte_charges:[detailDepenses,consultation],consultation_charges:[consultation],
+  regularisation_charges:[detailDepenses,consultationEtJustificatif],decompte_charges:[detailDepenses,consultationEtJustificatif],consultation_charges:[consultation],
   // Phase 3, lot 53 (W34) : la consigne d'envoi n'est plus imprimée dans la lettre ; elle reste ici, pour l'expéditeur.
   mise_en_demeure:[{cle:"delai",libelle:"Délai de règlement (jours)",type:"number",aide:"Gerimmo n’envoie pas ce PDF : ce courrier est à notifier avec preuve de réception."}],
   // Phase 3 (C65, C66, C74) : plus de nombre de mensualités ni de première échéance saisis ici. Le protocole reprend le plan

@@ -26,6 +26,8 @@ import { verifierHonorairesContrat } from "@/lib/mentions-contrat";
 vi.mock("@/lib/documents/modeles/communs", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   chargerContexteBail: vi.fn(),
+  // Phase 3, lot 54 (W39) : le courrier de régularisation porte le bloc de signature de l'émetteur ; aucune signature enregistrée ici.
+  signatureOrganisation: vi.fn(async () => null),
 }));
 
 const exp = { nom: "Agence Alpha", adresse: "5 place du Marché, 69001 Lyon", email: "a@b.fr", telephone: "04", ville: "Lyon" };

@@ -1,14 +1,15 @@
 import { detailRapportGestion } from "./detail-rapport-gestion";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { Fusion, assemblerPage, cadreSignature, cartouches, enTete, faitA, faitALaSignature, section, tableau, titre, eur, facultatif, nombreFr, pointFinal, moisEnToutesLettres, formaterDateFr } from "../gabarit";
-import { ETATS_INCIDENT_DOCUMENT, IMPUTATIONS_INCIDENT, URGENCES_INCIDENT, categorieIncident } from "@/lib/incidents";
+import { Fusion, assemblerPage, blocSignatureEmetteur, cadreSignature, cartouches, enTete, faitA, faitALaSignature, section, tableau, titre, eur, facultatif, nombreFr, pointFinal, moisEnToutesLettres, formaterDateFr } from "../gabarit";
+import { ETATS_INCIDENT_DOCUMENT, IMPUTATIONS_INCIDENT, MOTIFS_CLOTURE, URGENCES_INCIDENT, categorieIncident } from "@/lib/incidents";
+import { modeSignatureDocument } from "@/lib/politique-signature";
 import { libelleCategorieEcriture } from "@/lib/categories-ecriture";
 import { ETATS_MANDAT } from "@/lib/baux";
 import { NATURES_TRAVAUX, STATUTS_DEVIS, STATUTS_INTERVENTION_DOCUMENT } from "@/app/agence/[orgId]/artisans/referentiel";
 import { descriptionDevisLisible } from "@/lib/devis-structure";
 import { CATALOGUE_DOCUMENTS } from "../catalogue";
 import { lireLignes, lignesTableau, RefusDocument, texte, montant, anneeDocument, MESSAGE_CHARGEMENT_IMPOSSIBLE, REFUS_CLES_EDL_SIGNE, MANQUE_CLES_EDL, type LigneDocument } from "./catalogue-bail";
-import { chargerContexteBail, chargerDetenteursBien, chargerDetenteursLot, expediteur, libelleSignataireBailleur, nomsLocataires, adresseLogement, referenceCourte } from "./communs";
+import { chargerContexteBail, chargerDetenteursBien, chargerDetenteursLot, expediteur, libelleSignataireBailleur, nomsLocataires, adresseLogement, referenceCourte, signatureOrganisation } from "./communs";
 import { LIBELLE_DEPENSES_EXCLUES, LIBELLE_RECETTES_EXCLUES, phrasePerimetreFiscal, phrasePiecesAQualifier, recapitulatifFiscal, type ComposantesFiscales, type EcritureFiscale, type ExerciceFiscalLot, type QualificationFiscale, type RecapitulatifFiscal } from "@/lib/fiscal";
 import type { Assemblage, LienDocument } from "./index";
 import { aujourdhuiParis } from "@/lib/ged";
@@ -56,6 +57,19 @@ export function delaiDecompteRespecte(etalement: unknown, envoi: string, emissio
   if (!Array.isArray(etalement) || !etalement.length) return true;
   const premiere = texte((etalement[0] as Record<string, unknown> | null)?.echeance).slice(0, 10);
   return premiere !== "" && premiere >= borne;
+}
+
+// Phase 3, lot 54 (W38) : la période d'occupation d'un bail sur un exercice, bornée comme regulariser_charges la borne
+// (début = le plus tardif du début du bail et du 1er janvier, fin = le plus tôt de la fin du bail et du 31 décembre), avec son
+// nombre de jours et celui de l'année. `null` quand le bail couvre l'exercice entier (aucun prorata) ou aucun de ses jours.
+export function periodeOccupation(dateDebut: string | null, dateFin: string | null, annee: number): { debut: string; fin: string; jours: number; joursAnnee: number } | null {
+  if (!Number.isInteger(annee)) return null;
+  const premier = `${annee}-01-01`, dernier = `${annee}-12-31`;
+  const debut = dateDebut && dateDebut.slice(0, 10) > premier ? dateDebut.slice(0, 10) : premier;
+  const fin = dateFin && dateFin.slice(0, 10) < dernier ? dateFin.slice(0, 10) : dernier;
+  const jour = (iso: string) => Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10))) / 86400000;
+  const jours = jour(fin) - jour(debut) + 1, joursAnnee = jour(dernier) - jour(premier) + 1;
+  return jours > 0 && jours < joursAnnee ? { debut, fin, jours, joursAnnee } : null;
 }
 
 // Phase 3, lot 42 (C79) : un rendez-vous est un INSTANT. Il s'imprime au jour et à l'heure de Paris, comme sur les écrans
@@ -222,7 +236,10 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       if (!texte(incident.bien_id)) throw new RefusDocument("Ce signalement n’indique ni logement ni immeuble : précisez le lieu de l’incident avant de générer ce document.");
       const bien = await unique("biens",texte(incident.bien_id));
       libelleLieu = "Lieu";
-      logement = [texte(bien.nom),"Parties communes",bien.address_line1,bien.postal_code,bien.city].filter(Boolean).join(" · ");
+      // Phase 3, lot 54 (W45, chemin laissé par C88) : le lieu s'écrit comme un logement (adresseLogement : « rue, code postal
+      // ville, complément »), le complément étant l'immeuble et ses parties communes. Il était joint par « · », code postal et
+      // ville séparés, nom de l'immeuble avant l'adresse.
+      logement = adresseLogement({ nom: texte(bien.nom) ? `${texte(bien.nom)} — parties communes` : "Parties communes", etage: null }, { address_line1: texte(bien.address_line1) || null, postal_code: texte(bien.postal_code) || null, city: texte(bien.city) || null });
     };
     const bailConcerne = async (id:string) => {
       const ctx = await chargerContexteBail(db,orgId,id);
@@ -235,6 +252,16 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       const r = await unique("regularisations_charges",cibleId);
       const ctx = await bailConcerne(texte(r.bail_id));
       if (ctx.bail.charges_mode === "forfait") throw new RefusDocument("Les charges forfaitaires ne font pas l’objet d’une régularisation annuelle.");
+      // Phase 3, lot 54 (W38) : un bail entré ou sorti en cours d'exercice ne porte que ses jours d'occupation (regulariser_charges,
+      // RM-3.9.1 : charges récupérables × jours d'occupation / jours de l'année, période bornée par les dates du bail). Le PDF
+      // n'en disait rien : « Charges de l'exercice 2024 » et 336,00 € sans la période (du 01/09 au 31/12) ni le prorata. La
+      // période est relue comme la base la calcule. Une régularisation émise depuis les factures de fournitures (brouillon relié)
+      // reprend des parts de factures déjà affectées au bail, « aucun nouveau prorata » : la phrase n'y est pas imprimée.
+      const periode = periodeOccupation(texte(ctx.bail.date_debut) || null, texte(ctx.bail.date_fin) || null, Number(r.annee));
+      const depuisFournitures = periode ? (await lireLignes(lire("brouillons_regularisation_fourniture").eq("regularisation_id",cibleId).limit(1))).length > 0 : false;
+      const phrasePeriode = periode && !depuisFournitures
+        ? `<p>Période d’occupation sur l’exercice : du ${formaterDateFr(periode.debut)} au ${formaterDateFr(periode.fin)}, soit ${periode.jours}\u00a0jours sur ${periode.joursAnnee}.${r.quote_part_colocation != null ? "" : " Les charges réelles ci-dessus sont la part des charges récupérables de l’exercice ramenée à ces jours d’occupation."}</p>`
+        : "";
       contenu = `${section(`Charges de l’exercice ${texte(r.annee)}`)}${lignesTableau(f,[r],[["Provisions versées","provisions","montant"],["Charges réelles","charges_reelles","montant"],["Écart enregistré","ecart","montant"]])}
         <p>${libelleSoldeRegularisation(montant(r.ecart))}.</p>${
           // Audit gestion du 29/09 : quote-part d'un contrat individuel de
@@ -242,7 +269,7 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
           r.quote_part_colocation != null
             ? `<p>Contrat individuel de colocation : charges du logement imputées à hauteur de ${nombreFr(Math.round(montant(r.quote_part_colocation) * 1000) / 10)}\u00a0% (surface de la chambre sur la surface cumulée des chambres), puis au prorata des jours d’occupation.</p>`
             : ""
-        }${
+        }${phrasePeriode}${
           Array.isArray(r.etalement_12_mois) && r.etalement_12_mois.length
             ? `<p class="annonce">À la demande du locataire, le complément est réglé en douze mensualités (régularisation tardive, art. 23 de la loi du 6 juillet 1989) :</p>${lignesTableau(f, r.etalement_12_mois as Record<string, unknown>[], [["Mensualité","rang","texte"],["Échéance","echeance","date"],["Montant","montant","montant"]])}`
             : r.tardive && montant(r.ecart) < 0
@@ -255,12 +282,17 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       if (detailSaisi.length > 6000) throw new RefusDocument("Le détail des dépenses est trop long : 6 000 caractères au plus.");
       // Phase 3, lot 42 (C97) : le justificatif du syndic est une pièce séparée, enregistrée dans le dossier ; il n'est pas dans ce
       // PDF. « Justificatif annexé : …, à joindre » disait les deux à la fois.
+      // Phase 3, lot 54 (W37) : le document s'adresse au locataire. « à joindre au courrier » était une consigne pour l'utilisateur
+      // (et, dans le décompte annuel, renvoyait à un autre courrier) : elle est à l'écran du catalogue, sous le champ de la
+      // consultation (catalogue-options). Le PDF dit ce qui est vrai pour son lecteur, sans affirmer que la pièce est jointe.
       if (code !== "consultation_charges") contenu += `${section("Décompte et répartition")}
         <p>${f.champ(detailSaisi||texte(r.note)||null,"détail des dépenses par nature et clé de répartition")}</p>
-        <p>Justificatif : ${r.justificatif_document ? "pièce enregistrée dans le dossier, à joindre au courrier" : f.champ(null,"décompte justificatif à déposer et joindre")}.</p>`;
+        <p>Justificatif : ${r.justificatif_document ? "pièce distincte de ce document, enregistrée avec la régularisation" : f.champ(null,"décompte justificatif à déposer et joindre")}.</p>`;
       contenu += `${section("Consultation des justificatifs")}<p>Modalités : ${champ("consultation","lieu ou accès, horaires et contact pour consulter les justificatifs")}${pointFinal(options.consultation)}</p>
         <p>${delaiDecompteRespecte(r.etalement_12_mois, dateDocument, r.date_emission) ?"Le décompte par nature de charges et le mode de répartition sont communiqués un mois avant la régularisation. " : ""}Les justificatifs restent à disposition pendant six mois à compter de l’envoi du décompte.</p>
-        <p>Date du dossier : ${f.date(texte(r.date_emission))}. Ce PDF ne déclenche aucun prélèvement ni envoi.</p>`;
+        <p>Date du dossier : ${f.date(texte(r.date_emission))}.</p>`;
+      // Phase 3, lot 54 (W37) : « Ce PDF ne déclenche aucun prélèvement ni envoi » parlait du logiciel à son utilisateur, dans un
+      // courrier adressé au locataire : la remarque est à l'écran du catalogue (aide du champ de la consultation).
     } else if (code === "restitution_cles") {
       const edl = await unique("etats_des_lieux",cibleId);
       const ctxCles = await bailConcerne(texte(edl.bail_id));
@@ -295,7 +327,10 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       const signaleLe = texte(incident.date_signalement) || texte(incident.created_at);
       // Reprise du lot 36 : l'état de l'incident et celui de la mission avec les libellés de DOCUMENT (sans la consigne de travail
       // de l'écran, « Terminé — à clôturer », « Confiée — l'artisan n'a pas encore répondu ») : l'ordre part à l'entreprise.
-      contenu = `${section(`Incident ${texte(incident.numero)}`)}<p>Signalement : ${f.champ(texte(incident.description),"description du signalement")}${pointFinal(texte(incident.description))}</p>
+      // Phase 3, lot 54 (W41) : un signalement déclaré depuis le bien est « titre + saut de ligne + note »
+      // (declarer_incident_bien_simple) ; le saut de ligne se perdait en HTML (« …cage d'escalier Trace d'humidité… »). Il
+      // devient un retour à la ligne après l'échappement de la saisie, comme la description du devis et le type « lignes ».
+      contenu = `${section(`Incident ${texte(incident.numero)}`)}<p>Signalement : ${f.champ(texte(incident.description).trim()||null,"description du signalement").replace(/\r?\n/g,"<br>")}${pointFinal(texte(incident.description))}</p>
         ${code === "recap_incident" ? `<p>Signalé le ${f.date(signaleLe || null,"date du signalement")} ; urgence : ${facultatif(libelleDe(URGENCES_INCIDENT,incident.urgence))}.</p>` : ""}
         <p>Pièce : ${facultatif(texte(incident.piece))} ; catégorie : ${facultatif(libelleCategorie(incident.categorie))} ; état : ${f.champ(libelleDe(ETATS_INCIDENT_DOCUMENT,incident.etat),"état du dossier")}.</p>`;
       if (intervention) {
@@ -345,9 +380,17 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
           const version = Number(devis.version) > 1 ? ` (version ${Number(devis.version)})` : "";
           const travaux = `<p>${devis.statut === "retenu" ? "Devis retenu" : `Devis rattaché (${facultatif(libelleDe(STATUTS_DEVIS,devis.statut))})`} de ${facultatif(auteurDevis)}${version}, déposé le ${f.date(texte(devis.depose_le))}${devis.retenu_le ? ` et retenu le ${f.date(texte(devis.retenu_le))}` : ""} ; montant TTC : ${eur(montant(devis.montant_ttc_cents)/100)}.</p>
               <p>${f.champ(descriptionDevisLisible(texte(devis.description)).trim()||null,"travaux du devis retenu").replace(/\r?\n/g,"<br>")}</p>`;
+          // Phase 3, lot 54 (W36) : l'ordre d'une mission TERMINÉE est établi après l'intervention (réimpression pour le dossier) ;
+          // il « commandait » au jour de sa génération des travaux qu'il disait lui-même terminés. Il le dit, avec la date de fin
+          // enregistrée, et ne commande plus rien ; il reste daté du jour où il est établi (jamais antidaté). La mission en cours
+          // ou à venir garde l'ordre tel quel.
+          const terminee = texte(intervention.statut) === "terminee";
+          const termineeLe = texte(intervention.terminee_le);
           contenu += `<p>Créneau prévu : ${debut && fin ? creneauParis(debut, fin) : `${f.date(debut||null,"début prévu")} au ${f.date(fin||null,"fin prévue")}`}.</p>
             <p>Accès et personne à contacter : ${champ("acces","modalités d’accès et contact sur place")}${pointFinal(options.acces)}</p>
-            ${section("Travaux commandés")}<p class="annonce">Seuls les travaux du devis ci-dessous sont commandés. Aucun travail supplémentaire n’est autorisé par ce document sans accord préalable du donneur d’ordre.</p>${travaux}`;
+            ${section("Travaux commandés")}${terminee
+              ? `<p class="annonce">Mission terminée${termineeLe ? ` le ${formaterDateFr(termineeLe)}` : ""} : ce document est établi après l’intervention, pour le dossier. Il ne commande aucun nouveau travail. Les travaux commandés étaient ceux du devis ci-dessous.</p>`
+              : `<p class="annonce">Seuls les travaux du devis ci-dessous sont commandés. Aucun travail supplémentaire n’est autorisé par ce document sans accord préalable du donneur d’ordre.</p>`}${travaux}`;
         } else {
           const crs = await lireLignes(lire("intervention_comptes_rendus").eq("intervention_id",cibleId).order("created_at",{ascending:false}));
           if (!crs.length) throw new RefusDocument("L’artisan doit déposer son compte rendu avant la génération du document.");
@@ -373,7 +416,10 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
         // (non retenus, refusés, expirés) le disait aussi.
         const retenu = devis.find(d=>d.statut==="retenu");
         const clos = texte(incident.etat) === "clos";
-        contenu += `<p>Comparaison des offres déposées. ${retenu
+        // Phase 3, lot 54 (W42) : avec un seul devis, il n'y a rien à comparer ; « Comparaison des offres déposées » laissait croire à
+        // plusieurs offres. Le devis unique assumé de la consultation reste signalé à l'écran et au rapport de gestion (décision
+        // du 2026-07-25) ; l'écrire ici est une question au dirigeant.
+        contenu += `<p>${devis.length > 1 ? "Comparaison des offres déposées." : "Un seul devis a été déposé."} ${retenu
           ? `Le devis de ${facultatif(texte(noms.get(retenu.artisan_id)))} (${eur(montant(retenu.montant_ttc_cents)/100)} TTC) a été retenu${retenu.retenu_le ? ` le ${f.date(texte(retenu.retenu_le))}` : ""}`
           : clos ? "Aucun devis n’a été retenu ; le dossier est clos"
           : devis.some(d=>d.statut==="depose") ? "Le choix reste à faire"
@@ -417,9 +463,17 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
           ? tableau([{libelle:"Entreprise"},{libelle:"Confiée le"},{libelle:"Rendez-vous"},{libelle:"Terminée le"},{libelle:"État"},{libelle:"Compte rendu",droite:true}],lignesMissions)
           : "<p>Aucune mission confiée pour cet incident.</p>"}`;
         const imputation = incident.imputation ? libelleDe(IMPUTATIONS_INCIDENT, incident.imputation) : "";
-        contenu += `${section("Décision et clôture")}<p>Imputation enregistrée : ${facultatif(imputation)}${pointFinal(imputation)}</p>
-          <p>Justification : ${facultatif(texte(incident.imputation_justification))}${pointFinal(texte(incident.imputation_justification))}</p>
-          <p>${incident.clos_le ? `Clôturé le ${f.date(texte(incident.clos_le))}. ${facultatif(texte(incident.cloture_commentaire))}` : "Le dossier est toujours ouvert."}</p>`;
+        // Phase 3, lot 54 (W46, même motif que C13) : un incident clos sans qualification (classé sans suite, transmis au syndic)
+        // n'a jamais d'imputation (contrainte de la base) ; il s'imprimait « Imputation enregistrée : —. », « Justification : —. ».
+        // Le document dit qu'il n'y a pas d'imputation, et pourquoi (le motif de clôture enregistré, jamais imprimé jusqu'ici) ; la
+        // justification et le commentaire de clôture ne s'impriment que s'ils sont saisis.
+        const justification = texte(incident.imputation_justification), commentaireCloture = texte(incident.cloture_commentaire);
+        const motifCloture = texte(incident.cloture_motif) ? libelleDe(MOTIFS_CLOTURE, incident.cloture_motif) : "";
+        contenu += `${section("Décision et clôture")}<p>${imputation ? `Imputation enregistrée : ${facultatif(imputation)}${pointFinal(imputation)}`
+            : incident.clos_le ? "Aucune imputation enregistrée : le dossier a été clos sans qualification."
+            : "Imputation : pas encore décidée."}</p>
+          ${justification ? `<p>Justification : ${facultatif(justification)}${pointFinal(justification)}</p>` : ""}
+          <p>${incident.clos_le ? `Clôturé le ${f.date(texte(incident.clos_le))}${motifCloture ? ` ; motif : ${facultatif(motifCloture)}` : ""}.${commentaireCloture ? ` ${facultatif(commentaireCloture)}${pointFinal(commentaireCloture)}` : ""}` : "Le dossier est toujours ouvert."}</p>`;
       }
     } else if (["recap_fiscal_nu","recap_fiscal_meuble"].includes(code)) {
       const lot = await lotConcerne(cibleId);
@@ -449,7 +503,15 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       if (lot.meuble) contenu += `<p>Recettes enregistrées : ${eur(fiscal.meuble.recettes)} ; dépenses enregistrées : ${eur(fiscal.meuble.depenses)}.</p><p>Les amortissements, emprunts et retraitements BIC sont à établir avec le comptable ; aucun résultat fiscal n’est certifié ici.</p>`;
       // C94 : une rubrique que le livre laisse « à compléter » (222 sans montant) s'imprime « à compléter », jamais 0,00 € : un zéro
       // se recopie tel quel. La ligne 250 porte toujours le montant retenu pour le document (saisi ou qualifié).
-      else contenu += tableau([{libelle:"Rubrique"},{libelle:"Libellé"},{libelle:"Montant enregistré",droite:true}],fiscal.rubriques.map(r=>[f.champ(r.code,"rubrique"),f.champ(r.libelle,"libellé"),r.code==="250"?f.montant(interetsEmprunt,"Montant enregistré"):r.aCompleter?'<span class="fusion">à compléter</span>':f.montant(r.montant,"Montant enregistré")]))+ecartInterets(interetsEmprunt,qualifie)+`<p>Fonds de travaux ALUR suivis séparément : ${eur(fiscal.fondsTravauxAlur)}.</p><p>Hors déclaration : ${eur(fiscal.chargesRecuperees)} de ${LIBELLE_RECETTES_EXCLUES}${fiscal.teomExclue ? `, ${eur(fiscal.teomExclue)} de ${LIBELLE_DEPENSES_EXCLUES}` : ""} — ni revenus, ni charges déductibles.</p>`;
+      // Phase 3, lot 54 (W43) : quand la ligne 250 reprend un montant saisi qui diffère du livre (D37), la colonne ne s'intitule
+      // plus « Montant enregistré » : ce montant n'est enregistré nulle part, l'encadré le dit. Elle s'intitule « Montant retenu ».
+      // Phase 3, lot 54 (W44) : l'encadré d'écart passait seul en tête de la page 2, loin de la ligne 250 qu'il concerne (le
+      // tableau remplit la page 1). Il est rangé dans la dernière section insécable du tableau (tableau(…, fin), lot 53), avec
+      // la dernière rubrique : toujours sous le tableau, jamais séparé de lui. Sans écart, le HTML du tableau est inchangé.
+      else {
+        const ecart = ecartInterets(interetsEmprunt,qualifie), libelleMontant = ecart ? "Montant retenu" : "Montant enregistré";
+        contenu += tableau([{libelle:"Rubrique"},{libelle:"Libellé"},{libelle:libelleMontant,droite:true}],fiscal.rubriques.map(r=>[f.champ(r.code,"rubrique"),f.champ(r.libelle,"libellé"),r.code==="250"?f.montant(interetsEmprunt,libelleMontant):r.aCompleter?'<span class="fusion">à compléter</span>':f.montant(r.montant,libelleMontant)]),ecart ? `<tr><td colspan="3" style="border-bottom:0;padding:0">${ecart}</td></tr>` : "")+`<p>Fonds de travaux ALUR suivis séparément : ${eur(fiscal.fondsTravauxAlur)}.</p><p>Hors déclaration : ${eur(fiscal.chargesRecuperees)} de ${LIBELLE_RECETTES_EXCLUES}${fiscal.teomExclue ? `, ${eur(fiscal.teomExclue)} de ${LIBELLE_DEPENSES_EXCLUES}` : ""} — ni revenus, ni charges déductibles.</p>`;
+      }
       contenu += `<p>Aide à la préparation de la déclaration. Vérifiez les pièces, la quote-part, les intérêts d’emprunt et les dépenses externes avant déclaration. ${code==="recap_fiscal_nu"?"Les loyers et provisions sont ventilés selon la capture faite à chaque encaissement ou la ventilation historique que vous avez justifiée.":"Les recettes sont reprises en total, sans ventilation entre loyer et charges."}</p>`;
     } else if (code === "ecriture_rectificative" || code === "cloture_mensuelle") {
       if (code === "ecriture_rectificative") {
@@ -522,11 +584,18 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       }
     }
     const reference = referenceCourte(code.toUpperCase().replaceAll("_","-"),cibleId);
+    // Phase 3, lot 54 (W39) : les courriers de charges au locataire et l'ordre d'intervention (Q42 : émis par le propriétaire,
+    // ou par l'agence dans son espace) finissaient sur « Fait à …, le … » sans signature ni nom, au contraire des autres courriers
+    // que l'émetteur envoie seul (relances, rappel d'assurance, décomptes). Ils portent le même bloc (signature enregistrée de
+    // l'espace, sinon zone vierge à signer à la main) au nom de l'émetteur de l'en-tête. Les documents à deux cadres n'en ont pas.
+    const signatureEmetteur = !signatures && modeSignatureDocument(code) === "enregistree" ? blocSignatureEmetteur(exp.nom, await signatureOrganisation(db, orgId)) : "";
     // C83 : un document interne sans destinataire (comparatif, récapitulatif, journal, récapitulatif fiscal) n'imprime plus la case
     // « Destinataire » : le mot de repli « Organisation » ne désignait personne.
     const corps = `${enTete(f,exp,{libelle:"Dossier",reference,etabliLe:dateDocument})}${titre(meta.nom,"Document de gestion",[])}
-      ${cartouches([["Dossier",reference],...(destinataire ? [["Destinataire",destinataire] as [string,string]] : []),...(logement ? [[libelleLieu,logement] as [string,string]] : [])])}${contenu}${dateALaSignature ? faitALaSignature(f,exp.ville) : faitA(f,exp.ville,dateDocument)}
+      ${cartouches([["Dossier",reference],...(destinataire ? [["Destinataire",destinataire] as [string,string]] : []),...(logement ? [[libelleLieu,logement] as [string,string]] : [])])}${contenu}${dateALaSignature ? faitALaSignature(f,exp.ville) : faitA(f,exp.ville,dateDocument)}${signatureEmetteur}
       ${signatures?`<div class="signatures">${cadreSignature(code === "restitution_cles" ? libelleSignataireBailleur(organisation.type) : "Le mandataire",f.champ(exp.nom,"nom et prénom(s), ou dénomination"))}${cadreSignature(qualiteAutrePartie,destinataire)}</div>`:""}`;
-    return {document:assemblerPage({f,titreDocument:meta.nom,nomPied:meta.nom,reference,corps:`<style>.bloc-titre{padding:10pt 0;margin-bottom:8pt}h1{font-size:19pt;letter-spacing:.2em}h2{margin:14pt 0 8pt}.cartouches{margin:10pt 0}p{margin:4pt 0}</style>${corps}`}),titreGed:meta.nom,nomFichier:`${code}-${cibleId.slice(0,8)}`,liens};
+    // Phase 3, lot 54 (W48) : un titre trop long pour une ligne se répartit en lignes équilibrées (text-wrap:balance) ; « NUE »
+    // restait seul sous « RÉCAPITULATIF ANNUEL · LOCATION ». Un titre qui tient sur une ligne ne bouge pas.
+    return {document:assemblerPage({f,titreDocument:meta.nom,nomPied:meta.nom,reference,corps:`<style>.bloc-titre{padding:10pt 0;margin-bottom:8pt}h1{font-size:19pt;letter-spacing:.2em;text-wrap:balance}h2{margin:14pt 0 8pt}.cartouches{margin:10pt 0}p{margin:4pt 0}</style>${corps}`}),titreGed:meta.nom,nomFichier:`${code}-${cibleId.slice(0,8)}`,liens};
   } catch(e) { if(e instanceof RefusDocument) return {erreur:e.message}; throw e; }
 }

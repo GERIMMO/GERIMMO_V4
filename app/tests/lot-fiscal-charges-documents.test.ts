@@ -20,7 +20,9 @@ import { chargerCiblesCatalogue } from "@/lib/documents/catalogue-cibles";
 import { CATALOGUE_DOCUMENTS } from "@/lib/documents/catalogue";
 import type { Assemblage } from "@/lib/documents/modeles";
 
-vi.mock("@/lib/documents/modeles/communs", async (importOriginal) => ({ ...(await importOriginal<object>()), chargerContexteBail: vi.fn() }));
+// Phase 3, lot 54 (W39) : les courriers de charges portent le bloc de signature de l'émetteur, qui lit la signature enregistrée
+// de l'espace (une fonction de la base que ces tests ne simulent pas) : aucune signature enregistrée ici.
+vi.mock("@/lib/documents/modeles/communs", async (importOriginal) => ({ ...(await importOriginal<object>()), chargerContexteBail: vi.fn(), signatureOrganisation: vi.fn(async () => null) }));
 
 type Row = Record<string, unknown>;
 let ctx = contexte();

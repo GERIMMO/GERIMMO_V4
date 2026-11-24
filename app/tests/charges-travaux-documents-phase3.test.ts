@@ -151,7 +151,10 @@ describe("C97 — justificatif : une pièce séparée, à joindre au courrier", 
   it.each(["regularisation_charges", "decompte_charges"] as const)("%s", async (code) => {
     const r = succes(await assemblerComplementGestion(code, baseSimulee(regularisation()).client, "org", "reg", optionsCharges));
     const texte = texteDe(r.document.html);
-    expect(texte).toContain("Justificatif : pièce enregistrée dans le dossier, à joindre au courrier.");
+    // Phase 3, lot 54 (W37) : « à joindre au courrier » était une consigne pour l'utilisateur, imprimée dans le courrier adressé au
+    // locataire ; elle est à l'écran du catalogue. Le PDF dit seulement que la pièce est distincte (C97 : jamais « annexé »).
+    expect(texte).toContain("Justificatif : pièce distincte de ce document, enregistrée avec la régularisation.");
+    expect(texte).not.toContain("à joindre au courrier");
     expect(texte).not.toMatch(/annexé/);
     expect(r.document.manquants).toEqual([]);
   });
@@ -276,7 +279,8 @@ describe("C86 — la phrase du comparatif suit l'état du dossier", () => {
   });
   it("aucun devis retenu, un devis reçu sur un dossier ouvert : « le choix reste à faire »", async () => {
     const texte = texteDe(succes(await assemblerComplementGestion("comparatif_devis", baseSimulee(incidents()).client, "org", "incC")).document.html);
-    expect(texte).toContain("Comparaison des offres déposées. Le choix reste à faire ; ce document ne commande aucune prestation.");
+    // Phase 3, lot 54 (W42) : l'incident C n'a qu'un devis : « Comparaison des offres déposées » laissait croire à plusieurs offres.
+    expect(texte).toContain("Un seul devis a été déposé. Le choix reste à faire ; ce document ne commande aucune prestation.");
     expect(texte).not.toContain("a été retenu");
   });
   // Reprise du lot 42 (C86) : un incident clos dont les devis sont non retenus ou refusés (transmis au syndic, réparé autrement)
@@ -293,7 +297,8 @@ describe("C86 — la phrase du comparatif suit l'état du dossier", () => {
     const t = incidents();
     t.incident_devis[3].statut = "non_retenu";
     const texte = texteDe(succes(await assemblerComplementGestion("comparatif_devis", baseSimulee(t).client, "org", "incC")).document.html);
-    expect(texte).toContain("Comparaison des offres déposées. Aucun devis n’est retenu ; ce document ne commande aucune prestation.");
+    // Phase 3, lot 54 (W42) : un seul devis (incident C), dit au singulier.
+    expect(texte).toContain("Un seul devis a été déposé. Aucun devis n’est retenu ; ce document ne commande aucune prestation.");
     expect(texte).not.toContain("Le choix reste à faire");
   });
 });

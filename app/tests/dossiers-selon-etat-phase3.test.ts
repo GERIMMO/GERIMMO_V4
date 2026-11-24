@@ -312,7 +312,9 @@ describe("C82 — incident des parties communes (sans lot)", () => {
       { lot_id: "ailleurs", date_fin: null, quote_part: 100, person: personne({ id: "autre", nom: "Autre", prenom: "Personne" }) },
     ],
   });
-  const lieu = "Résidence des Essais · Parties communes · 8 avenue des Essais · 69003 · Lyon";
+  // Phase 3, lot 54 (W45) : le lieu s'écrit comme un logement (« rue, code postal ville, complément ») ; il était joint par « · »,
+  // code postal et ville séparés, le format que C88 avait corrigé pour les logements.
+  const lieu = "8 avenue des Essais, 69003 Lyon, Résidence des Essais — parties communes";
 
   it.each(["recap_incident", "comparatif_devis"] as const)("%s : produit, avec l'immeuble et « Parties communes », sans lire de lot", async (code) => {
     const { db, appels } = baseFiltrante(tables());
@@ -325,7 +327,11 @@ describe("C82 — incident des parties communes (sans lot)", () => {
   it("le récapitulatif garde ses pièces : décision, clôture", async () => {
     const texte = texteDe(succes(await assemblerComplementGestion("recap_incident", baseFiltrante(tables()).db, "org", "inc")).document.html);
     expect(texte).toContain("Incident INC-2026-0003");
-    expect(texte).toContain("Clôturé le 20/11/2026. Transmis au syndic.");
+    // Phase 3, lot 54 (W46) : le motif de clôture enregistré est dit ; l'absence d'imputation aussi (plus de « —. »).
+    expect(texte).toContain("Clôturé le 20/11/2026 ; motif : Transmis au syndic (parties communes). Transmis au syndic.");
+    expect(texte).toContain("Aucune imputation enregistrée : le dossier a été clos sans qualification.");
+    expect(texte).not.toContain("Imputation enregistrée : —");
+    expect(texte).not.toContain("Justification : —");
   });
   it("ordre d'intervention : produit pour les parties communes", async () => {
     const t = tables();

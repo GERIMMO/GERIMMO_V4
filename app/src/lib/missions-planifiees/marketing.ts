@@ -14,6 +14,8 @@ import {alerterSuperviseurDuPost} from '@/lib/alerte-veto-marketing';
 import {composantesParis,dateParis} from '@/lib/heure-paris-calcul';
 import {IADesactivee,PlafondIAAtteint,reserverAppelIA} from '@/lib/plafond-ia';
 import {iaDesactiveeParLeSuperviseur} from '@/lib/etat-ia';
+import {santeFacebook} from '@/lib/marketing-meta';
+import {etatPageFacebook,RAISON_DIFFUSION_MASQUEE,type EtatPageFacebook} from '@/lib/diffusion-facebook';
 
 /** Interrupteur IA (22/11/2026) : ce que la mission consigne quand la préparation est suspendue faute d'IA. */
 export const RAISON_IA_DESACTIVEE='L’IA est désactivée : la préparation automatique des posts est suspendue. Un article se crée et se publie à la main.';
@@ -69,6 +71,12 @@ export async function diffuserPostsEchus(db:Db,r:Reglages,options:{manuel?:boole
  const {data:ids,error}=await db.rpc('publications_marketing_echues');
  if(error)return {erreur:'Les posts à diffuser ne peuvent pas être lus.',diffuses:[] as string[],attentes:[] as string[],erreurs:[] as string[]};
  const diffuses:string[]=[],attentes:string[]=[],erreurs:string[]=[];
+ // Décision du dirigeant du 25/11/2026 : « la diffusion Facebook est masquée tant que la Page n'est pas vérifiée ».
+ // L'écran masque la diffusion hors Page « Relié » ; la mission la refuse aussi, avec la même lecture que l'écran
+ // (etatPageFacebook de santeFacebook), même si la publication automatique est activée en base : le post échu ne
+ // paraît pas sur le site, rien n'est réservé ni envoyé, il reste programmé (en attente) et le bilan dit pourquoi.
+ // La Page n'est lue qu'une fois par passage, et seulement s'il y a un post à diffuser.
+ let page:EtatPageFacebook|null=null,diffusionSuspendue:string|undefined;
  for(const id of (ids??[]) as string[]){
   const {data:article}=await db.from('publications').select(CHAMPS).eq('id',id).maybeSingle();
   if(!article)continue;
@@ -85,6 +93,9 @@ export async function diffuserPostsEchus(db:Db,r:Reglages,options:{manuel?:boole
    if(source.error||!source.data){erreurs.push(`${a.id} : source de veille impossible à vérifier, diffusion suspendue.`);continue;}
    if(!sujetDansPerimetre(source.data.titre)){attentes.push(a.id);continue;}
   }
+  // Avant toute parution, réservation ou envoi (un envoi déjà engagé, plus haut, reste signalé comme tel).
+  page??=etatPageFacebook(await santeFacebook());
+  if(page!=='relie'){diffusionSuspendue=RAISON_DIFFUSION_MASQUEE[page];attentes.push(a.id);continue;}
   // Parution sur le site : la base relit tout (accord, validation, texte complet, veille écartée).
   await verifierAvantEffet(db,'marketing');
   if(a.statut!=='publiee'){
@@ -121,7 +132,7 @@ export async function diffuserPostsEchus(db:Db,r:Reglages,options:{manuel?:boole
    erreurs.push(`${a.id} : confirmation Facebook manquante.`);
   }
  }
- return {erreur:undefined as string|undefined,diffuses,attentes,erreurs};
+ return {erreur:undefined as string|undefined,diffuses,attentes,erreurs,...(diffusionSuspendue?{diffusion_suspendue:diffusionSuspendue}:{})};
 }
 
 // ── Préparation ────────────────────────────────────────────────────────────
@@ -273,7 +284,7 @@ export async function traiterMarketing(request:Request){
  const preparation=cible?await preparerPostDu(db,reglages,cible):null;
  const erreur=diffusion.erreur||diffusion.erreurs.length||(preparation&&'erreur'in preparation);
  const resultat:Record<string,unknown>={agi:diffusion.diffuses.length>0||Boolean(preparation&&'agi'in preparation&&preparation.agi),publiees:diffusion.diffuses.length,facebook:diffusion.diffuses.length>0,
-  ...(diffusion.diffuses.length?{diffusees:diffusion.diffuses}:{}),...(diffusion.attentes.length?{en_attente:diffusion.attentes}:{}),...(diffusion.erreurs.length||diffusion.erreur?{erreurs:[...(diffusion.erreur?[diffusion.erreur]:[]),...diffusion.erreurs]}:{}),
+  ...(diffusion.diffuses.length?{diffusees:diffusion.diffuses}:{}),...(diffusion.attentes.length?{en_attente:diffusion.attentes}:{}),...('diffusion_suspendue' in diffusion?{diffusion_suspendue:diffusion.diffusion_suspendue}:{}),...(diffusion.erreurs.length||diffusion.erreur?{erreurs:[...(diffusion.erreur?[diffusion.erreur]:[]),...diffusion.erreurs]}:{}),
   ...(preparation?{preparation}:{raison_preparation:'Rien à préparer pour l’instant.'})};
  if(preparation && 'erreur' in preparation)resultat.erreur=preparation.erreur;
  if(preparation && 'file_pleine' in preparation)resultat.action_marketing='traiter_file';

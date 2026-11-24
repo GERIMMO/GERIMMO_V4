@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { sansJargon } from "@/lib/erreurs";
 import { envoyerSurFacebook, RefusFacebookCertain, retrouverPostFacebook } from "@/lib/facebook";
+import { santeFacebook } from "@/lib/marketing-meta";
+import { etatPageFacebook, RAISON_DIFFUSION_MASQUEE } from "@/lib/diffusion-facebook";
 import { journaliserSupervision, JOURNAL_A_VERIFIER } from "@/lib/journal-supervision";
 import { TACHES_SQL } from "@/lib/nom-arret-supervision";
 
@@ -144,6 +146,11 @@ export async function publierPublicationFacebook(id: string): Promise<EtatPublic
   if (erreurLecture || !article) return { erreur: "Article introuvable." };
   if (article.statut !== "publiee" || !article.slug) return { erreur: "Faites d’abord paraître l’article dans le Journal Gerimmo." };
   if (article.facebook_post_id) return { succes: "Cet article est déjà publié sur Facebook." };
+  // Décision du dirigeant du 25/11/2026 : « la diffusion Facebook est masquée tant que la Page n'est pas vérifiée ».
+  // L'éditeur masque « Publier sur Facebook » hors Page « Relié » ; l'action refuse aussi, avec la même lecture que
+  // l'écran (etatPageFacebook de santeFacebook), avant toute réservation, ligne de journal ou envoi.
+  const page = etatPageFacebook(await santeFacebook());
+  if (page !== "relie") return { erreur: RAISON_DIFFUSION_MASQUEE[page] };
 
   let reserve = false;
   const reserver = async () => {

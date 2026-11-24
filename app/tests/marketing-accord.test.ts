@@ -12,14 +12,19 @@ import {traiterMarketing as GET,maintenantParis} from '@/lib/missions-planifiees
 import {ArretSupervision} from '@/lib/controle-effets';
 import {MESSAGE_LIMITE_IA} from '@/lib/plafond-ia';
 import {sujetMarketing} from '@/lib/contenu-marketing';
-const mocks=vi.hoisted(()=>({client:vi.fn(),facebook:vi.fn(),image:vi.fn(),source:vi.fn(),redaction:vi.fn(),email:vi.fn()}));
+import {RAISON_DIFFUSION_MASQUEE} from '@/lib/diffusion-facebook';
+const mocks=vi.hoisted(()=>({client:vi.fn(),facebook:vi.fn(),image:vi.fn(),source:vi.fn(),redaction:vi.fn(),email:vi.fn(),page:vi.fn()}));
 vi.mock('@/lib/supabase/service',()=>({clientDeService:mocks.client}));
 vi.mock('@/lib/facebook',()=>({envoyerSurFacebook:mocks.facebook,retrouverPostFacebook:async()=>null,RefusFacebookCertain:class extends Error{}}));
+// Lecture de la Page Facebook, la même que celle de l'écran « Marketing et contenus » (santeFacebook). Simulée : aucun
+// appel à Meta. Par défaut la Page est « Relié » (reliée et lue) : c'est le cas que décrivent les tests de diffusion
+// ci-dessous ; les états « À vérifier » et « À relier » ont leur bloc (décision du 25/11/2026), en fin de fichier.
+vi.mock('@/lib/marketing-meta',()=>({santeFacebook:mocks.page}));
 vi.mock('@/lib/visuel-marketing',()=>({creerVisuelMarketing:mocks.image}));
 vi.mock('@/lib/analyse-veille',()=>({lireSourceEtude:mocks.source}));
 vi.mock('@/lib/redaction-veille',()=>({redigerArticleVeille:mocks.redaction}));
 vi.mock('@/lib/email',()=>({envoyerEmail:mocks.email}));
-beforeEach(()=>{vi.resetAllMocks();vi.stubEnv('CRON_SECRET','test-secret');vi.useFakeTimers();vi.setSystemTime(new Date('2026-10-08T16:05:00Z'));mocks.facebook.mockImplementation(async(_article:unknown,avantEffet:()=>Promise<void>)=>{await avantEffet();return {post_id:'page_post'}});mocks.image.mockResolvedValue({octets:Buffer.from('image de recette'),empreinte:'a'.repeat(64)});mocks.source.mockResolvedValue('Texte officiel de recette');mocks.email.mockResolvedValue({id:'mail'});
+beforeEach(()=>{vi.resetAllMocks();mocks.page.mockResolvedValue({configure:true,nom:'Page Gerimmo'});vi.stubEnv('CRON_SECRET','test-secret');vi.useFakeTimers();vi.setSystemTime(new Date('2026-10-08T16:05:00Z'));mocks.facebook.mockImplementation(async(_article:unknown,avantEffet:()=>Promise<void>)=>{await avantEffet();return {post_id:'page_post'}});mocks.image.mockResolvedValue({octets:Buffer.from('image de recette'),empreinte:'a'.repeat(64)});mocks.source.mockResolvedValue('Texte officiel de recette');mocks.email.mockResolvedValue({id:'mail'});
  mocks.redaction.mockResolvedValue({cle:'veille-source',audience:'particuliers',titre:'Trêve hivernale : ce qui change',chapo:'Chapo rédigé.',corps:'## Ce qui change\n\nTexte.',facebook:'Texte Facebook rédigé.'});});
 afterEach(()=>{vi.useRealTimers();vi.unstubAllEnvs();});
 
@@ -224,5 +229,44 @@ describe('mission marketing : garde et horloge',()=>{
   expect(maintenantParis(new Date('2026-10-24T22:30:00Z')).date).toBe('2026-10-25');
   expect(maintenantParis(new Date('2026-10-25T22:30:00Z')).date).toBe('2026-10-25');
   expect(maintenantParis(new Date('2026-10-26T06:30:00Z')).jour).toBe(1);
+ });
+});
+
+// Décision du dirigeant du 25/11/2026 : « la diffusion Facebook est masquée tant que la Page n'est pas vérifiée ». L'écran
+// (commit 35331720) la masque ; la mission la refuse aussi, avec la même lecture que l'écran (etatPageFacebook de
+// santeFacebook, lib/diffusion-facebook.ts), même si la publication automatique est activée en base : le post échu ne
+// paraît pas, rien n'est réservé ni envoyé, il reste programmé et le bilan dit pourquoi. Aucun appel réseau (fetch piégé).
+describe('mission marketing : diffusion refusée tant que la Page Facebook n’est pas « Relié » (décision du 25/11/2026)',()=>{
+ beforeEach(()=>{vi.stubGlobal('fetch',vi.fn(async()=>{throw new Error('Aucun appel réseau dans ce test.');}));});
+ afterEach(()=>{vi.unstubAllGlobals();});
+ it.each([
+  ['« À relier » (Page non configurée)',{configure:false},RAISON_DIFFUSION_MASQUEE.a_relier],
+  ['« À vérifier » (Page configurée mais illisible)',{configure:true,erreur:'Jeton de la Page expiré.'},RAISON_DIFFUSION_MASQUEE.a_verifier],
+ ])('Page %s, publication automatique activée en base : le post échu ne paraît pas, rien n’est réservé ni envoyé',async(_cas,sante,raison)=>{
+  mocks.page.mockResolvedValue(sante);
+  const c=contexte({auto:true,echus:[{id:'p1',titre:'Un post'}]});
+  const r=await GET(requete());
+  expect(r.status).toBe(200);
+  expect(await r.json()).toMatchObject({agi:false,publiees:0,facebook:false,en_attente:['p1'],diffusion_suspendue:raison});
+  const noms=c.rpcs.map(([n])=>n);
+  expect(noms).not.toContain('publier_article_automatique');
+  expect(noms).not.toContain('reserver_diffusion_facebook');
+  expect(mocks.facebook).not.toHaveBeenCalled();
+  expect(c.articles.get('p1')?.statut).toBe('programmee');
+  expect(c.modifications).toEqual([]);
+  expect(fetch).not.toHaveBeenCalled();
+ });
+ it('Page « Relié » : le même post paraît puis part sur Facebook (la lecture est celle de l’écran, rien d’autre)',async()=>{
+  const c=contexte({auto:true,echus:[{id:'p1',titre:'Un post'}]});
+  const r=await GET(requete());
+  expect(await r.json()).toMatchObject({publiees:1,facebook:true,diffusees:['p1']});
+  expect(c.rpcs.some(([n])=>n==='publier_article_automatique')).toBe(true);
+  expect(mocks.facebook).toHaveBeenCalledTimes(1);
+  expect(mocks.page).toHaveBeenCalledTimes(1);
+ });
+ it('rien d’échu : la Page n’est pas lue (aucune lecture inutile toutes les cinq minutes)',async()=>{
+  contexte();
+  await GET(requete());
+  expect(mocks.page).not.toHaveBeenCalled();
  });
 });

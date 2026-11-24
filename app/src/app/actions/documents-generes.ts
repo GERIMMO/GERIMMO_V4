@@ -133,7 +133,7 @@ export async function genererDocument(
       liens: assemblage.liens,
       succes: reutilise
         ? `${assemblage.titreGed} déjà disponible : le PDF existant est rattaché à ce dossier.`
-        : `${assemblage.titreGed} généré — tous les champs sont renseignés et le PDF est rangé dans Documents.${
+        : `${assemblage.titreGed}${/\(généré/.test(assemblage.titreGed) ? "" : " généré"} — tous les champs sont renseignés et le PDF est rangé dans Documents.${
         assemblage.avertissement ? ` Attention : ${assemblage.avertissement}` : ""
       }`,
     };

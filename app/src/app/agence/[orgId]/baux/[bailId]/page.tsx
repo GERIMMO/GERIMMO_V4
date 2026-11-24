@@ -307,7 +307,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           .eq("bail_id", bailId),
         supabase
           .from("revisions_loyer")
-          .select("id, date_effet, date_echeance, date_demande, irl_trimestre, ancien_loyer, nouveau_loyer, irl_reference, irl_nouveau")
+          .select("id, date_effet, date_echeance, date_demande, premier_terme, irl_trimestre, ancien_loyer, nouveau_loyer, irl_reference, irl_nouveau")
           .eq("bail_id", bailId)
           .order("date_effet", { ascending: false }),
         supabase
@@ -1288,7 +1288,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             </HistoriqueBailLecture>
             <HistoriqueBailLecture titre="Révisions et régularisations" erreur={Boolean(erreurRevisions || erreurRegul)}>
               {!revisions?.length && <p>Aucune révision enregistrée.</p>}
-              {revisions?.map(r => <p key={r.id}>Révision au {formaterDate(r.date_effet)} : {eur(r.ancien_loyer)} → {eur(r.nouveau_loyer)} · IRL {r.irl_reference} → {r.irl_nouveau}</p>)}
+              {revisions?.map(r => <p key={r.id}>Révision au {formaterDate(r.date_effet)} : {eur(r.ancien_loyer)} → {eur(r.nouveau_loyer)} · IRL {r.irl_reference} → {r.irl_nouveau}{r.premier_terme ? ` · loyer révisé appliqué à partir du ${formaterDate(r.premier_terme)}` : ""}</p>)}
               {!regularisations?.length && <p>Aucune régularisation enregistrée.</p>}
               {regularisations?.map(r => <p key={r.id}>Exercice {r.annee} · provisions {eur(r.provisions)} · charges réelles {eur(r.charges_reelles)} · écart {eur(r.ecart)}</p>)}
             </HistoriqueBailLecture>

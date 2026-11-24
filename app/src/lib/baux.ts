@@ -230,6 +230,9 @@ export function derniereDateAnniversaire(dateDebut: string | null | undefined, a
 // jour-là, sinon à la date de la demande — jamais rétroactivement. Date
 // d'effet = max(anniversaire, demande). Miroir de `reviser_loyer` (migration
 // 20260929120000). null avant le premier anniversaire.
+// Depuis la décision Q43 du 24/11/2026, cette « date d'effet » n'est plus la date d'application du loyer révisé : elle
+// reste la date à laquelle la révision est acquise (elle sert à compter une révision par année de bail). Le loyer révisé
+// s'applique au premier terme qui suit la demande : voir `premierTermeApresDemande`.
 export function datesRevisionIrl(
   dateDebut: string | null | undefined,
   dateDemande: string
@@ -237,6 +240,30 @@ export function datesRevisionIrl(
   const echeance = derniereDateAnniversaire(dateDebut, dateDemande);
   if (!echeance) return null;
   return { echeance, dateEffet: dateDemande > echeance ? dateDemande : echeance };
+}
+
+// Décision Q23 du 24/11/2026 : la révision d'une année se demande pendant un an à compter de sa date de révision
+// (`echeance`, une date anniversaire du bail). La date limite est la veille de la date anniversaire suivante : révision
+// prévue le 15/10/2025, date limite le 14/10/2026 (exemple de la fiche Service-Public F1311 lue le 24/11/2026 : 13 mars
+// 2025 → 12 mars 2026). Miroir de `reviser_loyer` (migration 20261124100000), qui refuse au-delà.
+export function dateLimiteRevision(dateDebut: string | null | undefined, echeance: string): string | null {
+  if (!dateDebut) return null;
+  // La date anniversaire suivante est la dernière atteinte un an et un jour plus tard (le 29/02 se replie comme en base).
+  const [a, m, j] = echeance.slice(0, 10).split("-").map(Number);
+  const suivante = derniereDateAnniversaire(dateDebut, new Date(Date.UTC(a + 1, m - 1, j + 1)).toISOString().slice(0, 10));
+  if (!suivante || suivante <= echeance.slice(0, 10)) return null;
+  const veille = new Date(`${suivante}T00:00:00Z`);
+  veille.setUTCDate(veille.getUTCDate() - 1);
+  return veille.toISOString().slice(0, 10);
+}
+
+// Décision Q43 du 24/11/2026 : le loyer révisé ne s'applique jamais à des jours antérieurs à la demande. Il s'applique au
+// premier terme dont la période COMMENCE après la date de la demande. Les termes sont des mois civils : c'est le 1er du
+// mois qui suit la demande (demande du 15/10 ou du 31/10 → terme de novembre ; demande du 01/11 → terme de décembre).
+// La base retient en plus qu'un terme déjà appelé n'est pas modifié (`revisions_loyer.premier_terme`).
+export function premierTermeApresDemande(dateDemande: string): string {
+  const [a, m] = dateDemande.slice(0, 7).split("-").map(Number);
+  return new Date(Date.UTC(a, m, 1)).toISOString().slice(0, 10);
 }
 
 // Numéro (1 à 4) du trimestre IRL lu dans un libellé libre : « T2 2026 »,

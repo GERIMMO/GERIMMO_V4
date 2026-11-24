@@ -6,7 +6,7 @@ import { statutDiagnostic } from "@/lib/parc";
 import { avecEcheanceReglementaire } from "@/lib/documents-bail";
 import { RACINE_AGENCE } from "@/lib/racine-espace";
 import { lireToutesLesPages, type PageLue } from "@/lib/lecture-complete";
-import { derniereDateAnniversaire } from "@/lib/baux";
+import { dateLimiteRevision, derniereDateAnniversaire } from "@/lib/baux";
 
 // Actions attendues sur les baux en cours — LA source commune (audit 09/09,
 // P2). L'accueil du propriétaire disait « tout est en ordre » pendant que la
@@ -20,7 +20,8 @@ import { derniereDateAnniversaire } from "@/lib/baux";
 //   - diagnostics obligatoires absents ou expirés (DPE au lot en habitation,
 //     ERP au bien — même critère que lot_blocages_location côté SQL) ;
 //   - pièces de la GED expirées (documents_a_renouveler) ;
-//   - révision annuelle du loyer possible, à la date anniversaire d'un bail qui la prévoit (audit palier 1, P1-13).
+//   - révision annuelle du loyer possible, à la date anniversaire d'un bail qui la prévoit (audit palier 1, P1-13),
+//     puis, si elle n'est toujours pas demandée, dans les trente jours qui précèdent sa date limite (décision Q23).
 // Calcul à la volée, sans nouvelle table ni tâche asynchrone.
 
 /**
@@ -29,6 +30,12 @@ import { derniereDateAnniversaire } from "@/lib/baux";
  * de ne pas réviser garderait le rappel toute l'année. Réglage de produit, noté dans QUESTIONS.md.
  */
 export const JOURS_RAPPEL_REVISION = 60;
+/**
+ * Décision Q23 du 24/11/2026 : la révision d'une année se demande pendant un an (voir `dateLimiteRevision`). Un second
+ * rappel paraît ce nombre de jours avant la date limite, au même endroit que le premier (« À faire »), et s'efface
+ * comme lui dès que la révision est enregistrée. Aucun e-mail : ni le premier rappel ni le second n'en envoient.
+ */
+export const JOURS_SECOND_RAPPEL_REVISION = 30;
 const joursDepuis = (depuis: string, jusqua: string) =>
   Math.round((Date.parse(`${jusqua}T00:00:00Z`) - Date.parse(`${depuis}T00:00:00Z`)) / 86_400_000);
 
@@ -136,11 +143,16 @@ export async function lireActionsAttendues(
   const bailIds = baux.map((b) => b.id);
   // Rappel de la révision annuelle (audit palier 1, P1-13) : seuls les baux en cours qui prévoient la révision et
   // dont la date anniversaire vient de passer sont relus.
-  const echeanceRevision = new Map<string, string>();
+  // Décision Q23 du 24/11 : ils sont relus aussi dans les trente jours qui précèdent la date limite de la révision.
+  const echeanceRevision = new Map<string, { echeance: string; limite: string | null; premierRappel: boolean; secondRappel: boolean }>();
   for (const b of baux) {
     if (b.etat !== "actif" || b.revision_irl !== true) continue;
     const echeance = derniereDateAnniversaire(b.date_debut, aujourdhui);
-    if (echeance && joursDepuis(echeance, aujourdhui) <= JOURS_RAPPEL_REVISION) echeanceRevision.set(b.id, echeance);
+    if (!echeance) continue;
+    const limite = dateLimiteRevision(b.date_debut, echeance);
+    const premierRappel = joursDepuis(echeance, aujourdhui) <= JOURS_RAPPEL_REVISION;
+    const secondRappel = limite !== null && joursDepuis(aujourdhui, limite) <= JOURS_SECOND_RAPPEL_REVISION;
+    if (premierRappel || secondRappel) echeanceRevision.set(b.id, { echeance, limite, premierRappel, secondRappel });
   }
   const chambreIds = [...new Set(baux.flatMap((b) => b.chambre_id ? [b.chambre_id] : []))];
 
@@ -296,23 +308,38 @@ export async function lireActionsAttendues(
     }
 
     // Révision annuelle du loyer (audit palier 1, P1-13) : rien ne la rappelait, et une révision demandée en retard ne
-    // prend effet qu'à la date de la demande (c'est ce que dit déjà le formulaire). Le rappel paraît à la date
+    // s'applique jamais aux jours d'avant la demande. Le rappel paraît à la date
     // anniversaire et reste soixante jours ; il s'efface dès que la révision est enregistrée. Il se tait quand la base
     // refuserait la révision (dernier DPE du logement classé F ou G), et quand une lecture manque : jamais de rappel
     // fondé sur une supposition.
-    const echeance = echeanceRevision.get(bail.id);
-    if (echeance && !erreurs.revisions && !erreurs.diagnostics && (derniereRevisionParBail.get(bail.id) ?? "") < echeance) {
+    //
+    // Décisions du 24/11/2026. Q23 : le rappel affiche la date limite (un an après la date de révision) ; un second
+    // rappel paraît trente jours avant cette date ; au-delà, la base refuse la révision de cette année-là. Q43 : le
+    // loyer révisé s'applique au premier terme qui suit la demande, jamais à des jours antérieurs.
+    const revision = echeanceRevision.get(bail.id);
+    if (revision && !erreurs.revisions && !erreurs.diagnostics && (derniereRevisionParBail.get(bail.id) ?? "") < revision.echeance) {
       const dernierDpe = lignesDiagnostics
         .filter((d) => d.type === "dpe" && d.lot_id === bail.lot_id)
         .sort((a, b) => (b.date_realisation ?? "").localeCompare(a.date_realisation ?? ""))[0];
       if (!["F", "G"].includes(dernierDpe?.classe_dpe ?? "")) {
-        revisionsPossibles.push({
-          cle: `revision-${bail.id}`,
-          titre: `Révision annuelle du loyer possible${surLeBail}`,
-          detail: `Date anniversaire du ${formaterDate(echeance)} : demandée plus tard, la révision ne prend effet qu’à la date de la demande`,
-          href: `${base}/baux/${bail.id}#revision-loyer`,
-          critique: false,
-        });
+        const jusquAu = revision.limite ? `, à demander au plus tard le ${formaterDate(revision.limite)}` : "";
+        if (revision.secondRappel && revision.limite) {
+          revisionsPossibles.push({
+            cle: `revision-limite-${bail.id}`,
+            titre: `Révision annuelle du loyer : date limite le ${formaterDate(revision.limite)}${surLeBail}`,
+            detail: `Révision prévue le ${formaterDate(revision.echeance)}, pas encore demandée : passé le ${formaterDate(revision.limite)}, elle n’est plus possible pour cette année-là`,
+            href: `${base}/baux/${bail.id}#revision-loyer`,
+            critique: false,
+          });
+        } else if (revision.premierRappel) {
+          revisionsPossibles.push({
+            cle: `revision-${bail.id}`,
+            titre: `Révision annuelle du loyer possible${surLeBail}`,
+            detail: `Date de révision du ${formaterDate(revision.echeance)}${jusquAu} : le loyer révisé s’applique au premier terme qui suit la demande`,
+            href: `${base}/baux/${bail.id}#revision-loyer`,
+            critique: false,
+          });
+        }
       }
     }
 

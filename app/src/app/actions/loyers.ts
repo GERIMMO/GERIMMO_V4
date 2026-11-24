@@ -548,7 +548,9 @@ export async function supprimerEncaissement(
   return { succes: "Encaissement supprimé — le motif est inscrit au journal." };
 }
 
-// Réviser le loyer selon l'IRL (clause requise, DPE F/G bloqué, prescription 1 an).
+// Réviser le loyer selon l'IRL (clause requise, DPE F/G bloqué, délai d'un an).
+// Décisions du 24/11/2026 : la base refuse la révision d'une année passé un an après sa date de révision (Q23), et
+// applique le loyer révisé au premier terme dont la période commence après la demande (Q43).
 // L'indice de RÉFÉRENCE n'est pas saisi ici : il est figé au bail à sa signature
 // (RM-3.8.2) et la base le lit elle-même. Seul l'indice du trimestre de révision,
 // saisi par l'admin d'agence (RM-3.8.3), est fourni.
@@ -566,9 +568,8 @@ export async function reviserLoyer(
   const indiceLu = indiceSaisi ? lireDecimal(indiceSaisi) : { valeur: 0 };
   if ("erreur" in indiceLu) return { erreur: erreurDuChamp("Indice IRL", indiceLu.erreur), valeurs };
   const nouv = indiceLu.valeur;
-  // Audit 29/09 : on saisit la date de la DEMANDE, pas la date d'effet. La
-  // base en déduit l'effet — l'anniversaire si la demande tombe ce jour-là,
-  // sinon la date de la demande, sans rétroactivité (art. 17-1 I).
+  // Audit 29/09 : on saisit la date de la DEMANDE. La base en déduit la date de révision (la dernière date
+  // anniversaire atteinte) et, depuis la décision Q43 du 24/11, le premier terme appelé au loyer révisé.
   const dateDemande = String(formData.get("date_demande") ?? "").trim();
   // Constat 21 : l'indice nouveau est celui du trimestre de référence du bail.
   const trimestre = String(formData.get("irl_trimestre_numero") ?? "").trim();
@@ -586,7 +587,7 @@ export async function reviserLoyer(
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
-  return { succes: `Loyer révisé à ${data} € HC.` };
+  return { succes: `Loyer révisé à ${data} € HC. Il s’applique au premier terme dont la période commence après la demande : la lettre PDF donne ce terme.` };
 }
 
 // Rattrapage manuel : régénérer les reçus (paiements partiels) et quittances

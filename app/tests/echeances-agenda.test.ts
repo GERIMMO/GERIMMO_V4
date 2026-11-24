@@ -5,7 +5,9 @@
  *  1. chaque échéance dit ce qu'elle est, pour qui, où en est-on, et mène au bon écran ;
  *  2. l'état d'un loyer n'est jamais inventé : inconnu, il ne s'affiche pas ;
  *  3. la lecture est bornée au mois et à l'espace ; un échec ou une lecture coupée n'est pas « aucune échéance » ;
- *  4. le calendrier du propriétaire porte les échéances (case du jour, panneau du jour), l'agence garde son écran.
+ *  4. le calendrier du propriétaire porte les échéances (case du jour, panneau du jour), l'agence garde son écran ;
+ *  5. décision Q34 du 24/11/2026 : le calendrier porte aussi la date limite pour demander la révision du loyer (un an
+ *     après la date de révision, décision Q23), tant que cette révision n'est pas enregistrée.
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -77,7 +79,9 @@ describe("échéances : ce que dit chaque ligne", () => {
 
 describe("échéances : la lecture", () => {
   type Appel = { table: string; filtres: [string, string, unknown][] };
-  function faux(reponses: Record<string, { data?: unknown[]; error?: { message: string } | null }>, rpc: (nom: string, args: Record<string, string>) => { data?: unknown[]; error?: { message: string } | null } = () => ({ data: [], error: null })) {
+  type Reponse = { data?: unknown[]; error?: { message: string } | null };
+  // Décision Q34 : « baux » est lue deux fois (fins de bail du mois, baux révisables) : une réponse peut dépendre des filtres.
+  function faux(reponses: Record<string, Reponse | ((appel: Appel) => Reponse)>, rpc: (nom: string, args: Record<string, string>) => { data?: unknown[]; error?: { message: string } | null } = () => ({ data: [], error: null })) {
     const appels: Appel[] = [];
     const rpcs: Record<string, string>[] = [];
     const client = {
@@ -87,7 +91,11 @@ describe("échéances : la lecture", () => {
         const q: Record<string, unknown> = {};
         for (const m of ["select", "eq", "in", "is", "gte", "lt", "order", "limit"])
           q[m] = (...a: unknown[]) => { appel.filtres.push([m, String(a[0]), a[1]]); return q; };
-        q.then = (ok: (v: unknown) => unknown) => Promise.resolve({ data: reponses[table]?.data ?? [], error: reponses[table]?.error ?? null }).then(ok);
+        q.then = (ok: (v: unknown) => unknown) => {
+          const prevue = reponses[table];
+          const reponse = typeof prevue === "function" ? prevue(appel) : prevue;
+          return Promise.resolve({ data: reponse?.data ?? [], error: reponse?.error ?? null }).then(ok);
+        };
         return q;
       },
       rpc(nom: string, args: Record<string, string>) { rpcs.push(args); return Promise.resolve(rpc(nom, args)); },
@@ -110,8 +118,15 @@ describe("échéances : la lecture", () => {
       ["loyer", "2026-11-05", "Reçu"], ["edl", "2026-11-28", "À établir et signer"], ["conge", "2026-11-28", null], ["fin_bail", "2026-11-30", null],
     ]);
     expect(r.liste[0].detail).toBe("Camille Fictif · Appartement T2");
-    expect(f.appels.map((a) => a.table).sort()).toEqual(["appels_loyer", "baux", "conges", "etats_des_lieux"]);
-    for (const a of f.appels) {
+    // Décision Q34 du 24/11/2026 : une cinquième lecture, celle des baux en cours qui prévoient la révision. Elle n'est pas
+    // bornée au mois (la date limite se calcule à partir de l'entrée du bail) ; elle l'est à l'espace et plafonnée.
+    expect(f.appels.map((a) => a.table).sort()).toEqual(["appels_loyer", "baux", "baux", "conges", "etats_des_lieux"]);
+    const revisables = f.appels.find((a) => a.table === "baux" && a.filtres.some(([m, c]) => m === "eq" && c === "revision_irl"))!;
+    expect(revisables.filtres).toContainEqual(["eq", "organization_id", "org"]);
+    expect(revisables.filtres).toContainEqual(["eq", "etat", "actif"]);
+    expect(revisables.filtres).toContainEqual(["eq", "revision_irl", true]);
+    expect(revisables.filtres.some(([m]) => m === "limit")).toBe(true);
+    for (const a of f.appels.filter((x) => x !== revisables)) {
       expect(a.filtres, a.table).toContainEqual(["eq", "organization_id", "org"]);
       const colonne = { appels_loyer: "date_echeance", etats_des_lieux: "date_edl", baux: "date_fin", conges: "date_effet" }[a.table]!;
       expect(a.filtres, a.table).toContainEqual(["gte", colonne, "2026-11-01"]);
@@ -159,6 +174,76 @@ describe("échéances : la lecture", () => {
     expect((await chargerEcheancesAgenda(f.client, "org", MOIS, BASE, JOUR)).liste).toEqual([]);
     expect(f.rpcs).toEqual([]);
   });
+
+  // Décision Q34 du 24/11/2026 : « ajoute au calendrier la date limite de révision du loyer ».
+  describe("date limite de révision du loyer (décision Q34 du 24/11)", () => {
+    const estRevisables = (a: Appel) => a.filtres.some(([m, c]) => m === "eq" && c === "revision_irl");
+    // Bail entré le 15/11/2024 : révision prévue le 15/11/2025, date limite le 14/11/2026 (dans le mois affiché).
+    const revisable = (champs: Record<string, unknown> = {}) => ({ ...bail(), lot_id: "lot", date_debut: "2024-11-15", ...champs });
+    const lire = (tables: Record<string, Reponse>, baux: unknown[] = [revisable()]) => {
+      const f = faux({ ...tables, baux: (a) => (estRevisables(a) ? { data: baux } : { data: [] }) });
+      return chargerEcheancesAgenda(f.client, "org", MOIS, BASE, JOUR).then((r) => ({ r, f }));
+    };
+
+    it("s'affiche le jour de la date limite, avec la date de révision qu'elle clôt, et mène au formulaire de révision", async () => {
+      const { r, f } = await lire({});
+      expect(r).toEqual({ erreur: false, liste: [{
+        cle: "limite-revision-bail-2026-11-14", jour: "2026-11-14", nature: "limite_revision",
+        titre: "Date limite pour demander la révision du loyer",
+        detail: "Camille Fictif · Appartement T2",
+        etat: "Révision prévue le 15/11/2025 : non demandée, délai passé",
+        aFaire: false,
+        href: "/espace/org/baux/bail#revision-loyer",
+      }] });
+      // Les révisions et les DPE ne sont relus que pour les baux concernés, dans l'espace.
+      expect(f.appels.find((a) => a.table === "revisions_loyer")!.filtres).toEqual(expect.arrayContaining([["eq", "organization_id", "org"], ["in", "bail_id", ["bail"]]]));
+      expect(f.appels.find((a) => a.table === "diagnostics")!.filtres).toEqual(expect.arrayContaining([["eq", "organization_id", "org"], ["eq", "type", "dpe"], ["is", "archived_at", null], ["in", "lot_id", ["lot"]]]));
+    });
+
+    it("avant la date limite : « pas encore demandée » ; le dernier jour du mois et le premier comptent, pas le mois voisin", async () => {
+      const aVenir = await lire({}, [revisable({ date_debut: "2024-12-01" })]);
+      expect(aVenir.r.liste.map((e) => [e.jour, e.etat])).toEqual([["2026-11-30", "Révision prévue le 01/12/2025 : pas encore demandée"]]);
+      expect((await lire({}, [revisable({ date_debut: "2024-11-02" })])).r.liste.map((e) => e.jour)).toEqual(["2026-11-01"]);
+      // Date limite le 31/10 ou le 01/12 : hors du mois affiché, et rien d'autre n'est lu.
+      for (const debut of ["2024-11-01", "2024-12-02"]) {
+        const hors = await lire({}, [revisable({ date_debut: debut })]);
+        expect(hors.r.liste, debut).toEqual([]);
+        expect(hors.f.appels.map((a) => a.table), debut).not.toContain("revisions_loyer");
+      }
+    });
+
+    it("aucune date limite avant la première date de révision, ni sans date d'entrée", async () => {
+      // Entré le 15/11/2025 : le 14/11/2026 est la veille de la PREMIÈRE date de révision, pas une date limite.
+      expect((await lire({}, [revisable({ date_debut: "2025-11-15" })])).r.liste).toEqual([]);
+      expect((await lire({}, [revisable({ date_debut: null })])).r.liste).toEqual([]);
+    });
+
+    it("ne s'affiche pas si la révision de cette année-là est enregistrée ; celle d'une autre année ne compte pas", async () => {
+      const dansLeDelai = await lire({ revisions_loyer: { data: [{ id: "r", bail_id: "bail", date_effet: "2026-03-02" }] } });
+      expect(dansLeDelai.r.liste).toEqual([]);
+      for (const effet of ["2025-11-14", "2026-11-15"]) {
+        const autre = await lire({ revisions_loyer: { data: [{ id: "r", bail_id: "bail", date_effet: effet }] } });
+        expect(autre.r.liste.map((e) => e.nature), effet).toEqual(["limite_revision"]);
+      }
+      const autreBail = await lire({ revisions_loyer: { data: [{ id: "r", bail_id: "autre", date_effet: "2026-03-02" }] } });
+      expect(autreBail.r.liste).toHaveLength(1);
+    });
+
+    it("ne s'affiche pas quand la base refuserait la révision : dernier DPE du logement classé F ou G", async () => {
+      const dpe = (classe: string, le: string, lot = "lot") => ({ id: `d-${le}`, lot_id: lot, classe_dpe: classe, date_realisation: le });
+      expect((await lire({ diagnostics: { data: [dpe("G", "2024-05-01")] } })).r.liste).toEqual([]);
+      expect((await lire({ diagnostics: { data: [dpe("F", "2020-05-01"), dpe("D", "2025-05-01")] } })).r.liste).toHaveLength(1);
+      expect((await lire({ diagnostics: { data: [dpe("F", "2025-05-01", "autre-lot")] } })).r.liste).toHaveLength(1);
+    });
+
+    it("révisions ou DPE illisibles : l'écran dit que les échéances n'ont pas pu être lues, jamais une date supposée", async () => {
+      for (const table of ["revisions_loyer", "diagnostics"]) {
+        expect((await lire({ [table]: { error: { message: "panne" } } })).r, table).toEqual({ liste: [], erreur: true });
+      }
+      const panneBaux = faux({ baux: (a) => (estRevisables(a) ? { error: { message: "panne" } } : { data: [] }) });
+      expect(await chargerEcheancesAgenda(panneBaux.client, "org", MOIS, BASE, JOUR)).toEqual({ liste: [], erreur: true });
+    });
+  });
 });
 
 describe("échéances : le calendrier du propriétaire", () => {
@@ -180,7 +265,8 @@ describe("échéances : le calendrier du propriétaire", () => {
 
   it("compte les échéances du mois, marque les jours concernés et détaille celles du jour ouvert", async () => {
     const html = await rendre({ liste, erreur: false });
-    expect(html).toContain("Vos rendez-vous d’intervention et vos échéances : loyers, états des lieux, fins de bail.");
+    // Décision Q34 du 24/11/2026 : l'en-tête nomme aussi les dates limites de révision du loyer.
+    expect(html).toContain("Vos rendez-vous d’intervention et vos échéances : loyers, états des lieux, fins de bail, dates limites de révision du loyer.");
     expect(html).toMatch(/<p data-compte-mois="true">0 rendez-vous ce mois-ci · 3 échéances<\/p>/);
     expect(html).toContain('aria-label="dimanche 22 novembre 2026, aujourd’hui, 0 rendez-vous, 2 échéances"');
     expect(html).toContain('aria-label="lundi 30 novembre 2026, 0 rendez-vous, 1 échéance"');
@@ -217,6 +303,19 @@ describe("échéances : le calendrier du propriétaire", () => {
     const sans = await rendre(null);
     expect(sans).toContain("Vos interventions, leurs dates et les rendez-vous à venir.");
     expect(sans).not.toMatch(/Échéance<\/span>|échéance/);
+  });
+
+  it("la date limite de révision se lit dans le panneau du jour, sans être « à faire » (décision Q34 du 24/11)", async () => {
+    const avecLimite = construireEcheances(BASE, JOUR, {
+      loyers: [], edls: [], finsDeBail: [], conges: [],
+      limitesRevision: [{ bailId: "bail", jour: "2026-11-30", revisionPrevueLe: "2025-12-01", ...qui }],
+    });
+    const html = await rendre({ liste: avecLimite, erreur: false }, "2026-11-30");
+    expect(html).toMatch(/<a [^>]*data-echeance="limite_revision" data-a-faire="false" href="\/espace\/org\/baux\/bail#revision-loyer">/);
+    expect(html).toContain("Date limite pour demander la révision du loyer");
+    expect(html).toMatch(/data-etat-echeance="true">Révision prévue le 01\/12\/2025 : pas encore demandée</);
+    // Aucun article de loi n'est cité dans le calendrier.
+    expect(JSON.stringify(avecLimite)).not.toMatch(/article|loi /i);
   });
 
   it("seul le propriétaire bailleur reçoit les échéances, et seulement dans la vue du mois", () => {

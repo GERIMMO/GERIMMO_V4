@@ -39,7 +39,7 @@ function RendezVous({ rendezVous: r, base }: { rendezVous: RendezVousGestion; ba
   </Link>;
 }
 
-const ICONES_ECHEANCE: Record<NatureEcheance, typeof Banknote> = { loyer: Banknote, edl: ClipboardCheck, conge: LogOut, fin_bail: CalendarClock };
+const ICONES_ECHEANCE: Record<NatureEcheance, typeof Banknote> = { loyer: Banknote, edl: ClipboardCheck, conge: LogOut, fin_bail: CalendarClock, limite_revision: CalendarClock };
 
 /** Une échéance du jour (audit palier 1, P2-06) : ce qu'elle est, pour qui, où en est-on ; toute la ligne mène à l'écran concerné. */
 function Echeance({ echeance: e }: { echeance: EcheanceAgenda }) {
@@ -81,7 +81,7 @@ export function AgendaProprietaire({ agenda, comptesVues, base, aujourdhui, eche
   return <main className={`mx-auto w-full p-4 sm:p-7 ${styles.page}`}>
     <header className={`entete-page ${styles.entete}`}>
       <div><TitreEcran rubrique="agenda">Agenda</TitreEcran>
-        <p>{echeances ? "Vos rendez-vous d’intervention et vos échéances : loyers, états des lieux, fins de bail." : "Vos interventions, leurs dates et les rendez-vous à venir."}</p>
+        <p>{echeances ? "Vos rendez-vous d’intervention et vos échéances : loyers, états des lieux, fins de bail, dates limites de révision du loyer." : "Vos interventions, leurs dates et les rendez-vous à venir."}</p>
       </div>
       <Link href={`${base}/incidents`} className="btn-secondaire"><Wrench size={16} aria-hidden="true" />Voir mes incidents</Link>
     </header>
@@ -127,7 +127,7 @@ export function AgendaProprietaire({ agenda, comptesVues, base, aujourdhui, eche
           {Array.from({ length: joursFin }, (_, i) => <span key={`apres-${i}`} className={styles.horsMois} aria-hidden="true">{i + 1}</span>)}
         </div>
         <footer className={styles.legende}><span><i className={styles.repereAujourdhui} />Aujourd’hui</span><span><i className={styles.repereSelection} />Jour sélectionné</span><span><i className={styles.repereRendezVous} />Rendez-vous</span>{echeances && <span><i className={styles.repereEcheance} />Échéance</span>}<span className={styles.fuseau}>Heure de Paris</span></footer>
-        {echeances?.erreur && <p className={styles.echeancesIllisibles} role="status" data-echeances-illisibles>Les échéances de ce mois (loyers, états des lieux, fins de bail) n’ont pas pu être lues. Vos rendez-vous restent affichés ; rechargez la page pour réessayer.</p>}
+        {echeances?.erreur && <p className={styles.echeancesIllisibles} role="status" data-echeances-illisibles>Les échéances de ce mois (loyers, états des lieux, fins de bail, dates limites de révision du loyer) n’ont pas pu être lues. Vos rendez-vous restent affichés ; rechargez la page pour réessayer.</p>}
       </section>
 
       <section id="rendez-vous-du-jour" className={styles.journee} aria-live="polite" aria-label={`Rendez-vous du ${jourLong(`${agenda.jour}T12:00:00Z`)}`}>

@@ -270,6 +270,9 @@ const MISSION_OCTOBRE = [
   // 23/11, phase 3 de la mission palier 1 (reprise du lot 40, C30) : le refus d'activer un contrat individuel sans plafond nomme
   // le « loyer maximal applicable au logement entier », comme l'écran et le contrat.
   "20261123170000_contrat_individuel_message_plafond.sql",
+  // 24/11, décisions du dirigeant (lot D2, Q23 et Q43) : la révision du loyer d'une année est refusée passé un an après sa date
+  // de révision ; le loyer révisé s'applique au premier terme qui suit la demande.
+  "20261124100000_revision_loyer_delai_et_premier_terme.sql",
 
 
 ];

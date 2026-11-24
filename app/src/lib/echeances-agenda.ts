@@ -5,9 +5,12 @@
 // départ annoncé par un congé. Tout est LU dans ce que Gerimmo sait déjà : rien n'est créé, rien n'est calculé en droit
 // (ni préavis, ni reconduction) — une date affichée ici est une date déjà enregistrée ailleurs.
 //
+// Décision Q34 du 24/11/2026 : le calendrier porte aussi la date limite pour demander la révision annuelle du loyer
+// (un an après la date de révision, décision Q23), tant que cette révision n'est pas enregistrée.
+//
 // Ce module ne dépend d'aucune API serveur : il transforme des lignes lues en échéances affichables.
 
-export type NatureEcheance = "loyer" | "edl" | "fin_bail" | "conge";
+export type NatureEcheance = "loyer" | "edl" | "fin_bail" | "conge" | "limite_revision";
 
 export type EcheanceAgenda = {
   cle: string;
@@ -32,6 +35,8 @@ export type LoyerLu = {
 };
 export type EdlLu = { id: string; bailId: string; jour: string; type: string; signe: boolean; lotNom: string | null; locataire: string | null };
 export type FinBailLue = { bailId: string; jour: string; lotNom: string | null; locataire: string | null };
+/** `jour` : la date limite ; `revisionPrevueLe` : la date de révision (date anniversaire du bail) qu'elle clôt. */
+export type LimiteRevisionLue = { bailId: string; jour: string; revisionPrevueLe: string; lotNom: string | null; locataire: string | null };
 export type CongeLu = { id: string; bailId: string; jour: string; par: string; lotNom: string | null; locataire: string | null };
 
 const euros = (centimes: number) =>
@@ -40,12 +45,12 @@ const euros = (centimes: number) =>
 const quiEtOu = (locataire: string | null, lotNom: string | null) =>
   [locataire?.trim() || "Locataire non renseigné", lotNom?.trim() || "Logement du bail"].join(" · ");
 
-const ORDRE: Record<NatureEcheance, number> = { loyer: 0, edl: 1, conge: 2, fin_bail: 3 };
+const ORDRE: Record<NatureEcheance, number> = { loyer: 0, edl: 1, conge: 2, fin_bail: 3, limite_revision: 4 };
 
 export function construireEcheances(
   base: string,
   aujourdHui: string,
-  lu: { loyers: LoyerLu[]; edls: EdlLu[]; finsDeBail: FinBailLue[]; conges: CongeLu[] },
+  lu: { loyers: LoyerLu[]; edls: EdlLu[]; finsDeBail: FinBailLue[]; conges: CongeLu[]; limitesRevision?: LimiteRevisionLue[] },
 ): EcheanceAgenda[] {
   const liste: EcheanceAgenda[] = [];
   for (const l of lu.loyers) {
@@ -90,6 +95,21 @@ export function construireEcheances(
       detail: quiEtOu(f.locataire, f.lotNom),
       etat: null, aFaire: false,
       href: `${base}/baux/${f.bailId}`,
+    });
+  }
+  // Décision Q34 : la date limite de la révision du loyer. Passé ce jour, la révision de cette année-là n'est plus
+  // possible : l'agenda le dit sans rien demander (ce n'est plus « à faire »).
+  for (const r of lu.limitesRevision ?? []) {
+    const formater = (j: string) => j.slice(0, 10).split("-").reverse().join("/");
+    liste.push({
+      cle: `limite-revision-${r.bailId}-${r.jour}`, jour: r.jour, nature: "limite_revision",
+      titre: "Date limite pour demander la révision du loyer",
+      detail: quiEtOu(r.locataire, r.lotNom),
+      etat: r.jour < aujourdHui
+        ? `Révision prévue le ${formater(r.revisionPrevueLe)} : non demandée, délai passé`
+        : `Révision prévue le ${formater(r.revisionPrevueLe)} : pas encore demandée`,
+      aFaire: false,
+      href: `${base}/baux/${r.bailId}#revision-loyer`,
     });
   }
   return liste.sort((x, y) => x.jour.localeCompare(y.jour) || ORDRE[x.nature] - ORDRE[y.nature] || x.detail.localeCompare(y.detail, "fr") || x.cle.localeCompare(y.cle));

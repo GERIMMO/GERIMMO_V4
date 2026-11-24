@@ -4,6 +4,7 @@
  * sans empêcher le geste légitime. Transaction annulée à la fin.
  */
 import { verifierBaseDeTest } from "./garde-base";
+import { auJourDeParis } from "./fixtures/jour-de-paris-fige";
 import { couvrirParMandat } from "./fixtures/mandat";
 import { requeteProprietaire } from "./fixtures/requete-proprietaire";
 import { config } from "dotenv";
@@ -946,12 +947,13 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
     // l'indice de la PREMIÈRE révision (148,03), pas sur celui de la
     // signature : 611,82 × 152 / 148,03. L'ancien calcul (÷ 145,17) donnait
     // 640,61 € — la hausse 2025 comptée deux fois (audit du 27/09).
+    // Décision Q23 du 24/11/2026 : la révision d'une année est refusée passé un an après sa date de révision, même antidatée.
+    // « Celle de l'an dernier » s'enregistre donc le jour où elle a été demandée (jour de Paris figé un an plus tôt) ;
+    // les montants vérifiés sont les mêmes.
     const {
       rows: [anDernier],
-    } = await db.query(
-      `select public.reviser_loyer($1, 148.03, 'T2 2026', (public.aujourdhui_paris() - interval '1 year')::date) as loyer`,
-      [bailSuite.id]
-    );
+    } = await auJourDeParis(db, "public.aujourdhui_paris() - interval '1 year'", enGerant, () =>
+      db.query(`select public.reviser_loyer($1, 148.03, 'T2 2026', public.aujourdhui_paris()) as loyer`, [bailSuite.id]));
     expect(Number(anDernier.loyer)).toBe(611.82);
     const {
       rows: [cetteAnnee],

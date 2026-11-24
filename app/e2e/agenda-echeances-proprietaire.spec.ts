@@ -8,7 +8,9 @@ import { connecterVers, debordementHorizontal, sansSyntheseAlertes } from "./aid
 // Un espace fictif propre à l'essai : deux logements loués.
 //   - Camille : un loyer de 800 € dont l'échéance est aujourd'hui, et un état des lieux d'entrée daté d'aujourd'hui,
 //     pas encore signé ;
-//   - Zoé : un congé enregistré et une date de fin inscrite au bail, le même autre jour du mois.
+//   - Zoé : un congé enregistré et une date de fin inscrite au bail, le même autre jour du mois ;
+//   - Hugo (décision Q34 du 24/11/2026) : un bail révisable dont la révision de l'an dernier n'est pas demandée ; sa
+//     date limite (un an après la date de révision) tombe ce même autre jour.
 // Le parcours vérifie, sur téléphone puis sur ordinateur :
 //   1. le calendrier compte les échéances du mois et marque les deux jours concernés ;
 //   2. le panneau du jour dit chaque échéance (ce qu'elle est, pour qui, où en est-on) et mène au bon écran ;
@@ -41,11 +43,11 @@ test("l'agenda du propriétaire montre loyers, états des lieux, congé et fin d
 
   const db = new Client({ connectionString: url });
   await db.connect();
-  const [ORG, compte, bailleur, bien, lotA, lotB, camille, zoe, bailA, bailB, appel, edl, conge] = Array.from({ length: 13 }, () => randomUUID());
+  const [ORG, compte, bailleur, bien, lotA, lotB, camille, zoe, bailA, bailB, appel, edl, conge, lotC, hugo, bailC] = Array.from({ length: 16 }, () => randomUUID());
   const email = `agenda-${compte}@example.invalid`;
   const motDePasse = randomUUID();
   const suffixe = lotA.slice(0, 6);
-  const nomA = `TEST Agenda T2 ${suffixe}`, nomB = `TEST Agenda Studio ${suffixe}`;
+  const nomA = `TEST Agenda T2 ${suffixe}`, nomB = `TEST Agenda Studio ${suffixe}`, nomC = `TEST Agenda T3 ${suffixe}`;
   const aujourdHui = (await db.query("select public.aujourdhui_paris()::text j")).rows[0].j as string;
   // Un autre jour du même mois, jamais aujourd'hui.
   const autreJour = `${aujourdHui.slice(0, 8)}${aujourdHui.slice(8) === "15" ? "16" : "15"}`;
@@ -69,6 +71,14 @@ test("l'agenda du propriétaire montre loyers, états des lieux, congé et fin d
     await db.query("insert into appels_loyer(id,organization_id,bail_id,periode,date_echeance,loyer_hc,charges,montant_du) values($1,$2,$3,date_trunc('month',public.aujourdhui_paris())::date,public.aujourdhui_paris(),750,50,800)", [appel, ORG, bailA]);
     await db.query("insert into etats_des_lieux(id,organization_id,bail_id,type,date_edl) values($1,$2,$3,'entree',public.aujourdhui_paris())", [edl, ORG, bailA]);
     await db.query("insert into conges(id,organization_id,bail_id,par,date_premiere_presentation,preavis_mois,date_effet) values($1,$2,$3,'locataire',$4::date - 30,1,$4::date)", [conge, ORG, bailB, autreJour]);
+    // Décision Q34 du 24/11/2026 : Hugo est entré deux ans avant le lendemain de « l'autre jour ». Sa révision était prévue
+    // il y a un an (au lendemain de l'autre jour) ; sa date limite est donc l'autre jour de ce mois.
+    await db.query("insert into lots(id,organization_id,bien_id,nom,etat) values($1,$2,$3,$4,'loue')", [lotC, ORG, bien, nomC]);
+    await db.query("insert into persons(id,organization_id,nom,prenom,email) values($1,$2,'Essai','Hugo','hugo@example.invalid')", [hugo, ORG]);
+    await db.query("insert into detentions(organization_id,lot_id,person_id,quote_part) values($1,$2,$3,100)", [ORG, lotC, bailleur]);
+    await db.query(`insert into baux(id,organization_id,lot_id,locataire_principal,type,etat,date_debut,loyer_hc,charges,jour_echeance,revision_irl,irl_trimestre,irl_valeur)
+      values($1,$2,$3,$4,'nu','actif',($5::date + 1 - interval '2 years')::date,700,50,5,true,'T2 2024',140)`, [bailC, ORG, lotC, hugo, autreJour]);
+    const revisionPrevueLe = (await db.query("select to_char(($1::date + 1 - interval '1 year')::date,'DD/MM/YYYY') j", [autreJour])).rows[0].j as string;
     await db.query("commit");
     const avant = await compter();
 
@@ -78,8 +88,9 @@ test("l'agenda du propriétaire montre loyers, états des lieux, congé et fin d
 
     // 1. Le calendrier du mois.
     await expect(page.getByRole("heading", { level: 1, name: "Agenda" })).toBeVisible({ timeout: 30_000 });
-    await expect(page.locator("main:visible").first()).toContainText("Vos rendez-vous d’intervention et vos échéances : loyers, états des lieux, fins de bail.");
-    await expect(page.locator("[data-compte-mois]:visible")).toHaveText("0 rendez-vous ce mois-ci · 4 échéances");
+    // Décision Q34 du 24/11/2026 : l'en-tête nomme aussi les dates limites de révision, et le mois compte celle de Hugo.
+    await expect(page.locator("main:visible").first()).toContainText("Vos rendez-vous d’intervention et vos échéances : loyers, états des lieux, fins de bail, dates limites de révision du loyer.");
+    await expect(page.locator("[data-compte-mois]:visible")).toHaveText("0 rendez-vous ce mois-ci · 5 échéances");
     const caseDuJour = page.locator('a[aria-current="date"]:visible');
     await expect(caseDuJour).toHaveAttribute("aria-label", /aujourd’hui, 0 rendez-vous, 2 échéances$/);
     await expect(caseDuJour.locator('[data-echeances-jour="2"]')).toBeVisible();
@@ -108,10 +119,19 @@ test("l'agenda du propriétaire montre loyers, états des lieux, congé et fin d
 
     // L'autre jour : le congé de Zoé et la date de fin de son bail.
     const autreCase = page.locator(`a[href*="jour=${autreJour}"]:visible`);
-    await expect(autreCase).toHaveAttribute("aria-label", /, 0 rendez-vous, 2 échéances$/);
+    // Q34 : ce jour porte aussi la date limite de révision de Hugo (trois échéances au lieu de deux).
+    await expect(autreCase).toHaveAttribute("aria-label", /, 0 rendez-vous, 3 échéances$/);
     await autreCase.click();
     await expect(page).toHaveURL(new RegExp(`jour=${autreJour}`));
-    await expect(lignes).toHaveCount(2, { timeout: 30_000 });
+    await expect(lignes).toHaveCount(3, { timeout: 30_000 });
+    const limite = panneau.locator('a[data-echeance="limite_revision"]');
+    await expect(limite).toContainText("Date limite pour demander la révision du loyer");
+    await expect(limite).toContainText(`Hugo Essai · ${nomC}`);
+    await expect(limite.locator("[data-etat-echeance]")).toHaveText(
+      `Révision prévue le ${revisionPrevueLe} : ${autreJour < aujourdHui ? "non demandée, délai passé" : "pas encore demandée"}`);
+    await expect(limite).toHaveAttribute("data-a-faire", "false");
+    await expect(limite).toHaveAttribute("href", `/espace/${ORG}/baux/${bailC}#revision-loyer`);
+    await tientDansLEcran(page, limite);
     const depart = panneau.locator('a[data-echeance="conge"]');
     await expect(depart).toContainText("Départ prévu : congé donné par le locataire");
     await expect(depart).toContainText(`Zoé Lambert · ${nomB}`);
@@ -151,7 +171,7 @@ test("l'agenda du propriétaire montre loyers, états des lieux, congé et fin d
       await db.query("begin");
       await db.query("delete from conges where organization_id=$1", [ORG]);
       await db.query("delete from etats_des_lieux where organization_id=$1", [ORG]);
-      for (const bail of [bailA, bailB]) {
+      for (const bail of [bailA, bailB, bailC]) {
         await db.query("delete from relances where organization_id=$1 and bail_id=$2", [ORG, bail]);
         await db.query("delete from commandes_encaissement_reste where bail_id=$1", [bail]);
         await db.query("delete from fiscal_encaissements_composantes where organization_id=$1 and ecriture_id in (select id from ecritures where bail_id=$2)", [ORG, bail]);
@@ -161,11 +181,11 @@ test("l'agenda du propriétaire montre loyers, états des lieux, congé et fin d
         await db.query("delete from appels_loyer where bail_id=$1", [bail]);
         await db.query("delete from automation_events where organization_id=$1 and dossier_id=$2", [ORG, bail]);
       }
-      await db.query("delete from detentions where lot_id in ($1,$2)", [lotA, lotB]);
-      await db.query("delete from baux where id in ($1,$2)", [bailA, bailB]);
-      await db.query("delete from lots where id in ($1,$2)", [lotA, lotB]);
+      await db.query("delete from detentions where lot_id in ($1,$2,$3)", [lotA, lotB, lotC]);
+      await db.query("delete from baux where id in ($1,$2,$3)", [bailA, bailB, bailC]);
+      await db.query("delete from lots where id in ($1,$2,$3)", [lotA, lotB, lotC]);
       await db.query("delete from biens where id=$1", [bien]);
-      await db.query("delete from persons where id in ($1,$2)", [camille, zoe]);
+      await db.query("delete from persons where id in ($1,$2,$3)", [camille, zoe, hugo]);
       await db.query("delete from memberships where organization_id=$1", [ORG]);
       await db.query("delete from persons where id=$1", [bailleur]);
       await db.query("delete from audit_log where organization_id=$1 or account_id=$2", [ORG, compte]);

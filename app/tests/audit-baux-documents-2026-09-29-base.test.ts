@@ -8,6 +8,7 @@
  * annulée après chaque test. Nécessite SUPABASE_DB_URL (base locale).
  */
 import { verifierBaseDeTest } from "./garde-base";
+import { auJourDeParis } from "./fixtures/jour-de-paris-fige";
 import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -200,10 +201,10 @@ describe.skipIf(!DB_URL)("Audit baux et actes du 29/09 — corrections en base",
     });
     await enGerant();
     // Échéance il y a un an, demandée 100 jours plus tard : effet à la demande
-    await db.query(
-      `select public.reviser_loyer($1, 148.03, 'T2 2025', (public.aujourdhui_paris() - interval '1 year' + interval '100 days')::date)`,
-      [b]
-    );
+    // Décision Q23 du 24/11/2026 : la révision d'une année est refusée passé un an après sa date de révision, même antidatée.
+    // Cette révision tardive s'enregistre donc le jour de sa demande (jour de Paris figé 265 jours plus tôt).
+    await auJourDeParis(db, "public.aujourdhui_paris() - interval '1 year' + interval '100 days'", enGerant, () =>
+      db.query(`select public.reviser_loyer($1, 148.03, 'T2 2025', public.aujourdhui_paris())`, [b]));
     // L'anniversaire suivant (aujourd'hui) tombe 265 jours plus tard : dû.
     const {
       rows: [r],
@@ -237,7 +238,10 @@ describe.skipIf(!DB_URL)("Audit baux et actes du 29/09 — corrections en base",
       date_debut: await date("public.aujourdhui_paris() - interval '2 years'"),
     });
     await enGerant();
-    await db.query(`select public.reviser_loyer($1, 148.03, 'T3 2025', (public.aujourdhui_paris() - interval '1 year')::date)`, [b]);
+    // Décision Q23 du 24/11/2026 : la révision d'une année est refusée passé un an après sa date de révision, même antidatée.
+    // La première révision s'enregistre donc le jour de sa demande (jour de Paris figé un an plus tôt).
+    await auJourDeParis(db, "public.aujourdhui_paris() - interval '1 year'", enGerant, () =>
+      db.query(`select public.reviser_loyer($1, 148.03, 'T3 2025', public.aujourdhui_paris())`, [b]));
     await echec(/même trimestre/i, `select public.reviser_loyer($1, 150, 'T2 2026')`, [b]);
     await db.query(`select public.reviser_loyer($1, 150, 'T3 2026')`, [b]);
   });

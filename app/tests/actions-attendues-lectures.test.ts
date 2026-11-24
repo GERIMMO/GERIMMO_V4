@@ -255,7 +255,9 @@ describe("Actions attendues : rappel de la révision annuelle du loyer (P1-13)",
     expect(resultat.actions[0]).toEqual({
       cle: "revision-bail",
       titre: "Révision annuelle du loyer possible — Logement",
-      detail: "Date anniversaire du 20/10/2026 : demandée plus tard, la révision ne prend effet qu’à la date de la demande",
+      // Décisions du 24/11/2026 : le rappel affiche la date limite (Q23) et dit que le loyer révisé s'applique au premier
+      // terme qui suit la demande (Q43) ; il ne dit plus « prend effet à la date de la demande ».
+      detail: "Date de révision du 20/10/2026, à demander au plus tard le 19/10/2027 : le loyer révisé s’applique au premier terme qui suit la demande",
       href: "/espace/org/baux/bail#revision-loyer",
       critique: false,
     });
@@ -289,8 +291,63 @@ describe("Actions attendues : rappel de la révision annuelle du loyer (P1-13)",
     expect(horsFenetre.lectures.map(l => l.table)).not.toContain("revisions_loyer");
     // Le jour même de la date anniversaire.
     expect(cles(await lireActionsAttendues(client(avecBail({ date_debut: "2023-10-26" })).db, "org"))).toEqual(["revision-bail"]);
-    // La veille : la date anniversaire retenue est celle de l'an dernier, loin hors fenêtre.
-    expect(cles(await lireActionsAttendues(client(avecBail({ date_debut: "2023-10-27" })).db, "org"))).toEqual([]);
+    // La veille : la date anniversaire retenue est celle de l'an dernier, loin hors de la fenêtre du premier rappel.
+    // Décision Q23 du 24/11/2026 : ce jour-là est le DERNIER jour du délai d'un an (révision prévue le 27/10/2025, date
+    // limite le 26/10/2026) ; ce n'est plus « aucun rappel » mais le second rappel, celui de la date limite.
+    expect(cles(await lireActionsAttendues(client(avecBail({ date_debut: "2023-10-27" })).db, "org"))).toEqual(["revision-limite-bail"]);
+    // Entre les deux fenêtres (date de révision il y a huit mois) : aucun rappel, rien n'est relu.
+    const entreLesDeux = client(avecBail({ date_debut: "2024-03-01" }));
+    expect(cles(await lireActionsAttendues(entreLesDeux.db, "org"))).toEqual([]);
+    expect(entreLesDeux.lectures.map(l => l.table)).not.toContain("revisions_loyer");
+  });
+
+  // Décision Q23 du 24/11/2026 : « second rappel 30 jours avant » la date limite, au même endroit que le premier.
+  describe("second rappel, trente jours avant la date limite (décision Q23 du 24/11)", () => {
+    // Révision prévue le 26/11/2025, date limite le 25/11/2026 : trente jours après « aujourd'hui » (26/10/2026).
+    const aTrenteJours = { date_debut: "2023-11-26" };
+
+    it("paraît trente jours avant la date limite, pas trente et un, et jusqu'au dernier jour", async () => {
+      const resultat = await lireActionsAttendues(client(avecBail(aTrenteJours)).db, "org", { racine: "/espace" });
+      expect(resultat.actions).toEqual([{
+        cle: "revision-limite-bail",
+        titre: "Révision annuelle du loyer : date limite le 25/11/2026 — Logement",
+        detail: "Révision prévue le 26/11/2025, pas encore demandée : passé le 25/11/2026, elle n’est plus possible pour cette année-là",
+        href: "/espace/org/baux/bail#revision-loyer",
+        critique: false,
+      }]);
+      const tropTot = client(avecBail({ date_debut: "2023-11-27" }));
+      expect(cles(await lireActionsAttendues(tropTot.db, "org"))).toEqual([]);
+      expect(tropTot.lectures.map(l => l.table)).not.toContain("revisions_loyer");
+    });
+
+    it("s'efface dès que la révision de cette année-là est enregistrée ; celle d'une année d'avant ne l'efface pas", async () => {
+      const tables = avecBail(aTrenteJours);
+      tables.revisions_loyer = [ligne({ id: "r0", bail_id: "bail", date_effet: "2025-01-10" })];
+      expect(cles(await lireActionsAttendues(client(tables).db, "org"))).toEqual(["revision-limite-bail"]);
+      tables.revisions_loyer.push(ligne({ id: "r1", bail_id: "bail", date_effet: "2026-03-02" }));
+      expect(cles(await lireActionsAttendues(client(tables).db, "org"))).toEqual([]);
+    });
+
+    it("même silence que le premier : bail en préavis, sans clause, DPE F ou G, lecture en échec", async () => {
+      for (const champs of [{ etat: "preavis" }, { revision_irl: false }]) {
+        expect(cles(await lireActionsAttendues(client(avecBail({ ...aTrenteJours, ...champs })).db, "org"))).toEqual([]);
+      }
+      const passoire = avecBail(aTrenteJours);
+      passoire.diagnostics[0] = { ...passoire.diagnostics[0], classe_dpe: "G", date_realisation: "2024-05-01" };
+      expect(cles(await lireActionsAttendues(client(passoire).db, "org")).filter(c => c.startsWith("revision-"))).toEqual([]);
+      const illisible = await lireActionsAttendues(client(avecBail(aTrenteJours), { revisions_loyer: "erreur" }).db, "org");
+      expect(illisible.erreurs.revisions).toBe(true);
+      expect(cles(illisible)).toEqual([]);
+    });
+
+    it("même circuit que le premier : un item de « À faire », aucun e-mail, aucune écriture", async () => {
+      const source = readFileSync("src/lib/actions-attendues.ts", "utf8");
+      // La seule fonction de base appelée est une lecture (les pièces à renouveler).
+      expect(source).not.toMatch(/notifications|envoyer|\.insert\(|\.update\(|\.delete\(/);
+      expect(source.match(/\.rpc\("([a-z_]+)"/g)).toEqual(['.rpc("documents_a_renouveler"']);
+      const { JOURS_SECOND_RAPPEL_REVISION } = await import("@/lib/actions-attendues");
+      expect(JOURS_SECOND_RAPPEL_REVISION).toBe(30);
+    });
   });
 
   it.each([

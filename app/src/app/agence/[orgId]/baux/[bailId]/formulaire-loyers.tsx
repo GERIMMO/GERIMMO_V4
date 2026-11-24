@@ -22,10 +22,13 @@ import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { aujourdhuiParis, eur, formaterDate } from "@/lib/ged";
+import { deElide } from "@/lib/elision";
 import {
   STATUTS_APPEL_LOYER,
   COULEURS_STATUT_APPEL_LOYER,
   datesRevisionIrl,
+  dateLimiteRevision,
+  premierTermeApresDemande,
   numeroTrimestreIrl,
   exerciceRegularisationParDefaut,
   exerciceNonTermine,
@@ -84,6 +87,8 @@ export type Revision = {
   /** Anniversaire de rattachement et date de la demande (audit 29/09) — null avant. */
   date_echeance?: string | null;
   date_demande?: string | null;
+  /** Décision Q43 du 24/11 : premier terme appelé au loyer révisé (1er du mois) — null pour une révision d'avant. */
+  premier_terme?: string | null;
   irl_trimestre?: string | null;
   ancien_loyer: number;
   nouveau_loyer: number;
@@ -313,8 +318,8 @@ export function FormulaireLoyers({
   const exerciceReg = Number(anneeReg);
   const exerciceEnCours = /^\d{4}$/.test(anneeReg) && exerciceNonTermine(exerciceReg, aujourdhui);
   // Révision IRL : l'indice de référence est celui de la dernière révision,
-  // à défaut celui figé au bail (RM-3.8.7). Audit 29/09 : l'effet vaut
-  // max(anniversaire, date de la demande) — jamais rétroactif (art. 17-1 I).
+  // à défaut celui figé au bail (RM-3.8.7). Décisions du 24/11/2026 : le loyer révisé s'applique au premier terme
+  // qui suit la demande (Q43) ; la révision d'une année se demande au plus tard un an après sa date (Q23).
   const derniereRevision = [...revisions].sort((a, b) => b.date_effet.localeCompare(a.date_effet))[0];
   // Audit palier 1, P1-13 : l'indice cherché chez l'Insee est reporté dans ces trois champs, où il reste modifiable.
   // L'événement « input » prévient la protection de saisie qu'un champ a changé, comme une frappe au clavier.
@@ -333,6 +338,9 @@ export function FormulaireLoyers({
   };
   const irlReferenceCourante = derniereRevision ? Number(derniereRevision.irl_nouveau) : irlReference;
   const datesDuJour = aujourdhui ? datesRevisionIrl(dateDebut, aujourdhui) : null;
+  const limiteDuJour = datesDuJour ? dateLimiteRevision(dateDebut, datesDuJour.echeance) : null;
+  const moisDuTerme = (terme: string) =>
+    new Date(`${terme.slice(0, 10)}T12:00:00Z`).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
   const trimestreReference =
     numeroTrimestreIrl(irlTrimestre) ??
     numeroTrimestreIrl([...revisions].sort((a, b) => a.date_effet.localeCompare(b.date_effet))[0]?.irl_trimestre);
@@ -612,6 +620,7 @@ export function FormulaireLoyers({
                   {r.date_demande && r.date_echeance && r.date_demande > r.date_echeance
                     ? ` · demandée le ${formaterDate(r.date_demande)}, après l'échéance du ${formaterDate(r.date_echeance)}`
                     : ""}
+                  {r.premier_terme ? ` · loyer révisé appliqué à partir du terme ${deElide(moisDuTerme(r.premier_terme))}` : ""}
                   {/* Documents-0 : la lettre de révision (23) */}
                   <BoutonGenererDocument
                     orgId={orgId}
@@ -696,18 +705,26 @@ export function FormulaireLoyers({
             Nouveau loyer = loyer actuel × IRL nouveau / IRL de référence. L&apos;indice de
             référence est celui de la dernière révision, à défaut celui figé au bail à sa
             signature {/* RM-3.8.2, RM-3.8.7 */} ; il ne se saisit pas ici. Le nouvel indice est
-            celui du même trimestre{trimestreReference ? ` (T${trimestreReference})` : ""}. La
-            révision prend effet à la date anniversaire si elle est demandée ce jour-là ; demandée
-            après, elle prend effet à la date de la demande, sans rétroactivité, et au plus tard
-            un an après l&apos;anniversaire (art. 17-1 de la loi du 6 juillet 1989). Une seule
+            celui du même trimestre{trimestreReference ? ` (T${trimestreReference})` : ""}. Le
+            loyer révisé ne s&apos;applique jamais à des jours antérieurs à la demande : il s&apos;applique au
+            premier terme dont la période commence après la date de la demande ; un terme déjà appelé
+            n&apos;est pas modifié. La révision d&apos;une année se demande au plus tard un an après sa date
+            de révision ; passé ce délai, elle est refusée (selon la fiche officielle Service-Public
+            consultée le 24/11/2026). Une seule
             révision par année de bail ; interdite si DPE F/G ; le dépôt et les provisions ne
             changent pas.
           </p>
           {datesDuJour && (
-            <p className="text-sm text-muted-foreground">
-              Demandée aujourd&apos;hui, la révision de l&apos;échéance du{" "}
-              {formaterDate(datesDuJour.echeance)} prendrait effet le{" "}
-              <span className="font-medium text-foreground">{formaterDate(datesDuJour.dateEffet)}</span>.
+            <p className="text-sm text-muted-foreground" data-revision-dates>
+              Demandée aujourd&apos;hui, la révision prévue le {formaterDate(datesDuJour.echeance)} s&apos;appliquerait à
+              partir du{" "}
+              <span className="font-medium text-foreground">terme {deElide(moisDuTerme(premierTermeApresDemande(aujourdhui)))}</span>.
+              {limiteDuJour && (
+                <>
+                  {" "}Date limite pour la demander :{" "}
+                  <span className="font-medium text-foreground" data-revision-limite>{formaterDate(limiteDuJour)}</span>.
+                </>
+              )}
             </p>
           )}
         </div>

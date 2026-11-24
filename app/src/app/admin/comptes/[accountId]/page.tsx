@@ -189,13 +189,15 @@ export default async function PageCompte({ params }: { params: Promise<{ account
           </div>
         )}
         {gestesLus.error && <LectureIndisponible sujet="Historique des contrôles" retour={retour} />}
-        {gestesSurLeCompte.length > 0 && (
-          <ol className="mt-3 divide-y divide-[var(--filet-leger)] border-t border-[var(--filet)] pt-2">
+        {gestesSurLeCompte.length > 0 && (<>
+          {/* E070 = E180 : intitulé, pour distinguer ces gestes (sur ce compte) de ceux que ce compte a faits, plus bas. */}
+          <p className="libelle-champ mt-3">Gestes faits sur ce compte</p>
+          <ol className="mt-1 divide-y divide-[var(--filet-leger)] border-t border-[var(--filet)] pt-2">
             {gestesSurLeCompte.map((l) => (
               <li key={l.id} className="py-2 text-sm"><span className="mono-discret">{formaterDateHeureParis(l.created_at)}</span> · <b>{libelleActionAudit(l.action)}</b></li>
             ))}
           </ol>
-        )}
+        </>)}
       </ConsoleSection>
 
       <ConsoleSection titre="Rôles et espaces" description="Retrouver les dossiers et les accès rattachés." icone="personnes" ton="vert" ouverte statut={adhesionsLues.error || personnesLues.error ? "Lecture indisponible" : `${adhesions.length} rôle${adhesions.length > 1 ? "s" : ""}`}>
@@ -238,12 +240,15 @@ export default async function PageCompte({ params }: { params: Promise<{ account
         )}
       </ConsoleSection>
 
-      <ConsoleSection titre="Actions sur ce compte" description="Journal des actions sensibles." icone="historique" statut={auditLu.error ? "Lecture indisponible" : undefined}>
+      {/* Défauts d'écran E070 = E180 : audit_log.account_id est l'AUTEUR du geste (auth.uid() à l'écriture). Intitulée
+          « Actions sur ce compte », la section faisait lire un geste de ce compte sur un autre (« role : artisan »)
+          comme un rôle donné à ce compte. */}
+      <ConsoleSection titre="Actions faites par ce compte" description="Actions sensibles dont ce compte est l’auteur, y compris sur d’autres comptes. Les gestes faits sur ce compte figurent sous « Contrôler l’accès »." icone="historique" statut={auditLu.error ? "Lecture indisponible" : undefined}>
         <div className="entete-carte"><span className="puce puce-grise">{auditLu.error ? "—" : `${audit.length}${audit.length === 60 ? " derniers" : ""}`}</span></div>
         {auditLu.error ? (
           <LectureIndisponible sujet="Journal d’audit" retour={retour} />
         ) : audit.length === 0 ? (
-          <p className="text-sm text-[var(--texte-secondaire)]">Aucune action enregistrée pour ce compte.</p>
+          <p className="text-sm text-[var(--texte-secondaire)]">Aucune action enregistrée : ce compte n’est l’auteur d’aucun geste sensible.</p>
         ) : (
           <ol className="divide-y divide-[var(--filet-leger)]">
             {audit.map((l) => {

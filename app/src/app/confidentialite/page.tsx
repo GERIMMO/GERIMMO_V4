@@ -4,7 +4,7 @@ import { DureesActuelles, ReferenceConservation } from "@/components/conservatio
 import { lireEditeur } from "@/lib/editeur-serveur";
 import Link from "next/link";
 import { AFournir, Article, CoquilleLegale, Fait, TableauPrestataires } from "@/components/coquille-legale";
-import { CONDITIONS_DATE, courrielDeContact, confidentialiteIncomplete, prestatairesAvecFaits, prestatairesIncomplets } from "@/lib/editeur";
+import { CONFIDENTIALITE_DATE, courrielDeContact, confidentialiteIncomplete, prestatairesAvecFaits, prestatairesIncomplets } from "@/lib/editeur";
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
 
 export const metadata = metadonneesPubliques({
@@ -70,9 +70,9 @@ export default async function PageConfidentialite() {
       incomplet={indisponible || confidentialiteIncomplete(EDITEUR) || prestatairesIncomplets(prestataires)}
       courriel={contact}
     >
-      {/* La page paraît avec la V1 des conditions : même date (lib/editeur.ts). À la prochaine version des conditions qui
-          ne touche pas cette page, écrire ici sa propre date en toutes lettres. */}
-      <p className="text-xs text-muted-foreground">Dernière mise à jour : {CONDITIONS_DATE}.</p>
+      {/* Défaut d'écran E056 : la page a sa propre date (lib/editeur.ts), à changer à chaque modification de ce qu'elle
+          dit ; elle ne suit plus la version des conditions. */}
+      <p className="text-xs text-muted-foreground">Dernière mise à jour : {CONFIDENTIALITE_DATE}.</p>
       <Article titre="Votre interlocuteur">
         <p>
           Gerimmo est un service édité par <Fait valeur={EDITEUR.denomination} quoi="nom de l’éditeur" />,

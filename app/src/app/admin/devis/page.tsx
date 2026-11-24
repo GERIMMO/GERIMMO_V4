@@ -1,6 +1,5 @@
 import { OrienterDemande } from "./orienter-demande";
 import { TitreEcran } from "@/components/titre-ecran";
-import Link from "next/link";
 import { formaterDateHeure } from "@/lib/ged";
 import { createClient } from "@/lib/supabase/server";
 import { BoutonDevisTraite } from "./bouton-traite";
@@ -58,19 +57,19 @@ export default async function PageDevisAdmin() {
 
       {/* Un état vide qui guide, comme les autres de la console (24/09), et
           des rangs communs : sans `.rang`, aucun filet ne séparait deux
-          demandes. */}
+          demandes.
+          Défauts d'écran E069 = E179 : le bouton « Voir le formulaire sur le site » menait à /#contact, que le proxy
+          renvoie vers « Mes espaces » pour tout compte connecté (proxy.ts) ; le superviseur ne voyait jamais le
+          formulaire. L'état vide dit où il se trouve et comment le voir, sans geste qui ne peut pas aboutir. */}
       {demandes.length === 0 ? (
         <div className="vide-guide">
           <p className="titre">Aucune demande de contact</p>
           <p className="explication">
             Les demandes arrivent depuis le formulaire de contact de l&apos;accueil
-            du site vitrine.
+            du site vitrine. Ce formulaire ne s&apos;affiche que hors connexion :
+            pour le voir comme un visiteur, ouvrez l&apos;accueil du site dans une
+            fenêtre de navigation privée.
           </p>
-          <div className="geste">
-            <Link href="/#contact" target="_blank" className="btn-secondaire">
-              Voir le formulaire sur le site
-            </Link>
-          </div>
         </div>
       ) : (
         <div className="colonne-liste">

@@ -81,6 +81,28 @@ describe("UX 11A — garant, un lien clos ne promet ni accès ni signature", () 
     expect(texte(html)).not.toContain("Qui vous le demande");
     if (etat === "utilise") expect(texte(html)).toContain("Votre numéro est déjà confirmé");
   });
+  // Défaut d'écran E173 (passe 1) : un lien inconnu, annulé, déjà utilisé ou expiré ne dit pas son acte (choix de la
+  // page : rien du dossier), mais le panneau annonçait toujours « Un acte de cautionnement à signer en ligne. », même
+  // au garant qui ne signe que le bail. Seul l'état « suspendu » vient forcément d'un cautionnement (réglage serveur).
+  it.each(["invalide", "expire", "annule", "utilise"])("%s : le panneau reste neutre, sans annoncer un cautionnement", async (etat) => {
+    banc.lien = { etat };
+    const t = texte(await caution());
+    expect(t).toContain("Un document à signer en ligne.");
+    expect(t).not.toMatch(/cautionnement|en qualité de garant/);
+    // « l'acte » se lisait comme l'acte de cautionnement : le message du lien déjà utilisé parle du document.
+    if (etat === "utilise") expect(t).toContain("dès que le document à signer sera envoyé");
+  });
+  it("lecture impossible du lien : panneau neutre aussi", async () => {
+    banc.lien = null as never;
+    const t = texte(await caution());
+    expect(t).toContain("Nous ne pouvons pas vérifier ce lien pour le moment.");
+    expect(t).toContain("Un document à signer en ligne.");
+    expect(t).not.toContain("cautionnement");
+  });
+  it("suspendu : seul un cautionnement peut l'être, le panneau le dit", async () => {
+    banc.lien = { etat: "suspendu" };
+    expect(texte(await caution())).toContain("Un acte de cautionnement à signer en ligne.");
+  });
 });
 
 describe("UX 11A — choix initial et récupération restent distincts", () => {

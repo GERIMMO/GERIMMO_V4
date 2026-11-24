@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { useFormStatus } from "react-dom";
+import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Spinner } from "@/components/ui/spinner";
@@ -33,6 +34,18 @@ type Props = {
   facebookPostId: string | null;
   facebookPublieLe: string | null;
   facebookErreur: string | null;
+  /**
+   * La Page Facebook de Gerimmo, lue comme sur « Marketing et contenus » (santeFacebook) : reliée et lisible,
+   * reliée mais illisible (« À vérifier »), ou pas reliée (« À relier »).
+   */
+  facebook: "relie" | "a_verifier" | "a_relier";
+};
+
+/** Défaut d'écran E198 (et E101) : ce que l'éditeur dit de la Page, selon sa connexion. */
+const ETAT_PAGE_FACEBOOK: Record<Props["facebook"], string> = {
+  relie: "La diffusion utilise la Page Facebook reliée à Gerimmo.",
+  a_verifier: "La connexion à la Page Facebook est à vérifier : aucune diffusion n’est proposée tant qu’elle n’est pas rétablie.",
+  a_relier: "La Page Facebook n’est pas encore reliée à Gerimmo : la diffusion sera proposée une fois la connexion faite.",
 };
 
 const MARQUE = /\[\[à compléter\s*:?\s*([^\]]*)\]\]/g;
@@ -212,7 +225,8 @@ export function EditeurPublication(p: Props) {
         <section className="space-y-4 rounded-xl border border-[var(--filet)] bg-[var(--filet-leger)] p-4 shadow-[var(--ombre-portee)]">
           <div>
             <p className="libelle-champ">Diffusion Facebook</p>
-            <p className="mt-1 text-[12px] text-[var(--texte-secondaire)]">Gerimmo ajoute automatiquement le lien de l’article. La diffusion utilise la Page Facebook connectée à Gerimmo.</p>
+            {/* E198 : la phrase affirmait toujours une « Page Facebook connectée », même « À relier » dans Marketing. */}
+            <p className="mt-1 text-[12px] text-[var(--texte-secondaire)]">Gerimmo ajoute automatiquement le lien de l’article. {ETAT_PAGE_FACEBOOK[p.facebook]}</p>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="facebook_texte" className="libelle-champ">Texte de la publication</Label>
@@ -350,6 +364,13 @@ export function EditeurPublication(p: Props) {
             <p className="libelle-champ">Facebook</p>
             {p.facebookPostId ? (
               <p className="mt-1.5 text-[13px] text-[var(--success)]">Publié par Gerimmo{p.facebookPublieLe ? ` le ${new Date(p.facebookPublieLe).toLocaleDateString("fr-FR")}` : ""}.</p>
+            ) : p.facebook !== "relie" && !p.tentativeFacebook ? (
+              // E198 : sans Page reliée et lisible, « Publier sur Facebook » consignait un envoi puis échouait.
+              // Une tentative incertaine reste, elle, vérifiable ci-dessous quelle que soit la connexion.
+              <p className="mt-1.5 text-[12.5px] text-[var(--texte-secondaire)]">
+                {ETAT_PAGE_FACEBOOK[p.facebook]}{" "}
+                <Link href="/admin/marketing#canaux" className="lien-texte">Vos canaux de diffusion</Link>
+              </p>
             ) : (
               <form data-saisie-confirmee action={actionFacebook} className="mt-2 space-y-2">
                 {p.tentativeFacebook && <>

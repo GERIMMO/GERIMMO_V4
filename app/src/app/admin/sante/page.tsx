@@ -446,6 +446,6 @@ export default async function PageSante() {
           {" "}<Link href="/admin/clients" className="lien-discret">Voir les organisations →</Link>
         </p>
       </ConsoleSection>
-    <SuiviStripe controle={controleStripe.error ? null : controleStripe.data as ControleStripe}/><BudgetSignatures budget={budgetSignature.error ? null : budgetSignature.data as BudgetSignature} ouverture={ouverture}/></main>
+    <SuiviStripe controle={controleStripe.error ? null : controleStripe.data as ControleStripe} stripeRelie={!absentes.has("STRIPE_SECRET_KEY") && !absentes.has("STRIPE_WEBHOOK_SECRET")}/><BudgetSignatures budget={budgetSignature.error ? null : budgetSignature.data as BudgetSignature} ouverture={ouverture}/></main>
   );
 }

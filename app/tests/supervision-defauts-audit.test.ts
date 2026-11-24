@@ -196,6 +196,21 @@ describe('Articles et demandes de contact : actions et pages accessibles', () =>
   });
 });
 
+// Défauts d'écran E070 = E180 (passe 1) : la section qui lit audit_log par account_id — l'AUTEUR du geste — s'intitulait
+// « Actions sur ce compte » ; « Accès à une organisation accordé · role : artisan », geste fait par un administrateur
+// d'agence pour un artisan, s'y lisait comme un rôle d'artisan donné à ce compte.
+it("E070 : les actions faites PAR le compte ne se présentent plus comme faites sur lui", async () => {
+  mock.resultats.dossier_compte_supervision = ok([{ email: 'fictif@example.test', est_super_admin: false, facteurs_mfa: 0 }]);
+  mock.resultats.audit_log = ok([{ id: 'geste-1', action: 'adhesion_creee', details: { role: 'artisan' }, created_at: '2026-11-24T03:37:00Z', organization_id: null, organisation: null }]);
+  const rendu = html(await Compte(params('accountId')));
+  expect(rendu).not.toContain('Actions sur ce compte');
+  expect(rendu).toContain('Actions faites par ce compte');
+  expect(rendu).toContain('dont ce compte est l’auteur');
+  expect(rendu).toContain('Gestes faits sur ce compte');
+  mock.resultats.audit_log = ok([]);
+  expect(html(await Compte(params('accountId')))).toContain('Aucune action enregistrée : ce compte n’est l’auteur d’aucun geste sensible.');
+});
+
 // UX 12B : les accès restent ceux lus, seul leur libellé est accordé.
 it.each([0, 1, 2])("UX 12B — %i rôle(s) dans la fiche du compte", async nombre => {
   mock.resultats.dossier_compte_supervision = ok([{ email: 'fictif@example.test', est_super_admin: false, facteurs_mfa: 0 }]);

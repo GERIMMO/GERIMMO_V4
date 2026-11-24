@@ -10,12 +10,13 @@
  *
  * Les pages sont rendues sans base (identité fictive) ou lues telles quelles.
  */
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { CONDITIONS_DATE, PRESTATAIRES, cleCoordonnees } from "../src/lib/editeur";
+import { CONFIDENTIALITE_DATE, PRESTATAIRES, cleCoordonnees } from "../src/lib/editeur";
 
 const lecture = vi.hoisted(() => ({ valeurs: {} as Record<string, string | null> }));
 vi.mock("@/lib/conservation-publique", () => ({ lireDureesPubliques: async () => ({ regles: [], indisponible: false }) }));
@@ -44,6 +45,9 @@ beforeEach(() => {
     ...Object.fromEntries(PRESTATAIRES.map((p) => [cleCoordonnees(p), "Coordonnées fictives"])),
   };
 });
+
+/** La date de /confidentialite et l'empreinte de son texte rendu, relevées ensemble (défaut d'écran E056). */
+const DATE_ET_EMPREINTE_CONFIDENTIALITE = { date: "24 novembre 2026", empreinte: "ec55401dadb37713af92f251480491a2fb9485ba72ccb7fdee3d8a05f5158554" };
 
 async function confidentialite() {
   return texte(renderToStaticMarkup(await Confidentialite()));
@@ -178,8 +182,33 @@ describe("/confidentialite (lot 4)", () => {
     expect(page).toContain("propriétaires bailleurs qui gèrent eux-mêmes leurs biens");
   });
 
-  it("est datée comme la V1 des conditions (date provisoire jusqu'à la publication)", async () => {
-    expect(await confidentialite()).toContain(`Dernière mise à jour : ${CONDITIONS_DATE}.`);
+  // Défaut d'écran E056 (passe 1) : ce test figeait « Dernière mise à jour : CONDITIONS_DATE », date de la version des
+  // conditions. Modifiée le 22/11 sans nouvelle version, la page affichait encore le 15 novembre ; à l'inverse, une
+  // version des conditions qui ne la touche pas l'aurait datée à tort. Elle porte désormais sa propre date.
+  it("porte sa propre date de mise à jour, qui ne suit pas la version des conditions", async () => {
+    vi.resetModules();
+    vi.doMock("@/lib/editeur", async (original) => ({ ...(await original<typeof import("../src/lib/editeur")>()), CONDITIONS_DATE: "1er janvier 2099" }));
+    try {
+      const { default: Page } = await import("../src/app/confidentialite/page");
+      const { CONFIDENTIALITE_DATE } = await import("../src/lib/editeur");
+      const page = texte(renderToStaticMarkup(await Page()));
+      expect(page).toContain(`Dernière mise à jour : ${CONFIDENTIALITE_DATE}.`);
+      expect(page).not.toContain("1er janvier 2099");
+    } finally {
+      vi.doUnmock("@/lib/editeur");
+      vi.resetModules();
+    }
+  });
+
+  // E056 : la date ne reste vraie que si elle change avec la page. L'empreinte du texte rendu (identité fictive
+  // ci-dessus, durées de conservation par défaut) est relevée avec la date : un texte modifié échoue ici, tant que la date
+  // et l'empreinte n'ont pas été relevées de nouveau ensemble.
+  it("une modification de son texte demande une nouvelle date (empreinte relevée avec la date)", async () => {
+    const empreinte = createHash("sha256").update(await confidentialite()).digest("hex");
+    expect(
+      { date: CONFIDENTIALITE_DATE, empreinte },
+      `Le texte de /confidentialite a changé (empreinte ${empreinte}) : mettez CONFIDENTIALITE_DATE (lib/editeur.ts) à la date du jour, puis relevez ici la date et l'empreinte.`,
+    ).toEqual(DATE_ET_EMPREINTE_CONFIDENTIALITE);
   });
 });
 

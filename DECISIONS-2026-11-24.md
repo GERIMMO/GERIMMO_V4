@@ -88,3 +88,8 @@ Ce que cela donne :
 5. Modèle moins coûteux pour libellés et mise en page seulement si le quota des autres modèles est séparé ; sinon ne rien changer.
 6. Si le quota risque de manquer : arrêt propre (tout pousser, JOURNAL.md : fait / vérifié / reste, point de reprise).
 Inchangé : rien en production sans « je valide la publication » ; aucun test ni règle de sécurité désactivé ; aucune référence légale inventée ; vérifié distingué de supposé.
+
+## Réponses du 24/11 (nuit)
+
+- **Q76, contact du vendeur à publier** : e-mail `contact.gerimmo.app@gmail.com`, téléphone `07 43 56 04 63`. À saisir dans la console le jour de la publication. Restent à fournir : l'immatriculation (RNE ou RCS) et le nom du directeur de publication.
+- **Bail, époux et partenaires pacsés** : « Tu peux ajouter la case marié ou pacsé. » → une case au bail ; quand elle est cochée, la solidarité de six mois après le départ d'un colocataire ne s'applique pas (texte du bail, écrans et calcul de la base).

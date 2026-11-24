@@ -1,10 +1,6 @@
 /**
  * Phase 3 de la mission palier 1, reprise du lot 48 — derniers constats des contre-relectures du troisième tour.
  *
- *  - U07 : la quittance délivrée au locataire d'un propriétaire qui gère lui-même imprimait le nom et l'adresse des
- *    bailleurs, mais l'e-mail et le téléphone du profil de l'espace ; le PDF de la même quittance imprime ceux des détenteurs
- *    (ou « Contact de gestion : » et l'e-mail de l'espace). Les bailleurs n'étaient pas non plus rangés de même (page : par la
- *    base ; PDF : dans l'ordre des détentions) : avec deux bailleurs, noms, adresses et « Fait à » pouvaient différer.
  *  - U04 : en agence, l'adresse électronique de l'agence seule manquante menait à la fiche du locataire, complète ; chez un
  *    propriétaire, un détenteur sans e-mail (espace sans contact de gestion) aussi.
  *  - U06 : en agence, le contrat d'un lot sans détenteur menait l'adresse électronique du bailleur à la fiche du locataire et
@@ -12,11 +8,14 @@
  *    saisit pas (elle se corrige sur sa fiche).
  *  - U02 : un duplex dont le niveau bas est le rez-de-chaussée (« RDC et 1er ») redisait l'étage déjà nommé par le lot.
  * Chaque cas ci-dessous échouait avant la reprise, sauf les témoins signalés.
+ *
+ * Phase 3, lot 49 : la partie U07 de ce fichier (quittance délivrée composée avec les coordonnées des détenteurs, migration
+ * 20261123230000) est retirée avec U07 lui-même, non livré dans cette publication (décision du dirigeant attendue) ; la
+ * quittance délivrée revient à son comportement d'avant le lot 48, vérifié dans tests/lot49-reprise.test.ts.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { contexte, personne } from "./fixtures/contexte-document";
-import { quittanceDocumentComplete } from "./fixtures/quittance-document";
 
 const mocks = vi.hoisted(() => ({ charger: vi.fn() }));
 vi.mock("@/lib/documents/modeles/communs", async (importOriginal) => ({
@@ -27,11 +26,9 @@ vi.mock("@/lib/documents/modeles/communs", async (importOriginal) => ({
 import { assemblerBailMeuble } from "@/lib/documents/modeles/bail-meuble";
 import { assemblerBailNu, construireBailNu } from "@/lib/documents/modeles/bail-nu";
 import { assemblerCautionnement } from "@/lib/documents/modeles/cautionnement";
-import { assemblerQuittance, ordreBailleursQuittance } from "@/lib/documents/modeles/quittance";
 import { Fusion } from "@/lib/documents/gabarit";
 import { lienPourManquant } from "@/lib/documents/ou-renseigner";
 import { mentionEtage } from "@/lib/etage";
-import { assemblerQuittanceDelivree, manquantsQuittance, motifQuittanceIncomplete, type DonneesQuittanceDocument } from "@/lib/quittance-conforme";
 import type { Assemblage } from "@/lib/documents/modeles";
 
 beforeEach(() => {
@@ -42,110 +39,6 @@ function succes(r: Assemblage) {
   if ("erreur" in r) throw new Error(r.erreur);
   return r;
 }
-
-const texte = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/[\s  ]+/g, " ").trim();
-/** Le bloc de l'émetteur (nom, adresse, contact), sans le cartouche de référence. */
-const emetteurDe = (html: string) => texte(html.split('<div class="cartouche-ref">')[0].split('<header class="entete">')[1] ?? "");
-const bailleurDe = (html: string) => /Bailleur\s*<\/div>\s*<div[^>]*>([\s\S]*?)<\/div>/.exec(html)?.[1];
-const faitA = (html: string) => /Fait à [^,]+?,? le \d{2}\/\d{2}\/\d{4}/.exec(texte(html))?.[0];
-
-describe("U07 — la quittance délivrée et le PDF de la même quittance ont le même en-tête", () => {
-  const CLAIRE = personne({ id: "p1", nom: "Moreau", prenom: "Claire", email: "claire@exemple.fr", telephone: "0611111111", address_line1: "3 rue du Domicile", postal_code: "69100", city: "Villeurbanne", qualite: "Personne physique" });
-  const MARC = personne({ id: "p2", nom: "Petit", prenom: "Marc", email: "marc@exemple.fr", telephone: "0622222222", address_line1: "12 quai Perrache", postal_code: "69002", city: "Lyon", qualite: "Personne physique" });
-  const ESPACE = { name: "Parc de Claire Moreau", address_line1: "8 avenue des Tilleuls", postal_code: "69006", city: "Lyon", telephone: "0400000000", email_contact: "parc@exemple.fr" };
-
-  /** Le PDF : les détenteurs dans l'ordre où la base les rend (ici Petit avant Moreau). */
-  async function pdf(bailleurs: typeof CLAIRE[], espace: Partial<typeof ESPACE> = {}) {
-    const ctx = contexte();
-    ctx.organisation = { ...ctx.organisation, ...ESPACE, ...espace, type: "proprietaire_direct" };
-    ctx.bailleurs = bailleurs.map((b) => ({ ...b, quote_part: 50 }));
-    mocks.charger.mockResolvedValue(ctx);
-    const lignes: Record<string, unknown> = {
-      quittances: { id: "q0000000-0000", bail_id: "b1", appel_id: "a1", est_quittance: true, montant: 700, date_emission: "2026-09-05" },
-      appels_loyer: [{ id: "a1", periode: "2026-09-01", loyer_hc: 650, charges: 50, montant_du: 700, prorata: false }],
-      encaissements: [{ date_paiement: "2026-09-04", mode: "virement", montant: 700, created_at: null }],
-    };
-    const from = (table: string) => {
-      const r = Promise.resolve({ data: lignes[table] ?? null, error: null });
-      const q = { select: () => q, eq: () => q, order: () => q, maybeSingle: () => r, then: r.then.bind(r) };
-      return q;
-    };
-    return succes(await assemblerQuittance({ from, rpc: vi.fn() } as unknown as SupabaseClient, "org", "q1")).document;
-  }
-
-  /** La page : la même quittance telle que `quittance_document` la rend (rangée par la base : Moreau avant Petit). */
-  function page(bailleurs: typeof CLAIRE[], espace: Partial<typeof ESPACE> = {}, sansContact = false) {
-    const o = { ...ESPACE, ...espace };
-    const d: DonneesQuittanceDocument = quittanceDocumentComplete({
-      organisation: { type: "proprietaire_direct", nom: o.name, siret: null, carte_pro: null, adresse: o.address_line1, code_postal: o.postal_code, ville: o.city, telephone: o.telephone, email: o.email_contact },
-      bailleurs: [...bailleurs].sort((a, b) => a.nom.localeCompare(b.nom)).map((b) => ({
-        nom: b.nom, prenom: b.prenom, adresse: b.address_line1, code_postal: b.postal_code, ville: b.city,
-        ...(sansContact ? {} : { email: b.email, telephone: b.telephone }),
-      })),
-    });
-    return assemblerQuittanceDelivree(d);
-  }
-
-  it("deux bailleurs : mêmes noms, mêmes adresses, même ligne de contact et même « Fait à », quel que soit l'ordre lu", async () => {
-    const lePdf = await pdf([MARC, CLAIRE]);
-    const laPage = page([MARC, CLAIRE]);
-    expect(emetteurDe(laPage.html)).toBe(emetteurDe(lePdf.html));
-    expect(emetteurDe(laPage.html)).toBe(
-      "Moreau Claire · Petit Marc 3 rue du Domicile, 69100 Villeurbanne · 12 quai Perrache, 69002 Lyon claire@exemple.fr · marc@exemple.fr · 0611111111 · 0622222222"
-    );
-    expect(emetteurDe(laPage.html)).not.toContain("0400000000");
-    expect(texte(bailleurDe(laPage.html) ?? "")).toBe(texte(bailleurDe(lePdf.html) ?? ""));
-    expect(texte(bailleurDe(laPage.html) ?? "")).toBe("Moreau Claire, Petit Marc");
-    expect(faitA(laPage.html)).toBe(faitA(lePdf.html));
-    expect(faitA(laPage.html)).toMatch(/Fait à Villeurbanne/);
-    expect(laPage.emetteur).toBe("detenteurs");
-    expect(manquantsQuittance(laPage)).toEqual([]);
-  });
-
-  it("espace sans e-mail, détenteur qui en a un : la page est délivrée, comme le PDF est complet", async () => {
-    const lePdf = await pdf([CLAIRE], { email_contact: null as never });
-    const laPage = page([CLAIRE], { email_contact: null as never });
-    expect(lePdf.manquants).toEqual([]);
-    expect(manquantsQuittance(laPage)).toEqual([]);
-    expect(emetteurDe(laPage.html)).toBe(emetteurDe(lePdf.html));
-  });
-
-  it("détenteur sans e-mail : « Contact de gestion : » et l'e-mail de l'espace, son téléphone à lui, comme le PDF", async () => {
-    const sansEmail = { ...CLAIRE, email: null };
-    const lePdf = await pdf([sansEmail]);
-    const laPage = page([sansEmail]);
-    expect(emetteurDe(laPage.html)).toBe(emetteurDe(lePdf.html));
-    expect(emetteurDe(laPage.html)).toContain("Contact de gestion : parc@exemple.fr · 0611111111");
-  });
-
-  it("détenteur sans e-mail, espace sans contact : « adresse électronique » à renseigner, à la fois sur la page et au PDF", async () => {
-    const sansEmail = { ...CLAIRE, email: null };
-    const lePdf = await pdf([sansEmail], { email_contact: null as never });
-    const laPage = page([sansEmail], { email_contact: null as never });
-    expect(lePdf.manquants).toContain("adresse électronique");
-    expect(manquantsQuittance(laPage)).toContain("adresse électronique");
-  });
-
-  it("témoin : sans les clés de contact (première version de la migration), l'adresse des bailleurs et le contact de l'espace", () => {
-    const laPage = page([CLAIRE], {}, true);
-    expect(emetteurDe(laPage.html)).toBe("Moreau Claire 3 rue du Domicile, 69100 Villeurbanne parc@exemple.fr · 0400000000");
-    expect(laPage.emetteur).toBe("detenteurs");
-  });
-
-  it("l'ordre des bailleurs est le même partout : nom, puis prénom, à la française", () => {
-    const ordre = ordreBailleursQuittance([{ nom: "Émond", prenom: null }, { nom: "Zola", prenom: "Émile" }, { nom: "Dupont", prenom: "Marc" }, { nom: "Dupont", prenom: "Anne" }]);
-    expect(ordre.map((b) => `${b.nom} ${b.prenom ?? ""}`.trim())).toEqual(["Dupont Anne", "Dupont Marc", "Émond", "Zola Émile"]);
-  });
-
-  it("l'envoi refusé d'une quittance émise par les détenteurs dit où compléter leur adresse", () => {
-    const sansAdresse = page([{ ...CLAIRE, address_line1: null, postal_code: null, city: null }]);
-    const manquants = manquantsQuittance(sansAdresse);
-    expect(manquants).toEqual(expect.arrayContaining(["domicile ou siège social", "commune"]));
-    expect(motifQuittanceIncomplete(manquants, true, sansAdresse.emetteur)).toContain("Complétez la fiche du propriétaire (Personnes) ou le profil de l'organisation, puis renvoyez-la.");
-    // Témoin : un en-tête de l'espace garde le message d'avant.
-    expect(motifQuittanceIncomplete(["adresse électronique"], true, "espace")).toContain("Complétez le profil de l'organisation ou la fiche indiquée, puis renvoyez-la.");
-  });
-});
 
 // Une base minimale : chaque table rend ses lignes (maybeSingle : la première), sans appliquer les filtres.
 function base(tables: Record<string, unknown[]> = {}) {
@@ -284,14 +177,16 @@ describe("U02 — un duplex dont le niveau bas est le rez-de-chaussée n'est plu
     ["RDC et 1er", "Duplex RDC et 1er étages", null],
     ["RDC et premier", "Duplex rez-de-chaussée et 1er étage", null],
     ["RDC et 1er, porte B", "Duplex RDC et 1er étage", "porte B"],
+    // Phase 3, lot 49 (V02) : un seul des deux niveaux, que le nom du duplex nomme déjà, n'est pas redit non plus. Attente
+    // précédente (témoin « la mention reste ») : « RDC », soit l'adresse « Duplex RDC et 1er étage, RDC ».
+    ["RDC", "Duplex RDC et 1er étage", null],
   ])("« %s » après « %s » → %s", (etage, nom, attendu) => {
     expect(mentionEtage(etage, nom)).toBe(attendu);
   });
 
   it.each([
-    // Un autre niveau, ou un seul niveau du duplex : la mention reste.
+    // Un niveau que le nom du lot ne dit pas : la mention reste.
     ["RDC et 2e", "Duplex RDC et 1er étage", "RDC et 2e"],
-    ["RDC", "Duplex RDC et 1er étage", "RDC"],
     ["RDC et 1er", "Studio RDC", "RDC et 1er"],
     ["RDC et 1er", "Studio 1er étage", "RDC et 1er"],
     // Sans nom de lot, la saisie s'imprime telle quelle ; le rez-de-chaussée seul se lit comme avant.

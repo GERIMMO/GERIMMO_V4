@@ -42,12 +42,6 @@ describe.skipIf(!url)('SCI-3 : la quittance d’une société nomme son représe
        returning id`, [prefixe]);
   }
   const document = async () => (await db.query('select public.quittance_document($1) d', [quittance])).rows[0].d;
-  // Phase 3, lot 48 (U07, migration 20261123230000) : chez un propriétaire direct, chaque bailleur porte aussi l'adresse postale
-  // de sa fiche (la quittance délivrée l'imprime, comme le PDF). Ces attentes, écrites avant, ne la portaient pas ; ce fichier
-  // vérifie le représentant, l'adresse est vérifiée dans tests/quittance-adresse-bailleurs-base.test.ts.
-  // Reprise du lot 48 (même migration) : aussi l'adresse électronique et le téléphone de sa fiche, que le PDF imprime en
-  // en-tête (vérifiés dans tests/quittance-adresse-bailleurs-base.test.ts). Le téléphone de la gérante (représentante), lui, n'est toujours pas rendu.
-  const ADRESSE_SCI = { adresse: '5 rue des Lilas', code_postal: '69003', ville: 'Lyon', email: 'camille@example.invalid', telephone: null };
 
   beforeAll(async () => { await db.connect(); });
   afterAll(async () => { await db.end(); });
@@ -89,14 +83,14 @@ describe.skipIf(!url)('SCI-3 : la quittance d’une société nomme son représe
 
   it('sans pouvoir : le bailleur est rendu comme avant, sans clé « representant »', async () => {
     await agir(locataire);
-    expect((await document()).bailleurs).toEqual([{ nom: 'SCI du Tilleul', prenom: null, ...ADRESSE_SCI }]);
+    expect((await document()).bailleurs).toEqual([{ nom: 'SCI du Tilleul', prenom: null }]);
   });
 
   it('pouvoir actif : le locataire lit le nom et le prénom du représentant, et rien d’autre', async () => {
     await pouvoir();
     await agir(locataire);
     const d = await document();
-    expect(d.bailleurs).toEqual([{ nom: 'SCI du Tilleul', prenom: null, representant: { nom: 'Martin', prenom: 'Camille' }, ...ADRESSE_SCI }]);
+    expect(d.bailleurs).toEqual([{ nom: 'SCI du Tilleul', prenom: null, representant: { nom: 'Martin', prenom: 'Camille' } }]);
     expect(JSON.stringify(d)).not.toContain('0600000000');
     expect(d.vue_gestionnaire).toBe(false);
     // La table du pouvoir reste fermée au locataire : la fonction seule le lui dit.
@@ -115,14 +109,14 @@ describe.skipIf(!url)('SCI-3 : la quittance d’une société nomme son représe
     await pouvoir(null);
     await db.query(`update public.representations_bail set fin_validite = current_date - 1 where bail_id=$1`, [bail]);
     await agir(locataire);
-    expect((await document()).bailleurs).toEqual([{ nom: 'SCI du Tilleul', prenom: null, ...ADRESSE_SCI }]);
+    expect((await document()).bailleurs).toEqual([{ nom: 'SCI du Tilleul', prenom: null }]);
 
     await db.query('reset role');
     await db.query(`update public.representations_bail set fin_validite = null where bail_id=$1`, [bail]);
     await db.query(`insert into public.documents (organization_id, type, titre, storage_path, mime_type, taille_octets, empreinte, remplace_id)
                     values ($1,'justificatif','Pouvoir v2',$1::uuid::text||'/pouvoir-v2.pdf','application/pdf',100,repeat('c',64),$2)`, [org, justificatif]);
     await agir(locataire);
-    expect((await document()).bailleurs).toEqual([{ nom: 'SCI du Tilleul', prenom: null, ...ADRESSE_SCI }]);
+    expect((await document()).bailleurs).toEqual([{ nom: 'SCI du Tilleul', prenom: null }]);
   });
 
   it('les contrôles d’accès ne changent pas : un compte étranger ne lit rien, anon n’appelle pas', async () => {

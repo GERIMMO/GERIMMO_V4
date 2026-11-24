@@ -118,9 +118,8 @@ export async function envoyerQuittance(
   if (!conforme) return { erreur: "Impossible de lire le document à envoyer. Réessayez." };
   if (quittanceAttendue !== undefined && (q.est_quittance !== quittanceAttendue || conforme.est_quittance !== quittanceAttendue || Number(q.montant) !== Number(conforme.montant)))
     return { erreur: "Le document a changé. Vérifiez le solde du loyer." };
-  const delivree = assemblerQuittanceDelivree(conforme);
-  const manquants = manquantsQuittance(delivree);
-  if (manquants.length > 0) return { erreur: motifQuittanceIncomplete(manquants, q.est_quittance, delivree.emetteur) };
+  const manquants = manquantsQuittance(assemblerQuittanceDelivree(conforme));
+  if (manquants.length > 0) return { erreur: motifQuittanceIncomplete(manquants, q.est_quittance) };
   const libelleEnvoi = q.est_quittance ? "Quittance envoyée" : "Reçu de paiement partiel envoyé";
 
   // Audit du 30/09 (B4) : sans adresse configurée, le lien de la quittance

@@ -145,7 +145,9 @@ describe("étage du logement (C09, C26, C63, C84)", () => {
     expect(adresseLogement({ ...duplex, etage: "1er et 2e étages" }, ctx.bien)).toBe("12 rue des Lilas, 69003 Lyon, Duplex — 1er et 2e étages");
     // D'autres niveaux que ceux du nom restent imprimés : la saisie contradictoire se voit.
     expect(mentionEtage("2e et 3e", "Duplex — 1er et 2e étages")).toBe("2e et 3e étages");
-    expect(mentionEtage("2e", "Duplex — 1er et 2e étages")).toBe("2e étage");
+    // Phase 3, lot 49 (V02) : « 2e » est l'un des deux niveaux que le nom nomme déjà ; l'attente précédente (« 2e étage »,
+    // l'adresse « Duplex — 1er et 2e étages, 2e étage ») redisait l'étage. Il n'est plus redit.
+    expect(mentionEtage("2e", "Duplex — 1er et 2e étages")).toBeNull();
     expect(mentionEtage("1er et 2e", "Lot 5 étage 1")).toBe("1er et 2e étages");
     // Un niveau prolongé par « et », « à » : jamais « et 2 » ni « à 3 ».
     expect(mentionEtage("1 et 2", "Studio 2 étage 1")).toBe("étage 1 et 2");
@@ -170,7 +172,9 @@ describe("étage du logement (C09, C26, C63, C84)", () => {
     expect(mentionEtage("premier, porte droite", "Studio — 1er étage")).toBe("porte droite");
     // Ce que le nom ne dit pas reste imprimé : « dernier » sous un nom qui ne dit que le 5e, un autre niveau, un autre duplex.
     expect(mentionEtage("5e et dernier", "T3 — 5e étage")).toBe("5e et dernier étage");
-    expect(mentionEtage("1er", "Duplex 1er et 2e étage")).toBe("1er étage");
+    // Phase 3, lot 49 (V02) : « 1er » est l'un des niveaux que le nom du duplex nomme déjà ; l'attente précédente (« 1er
+    // étage », l'adresse « Duplex 1er et 2e étage, 1er étage ») redisait l'étage. Il n'est plus redit.
+    expect(mentionEtage("1er", "Duplex 1er et 2e étage")).toBeNull();
     expect(mentionEtage("2e et 3e", "Duplex 1er et 2e étage")).toBe("2e et 3e étages");
     expect(mentionEtage("deuxième", "Studio — 1er étage")).toBe("deuxième étage");
   });

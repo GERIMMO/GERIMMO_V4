@@ -26,6 +26,10 @@
 // Reprise du lot 48 (U02) : un duplex dont le niveau bas est le rez-de-chaussée (« RDC et 1er », « rez-de-chaussée et 1er »)
 // se lit lui aussi comme deux niveaux, "0 et 1". Seul « RDC » était lu, et le nom du lot (« Duplex RDC et 1er étage ») était
 // lu « 1er étage » : l'adresse imprimait « Duplex RDC et 1er étage, RDC et 1er ». La saisie, elle, s'imprime telle quelle.
+//
+// Phase 3, lot 49 (V02) : un seul des niveaux qu'un nom de duplex nomme déjà (« 1er » ou « RDC » sous « Duplex RDC et 1er
+// étage », « 2e » sous « Duplex 1er et 2e étages ») n'est pas redit non plus : l'adresse imprimait « Duplex RDC et 1er étage,
+// 1er étage ».
 
 const sansAccents = (texte: string) => texte.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
@@ -81,6 +85,23 @@ function niveau(texte: string): string | null {
   return /\brdc\b|rez[\s-]*de[\s-]*chaussee/.test(lu) ? "0" : null;
 }
 
+// Phase 3, lot 49 (V02) : les niveaux que nomme un niveau lu, "0 et 1" → ["0", "1"]. « 5 et dernier » ne s'y décompose pas :
+// c'est UN étage (le 5e, qui est le dernier), comparé tel quel.
+const niveauxDe = (lu: string) => lu.split(" et ");
+
+// Le nom du lot couvre la mention s'il dit le même niveau, ou le même suivi de « et dernier » (lot 48, U02).
+// Phase 3, lot 49 (V02) : ou si chaque niveau de la mention est l'un de ceux que le nom nomme déjà : le nom d'un duplex
+// (« Duplex RDC et 1er étage », « Duplex 1er et 2e étages ») couvre chacun de ses niveaux (« 1er », « RDC », « 2e »).
+// L'adresse imprimait « Duplex RDC et 1er étage, 1er étage ». Un niveau que le nom ne dit pas (« 2e et 3e », « RDC et 2e »)
+// reste imprimé : la saisie contradictoire se voit.
+function nomCouvre(duNom: string | null, n: string): boolean {
+  if (duNom === null) return false;
+  if (duNom === n || duNom === `${n} et dernier`) return true;
+  if (/dernier/.test(n) || /dernier/.test(duNom)) return false;
+  const duLot = niveauxDe(duNom);
+  return niveauxDe(n).every((x) => duLot.includes(x));
+}
+
 export function mentionEtage(etage: string | null | undefined, nomLot?: string | null): string | null {
   const saisie = etage?.trim();
   if (!saisie) return null;
@@ -95,9 +116,7 @@ export function mentionEtage(etage: string | null | undefined, nomLot?: string |
   const tete = nomLot ? mention.match(NIVEAU_EN_TETE) : null;
   if (!tete || !nomLot) return mention;
   const n = niveau(tete[0]);
-  const duNom = niveau(nomLot);
-  // Le nom couvre la mention s'il dit le même niveau, ou le même suivi de « et dernier » (lot 48, U02).
-  if (n === null || (duNom !== n && duNom !== `${n} et dernier`)) return mention;
+  if (n === null || !nomCouvre(niveau(nomLot), n)) return mention;
   const reste = mention.slice(tete[0].length);
   // Un niveau suivi de « et 2 » n'est pas l'étage du nom à lui seul : le retirer laissait « et 2 » (reprise du lot 43).
   if (SUITE_DU_NIVEAU.test(reste)) return mention;

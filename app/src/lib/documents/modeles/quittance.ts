@@ -111,16 +111,6 @@ export function signataireQuittance(bailleurs: BailleurQuittance[] | null | unde
   return { soussigne: soussigne.join(", et "), signature: signature.join(" ; ") };
 }
 
-/**
- * Reprise du lot 48 (U07) : l'ordre des bailleurs d'une quittance, le même pour le PDF (détenteurs lus sans ordre) et pour la
- * quittance délivrée au locataire (`quittance_document`, rangée par la base selon sa collation) : nom, puis prénom, à la
- * française. Avec deux bailleurs, leurs noms, leurs adresses et « Fait à » (commune du premier) pouvaient différer d'un
- * document à l'autre pour la même quittance.
- */
-export function ordreBailleursQuittance<T extends { nom: string; prenom: string | null }>(bailleurs: readonly T[]): T[] {
-  return [...bailleurs].sort((a, b) => a.nom.localeCompare(b.nom, "fr") || (a.prenom ?? "").localeCompare(b.prenom ?? "", "fr"));
-}
-
 // Les codes enregistrés par « Payé par » (fiche du bail), en toutes lettres
 // sur le document : « par virement », pas « par virement » brut ni « par caf ».
 // Une seule table pour les deux quittances : celle du catalogue (ce modèle) et
@@ -282,11 +272,8 @@ export async function assemblerQuittance(
     .maybeSingle();
   if (!q) return { erreur: "Quittance introuvable." };
 
-  const lu = await chargerContexteBail(supabase, orgId, q.bail_id);
-  if ("erreur" in lu) return lu;
-  // Reprise du lot 48 (U07) : les bailleurs dans l'ordre de la quittance délivrée (nom, prénom), pour le nom, l'en-tête et
-  // « Fait à ».
-  const ctx = { ...lu, bailleurs: ordreBailleursQuittance(lu.bailleurs) };
+  const ctx = await chargerContexteBail(supabase, orgId, q.bail_id);
+  if ("erreur" in ctx) return ctx;
 
   const [{ data: appels }, { data: encaissements }] = await Promise.all([
     supabase

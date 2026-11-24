@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Tiroir } from "@/components/ui/tiroir";
+import { LienAssistance } from "@/components/bouton-assistance";
 import { usePathname } from "next/navigation";
 import { Banknote, BookOpen, Building2, CalendarDays, FileCheck2, FileText, LayoutDashboard, Star, Users, type LucideIcon } from "lucide-react";
 import styles from "@/app/artisan/portail-artisan.module.css";
@@ -35,14 +36,17 @@ const IC: Record<string, string> = {
 };
 
 /** Les rubriques du menu du téléphone (celles qui n'ont pas d'onglet dans la barre du bas). */
-export function entreesMenuArtisan({ clientsExternes, piecesAAJour }: { clientsExternes: boolean; piecesAAJour: boolean }): { href: string; libelle: string; aussi?: string[]; point?: boolean }[] {
+export function entreesMenuArtisan({ clientsExternes, piecesAAJour }: { clientsExternes: boolean; piecesAAJour: boolean }): { href: string; libelle: string; aussi?: string[]; point?: boolean; aide?: boolean }[] {
   return [
     { href: "/artisan/entreprise", libelle: "Ma fiche entreprise" },
     { href: "/artisan/attestations", libelle: "Mes attestations", point: !piecesAAJour },
     ...(clientsExternes ? [{ href: "/artisan/clients", libelle: "Clients externes", aussi: PAGES_CLIENTS_EXTERNES }] : []),
     { href: "/artisan/note", libelle: "Mes évaluations" },
     { href: "/artisan/regles", libelle: "Les règles à connaître" },
-    { href: "/assistance?ecran=%2Fartisan&action=lien&retour=%2Fartisan", libelle: "Aide en cas de problème" },
+    // Reprise du lot 60 (R7) : l'adresse était figée sur l'accueil (`ecran=/artisan`, `retour=/artisan`) ; ouverte depuis une
+    // mission, l'aide partait avec le mauvais écran et « Retour » ne ramenait pas d'où l'on venait. L'entrée est rendue
+    // par `LienAssistance`, comme le « ? » de l'en-tête : elle porte le chemin réel.
+    { href: "/assistance", libelle: "Aide en cas de problème", aide: true },
   ];
 }
 
@@ -191,7 +195,7 @@ export function NavArtisan({
             </li>
           );
         })}
-        <li className="min-w-0 flex-1"><button type="button" aria-haspopup="dialog" aria-expanded={menuOuvert} onClick={() => setMenuOuvert(true)} className="relative flex min-h-16 w-full flex-col items-center justify-center gap-1 px-1 py-2 text-[var(--encre)]"><Icone nom="menu" /><span className="text-[0.6875rem] font-medium">Menu</span>{!piecesAAJour && <span className="absolute right-3 top-2 size-2 rounded-full bg-[var(--warning)]"><span className="sr-only">Attestations à déposer ou à renouveler</span></span>}</button></li>
+        <li className="min-w-0 flex-1">{/* `data-assistance` (reprise du lot 60, R7) : ouvrir le menu pour atteindre l'aide ne remplace pas la dernière action rapportée avec la demande (bouton-assistance.tsx). */}<button type="button" data-assistance aria-haspopup="dialog" aria-expanded={menuOuvert} onClick={() => setMenuOuvert(true)} className="relative flex min-h-16 w-full flex-col items-center justify-center gap-1 px-1 py-2 text-[var(--encre)]"><Icone nom="menu" /><span className="text-[0.6875rem] font-medium">Menu</span>{!piecesAAJour && <span className="absolute right-3 top-2 size-2 rounded-full bg-[var(--warning)]"><span className="sr-only">Attestations à déposer ou à renouveler</span></span>}</button></li>
       </ul>
     </nav>
     {/* Phase 3, lot 60.
@@ -201,7 +205,7 @@ export function NavArtisan({
         sur « Mes attestations », avec les mêmes mots qu'en présentation bureau.
         E121, E127 : la page s'appelle « Ma fiche entreprise » partout (« Mon entreprise » reste le titre du groupe du menu bureau). */}
     {menuOuvert && <Tiroir titre="Menu artisan" fermer={() => setMenuOuvert(false)}><nav aria-label="Autres rubriques artisan" className="grid gap-1">
-      {entreesMenuArtisan({ clientsExternes, piecesAAJour }).map((e) => <Link key={e.href} href={e.href} aria-current={entreeActive(pathname, e) ? "page" : undefined} onClick={() => setMenuOuvert(false)} className="flex min-h-12 items-center gap-2 rounded-[var(--rayon-bouton)] px-3 text-[0.9375rem] font-medium text-[var(--encre)] transition-colors hover:bg-[var(--survol)] aria-[current=page]:bg-[var(--filet-leger)] aria-[current=page]:font-semibold">{e.libelle}{e.point && <span data-point-attestations className="ml-auto size-2.5 shrink-0 rounded-full bg-[var(--warning)]"><span className="sr-only"> — attestations à déposer ou à renouveler</span></span>}</Link>)}
+      {entreesMenuArtisan({ clientsExternes, piecesAAJour }).map((e) => e.aide ? <LienAssistance key={e.href} nomVisible onClick={() => setMenuOuvert(false)} className="flex min-h-12 items-center gap-2 rounded-[var(--rayon-bouton)] px-3 text-[0.9375rem] font-medium text-[var(--encre)] transition-colors hover:bg-[var(--survol)]">{e.libelle}</LienAssistance> : <Link key={e.href} href={e.href} aria-current={entreeActive(pathname, e) ? "page" : undefined} onClick={() => setMenuOuvert(false)} className="flex min-h-12 items-center gap-2 rounded-[var(--rayon-bouton)] px-3 text-[0.9375rem] font-medium text-[var(--encre)] transition-colors hover:bg-[var(--survol)] aria-[current=page]:bg-[var(--filet-leger)] aria-[current=page]:font-semibold">{e.libelle}{e.point && <span data-point-attestations className="ml-auto size-2.5 shrink-0 rounded-full bg-[var(--warning)]"><span className="sr-only"> — attestations à déposer ou à renouveler</span></span>}</Link>)}
     </nav></Tiroir>}
     </>
   );

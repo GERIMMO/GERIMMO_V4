@@ -197,8 +197,22 @@ export type Typographie = {
   jour: (jour: number | string | null | undefined) => number | string | null;
   point: (saisie: string | null | undefined) => string;
   classe: (nom: "annonce" | "fait-a") => string;
+  /**
+   * Petites reprises du lot T2 (T2R-2, T2R-3) : mise en page des baux, par un style porté par l'élément lui-même. La feuille
+   * commune n'est PAS touchée : elle entre dans le HTML, donc dans l'empreinte, de tous les documents signés en ligne
+   * (avenant, état des lieux, acte de cautionnement…), qui n'ont pas de rendu archivé. Rien sous la typographie archivée :
+   * le rendu d'un bail déjà préparé reste le même, octet pour octet.
+   *  - `insecable` : attribut d'un alinéa qui ne se coupe pas entre deux pages (clause de solidarité, liste des annexes) ;
+   *  - `finEnsemble` : ouverture et fermeture du bloc qui garde ensemble la rubrique des annexes et les signatures — le
+   *    bloc « Date et signatures » ne part plus seul sur une page. (Une consigne « pas de saut avant les signatures » ne
+   *    suffit pas : le moteur d'impression coupait alors entre deux rangées de cadres de signature.)
+   */
+  insecable: string;
+  finEnsemble: [string, string];
   pourcent: string;
 };
+
+const STYLE_INSECABLE = "break-inside:avoid-page;page-break-inside:avoid";
 
 export const TYPOGRAPHIE: Typographie = {
   archivee: false,
@@ -206,6 +220,8 @@ export const TYPOGRAPHIE: Typographie = {
   jour: jourDuMois,
   point: pointFinal,
   classe: (nom) => ` class="${nom}"`,
+  insecable: ` style="${STYLE_INSECABLE}"`,
+  finEnsemble: [`<div data-fin-ensemble style="${STYLE_INSECABLE}">`, "</div>"],
   pourcent: "\u00a0%",
 };
 
@@ -215,6 +231,8 @@ const TYPOGRAPHIE_ARCHIVEE: Typographie = {
   jour: (jour) => jour ?? null,
   point: () => ".",
   classe: () => "",
+  insecable: "",
+  finEnsemble: ["", ""],
   pourcent: " %",
 };
 

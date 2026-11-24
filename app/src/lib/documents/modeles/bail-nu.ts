@@ -263,9 +263,10 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
     ${section(`${plusieursLocataires ? "X" : "IX"} — Autres conditions particulières`)}
     <p>${ouNeant(ctx.bail.clauses_particulieres)}</p>
 
-    ${section(`${plusieursLocataires ? "XI" : "X"} — Annexes`)}
+    ${/* Reprises du lot T2 (T2R-2) : annexes et signatures forment un ensemble qui ne se coupe pas — plus de page ne
+         portant que les signatures. Rien n'est ajouté au rendu archivé (empreinte d'un bail déjà préparé). */ ""}${t.finEnsemble[0]}${section(`${plusieursLocataires ? "XI" : "X"} — Annexes`)}
     <p${t.classe("annonce")}>Sont annexées et jointes au contrat les pièces suivantes :</p>
-    <p class="mentions">☐ Le dossier de diagnostic technique (DPE, ERP, et selon l'ancienneté du
+    <p class="mentions"${t.insecable}>☐ Le dossier de diagnostic technique (DPE, ERP, et selon l'ancienneté du
     logement : plomb, amiante, électricité, gaz)<br/>
     ☐ La notice d'information relative aux droits et obligations des locataires et des bailleurs<br/>
     ☐ L'état des lieux d'entrée<br/>
@@ -289,7 +290,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
       )}
       ${ctx.garants.length > 0 ? cadreSignature("La caution", `${ctx.garants.map((g) => echapper(nomPersonne(g) ?? "")).join("<br/>")}<br/>${mentionCadreCautionBail(ctx.garants.length)}`) : ""}
     </div>
-    </div>
+    </div>${t.finEnsemble[1]}
   `;
 
   return assemblerPage({

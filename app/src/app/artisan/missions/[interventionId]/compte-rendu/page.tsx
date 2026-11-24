@@ -83,7 +83,9 @@ export default async function PageComptePhoto(
           <AvertissementRendezVousAnticipe debutPrevu={mission.debut_prevu} finPrevue={mission.fin_prevue} geste="demarrer" />
           {/* Phase 3, lot 60 (E119) : sans rendez-vous fixé, la fiche de mission présente ce geste en second rôle, avec une
               mise en garde ; ici il devenait le bouton principal, sans un mot. Même rôle et même phrase que sur la fiche. */}
-          <BoutonDemarrer interventionId={interventionId} sansRendezVous={!mission.debut_prevu} />
+          {/* Reprise du lot 60 (R8) : le bouton ajoutait « Si vous intervenez sans attendre le rendez-vous. » juste au-dessus
+              de la mise en garde ci-dessous : deux phrases pour une seule idée. Ici, seule la mise en garde reste. */}
+          <BoutonDemarrer interventionId={interventionId} sansRendezVous={!mission.debut_prevu} sansPhrase />
           {!mission.debut_prevu && (
             <p className={CLASSE_AIDE} data-mise-en-garde-sans-rendez-vous>
               Aucun rendez-vous n&apos;est fixé : démarrer sans rendez-vous n&apos;a de sens que pour un dépannage sans attendre.

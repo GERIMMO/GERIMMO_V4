@@ -183,14 +183,24 @@ describe("W33 — garde : le HTML des documents signés en ligne ne change pas (
   //   bail_individuel c050239518810a2abc538d9a483c8157afbddb3d4d90abcd1ea538b176127304
   //   notice 23f70583f1c11c540538fe8ac29c4e7cb6dc29fad487de257f6b534075985a89
   //   cautionnement 29215ed449ecd868c147fec1121d43e9eb3fcf208879f1d5327dc8f6053e9a0c
+  // Petites reprises du lot T2 (T2R-2, T2R-3 ; 25/11/2026) : les quatre empreintes des baux changent VOLONTAIREMENT, et elles
+  // seules. La rubrique des annexes et les signatures forment un ensemble insécable, la clause de solidarité et la liste
+  // des annexes ne se coupent plus : le style est porté par ces éléments du bail, la feuille commune n'est pas touchée (les
+  // huit autres documents signés en ligne gardent leur empreinte, ci-dessous). Un bail déjà préparé pour la signature se
+  // relit toujours à l'identique par le rendu archivé (signature-empreinte-avant-g8.test.ts, inchangé ; 1 152 dossiers
+  // comparés avant et après pour chacun des deux rendus archivés). Empreintes du lot T2 :
+  //   bail_nu 1879fd7a97f6e8bc9c8a966cec3973e17fb25ac2adf7e3d9f62d33c9490cd33c
+  //   bail_meuble 282b3ea7e5296794cd0c8805080586362e0d353475cb89f04a014a847dc86705
+  //   bail_colocation 9e48131977f5d22a14f1ffbfab82fc0f06d5fb80248c6ac01addc6cbadc955c2
+  //   bail_individuel c537685fd17f2514147186cba71d1c987f3f1d5ca1fc784e26247a4971290dce
   const ATTENDU: Record<string, string> = {
     autorisation_travaux: "a055b8eaea533fd24e5912def245cffef02fcd57cccc44983aa815b37904706f",
     avenant: "574e5d33716c8970cd60e45ff90f103c59a4b461497c60762969ce6b9b04f332",
     avenant_remplacement: "748025b2c70cd30b567d950747e521071274ac92e92c12ec81d0529f16f96179",
-    bail_colocation: "9e48131977f5d22a14f1ffbfab82fc0f06d5fb80248c6ac01addc6cbadc955c2",
-    bail_individuel: "c537685fd17f2514147186cba71d1c987f3f1d5ca1fc784e26247a4971290dce",
-    bail_meuble: "282b3ea7e5296794cd0c8805080586362e0d353475cb89f04a014a847dc86705",
-    bail_nu: "1879fd7a97f6e8bc9c8a966cec3973e17fb25ac2adf7e3d9f62d33c9490cd33c",
+    bail_colocation: "c3a2883c26dff4cc9887eee2f6575c5e99e85927e1cbaeef110f8b071ff3bc9b",
+    bail_individuel: "0aa659dc4d5393839f4b400d1dea8911a908bcd3a76ad290c78e3648778afc13",
+    bail_meuble: "a63749c237fa9425ac847c9e0a4ffce2a96dc3e8d69de2d11913ebc1567a1819",
+    bail_nu: "1fc489e82eee93937379a5c76a6fd64f4bdda28713909d84bed0bdaf41d0fd87",
     cautionnement: "7bd6bac8cc0599899c74c90ea0372b8402aa5b2ae9d45dedcdfb2d1898946b06",
     edl_entree: "200466aa191403c439ec7ba0aba70e9bc255f06cec214a3a70aac0c4f78cf6cf",
     // Textes officiels, lot T3 (R15-A1) : empreinte changée VOLONTAIREMENT. L'état des lieux de sortie imprime la mention du

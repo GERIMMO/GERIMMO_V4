@@ -2,7 +2,7 @@ import { badgeDemandeRdv } from "@/lib/rendez-vous-locataire";
 import { ChantiersDansAgenda } from "../clients/resumes";
 import Link from "next/link";
 import { chargerAgenda, chargerCreneauxMission, chargerDemandesRdv, chargerEchangesNonLus, verifierAccesArtisan, type CreneauMission, type LigneAgenda } from "../acces";
-import { datesAGarder, joursAGarder } from "./dates-a-garder";
+import { consigneDatesProposees, datesAGarder, joursAGarder } from "./dates-a-garder";
 import { nonLusPar } from "@/lib/echanges-intervention";
 import { CarteMission } from "../carte-mission";
 import { creneauTexte, jourCivil, jourLong } from "../libelles";
@@ -242,7 +242,9 @@ export default async function PageAgendaArtisan() {
                 ligne={l}
                 badgeRdv={badge(l)}
                 nouveauxMessages={aLire.get(l.intervention_id)}
-                aFaire={proposees.get(l.intervention_id) === null ? `${consigne(l)} — dates à vérifier sur la fiche` : consigne(l)}
+                // Reprise du lot 60 (R6) : le nombre écrit est celui des dates listées dessous, pas le compteur brut.
+                aFaire={proposees.has(l.intervention_id) && l.dates_locataire_en_attente === 0 ? consigneDatesProposees(l.creneaux_en_attente, proposees.get(l.intervention_id) ?? null) : consigne(l)}
+                plusDeDate={proposees.get(l.intervention_id)?.length === 0}
                 datesAGarder={(proposees.get(l.intervention_id) ?? []).map((c) => creneauTexte(c.debut, c.fin))}
               />
             ))}

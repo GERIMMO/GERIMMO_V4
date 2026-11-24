@@ -2,7 +2,7 @@
    Design System « Maison » : jetons seulement ; l'onglet retenu porte la couleur de l'action principale. */
 .dossier { min-width:0; }
 .onglets { display:flex; flex-wrap:wrap; gap:4px; padding:5px; margin-bottom:16px; border:1px solid var(--filet); border-radius:var(--rayon-carte); background:var(--carte); box-shadow:var(--ombre-1); }
-.onglets button { flex:1; min-width:0; min-height:44px; border:0; border-radius:var(--rayon-bouton); padding:10px 12px; font:600 14px/1.35 var(--font-interface,system-ui); background:transparent; color:var(--encre); cursor:pointer; transition:none; }
+.onglets button { flex:1; min-width:min-content; min-height:44px; border:0; border-radius:var(--rayon-bouton); padding:10px 12px; font:600 14px/1.35 var(--font-interface,system-ui); background:transparent; color:var(--encre); cursor:pointer; transition:none; }
 .onglets button:hover:not([aria-selected="true"]) { background:var(--survol); }
 .onglets button[aria-selected="true"] { background:var(--marque); color:var(--sur-marque); }
 .onglets button:focus-visible, .panneau:focus-visible { outline:3px solid var(--prestige-champagne-texte); outline-offset:3px; }
@@ -11,4 +11,7 @@
 /* Phase 3, lot 60 (E002) : quatre onglets de largeur égale à 390 px laissaient « Coordonnées » sortir de sa pastille (le « s »
    en blanc sur blanc). Sur téléphone, un onglet garde au moins la largeur de son mot le plus long ; s'ils ne tiennent plus
    sur une rangée, la barre passe à la ligne (flex-wrap ci-dessus) au lieu de laisser déborder le texte. */
-@media(max-width:420px) { .onglets button { font-size:13px; padding:10px 7px; min-width:min-content; } }
+@media(max-width:420px) { .onglets button { font-size:13px; padding:10px 7px; } }
+/* Reprise du lot 60 (R3) : la largeur minimale ne valait que jusqu'à 420 px ; de 421 à 470 px environ, la police repassait à
+   14 px et « Coordonnées », « Disponibilités » débordaient de nouveau. Elle vaut désormais à toute largeur (règle du bouton,
+   plus haut) : là où les onglets tiennent, rien ne change. */

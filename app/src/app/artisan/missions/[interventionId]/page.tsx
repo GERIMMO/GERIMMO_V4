@@ -1,5 +1,6 @@
 import { LectureImpossibleArtisan } from "../../ui";
 import { EchangesIntervention } from "@/components/echanges-intervention";
+import { lireEtatDiscussion, phraseContactOccupant, type EtatDiscussion } from "@/lib/contact-occupant";
 import { lireInterlocuteurLocataire } from "@/lib/interlocuteur-locataire-serveur";
 import { AccuseAnnulation } from "./accuse-annulation";
 import Link from "next/link";
@@ -132,6 +133,8 @@ export default async function PageMission(
   const occupant = [mission.occupant_prenom, mission.occupant_nom]
     .filter(Boolean)
     .join(" ");
+  // Reprise du lot 60 (R2) : lue seulement quand la carte « Sur place » doit écrire où laisser un message.
+  const discussion: EtatDiscussion = vivante && occupant && !mission.occupant_telephone ? await lireEtatDiscussion(supabase, interventionId) : "fermee";
   const adresse = [
     mission.adresse,
     [mission.code_postal, mission.ville].filter(Boolean).join(" "),
@@ -479,10 +482,10 @@ export default async function PageMission(
           )}
           {/* Phase 3, lot 60 (E005) : sans numéro, la carte promettait un « contact ouvert » qu'elle ne donnait pas.
               Elle dit ce qui manque et où écrire ; la base décide toujours seule de ce qu'elle rend. */}
-          <p className={`mt-2 ${CLASSE_AIDE}`} data-contact-occupant={mission.occupant_telephone ? "telephone" : "nom-seul"}>
-            {mission.occupant_telephone
-              ? "Ce contact vous est ouvert le temps de la mission, et refermé à la fin."
-              : "Aucun numéro de téléphone n’a été communiqué pour cette personne. Son nom vous est donné le temps de la mission ; pour un message, voyez la discussion de l’intervention, plus bas."}
+          {/* Reprise du lot 60 (R2) : la phrase ne renvoie à la discussion que si elle est ouverte et lisible, et dit qui la lit
+              (lib/contact-occupant.ts). */}
+          <p className={`mt-2 ${CLASSE_AIDE}`} data-contact-occupant={mission.occupant_telephone ? "telephone" : "nom-seul"} data-discussion={discussion}>
+            {phraseContactOccupant({ telephone: mission.occupant_telephone, discussion })}
           </p>
         </Carte>
       )}

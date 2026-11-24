@@ -226,7 +226,7 @@ export function clauseSolidarite(ctx: ContexteBail, t: Typographie): string {
     En cas de congé de l'un d'eux, la solidarité s'éteint six mois après la date d'effet du congé, ou
     dès qu'un nouveau locataire le remplace au bail.</p>`;
   return `<p>Les locataires sont tenus solidairement et indivisiblement de l’exécution du présent contrat.</p>
-    <p>${regleColocationSolidarite('la solidarité de celui des colocataires qui donne congé prend', 'elle s’éteint')}${ctx.locataires.length === 2 ? ` ${EXCEPTION_EPOUX_PACS}` : ''}</p>`;
+    <p${t.insecable}>${regleColocationSolidarite('la solidarité de celui des colocataires qui donne congé prend', 'elle s’éteint')}${ctx.locataires.length === 2 ? ` ${EXCEPTION_EPOUX_PACS}` : ''}</p>`;
 }
 export const regleColocationSolidarite = (sujet: string, aDefaut: string) =>
   `En colocation (article 8-1 de la loi du 6 juillet 1989), ${sujet} fin à la date d’effet du congé régulièrement délivré et lorsqu’un nouveau colocataire figure au bail. À défaut, ${aDefaut} au plus tard à l’expiration d’un délai de six mois après la date d’effet du congé.`;

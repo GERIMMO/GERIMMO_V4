@@ -1,4 +1,5 @@
 "use server";
+import { REFUS_RETRAIT_BAIL_SIGNE } from "@/lib/solidarite-colocation";
 import { resoudreDepotsFormulaire, limiteFichierDepose } from "@/lib/depot-direct";
 
 
@@ -978,10 +979,8 @@ export async function supprimerBailPersonne(
     .maybeSingle();
   if (!bail) return { erreur: "Bail introuvable." };
   if (bail.etat !== "brouillon") {
-    return {
-      erreur:
-        "Le bail est signé : la personne ne se retire plus. Enregistrez le départ du colocataire — sa solidarité et celle de son garant courent encore six mois (art. 8-1 de la loi du 6 juillet 1989).",
-    };
+    // Reprises du lot T2 (T2R-1) : le message affirmait les six mois sans condition (lib/solidarite-colocation.ts).
+    return { erreur: REFUS_RETRAIT_BAIL_SIGNE };
   }
   const { data, error } = await supabase
     .from("bail_personnes")

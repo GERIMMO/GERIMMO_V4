@@ -120,6 +120,7 @@ describe("Modèle 01 — bail nu", () => {
           ...base.organisation,
           type: "agence",
           carte_pro: "CPI 6901 2018 000 025 — CCI de Lyon",
+          garantie_financiere: "Caisse de garantie FICTIVE, 1 rue des Essais, 69003 Lyon",
         },
         bail: {
           ...base.bail,
@@ -145,8 +146,11 @@ describe("Modèle 01 — bail nu", () => {
     // voir textes-officiels-t2.test.ts.)
     expect(doc.html).toContain("Terrasse de 20 m² avec vue dégagée");
     expect(doc.html).not.toContain("Sans objet");
-    // Lot T2 (R08-A1) : le garant du mandataire est exigé par le contrat type ; ce contexte d'essai n'en a pas.
-    expect(doc.manquants).toEqual(["garantie financière du mandataire (nom et adresse du garant)"]);
+    // Lot T2 (R08-A1) : le garant du mandataire est exigé par le contrat type. Reprises du lot T2 (T2R-6) : le lot T2 avait
+    // laissé ce contexte sans garant et accepté un manquant ; le contexte « agence complète » porte sa garantie financière,
+    // et l'exigence d'origine est rétablie : aucun manquant. (L'absence de garant reste couverte par textes-officiels-t2.)
+    expect(doc.html).toContain("Caisse de garantie FICTIVE, 1 rue des Essais, 69003 Lyon");
+    expect(doc.manquants).toEqual([]);
   });
 });
 

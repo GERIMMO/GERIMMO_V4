@@ -1,4 +1,5 @@
 "use client";
+import { AIDE_DEPART_COLOCATAIRE, OPTION_SANS_REMPLACANT } from "@/lib/solidarite-colocation";
 import { useActionStateSuivi } from "@/lib/suivi-enregistrement";
 
 import { useState } from "react";
@@ -103,7 +104,8 @@ function DepartColocataire({
           defaultValue={etat.valeurs?.remplacant ?? ""}
           className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
         >
-          <option value="">Personne — solidarité 6 mois</option>
+          {/* Reprises du lot T2 (T2R-1) : « Personne — solidarité 6 mois » l'affirmait sans condition (lib/solidarite-colocation.ts). */}
+          <option value="">{OPTION_SANS_REMPLACANT}</option>
           {remplacants.map((p) => (
             <option key={p.id} value={p.id}>
               {p.nom}
@@ -120,10 +122,8 @@ function DepartColocataire({
         </Button>
       </div>
       {etat.erreur && <p className="text-sm text-destructive sm:col-span-3">{etat.erreur}</p>}
-      <p className="text-xs text-muted-foreground sm:col-span-3">
-        Le colocataire reste tenu solidairement, et son garant engagé, jusqu&apos;à six mois après
-        la date d&apos;effet de son congé — sauf si un nouveau colocataire, figurant au bail, le
-        remplace (art. 8-1 de la loi du 6 juillet 1989).
+      <p className="text-xs text-muted-foreground sm:col-span-3" data-aide-depart-colocataire>
+        {AIDE_DEPART_COLOCATAIRE}
       </p>
     </form>
   );

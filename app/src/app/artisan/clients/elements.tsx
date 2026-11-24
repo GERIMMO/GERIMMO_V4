@@ -25,11 +25,15 @@ export function LienPiece({id,children}:{id:string|null|undefined;children:React
 //  - E128 : « Exporter mon registre » n'annonçait ni le fichier (JSON) ni son contenu, plus large que le carnet de clients.
 // « Clients externes » reste masquée à partir de 1000 px, où le menu latéral la porte (DES-B-05) ; « Nouveau chantier et
 // devis » et l'export n'ont d'entrée dans aucun menu : ils restent.
-export const LIBELLE_EXPORT_ARTISAN="Exporter toutes mes données (fichier JSON)";
+// Reprise du lot 60 (R1) : « Exporter toutes mes données » promettait plus que le fichier. L'export rend le registre privé
+// et les lignes de plateforme rattachées à la fiche de l'artisan (`export_artisan_plateforme`) ; il ne contient ni les
+// messages des discussions, ni aucun fichier (photos, PDF, justificatifs). Le libellé le dit, aux deux endroits où il s'affiche.
+export const LIBELLE_EXPORT_ARTISAN="Exporter mon activité (fichier JSON, sans les discussions ni les pièces jointes)";
+export const PRECISION_EXPORT_ARTISAN="Clients externes, chantiers, devis, factures et règlements déclarés, avec votre fiche et votre activité sur Gerimmo. Les messages des discussions et les fichiers (photos, PDF, justificatifs) n’y figurent pas.";
 export function NavigationPrivee({enCours}:{enCours?:"/artisan/clients"|"/artisan/devis/nouveau"}){
  const liens:[string,string,boolean][]=[['Clients externes','/artisan/clients',true],['Nouveau chantier et devis','/artisan/devis/nouveau',false]];
  const classe="bouton-gerimmo inline-flex min-h-12 items-center justify-center rounded-[var(--rayon-bouton)] border border-[var(--filet-champ)] bg-[var(--ivoire)] px-4 text-sm font-semibold text-[var(--encre)] hover:border-[var(--marque)] hover:bg-[var(--survol)] aria-[current=page]:border-2 aria-[current=page]:border-[var(--marque)] aria-[current=page]:bg-[var(--filet-leger)]";
- return <nav aria-label="Clients externes et règlements" className="flex flex-wrap gap-2">{liens.map(([label,href,redondant])=><Link key={href} className={redondant?`${classe} min-[1000px]:hidden`:classe} href={href} aria-current={href===enCours?"page":undefined}>{label}</Link>)}<a className={classe} href="/api/artisan-prive/export" download title="Clients externes, chantiers, devis, factures et règlements déclarés, avec vos données Gerimmo">{LIBELLE_EXPORT_ARTISAN}</a></nav>;
+ return <nav aria-label="Clients externes et règlements" className="flex flex-wrap gap-2">{liens.map(([label,href,redondant])=><Link key={href} className={redondant?`${classe} min-[1000px]:hidden`:classe} href={href} aria-current={href===enCours?"page":undefined}>{label}</Link>)}<a className={`${classe} py-2 text-center`} href="/api/artisan-prive/export" download title={PRECISION_EXPORT_ARTISAN}>{LIBELLE_EXPORT_ARTISAN}</a></nav>;
 }
 export function libelleEtatPrive(etat:string){const noms:Record<string,string>={brouillon:'Brouillon',valide:'Validé',accepte:'Accepté',refuse:'Refusé',planifie:'Planifié',en_cours:'En cours',termine:'Terminé',annule:'Annulé',remplace:'Remplacé',retenu:'retenu'};return noms[etat]??etat;}
 export function libelleActionPrive(action:string){const noms:Record<string,string>={chantier:'Chantier créé',devis:'Version du devis enregistrée',valider_devis:'PDF du devis validé',decision:'Réponse du client consignée',planning:'Rendez-vous confirmé',demarrer:'Chantier démarré',bilan:'Compte rendu enregistré',facture:'Facture déposée',annuler_facture:'Facture annulée par un avoir',annuler:'Chantier annulé'};return noms[action]??action.replaceAll('_',' ');}

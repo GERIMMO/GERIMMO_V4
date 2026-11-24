@@ -72,8 +72,11 @@ export const DECLARATION_ETUDIANT_NON_BOURSIER =
 export const REFUS_CAUTION_BAILLEUR_SOCIETE =
   "Gerimmo ne prépare pas cet acte : le bailleur est une société (autre qu'une SCI familiale). La loi ne lui permet de demander la caution d'une personne que si le logement est loué à un étudiant qui ne bénéficie pas d'une bourse de l'enseignement supérieur (article 22-1 de la loi du 6 juillet 1989). Si c'est le cas, cochez la case correspondante. Sinon, seule la caution d'un organisme habilité est possible, et elle ne se prépare pas dans Gerimmo.";
 /** Lot T2 (R17-A3) — article 8-1 VI : en colocation, l'acte identifie, « sous peine de nullité », le colocataire garanti. */
+// Reprises du lot T2 (T2R-4) : le message dit aussi la limite de Gerimmo — la base n'admet qu'un rattachement par garant
+// (`bail_personnes_unique`), donc pas de caution commune à deux locataires. Savoir si l'article 8-1 VI vaut pour deux époux
+// (qui ne sont pas des colocataires au sens de cet article) est une question pour le juriste ; le refus, prudent, reste.
 export const REFUS_CAUTION_SANS_COLOCATAIRE =
-  "Gerimmo ne prépare pas cet acte : le bail a plusieurs locataires et ce garant n'est rattaché à aucun d'eux. L'acte doit nommer le locataire pour lequel la caution s'engage (article 8-1 de la loi du 6 juillet 1989). Sur la fiche du bail, dans les personnes du bail, indiquez pour qui ce garant se porte caution, puis préparez l'acte.";
+  "Gerimmo ne prépare pas cet acte : le bail a plusieurs locataires et ce garant n'est rattaché à aucun d'eux. L'acte doit nommer le locataire pour lequel la caution s'engage (article 8-1 de la loi du 6 juillet 1989). Sur la fiche du bail, dans les personnes du bail, indiquez pour qui ce garant se porte caution, puis préparez l'acte. Un garant ne se rattache qu'à un seul locataire du bail : Gerimmo ne prépare pas l'acte d'une caution commune à plusieurs locataires (deux époux, par exemple).";
 
 export const REFUS_SANS_GARANTIE_CUMULEE =
   "Confirmez l'absence d'assurance loyers impayés ou d'autre garantie avant de préparer l'acte.";

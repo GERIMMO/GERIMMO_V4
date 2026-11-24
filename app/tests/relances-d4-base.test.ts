@@ -59,8 +59,12 @@ describe("lot D4 — manifeste, texte de la migration et liste fermée (sans bas
     expect(existsSync(`supabase/retours-arriere/${NOM}.retour.sql`)).toBe(true);
     const lisezMoi = readFileSync("supabase/retours-arriere/LISEZ-MOI.md", "utf8");
     expect(lisezMoi).toContain(`| \`${NOM}.retour.sql\` | \`${NOM}.sql\``);
-    // La preuve de la relance à la main cite la fonction du jour de Paris : son retour est dans l'ordre complet, en tête.
-    expect(lisezMoi.split("Ordre complet si tout doit être défait :")[1] ?? "").toMatch(/^\n?`20261125110000` \(relance d'une demande de report/);
+    // La preuve de la relance à la main cite la fonction du jour de Paris : son retour est dans l'ordre complet. Fusion des
+    // deux arbres de travail (25/11) : il n'est plus en tête, seuls le précèdent les retours des deux migrations plus récentes
+    // qui citent aussi la fonction du jour (textes officiels T3 : 20261125151000 puis 20261125111000), dans l'ordre inverse.
+    expect(lisezMoi.split("Ordre complet si tout doit être défait :")[1] ?? "").toMatch(
+      /^\n?`20261125151000` \(reprise du lot T3[^\n]*\n`20261125111000` \(textes officiels, lot T3[^\n]*\n`20261125110000` \(relance d'une demande de report/
+    );
     expect(readFileSync("tests/relais-migrations-manifeste.test.ts", "utf8")).toContain(`"${NOM}.sql",`);
     expect(readFileSync("vitest.config.ts", "utf8")).toContain('"tests/relances-d4-base.test.ts"');
     expect(MAILLONS_CHAINE_COURRIELS.at(-1)).toBe(NOM);

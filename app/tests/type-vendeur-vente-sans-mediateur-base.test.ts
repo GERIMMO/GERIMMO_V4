@@ -41,7 +41,19 @@ describe("type de vendeur et vente sans médiateur — manifeste et droits (sans
     // tient : elle clôt les quatre migrations des lots D7 et T4, et seules celles des lots D4 et D5 (ce dernier ne
     // retire que des droits d'exécution, 20261125140000) viennent après elle — puis celle de la reprise du lot D4
     // (20261125150000 : accord aux conditions sur une version archivée, relance à la main sans reprise autonome).
-    expect(manifeste.slice(manifeste.indexOf(`${NOM}.sql`) + 1)).toEqual(["20261125110000_relance_report_rdv_et_relance_a_la_main.sql", "20261125140000_ancien_parcours_signature_manuelle_droits_retires.sql", "20261125150000_accord_conditions_version_archivee.sql"]);
+    // Fusion des deux arbres de travail (25/11) : les migrations des textes officiels T3 (20261125111000, 20261125151000) et
+    // de la case « mariés ou pacsés » (20261125152000), préparées en parallèle, prennent leur rang d'horodatage parmi elles.
+    // Aucune des migrations qui suivent ne touche la table de l'identité (garde ajoutée ci-dessous).
+    const suivantes = manifeste.slice(manifeste.indexOf(`${NOM}.sql`) + 1);
+    expect(suivantes).toEqual([
+      "20261125110000_relance_report_rdv_et_relance_a_la_main.sql",
+      "20261125111000_textes_officiels_t3.sql",
+      "20261125140000_ancien_parcours_signature_manuelle_droits_retires.sql",
+      "20261125150000_accord_conditions_version_archivee.sql",
+      "20261125151000_textes_t3_reprise_exercice_ancien.sql",
+      "20261125152000_bail_locataires_epoux_pacses.sql",
+    ]);
+    expect(suivantes.filter((m) => /supervision_identite/.test(readFileSync(`supabase/migrations/${m}`, "utf8")))).toEqual([]);
     expect(manifeste[manifeste.indexOf(`${NOM}.sql`) - 1]).toBe("20261125105000_archive_compte_apres_client_stripe.sql");
     for (const avant of ["20261019123000_identite_editeur_prestataires.sql", "20261022210326_reglage_blocage_souscription_identite.sql", "20261114001320_ouverture_souscriptions_payantes.sql"]) {
       expect(manifeste.indexOf(`${NOM}.sql`), avant).toBeGreaterThan(manifeste.indexOf(avant));

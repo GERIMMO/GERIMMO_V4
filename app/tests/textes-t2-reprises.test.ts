@@ -67,7 +67,14 @@ describe("T2R-1 — la règle des six mois est dite sous condition, aux deux end
     // (tests/bail-epoux-pacses-base.test.ts) ; la règle de six mois reste celle de tout bail dont la case n'est pas cochée.
     const ordre = readFileSync("e2e/local/ordre-migrations.txt", "utf8").trim().split(/\r?\n/);
     const suivantes = ordre.slice(ordre.indexOf("20261125111000_textes_officiels_t3.sql") + 1);
-    expect(suivantes).toEqual(["20261125151000_textes_t3_reprise_exercice_ancien.sql", "20261125152000_bail_locataires_epoux_pacses.sql"]);
+    // Fusion des deux arbres de travail (25/11) : les migrations des lots D5 (20261125140000) et de la reprise D4
+    // (20261125150000), préparées en parallèle, prennent leur rang d'horodatage ; aucune ne touche ce calcul (ligne suivante).
+    expect(suivantes).toEqual([
+      "20261125140000_ancien_parcours_signature_manuelle_droits_retires.sql",
+      "20261125150000_accord_conditions_version_archivee.sql",
+      "20261125151000_textes_t3_reprise_exercice_ancien.sql",
+      "20261125152000_bail_locataires_epoux_pacses.sql",
+    ]);
     expect(suivantes.filter((m) => /enregistrer_depart_colocataire/.test(readFileSync(`supabase/migrations/${m}`, "utf8")))).toEqual(["20261125152000_bail_locataires_epoux_pacses.sql"]);
   });
 });

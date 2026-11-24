@@ -78,3 +78,13 @@ Ce que cela donne :
 - Défauts MINEURS de la console du super admin : REPORTÉS après la publication. Les défauts majeurs de la console sont corrigés avant. La liste complète est gardée (lots 64 et 65 de la relecture des écrans).
 - Q9 (clé des sauvegardes) : pas encore faite ; à rappeler au dirigeant ; une sauvegarde neuve, relisible, doit exister avant la publication.
 - Q62 : la liste des textes à fournir est dans livrables/Gerimmo-textes-officiels-a-fournir.pdf. Un texte n'est tenu pour « lu » que s'il vient de Légifrance, avec son adresse et sa date de version ; un texte récité par une intelligence artificielle sans source ne compte pas.
+
+## Consigne du 24/11 au soir — économie de quota (dirigeant)
+
+1. Mettre à l'abri à la fin de chaque lot, même non vérifié, sur des branches de sauvegarde distinctes de la préproduction :
+   `claude/sauvegarde-banc-principal` (écrans de l'artisan, lots tirés du recueil) et `claude/sauvegarde-banc-vendeur` (reprise du lot vendeur, lot T4).
+2. Méthode allégée : défauts d'écran et libellés = une seule relecture ; argent, documents légaux, sécurité et isolation = double relecture conservée ; une vérification complète pour plusieurs lots regroupés ; rapports de dix lignes au plus.
+3. Priorités : a) reprise vendeur et médiateur (Q75) ; b) écarts bloquants et importants du recueil (congés, puis bail/caution/colocation, puis dépôt/charges/état des lieux) ; c) Q15, Q24, Q37, puis Q21 ; d) défauts d'écran MAJEURS seulement (public, propriétaire, six majeurs de la console) et reprise des écrans de l'artisan ; e) seconde passe complète, puis livraison.
+5. Modèle moins coûteux pour libellés et mise en page seulement si le quota des autres modèles est séparé ; sinon ne rien changer.
+6. Si le quota risque de manquer : arrêt propre (tout pousser, JOURNAL.md : fait / vérifié / reste, point de reprise).
+Inchangé : rien en production sans « je valide la publication » ; aucun test ni règle de sécurité désactivé ; aucune référence légale inventée ; vérifié distingué de supposé.

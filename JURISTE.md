@@ -15,7 +15,8 @@ dit autre chose, le texte l'emporte. Or Légifrance refuse les lectures automati
 d'arrêté n'a pu être lu mot à mot. Seules des fiches officielles ont été lues (service-public, impôts, CNIL ; fichier
 `TEXTES-OFFICIELS-LUS-2026-11-24.md`). Rien n'est donc corrigé sur la seule base de ces réponses, et toutes les questions
 restent ouvertes. La façon de lire Légifrance est une question posée au dirigeant (QUESTIONS.md, Q62). La partie 6, en
-fin de fichier, ajoute les points de droit des lots 50 à 54 et des décisions du 24/11.
+fin de fichier, ajoute les points de droit des lots 50 à 54 et des décisions du 24/11. La partie 7 ajoute ceux des lots
+D1 et D2 et du vendeur.
 
 Tant qu'une question reste ouverte, Gerimmo garde le comportement le plus prudent : il avertit au lieu d'affirmer,
 et ne présente pas un document comme valable s'il manque une mention.
@@ -437,6 +438,60 @@ tête). Quand une fiche officielle a été lue, c'est dit, avec ce qu'elle ne tr
     fiscale lue le 24/11 va dans ce sens (mandat préalable, acceptation de chaque facture, numérotation propre à chaque
     mandant). Elle ne traite pas l'acompte versé par un client particulier. Ces conditions suffisent-elles, y compris
     avec la facturation électronique ? En attendant : la fonction reste fermée jusqu'à l'accord d'un expert-comptable.
+
+## 7. Lots D1 et D2 (décisions du 24/11/2026) et vendeur
+
+Ces points viennent de l'application des décisions du dirigeant sur la révision du loyer (lot D2), et de l'avis de
+situation du vendeur reçu le 24/11 au soir. Aucun n'est présenté comme conforme. Pour chacun, il est dit ce qui a été
+lu (une fiche officielle) et ce qui ne l'a pas été (l'article de loi). Plusieurs choix ont été pris par Claude sur
+délégation du dirigeant (« Fais soit selon les lois, sois selon ce que tu juge le plus pertinent par rapport à la
+vision de Gerimmo ») : ils sont signalés.
+
+1. **Révision du loyer après une année perdue : calcul sur un an** (Q23). Quand la révision d'une année n'a pas été
+   faite, Gerimmo calcule la suivante sur un an seulement : loyer × indice nouveau ÷ indice du même trimestre de
+   l'année précédente. Il ne rattrape pas l'année perdue. Exemple : bail du 15/10/2023, 700 €, aucune révision en
+   2024, révision en 2025 : 720,39 € (un calcul sur deux ans aurait donné 742,00 €). La lettre cite les deux indices
+   utilisés et dit que la révision de l'année précédente n'a pas été appliquée. Choix pris sur délégation. **Lu :** la
+   fiche officielle de service-public (F1311) dit que la hausse annuelle est « plafonnée par l'évolution sur un an »
+   de l'indice, et qu'une révision non demandée dans l'année est perdue. **Non lu :** l'article 17-1 de la loi de
+   1989. Ce calcul sur un an est-il le bon, oui ou non ?
+2. **« Premier terme qui suit la demande » : une règle plus favorable au locataire que la fiche** (Q43 ; complète le
+   point 16 de la partie 6). C'est maintenant appliqué. Pour un bail révisable le 15/10 : demande le 15/10, novembre
+   est le premier mois révisé ; demande le 03/12, c'est janvier. Le bailleur ne reçoit donc rien pour les jours entre
+   sa demande et ce mois. **Lu :** la fiche F1311 dit que le loyer révisé s'applique « à partir de la date de la
+   demande ». **Non lu :** l'article 17-1. Cette règle plus favorable au locataire est-elle permise sans autre
+   formalité ? La lettre doit-elle dire que le bailleur renonce à la hausse pour ces jours ?
+3. **Date de la demande : celle que le bailleur saisit** (Q43). Gerimmo retient la date que le bailleur déclare. Il ne
+   vérifie ni l'envoi ni la réception du courrier. Une date saisie dans le passé ne fait pas gagner un mois : le
+   premier mois révisé suit aussi le jour de l'enregistrement (choix pris sur délégation). **Lu :** la fiche F1311 ne
+   dit pas si la « date de la demande » est la date d'envoi ou de réception. **Non lu :** l'article 17-1. Une date
+   déclarée par le bailleur suffit-elle ? Faut-il exiger une preuve d'envoi ou de réception ?
+4. **Délai d'un an : jusqu'à quel jour ?** (Q23). Gerimmo accepte la révision d'une année jusqu'à la veille de la date
+   anniversaire suivante, et la refuse à partir de cette date. Pour un bail révisable le 15/10 : le 14/10 de l'année
+   suivante est le dernier jour ; le 16/10, la révision de l'année passée est refusée. **Lu :** la fiche F1311 dit
+   « un an » après la date de révision, sans dire comment compter le dernier jour. **Non lu :** l'article 17-1. Le
+   dernier jour est-il bien la veille de la date anniversaire, ou la date anniversaire elle-même ?
+5. **Attestation de loyer pendant l'attente du premier mois révisé.** Entre la demande et le premier mois révisé,
+   l'attestation de loyer, le récapitulatif pour la CAF et l'espace du locataire écrivent : « X € jusqu'au terme de
+   M, Y € à compter du terme de M+1 ». **Lu :** aucun texte ni fiche sur ce point. Cette formule convient-elle aux
+   organismes qui reçoivent ces documents (CAF, MSA…), ou faut-il un seul montant, et lequel ?
+6. **Médiateur de la consommation et ouverture des ventes** (Q7, Q65 ; complète B11 de la partie 3). Le dirigeant a
+   décidé que les ventes peuvent s'ouvrir avant la désignation du médiateur. La réponse reçue le 24/11 dit que
+   l'information sur le médiateur est due dès l'ouverture aux particuliers, essai gratuit compris ; elle cite le code
+   de la consommation (art. L612-1 et L616-1) et se classe elle-même « texte à relire ». **Lu :** aucune fiche
+   officielle sur ce point. **Non lu :** ces articles. Peut-on vendre à des particuliers sans médiateur désigné, oui
+   ou non ? Quel est le risque ? Que doivent écrire les conditions de vente en attendant ?
+7. **Mention « entrepreneur individuel » ou « EI »** (Q63). Le vendeur est un entrepreneur individuel, sous un nom
+   commercial. Ses factures, ses conditions de vente et ses mentions légales doivent-elles porter « entrepreneur
+   individuel » ou « EI » à côté de son nom, et sous quelle forme exacte ? **Lu :** aucune fiche officielle sur ce
+   point. **Non lu :** le texte. En attendant : la mention n'est pas écrite ; elle sera vérifiée sur une fiche
+   officielle avant de l'être.
+8. **Adresse publiée d'un entrepreneur individuel** (Q7 ; complète B12 de la partie 3). Le dirigeant a décidé de
+   publier l'adresse de son établissement. La réponse reçue à B12 disait « sans objet », parce qu'elle supposait que
+   le vendeur était une société : ce n'est pas le cas, la question se pose donc de nouveau. **Lu :** aucune fiche
+   officielle sur ce point. **Non lu :** la loi pour la confiance dans l'économie numérique (art. 6 III), citée par
+   la réponse. Les mentions légales, les conditions de vente et les factures d'un entrepreneur individuel
+   doivent-elles porter cette adresse ? Si elle est aussi son domicile, une autre adresse est-elle admise ?
 
 ---
 

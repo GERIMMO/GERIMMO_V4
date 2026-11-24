@@ -8094,3 +8094,34 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
   (3) quittance — la décision Q52 garde l'adresse de l'espace en ligne alors que la réponse reçue (partie 5, point 19)
   demande le même émetteur en ligne et sur le PDF ([[Quittance conforme]]) ; (4) diagnostic énergétique — la décision
   Q28 retient le plus récent, aucune page officielle lue ne le dit ([[Mission palier 1 — audit du 22 novembre 2026]]).
+
+## [2026-11-24] ingest | Mission palier 1 : lots D1 et D2 des décisions du 24/11 (préproduction), relecture des écrans
+
+- **Source** : `DECISIONS-2026-11-24.md` (décisions du dirigeant, compléments du 24/11 au soir sur le vendeur et sur
+  les questions nouvelles du lot D1), `JOURNAL.md` (entrées du 24/11 : « lot D1 (écrans) » et « lot D2 (révision du
+  loyer) »), `TEXTES-OFFICIELS-LUS-2026-11-24.md` (fiche F1311), `REPONSES-JURISTE.md` (réponses reçues, non signées) ;
+  aucune source déposée dans `raw/`.
+- **Pages mises à jour** : aucune. Les pages du wiki seront mises à jour dans un passage à part. Seuls `QUESTIONS.md`
+  (colonne « Décision du 24/11/2026 » de Q7, Q11, Q13, Q18, Q20, Q23, Q34, Q43 et Q63 ; Q65 à Q74 ajoutées),
+  `JURISTE.md` (partie 7) et `JOURNAL.md` sont complétés.
+- **Lot D1 — écrans** (Q11, Q13, Q18, Q20) : appliqué, deux reprises après relecture (deux défauts sur la signature
+  proposée en premier, puis un défaut sur l'export complet d'un espace), corrigés.
+- **Lot D2 — révision du loyer** (Q23, Q34, Q43) : appliqué, trois reprises ; chacune des trois premières relectures a
+  trouvé un vrai défaut de calcul, corrigé. Quatrième relecture : calcul refait de son côté sur 1 400 baux et 97 790
+  demandes, aucun écart, aucun défaut bloquant ; des points mineurs restent.
+- **Vérification** : 15 444 tests réussis ; 314 parcours navigateur réussis au premier essai. Les deux lots sont
+  poussés sur la branche de préproduction ; rien n'est publié en production.
+- **Relecture des écrans de la première passe** : 224 défauts confirmés (21 majeurs, 203 mineurs, beaucoup comptés
+  deux fois, téléphone et ordinateur), à traiter dans des lots à venir.
+- **Vendeur** (Q7, Q63) : entrepreneur individuel, nom commercial SAUVEXPERT, et non une société. Décisions : « TVA
+  non applicable » pour l'instant, adresse publiée, ventes ouvrables sans médiateur.
+- **Ce que le wiki n'affirme pas** : qu'une règle est conforme. L'article 17-1 de la loi de 1989 n'a pas été lu ; seule
+  la fiche officielle l'a été.
+- **Contradictions relevées, à reporter dans les pages concernées lors de leur mise à jour** : (1) révision du loyer —
+  l'application retient « le premier terme qui suit la demande », la fiche officielle dit « à partir de la date de la
+  demande » ([[Révision annuelle IRL]]) ; (2) vendeur — la décision du matin et les réponses reçues parlent de « la
+  société Sauve Expert », l'avis de situation officiel montre un entrepreneur individuel ; (3) médiateur — la décision
+  du matin ouvrait les abonnements « dès que le vendeur et le médiateur sont saisis », celle du soir ouvre les ventes
+  sans médiateur, et la réponse reçue dit l'information due dès la vente à des particuliers ; (4) évaluation retirée —
+  la décision Q20 dit « le client qui a noté lit le motif », le choix appliqué est « seul l'auteur de la note » :
+  l'espace ne lit plus le motif de la note de son locataire ; (5) quittance — toujours ouverte (Q52, Q74).

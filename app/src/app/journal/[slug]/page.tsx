@@ -21,12 +21,16 @@ async function charger(slug: string) {
   const supabase = await createClient();
   // La RLS ne laisse voir que les articles parus : inutile de refiltrer ici,
   // mais on garde le filtre par sécurité si la politique changeait un jour.
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("publications")
     .select("titre, chapo, corps, publie_le, updated_at, seo_description, sources, veine, facebook_image_url, origine")
     .eq("slug", slug)
     .eq("statut", "publiee")
     .maybeSingle();
+  // Relecture du 24/11/2026 (M-c) : une lecture en erreur n'est pas un article absent. Sans cette ligne, un droit
+  // retiré au visiteur sur une seule des colonnes ci-dessus affichait « Article introuvable » pour TOUS les articles.
+  // L'erreur mène à l'écran d'erreur de l'application (src/app/error.tsx), qui propose de réessayer.
+  if (error) throw new Error("L’article n’a pas pu être lu.");
   return data;
 }
 

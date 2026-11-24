@@ -9,7 +9,10 @@ import type { ModeleSignature } from "./politique-signature";
  *  · « ouverte »        le propriétaire direct peut envoyer ce document en signature : bouton plein, placé en premier ;
  *  · « en_preparation » le service n'est pas ouvert (réglage fait à la publication) : le papier est la voie qui
  *                       fonctionne ; le bouton électronique vient après, en contour, et dit « en préparation » ;
- *  · « suspendue »      l'envoi de CE modèle est fermé (acte de cautionnement) : même présentation, dite « suspendue » ;
+ *  · « suspendue »      les NOUVEAUX envois de CE modèle sont fermés (acte de cautionnement) : même présentation. Un
+ *                       envoi déjà parti continue d'être suivi par le même bouton (le panneau lève la fermeture pour
+ *                       un circuit en préparation, en cours ou à vérifier). L'écran ne sait pas si un envoi est parti :
+ *                       ses textes sont donc écrits pour être vrais dans les deux cas (relecture du 24/11, M-d) ;
  *  · « non_proposee »   agence, ou personne qui ne peut pas demander la signature : l'écran reste celui d'AVANT la
  *                       décision (rien n'est retiré, rien n'est promis).
  *
@@ -31,7 +34,7 @@ export const LIBELLE_SIGNATURE_ELECTRONIQUE = "Signature électronique";
 export function libelleBoutonSignature(voie: VoieElectronique): string {
   if (voie === "ouverte") return LIBELLE_SIGNATURE_ELECTRONIQUE;
   if (voie === "en_preparation") return `${LIBELLE_SIGNATURE_ELECTRONIQUE} (en préparation)`;
-  if (voie === "suspendue") return `${LIBELLE_SIGNATURE_ELECTRONIQUE} (suspendue)`;
+  if (voie === "suspendue") return `${LIBELLE_SIGNATURE_ELECTRONIQUE} (nouveaux envois suspendus)`;
   return "Signature Zoho · SMS"; // le libellé d'avant la décision, inchangé pour l'agence
 }
 
@@ -44,6 +47,7 @@ export const PAPIER_TOUJOURS_POSSIBLE = "La signature sur papier reste toujours 
 export function phraseVoiesSignature(voie: VoieElectronique, papier: string): string | null {
   if (voie === "ouverte") return `La signature électronique vous est proposée en premier. ${PAPIER_TOUJOURS_POSSIBLE} : ${papier}`;
   if (voie === "en_preparation") return `La signature électronique est en préparation. Aujourd’hui, la signature se fait sur papier : ${papier}`;
-  if (voie === "suspendue") return `La signature électronique de ce document est suspendue pour le moment. La signature se fait sur papier : ${papier}`;
+  // Jamais « la signature se fait sur papier » sans condition : des invitations sont peut-être déjà parties (M-d).
+  if (voie === "suspendue") return `L’envoi de nouveaux documents en signature électronique est suspendu pour le moment ; un envoi déjà parti se suit par le bouton « ${LIBELLE_SIGNATURE_ELECTRONIQUE} ». Pour un nouveau document, la signature se fait sur papier : ${papier}`;
   return null;
 }

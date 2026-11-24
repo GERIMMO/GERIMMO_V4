@@ -11,6 +11,13 @@
  *  e. la supervision garde sa lecture tracée (`evaluations_contestation`) et n'a aucun chemin non tracé ;
  *  f. aucune règle de lecture n'est élargie ; la migration se rejoue ; son retour rend l'état d'avant.
  *
+ * Seconde reprise du lot D1 (24/11, relecture du commit 46be3a92) :
+ *  M-a. l'agent du jeu n'avait aucun portefeuille : son test comparait une liste vide à une liste vide. Il a maintenant
+ *       un mandat affecté sur le lot des dossiers, et un second agent n'en a pas : le premier lit le motif de la note
+ *       de l'agence, le second rien ;
+ *  M-b. un ANCIEN locataire (adhésion inactive ou retirée) lit encore le motif du retrait de SA note : c'est voulu
+ *       (décision du pilote du 24/11 : c'est sa propre note, et l'écran reste gardé par l'accès à l'espace).
+ *
  * Nécessite SUPABASE_DB_URL. Transaction annulée à la fin de chaque test. Le dernier bloc rejoue du DDL : le fichier
  * tourne en série (FICHIERS_EN_SERIE de vitest.config.ts).
  */
@@ -60,7 +67,7 @@ describe("motif du retrait réservé à l'auteur — manifeste et écriture de l
 describe.skipIf(!url)("motif du retrait réservé à l'auteur (avec base)", () => {
   let db: Client;
   let org = "", autreOrg = "";
-  let gerant = "", agent = "", sa = "", compteArtisan = "", locataire = "", autreLocataire = "", autreGerant = "";
+  let gerant = "", agent = "", agentHorsPortefeuille = "", sa = "", compteArtisan = "", locataire = "", autreLocataire = "", autreGerant = "";
   let artisan = "", missionLocataire = "", missionOrg = "", missionIntacte = "";
   let evalLocataire = "", evalOrg = "", contestation = "";
 
@@ -95,14 +102,20 @@ describe.skipIf(!url)("motif du retrait réservé à l'auteur (avec base)", () =
     await db.query("begin");
     org = await id("insert into public.organizations(name,status,type) values('Agence fictive du motif','active','agence') returning id");
     autreOrg = await id("insert into public.organizations(name,status,type) values('Autre agence fictive','active','agence') returning id");
-    gerant = await compte("gerant"); agent = await compte("agent"); sa = await compte("sa"); compteArtisan = await compte("artisan");
+    gerant = await compte("gerant"); agent = await compte("agent"); agentHorsPortefeuille = await compte("agenthors"); sa = await compte("sa"); compteArtisan = await compte("artisan");
     locataire = await compte("locataire"); autreLocataire = await compte("autrelocataire"); autreGerant = await compte("autregerant");
-    await db.query("insert into auth.sessions(id,user_id) select x,x from unnest($1::uuid[]) x", [[gerant, agent, sa, compteArtisan, locataire, autreLocataire, autreGerant]]);
+    await db.query("insert into auth.sessions(id,user_id) select x,x from unnest($1::uuid[]) x", [[gerant, agent, agentHorsPortefeuille, sa, compteArtisan, locataire, autreLocataire, autreGerant]]);
     await db.query(`insert into public.memberships(account_id,organization_id,role) values
-      ($1,$2,'admin_agence'),($3,$2,'agent'),($4,null,'super_admin'),($5,$2,'locataire'),($6,$2,'locataire'),($7,$8,'admin_agence')`,
-      [gerant, org, agent, sa, locataire, autreLocataire, autreGerant, autreOrg]);
+      ($1,$2,'admin_agence'),($3,$2,'agent'),($4,null,'super_admin'),($5,$2,'locataire'),($6,$2,'locataire'),($7,$8,'admin_agence'),($9,$2,'agent')`,
+      [gerant, org, agent, sa, locataire, autreLocataire, autreGerant, autreOrg, agentHorsPortefeuille]);
     const bien = await id("insert into public.biens(organization_id,nom,type,address_line1,postal_code,city) values($1,'Bien fictif','appartement','1 rue Test','75001','Paris') returning id", [org]);
     const lot = await id("insert into public.lots(organization_id,bien_id,nom,etat) values($1,$2,'Lot fictif','loue') returning id", [org, bien]);
+    // Le portefeuille (M-a) : le lot est confié par un mandat affecté à `agent`. `agentHorsPortefeuille` est agent de
+    // la même agence sans aucun mandat : ce lot, ses dossiers et leurs notes sont hors de son portefeuille.
+    const mandant = await id("insert into public.persons(organization_id,nom) values($1,'Bailleur fictif') returning id", [org]);
+    await db.query("insert into public.detentions(organization_id,lot_id,person_id,quote_part) values($1,$2,$3,100)", [org, lot, mandant]);
+    const mandat = await id("insert into public.mandats(organization_id,person_id,etat,date_debut,agent_account_id) values($1,$2,'brouillon',current_date-30,$3) returning id", [org, mandant, agent]);
+    await db.query("insert into public.mandat_lignes(organization_id,mandat_id,lot_id,taux_honoraires,date_debut) values($1,$2,$3,7,current_date-30)", [org, mandat, lot]);
     // Une seule mission vivante par incident : chaque note a donc son dossier.
     const dossier = (suffixe: string) => id(`insert into public.incidents(organization_id,numero,lot_id,canal,categorie,description,etat,imputation,imputation_justification)
       values($1,$2,$3,'agence','plomberie_canalisation','TEST fuite fictive','qualifie','proprietaire','TEST fictif') returning id`, [org, `TEST-MOTIF-${Date.now()}-${suffixe}`, lot]);
@@ -194,11 +207,34 @@ describe.skipIf(!url)("motif du retrait réservé à l'auteur (avec base)", () =
     expect(journal).toEqual([{ details: { retour_id: contestation, artisan_id: artisan } }]);
   });
 
-  it("(f) la fonction ne montre jamais plus que la règle de lecture de la table : l'agent n'y lit que ce qu'il voit déjà", async () => {
+  it("(f, M-a) l'agent lit le motif de la note de l'agence dans son portefeuille ; un agent hors portefeuille ne lit rien", async () => {
+    const notesRetireesVisibles = async () => (await db.query("select intervention_id from public.artisan_evaluations where organization_id=$1 and source='gerant' and retiree_le is not null", [org])).rows.map((r) => r.intervention_id);
+    // L'agent à qui le lot est confié : il voit la note retirée de l'agence dans la table, et lit son motif.
     await agir(agent);
-    const visibles = (await db.query("select intervention_id from public.artisan_evaluations where organization_id=$1 and source='gerant' and retiree_le is not null", [org])).rows.map((r) => r.intervention_id);
-    expect((await mesRetraits()).map((r) => r.intervention_id)).toEqual(visibles);
-    expect((await mesRetraits()).every((r) => r.source === "gerant")).toBe(true);
+    expect(await notesRetireesVisibles()).toEqual([missionOrg]);
+    expect(await mesRetraits()).toEqual([{ intervention_id: missionOrg, source: "gerant", note_globale: 2, retrait_motif: MOTIF_ORG }]);
+    // L'agent sans mandat sur ce lot : la table ne lui montre aucune note, la fonction non plus (même limite).
+    await agir(agentHorsPortefeuille);
+    expect(await notesRetireesVisibles()).toEqual([]);
+    expect((await db.query("select count(*)::int n from public.artisan_evaluations where organization_id=$1", [org])).rows[0].n).toBe(0);
+    expect(await mesRetraits()).toEqual([]);
+  });
+
+  it("(M-b) un ancien locataire lit encore le motif du retrait de SA note : choix assumé", async () => {
+    // Décision du pilote du 24/11 : la note est la sienne, il garde le droit d'en lire le motif. L'écran qui appelle
+    // la fonction, lui, reste gardé par l'accès à l'espace : sans adhésion active, il n'y entre plus.
+    // Si ce choix change un jour, ce test doit changer avec lui (et la fonction exiger une adhésion active).
+    const SA_NOTE = [{ intervention_id: missionLocataire, source: "locataire", note_globale: 1, retrait_motif: MOTIF_LOC }];
+    await db.query("update public.memberships set status='inactive' where account_id=$1", [locataire]);
+    await agir(locataire);
+    expect(await mesRetraits()).toEqual(SA_NOTE);
+    await base();
+    // Adhésion retirée (ligne créée par ce test, dans sa transaction annulée).
+    await db.query("delete from public.memberships where account_id=$1", [locataire]);
+    await agir(locataire);
+    expect(await mesRetraits()).toEqual(SA_NOTE);
+    // Il ne lit toujours rien d'autre : ni la note de l'agence, ni la table.
+    expect((await db.query("select count(*)::int n from public.artisan_evaluations")).rows[0].n).toBe(0);
   });
 
   it("(f) droits, politiques inchangées, rejeu, puis retour à l'état d'avant et nouvelle application", async () => {

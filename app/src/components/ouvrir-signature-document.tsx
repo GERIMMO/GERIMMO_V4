@@ -9,7 +9,7 @@ import { useVoieSignature } from "@/components/voies-signature";
 
 // Décision du 24/11/2026 (Q11) : la signature électronique est proposée en premier. Relecture du même jour (B1, B2) :
 // seulement à qui peut s'en servir. Voie ouverte : bouton plein « Signature électronique ». Service fermé : bouton en
-// contour, qui dit « en préparation » ou « suspendue ». Agence : le bouton d'avant, inchangé (lib/voie-signature.ts).
+// contour, qui dit « en préparation » ou « nouveaux envois suspendus ». Agence : le bouton d'avant, inchangé (lib/voie-signature.ts).
 // L'ordre à l'écran : chaque écran écrit ce bouton DEUX fois, `place="avant"` puis `place="apres"` le geste papier (PDF à
 // imprimer, grille…). Un seul des deux s'affiche : « avant » quand la voie est ouverte, « après » sinon.
 

@@ -159,7 +159,9 @@ describe("B1, B2 — le bouton et sa phrase, dans les quatre combinaisons", () =
     // Cautionnement suspendu : dit « suspendue », en contour.
     const suspendu = renderToStaticMarkup(createElement(FournisseurVoiesSignature, { voies: voies("proprietaire_direct", { ...OUVERT, ZOHO_SIGN_CAUTIONNEMENT_FERME: "true" }) },
       createElement(OuvrirSignatureDocument, { orgId: "org", selection: { code: "cautionnement", cibleId: "bail-1" } })));
-    expect(suspendu).toContain(">Signature électronique (suspendue)</button>");
+    // Seconde reprise (M-d) : le bouton ne dit plus « (suspendue) » tout court. Il ouvre aussi le suivi d'un envoi déjà
+    // parti, que la fermeture n'arrête pas : seuls les NOUVEAUX envois sont suspendus.
+    expect(suspendu).toContain(">Signature électronique (nouveaux envois suspendus)</button>");
     expect(suspendu).not.toContain(BOUTON_PLEIN);
   });
 
@@ -168,8 +170,14 @@ describe("B1, B2 — le bouton et sa phrase, dans les quatre combinaisons", () =
       .toBe("La signature électronique vous est proposée en premier. La signature sur papier reste toujours possible : déposez le document signé.");
     expect(phraseVoiesSignature("en_preparation", "déposez le document signé."))
       .toBe("La signature électronique est en préparation. Aujourd’hui, la signature se fait sur papier : déposez le document signé.");
-    expect(phraseVoiesSignature("suspendue", "déposez le document signé."))
-      .toBe("La signature électronique de ce document est suspendue pour le moment. La signature se fait sur papier : déposez le document signé.");
+    // Seconde reprise (M-d) : l'ancienne phrase (« … est suspendue pour le moment. La signature se fait sur papier ») était
+    // fausse quand un envoi était déjà parti : le panneau continue de le suivre (actions/signature-bail.ts lève la
+    // fermeture pour un circuit en préparation, en cours ou à vérifier). L'écran ne sait pas si un envoi est parti :
+    // la phrase est donc vraie dans les deux cas.
+    const suspendue = phraseVoiesSignature("suspendue", "déposez le document signé.");
+    expect(suspendue).toBe("L’envoi de nouveaux documents en signature électronique est suspendu pour le moment ; un envoi déjà parti se suit par le bouton « Signature électronique ». Pour un nouveau document, la signature se fait sur papier : déposez le document signé.");
+    // Elle n'affirme plus, sans condition, que la signature se fait sur papier.
+    expect(suspendue).not.toMatch(/(^|\. )La signature se fait sur papier/);
     expect(phraseVoiesSignature("non_proposee", "déposez le document signé.")).toBeNull();
     // Service fermé : aucune phrase ne dit que l'électronique est « proposée en premier ».
     expect(phraseVoiesSignature("en_preparation", "x")).not.toMatch(/proposée en premier/);

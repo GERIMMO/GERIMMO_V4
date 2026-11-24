@@ -281,6 +281,9 @@ const MISSION_OCTOBRE = [
   // suivante (calcul sur un an, indice de l'année précédente exigé) ; terme rattrapé après un avenant ; demande antidatée ;
   // bail terminé ; le locataire lit les révisions de son bail.
   "20261124130000_revision_loyer_reprise_d2.sql",
+  // 24/11, décisions du dirigeant (lot D1, seconde reprise, C1) : l'export complet d'un espace retrouve la table des notes
+  // d'artisans (droit de lecture par colonne), sans le motif du retrait.
+  "20261124140000_export_droits_par_colonne.sql",
 
 
 ];

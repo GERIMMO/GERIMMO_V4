@@ -1,6 +1,9 @@
 /**
  * Plan de conformité du 23/10/2026, R49 : l'archive complète d'un espace (lib/zip.ts, lib/export-complet*.ts, route
  * /agence/[orgId]/export-complet). Sans base : la base, le stockage et la session sont des doublures. Aucune adresse réelle.
+ * Le CONTENU de l'archive tel que la base le prépare (tables et colonnes rendues au demandeur) se teste avec la base :
+ * tests/fermeture-comptes-base.test.ts, et tests/export-droits-par-colonne-base.test.ts pour les tables lues colonne par
+ * colonne (la table des notes d'artisans y est présente, sans le motif du retrait — relecture du 24/11, C1).
  */
 import { crc32, inflateRawSync } from "node:zlib";
 import { describe, expect, it } from "vitest";

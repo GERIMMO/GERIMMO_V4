@@ -552,3 +552,4 @@
 20261124110000_publications_origine.sql
 20261124120000_motif_retrait_reserve_a_l_auteur.sql
 20261124130000_revision_loyer_reprise_d2.sql
+20261124140000_export_droits_par_colonne.sql

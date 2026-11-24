@@ -6,8 +6,9 @@
 //  · R05 — la phrase du médiateur, à la confirmation et à la clôture d'une réclamation.
 //
 // Décision du dirigeant du 23/10 (médiateur non bloquant) : rien n'attend le médiateur. Ses coordonnées s'affichent si
-// elles sont saisies ; sinon la phrase dit exactement « Médiateur de la consommation : adhésion en cours ; ses
-// coordonnées figureront dans les mentions légales dès qu'elle sera effective. »
+// elles sont saisies ; sinon (décision du 24/11/2026, Q7 : aucun médiateur n'est désigné, et rien n'établit
+// une adhésion « en cours ») la phrase dit exactement « Médiateur de la consommation : aucun n'est désigné à ce jour ;
+// ses coordonnées figureront dans les mentions légales dès sa désignation. »
 //
 // Numéros d'articles : seuls ceux qui existent avec ce sens dans la version en vigueur des conditions sont cités
 // (relecture adverse du 24/10, M3) — l'article 8.10 (« Rétractation », avec son formulaire) et, depuis la V1 du
@@ -25,9 +26,12 @@ import { euros, formuleParCode, type Periodicite, type RegimeTva } from "@/lib/t
 export type Courrier = { sujet: string; html: string };
 type Faits = Record<string, string | null | undefined>;
 
-/** La phrase exacte du médiateur tant que l'adhésion n'est pas saisie (décision du dirigeant du 23/10). */
-export const PHRASE_MEDIATEUR_EN_COURS =
-  "Médiateur de la consommation : adhésion en cours ; ses coordonnées figureront dans les mentions légales dès qu'elle sera effective.";
+/**
+ * La phrase exacte du médiateur tant qu'il n'est pas saisi. Décision du dirigeant du 24/11/2026 (Q7) : aucun médiateur
+ * n'est désigné ; l'ancienne phrase (« adhésion en cours », décision du 23/10) affirmait une démarche que rien n'établit.
+ */
+export const PHRASE_MEDIATEUR_NON_DESIGNE =
+  "Médiateur de la consommation : aucun n'est désigné à ce jour ; ses coordonnées figureront dans les mentions légales dès sa désignation.";
 
 /** « Nom, adresse, site » du médiateur, s'il est saisi (le nom désigne l'organisme, comme sur les pages légales). */
 export function coordonneesMediateur(editeur: Faits): string | null {
@@ -41,7 +45,7 @@ export function phraseMediationConfirmation(editeur: Faits): string {
   const c = coordonneesMediateur(editeur);
   return c
     ? `Médiation : en cas de litige non résolu après une réclamation écrite, vous pouvez saisir gratuitement le médiateur de la consommation : ${c}.`
-    : PHRASE_MEDIATEUR_EN_COURS;
+    : PHRASE_MEDIATEUR_NON_DESIGNE;
 }
 
 /** R05 : la phrase ajoutée à la réponse qui clôt une réclamation. */
@@ -49,7 +53,7 @@ export function phraseMediateurReclamation(editeur: Faits): string {
   const c = coordonneesMediateur(editeur);
   return c
     ? `Si cette réponse ne vous satisfait pas, vous pouvez saisir gratuitement le médiateur de la consommation : ${c}.`
-    : PHRASE_MEDIATEUR_EN_COURS;
+    : PHRASE_MEDIATEUR_NON_DESIGNE;
 }
 
 /** « Prénom Nom EI — adresse — contact — téléphone », sans les faits non saisis. */

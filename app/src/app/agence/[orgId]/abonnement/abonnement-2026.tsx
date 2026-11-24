@@ -16,6 +16,7 @@ import { DetailMontants, FormulaireSouscription } from "./formulaire-souscriptio
 import { REGIME_TVA } from "@/lib/editeur";
 import { nouvellesSouscriptionsFermees, MESSAGE_SOUSCRIPTIONS_FERMEES } from "@/lib/verrou-pilote";
 import { motifIdentiteEditeur } from "@/lib/garde-souscription";
+import { PHRASE_MEDIATEUR_NON_DESIGNE } from "@/lib/courriers-contrat";
 import { lireGardeSouscription, motifArchiveCommande } from "@/lib/garde-souscription-serveur";
 import { verifierAccesEspace } from "@/lib/espace";
 import { formaterDate } from "@/lib/ged";
@@ -561,9 +562,13 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
             <h2 id="choisir-abonnement">{!estAgence && motifSouscription ? "Votre offre Gerimmo" : ferme ? "Reprendre avec un abonnement" : "Souscrire à Gerimmo"}</h2>
             {!estAgence && <p>Le montant dépend du nombre de biens que vous gérez dans cet espace et de la périodicité choisie.</p>}
           </div>
-          {!estAgence && garde.editeur.mediateurNom && garde.editeur.mediateurAdresse && garde.editeur.mediateurSite && (
+          {/* Décision du dirigeant du 24/11/2026 (Q7) : la vente s'ouvre sans médiateur ; avant de payer, le particulier
+              lit alors qu'aucun n'est désigné — la même phrase que dans le courriel de confirmation. */}
+          {!estAgence && (garde.editeur.mediateurNom && garde.editeur.mediateurAdresse && garde.editeur.mediateurSite ? (
             <p className="text-sm">Médiateur de la consommation : {garde.editeur.mediateurNom}, {garde.editeur.mediateurAdresse}. Site : {garde.editeur.mediateurSite}. <Link href="/conditions" className="lien-texte">Consulter les modalités de recours</Link>.</p>
-          )}
+          ) : (
+            <p className="text-sm">{PHRASE_MEDIATEUR_NON_DESIGNE}</p>
+          ))}
           <FormulaireSouscription
             orgId={orgId}
             publicTarif={publicTarif}

@@ -6,6 +6,10 @@ import { rendreServeur } from "./fixtures/rendu-serveur";
  *  — /admin/sante : « le paiement en ligne reste fermé » seulement si la règle de blocage est active ;
  *  — /admin/parametres : « L'identité est complète » ne s'affiche plus quand le médiateur manque ; la carte nomme
  *    les faits à compléter au lieu d'un « médiateur » écrit en dur (seconde relecture du 23/10).
+ * Lot D7 (décision du dirigeant du 24/11/2026, Q7 : « on peut ouvrir les ventes même sans » médiateur) : la carte
+ * disait « Pour un particulier, les coordonnées du médiateur restent requises avant une première commande » — ce
+ * n'est plus vrai, et les attentes ci-dessous sont mises à jour ; règle levée, la première souscription d'un
+ * particulier reste fermée sans vendeur, ce que /admin/sante dit désormais.
  * Aucune donnée réelle : des valeurs fictives.
  */
 import { createElement } from "react";
@@ -91,7 +95,7 @@ describe("/admin/sante : documents légaux", () => {
     expect(t).not.toContain("le paiement en ligne reste fermé");
     // Exact : la règle levée ne ferme plus rien, mais d'autres gardes (Stripe, TVA) peuvent encore fermer le paiement.
     expect(t).toContain(
-      "Le blocage des abonnements est levé dans les paramètres : ces manques ne ferment plus le paiement en ligne.",
+      "Le blocage des abonnements est levé dans les paramètres : ces manques ne ferment plus les augmentations payantes ; la première souscription d’un particulier reste fermée.",
     );
   });
 });
@@ -101,8 +105,10 @@ describe("/admin/parametres : carte « Blocage des abonnements »", () => {
     const t = texte(renderToStaticMarkup(await PageParametres()));
     expect(t).not.toContain("L’identité est complète");
     expect(t).toContain(
-      "L’identité requise est complète ; reste à compléter pour une première souscription particulière : le médiateur de la consommation, l'adresse du médiateur, le site du médiateur.",
+      "L’identité requise est complète ; reste à compléter, sans rien bloquer : le médiateur de la consommation, l'adresse du médiateur, le site du médiateur.",
     );
+    expect(t).not.toContain("restent requises avant une première commande");
+    expect(t).toContain("Le médiateur de la consommation ne bloque rien");
     expect(t).toContain("8 / 11 fournis");
   });
 
@@ -113,16 +119,16 @@ describe("/admin/parametres : carte « Blocage des abonnements »", () => {
     expect(t).not.toContain("reste à compléter");
     // Seconde relecture du 23/10 : la règle active disait « Le médiateur, à compléter, ne bloque rien » même complet.
     expect(t).not.toContain("Le médiateur, à compléter");
-    expect(t).toContain("Pour un particulier, les coordonnées du médiateur restent requises avant une première commande.");
+    expect(t).not.toContain("restent requises avant une première commande");
   });
 
   it("seul le site du médiateur manque : la carte le nomme, sans dire le médiateur entier à compléter", () => {
     const t = texte(renderToStaticMarkup(createElement(BlocageSouscription, {
       actif: true, revision: 1, manquants: [], aCompleter: ["le site du médiateur"],
     })));
-    expect(t).toContain("L’identité requise est complète ; reste à compléter pour une première souscription particulière : le site du médiateur.");
+    expect(t).toContain("L’identité requise est complète ; reste à compléter, sans rien bloquer : le site du médiateur.");
     expect(t).not.toContain("le médiateur reste à compléter");
-    expect(t).toContain("Pour un particulier, les coordonnées du médiateur restent requises avant une première commande.");
+    expect(t).not.toContain("restent requises avant une première commande");
   });
 
   it("un fait requis manque : la liste des faits requis, sans parler d'identité complète", () => {
@@ -132,5 +138,12 @@ describe("/admin/parametres : carte « Blocage des abonnements »", () => {
     expect(t).toContain("À compléter : le téléphone de contact. Lever ce blocage ne complète pas les mentions légales.");
     expect(t).not.toContain("identité requise est complète");
     expect(t).not.toContain("L’identité est complète");
+  });
+
+  it("règle levée : la carte dit que la première souscription d'un particulier reste fermée sans vendeur", () => {
+    const t = texte(renderToStaticMarkup(createElement(BlocageSouscription, {
+      actif: false, revision: 1, manquants: ["le téléphone de contact"], aCompleter: [],
+    })));
+    expect(t).toContain("La première souscription d’un particulier reste fermée tant que l’identité du vendeur est incomplète.");
   });
 });

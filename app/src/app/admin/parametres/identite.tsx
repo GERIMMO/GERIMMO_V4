@@ -6,8 +6,8 @@ import { enregistrerIdentite } from "@/app/actions/identite-editeur";
 import { ConsoleSection } from "@/components/console-section";
 
 const GROUPES = [
-  { titre: "Contact et entreprise", description: "Les coordonnées affichées à vos utilisateurs.", champs: ["denomination", "email", "telephone", "siege", "forme", "siret", "rcs", "directeurPublication", "capital", "tvaIntracommunautaire"] },
-  { titre: "Médiateur de la consommation", description: "Après signature de la convention, saisissez le nom, l’adresse postale et le site officiel du médiateur désigné. Ces coordonnées seront affichées dans les mentions légales et les conditions.", champs: ["mediateurNom", "mediateurAdresse", "mediateurSite"] },
+  { titre: "Contact et entreprise", description: "Les coordonnées affichées à vos utilisateurs. Elles doivent être complètes pour ouvrir les souscriptions payantes. Entrepreneur individuel : nom et prénom suivis de « EI », forme « Entrepreneur individuel », capital laissé vide.", champs: ["denomination", "email", "telephone", "siege", "forme", "siret", "rcs", "directeurPublication", "capital", "tvaIntracommunautaire"] },
+  { titre: "Médiateur de la consommation", description: "Facultatif pour ouvrir les souscriptions : tant que ces champs sont vides, les pages légales et les courriels disent qu’aucun médiateur n’est désigné. Après signature de la convention, saisissez le nom, l’adresse postale et le site officiel du médiateur désigné. Ces coordonnées seront affichées dans les mentions légales et les conditions.", champs: ["mediateurNom", "mediateurAdresse", "mediateurSite"] },
   { titre: "Prestataires", description: "Coordonnées et localisation des services utilisés par Gerimmo.", champs: Object.keys(CHAMPS_PRESTATAIRES) },
 ];
 

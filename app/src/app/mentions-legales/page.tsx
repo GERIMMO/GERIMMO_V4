@@ -1,7 +1,7 @@
 import { lireEditeur } from "@/lib/editeur-serveur";
 import Link from "next/link";
 import { Article, CoordonneesMediateur, CoquilleLegale, Fait } from "@/components/coquille-legale";
-import { courrielDeContact, documentsIncomplets, estEntrepreneurIndividuel, REGIME_TVA, prestatairesAvecFaits, prestatairesIncomplets } from "@/lib/editeur";
+import { courrielDeContact, documentsIncomplets, estEntrepreneurIndividuel, REGIME_TVA, prestatairesAvecFaits, prestatairesIncomplets, sirenEtSiret } from "@/lib/editeur";
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
 
 export const metadata = metadonneesPubliques({
@@ -12,11 +12,15 @@ export const metadata = metadonneesPubliques({
 
 // Les informations d'identification restent celles saisies dans les paramètres.
 // Les autres prestataires et les traitements sont détaillés dans la confidentialité.
-// Référence : Service Public, F37351, vérifiée le 13/10/2026.
+// Référence : Service Public, F37351, vérifiée le 13/10/2026 ; relue le 24/11/2026 (décision Q7 : le vendeur est un
+// entrepreneur individuel — nom et prénom accompagnés de « EI », adresse de l'entreprise, immatriculation ; pas de
+// capital). Le SIREN et le SIRET saisis s'affichent (ils ne l'étaient nulle part). Le médiateur de la consommation
+// n'est pas désigné : la page le dit, sans promettre un recours qui n'existe pas encore.
 export default async function PageMentionsLegales() {
   const { editeur: EDITEUR, indisponible } = await lireEditeur();
   const hebergeurs = prestatairesAvecFaits(EDITEUR).filter((p) => p.cle === "vercel" || p.cle === "supabase");
   const individuel = estEntrepreneurIndividuel(EDITEUR);
+  const numeros = sirenEtSiret(EDITEUR.siret);
   return (
     <CoquilleLegale
       titre="Mentions légales"
@@ -32,6 +36,9 @@ export default async function PageMentionsLegales() {
             ...(individuel ? [] : [["Capital social", <Fait key="c" valeur={EDITEUR.capital} quoi="capital social" />]]),
             ["Adresse", <Fait key="s" valeur={EDITEUR.siege} quoi="adresse de l’entreprise" />],
             ["Immatriculation", <Fait key="r" valeur={EDITEUR.rcs} quoi="immatriculation au RNE ou au RCS" />],
+            ...(numeros
+              ? [["SIREN", numeros.siren], ["SIRET", numeros.siret]]
+              : [["SIRET", <Fait key="siret" valeur={EDITEUR.siret} quoi="SIRET" />]]),
             ...(REGIME_TVA?.nature === "franchise" ? [["TVA", "TVA non applicable, article 293 B du CGI"]] : []),
             ...(EDITEUR.tvaIntracommunautaire || REGIME_TVA?.nature !== "franchise" ? [["TVA intracommunautaire", <Fait key="t" valeur={EDITEUR.tvaIntracommunautaire} quoi="numéro de TVA" />]] : []),
             ["Publication", <span key="dp">Directeur : <Fait valeur={EDITEUR.directeurPublication} quoi="directeur de la publication" /></span>],
@@ -64,9 +71,12 @@ export default async function PageMentionsLegales() {
         {EDITEUR.mediateurNom ? (
           <CoordonneesMediateur editeur={EDITEUR} />
         ) : (
-          <p>Adhésion à venir : aucun organisme n’est désigné à ce jour.</p>
+          <>
+            <p>Médiateur de la consommation : aucun organisme n’est désigné à ce jour. Ses coordonnées seront publiées sur cette page dès sa désignation.</p>
+            <p>En attendant, toute réclamation s’adresse par écrit à l’éditeur, à l’adresse de contact ci-dessus ou depuis la page « Aide et retours » de l’application.</p>
+          </>
         )}
-        <p>Après une réclamation écrite, le consommateur peut recourir gratuitement à un médiateur compétent.</p>
+        {EDITEUR.mediateurNom && <p>Après une réclamation écrite, le consommateur peut recourir gratuitement à un médiateur compétent.</p>}
       </Article>
 
       <nav aria-label="Informations juridiques complémentaires" className="flex flex-wrap gap-x-6">

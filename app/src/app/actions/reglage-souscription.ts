@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { faitsManquants } from "@/lib/editeur";
+import { lireEditeur } from "@/lib/editeur-serveur";
 
 type Etat = { erreur?: string; succes?: string };
 
@@ -28,6 +30,13 @@ async function enregistrer(form: FormData, regle: "identite" | "ventes"): Promis
   }
   const actif = choix === "activer";
   if (ventes && choix === "ouvrir" && form.get("confirmation") !== "oui") return { erreur: "Confirmez l’ouverture des souscriptions." };
+  // Décision du dirigeant du 24/11/2026 (Q7) : les ventes s'ouvrent sans médiateur de la consommation, mais pas sans
+  // vendeur. L'ouverture est refusée tant qu'un fait requis de l'identité manque, ou que sa lecture échoue.
+  if (ventes && choix === "ouvrir") {
+    const { editeur, indisponible } = await lireEditeur();
+    const manquants = indisponible ? ["l’identité du vendeur (lecture impossible)"] : faitsManquants(editeur);
+    if (manquants.length) return { erreur: `Les souscriptions ne peuvent pas s’ouvrir : l’identité du vendeur est incomplète. À compléter : ${manquants.join(", ")}.` };
+  }
   const changement = ventes ? { souscriptions_payantes_ouvertes: choix === "ouvrir" } : { blocage_souscription_identite: actif };
   const saved = await db.from("supervision_identite")
     .update({ ...changement, revision: revision + 1 })
@@ -43,5 +52,5 @@ async function enregistrer(form: FormData, regle: "identite" | "ventes"): Promis
   if (ventes) return { succes: choix === "ouvrir" ? "Ouverture enregistrée. Les contrôles avant paiement s’appliquent." : "Les nouvelles souscriptions sont fermées." };
   return { succes: actif
     ? "Blocage réactivé : les informations manquantes empêchent à nouveau les nouvelles souscriptions et les augmentations payantes."
-    : "Blocage levé : les informations manquantes n’empêchent plus les nouvelles souscriptions ni les augmentations payantes. Les autres contrôles restent actifs." };
+    : "Blocage levé : les informations manquantes n’empêchent plus les augmentations payantes. La première souscription d’un particulier reste fermée tant que l’identité du vendeur est incomplète. Les autres contrôles restent actifs." };
 }

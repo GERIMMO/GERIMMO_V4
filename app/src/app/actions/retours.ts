@@ -36,8 +36,8 @@ export async function deciderRetour(id:string,version:number,_etat:EtatRetour,fd
  if(acces||sa!==true)return{erreur:"Accès réservé à la supervision Gerimmo."};
  const decision=String(fd.get('etat')??'');
  let reponse=String(fd.get('reponse')??'');
- // Plan du 23/10 (R05) : la réponse qui clôt une réclamation renvoie au médiateur de la consommation (ou dit que
- // l'adhésion est en cours, tant que ses coordonnées ne sont pas saisies). La nature est relue en base.
+ // Plan du 23/10 (R05) : la réponse qui clôt une réclamation renvoie au médiateur de la consommation (ou dit
+ // qu'aucun n'est désigné, tant que ses coordonnées ne sont pas saisies : décision du 24/11/2026, Q7). La nature est relue en base.
  if(decision==='resolu'){
   const{data:lu,error:lecture}=await c.from('retours_utilisateurs').select('nature').eq('id',id).maybeSingle();
   if(lecture)return{erreur:"La demande n’a pas pu être relue. Réessayez."};

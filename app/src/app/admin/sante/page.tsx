@@ -359,7 +359,7 @@ export default async function PageSante() {
                 ? "L’identité requise est complète : le paiement en ligne n’en dépend plus. Les faits « à compléter » s’affichent « à venir » sur les mentions légales, sans rien fermer."
                 : regle.blocageIdentiteActif
                   ? "Tant qu’un fait « manquant » n’est pas fourni, les pages légales affichent l’encadré « Document en cours de finalisation » et le paiement en ligne reste fermé."
-                  : "Tant qu’un fait « manquant » n’est pas fourni, les pages légales affichent l’encadré « Document en cours de finalisation ». Le blocage des abonnements est levé dans les paramètres : ces manques ne ferment plus le paiement en ligne."}
+                  : "Tant qu’un fait « manquant » n’est pas fourni, les pages légales affichent l’encadré « Document en cours de finalisation ». Le blocage des abonnements est levé dans les paramètres : ces manques ne ferment plus les augmentations payantes ; la première souscription d’un particulier reste fermée."}
             </p>
             <ul className="mt-3 divide-y divide-[var(--filet)]">
               {faitsExiges.map((fait) => {

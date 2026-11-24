@@ -11,7 +11,7 @@
  */
 import { describe, expect, it } from "vitest";
 import {
-  PHRASE_MEDIATEUR_EN_COURS,
+  PHRASE_MEDIATEUR_NON_DESIGNE,
   courrierAccuseResiliation,
   courrierAccuseRetractation,
   courrierConfirmationSouscription,
@@ -89,16 +89,19 @@ describe("R03 — la confirmation de la souscription", () => {
     expect(t).toContain("Durée : douze mois, reconduits tacitement ; nous vous écrirons entre trois mois et un mois avant chaque échéance.");
   });
 
-  it("décision du 23/10 : sans médiateur saisi, la phrase exacte de l'adhésion en cours ; saisi, ses coordonnées", () => {
-    expect(texte(courrierConfirmationSouscription(confirmation()).html)).toContain(PHRASE_MEDIATEUR_EN_COURS);
-    expect(PHRASE_MEDIATEUR_EN_COURS).toBe(
-      "Médiateur de la consommation : adhésion en cours ; ses coordonnées figureront dans les mentions légales dès qu'elle sera effective."
+  // Lot D7 (décision du dirigeant du 24/11/2026, Q7) : ce test figeait « adhésion en cours ; … dès qu'elle sera
+  // effective ». Aucun médiateur n'est désigné et rien n'établit une adhésion en cours : la phrase dit ce qui est vrai.
+  it("décision du 24/11 : sans médiateur saisi, la phrase exacte « aucun n'est désigné » ; saisi, ses coordonnées", () => {
+    expect(texte(courrierConfirmationSouscription(confirmation()).html)).toContain(PHRASE_MEDIATEUR_NON_DESIGNE);
+    expect(PHRASE_MEDIATEUR_NON_DESIGNE).toBe(
+      "Médiateur de la consommation : aucun n'est désigné à ce jour ; ses coordonnées figureront dans les mentions légales dès sa désignation."
     );
     const avec = texte(courrierConfirmationSouscription(confirmation({ editeur: AVEC_MEDIATEUR })).html);
     expect(avec).toContain(
       "Médiation : en cas de litige non résolu après une réclamation écrite, vous pouvez saisir gratuitement le médiateur de la consommation : Médiateur fictif, 2 rue Exemple, 75000 Paris, https://mediateur.example.invalid."
     );
     expect(avec).not.toContain("adhésion en cours");
+    expect(avec).not.toContain("aucun n'est désigné");
   });
 
   it("le formulaire de rétractation de la version en vigueur suit, mot pour mot, puis l'identité de l'éditeur", () => {
@@ -201,11 +204,11 @@ describe("R01, R37 — l'accusé de la rétractation", () => {
 });
 
 describe("R05 — la phrase du médiateur à la clôture d'une réclamation", () => {
-  it("coordonnées si saisies, sinon la phrase exacte de l'adhésion en cours", () => {
+  it("coordonnées si saisies, sinon la phrase exacte « aucun n'est désigné » (lot D7, 24/11)", () => {
     expect(phraseMediateurReclamation(AVEC_MEDIATEUR)).toBe(
       "Si cette réponse ne vous satisfait pas, vous pouvez saisir gratuitement le médiateur de la consommation : Médiateur fictif, 2 rue Exemple, 75000 Paris, https://mediateur.example.invalid."
     );
-    expect(phraseMediateurReclamation(EDITEUR)).toBe(PHRASE_MEDIATEUR_EN_COURS);
+    expect(phraseMediateurReclamation(EDITEUR)).toBe(PHRASE_MEDIATEUR_NON_DESIGNE);
   });
 });
 

@@ -732,14 +732,23 @@ export default async function PageConfidentialite() {
             après la fin de l'exercice de la facture, à défaut après la fin du dernier abonnement payé
             (echeance_facture_archivee, règle archive:facture) ; la déclaration de rétractation survit à la fermeture,
             détachée de l'espace (retractations_abonnement.organization_id en « set null », règle contrat:retractation) ;
-            le client Stripe est supprimé au terme de ses factures (clients_stripe_au_terme). */}
+            le client Stripe est supprimé au terme de ses factures (clients_stripe_au_terme).
+            Phase 3, défaut E141 (corrigé avec le lot D7, 24/11/2026) : la phrase promettait à tous un téléchargement
+            que seul le titulaire d'un espace trouve sur « Mes données personnelles » (archive complète) ; un locataire
+            n'y trouve que la demande « Recevoir une copie de mes données » et le renvoi vers son bailleur. Le texte
+            dit ce que la page fait ; aucune fonction n'est ajoutée. La page ne nomme que le bailleur : la V1 n'a plus
+            d'agence cliente (tests/confidentialite-v1.test.ts). */}
         <p>
           <b className="font-semibold">Fermeture de votre compte.</b> Vous pouvez
           demander la fermeture de votre compte depuis la page{" "}
           <Link href="/compte/donnees" className="lien-texte">
             « Mes données personnelles »
           </Link>
-          , après avoir téléchargé vos données si vous le souhaitez. Si un
+          , après avoir récupéré vos données si vous le souhaitez : le
+          titulaire d&apos;un espace y télécharge son archive complète ; les
+          autres comptes y demandent une copie des données de leur compte
+          (« Recevoir une copie de mes données ») et s&apos;adressent à leur
+          bailleur pour les données d&apos;une location. Si un
           abonnement payé est en cours, vous choisissez : la fermeture à la fin
           de la période déjà payée, ou une fermeture quatorze jours après votre
           confirmation, avec le remboursement de la part non utilisée de cette

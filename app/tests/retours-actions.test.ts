@@ -49,9 +49,9 @@ describe("plan du 23/10 (R05) : la réclamation et le médiateur de la consommat
   expect(await deciderRetour("id",1,{},decision("resolu"))).toHaveProperty("succes");
   expect(reponseEnvoyee()).toBe("Nous avons corrigé votre facture.\n\nSi cette réponse ne vous satisfait pas, vous pouvez saisir gratuitement le médiateur de la consommation : Médiateur de test, 1 rue Exemple, Paris, https://example.test/mediateur.");
  });
- it("sans médiateur saisi (décision du 23/10, non bloquant) : la phrase de l'adhésion en cours", async () => {
+ it("sans médiateur saisi (non bloquant ; lot D7, décision du 24/11 : aucun n'est désigné, l'ancienne phrase « adhésion en cours » n'était pas établie)", async () => {
   await deciderRetour("id",1,{},decision("resolu"));
-  expect(reponseEnvoyee()).toBe("Nous avons corrigé votre facture.\n\nMédiateur de la consommation : adhésion en cours ; ses coordonnées figureront dans les mentions légales dès qu'elle sera effective.");
+  expect(reponseEnvoyee()).toBe("Nous avons corrigé votre facture.\n\nMédiateur de la consommation : aucun n'est désigné à ce jour ; ses coordonnées figureront dans les mentions légales dès sa désignation.");
  });
  it("seulement à la clôture d'une réclamation : ni en cours, ni pour une autre nature", async () => {
   await deciderRetour("id",1,{},decision("en_cours"));

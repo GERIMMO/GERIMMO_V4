@@ -34,6 +34,8 @@ const mocks = vi.hoisted(() => ({
   /** Vrai si le compte a une acceptation enregistrée pour la version en vigueur des conditions. */
   conditionsAcceptees: true,
   blocageIdentiteActif: true,
+  /** L'identité rangée avec la version archivée des conditions ; `null` : celle de l'éditeur complet. */
+  archive: null as Record<string, string | null> | null,
 }));
 vi.mock("@/lib/espace", () => ({
   verifierAccesEspace: async () => ({
@@ -46,7 +48,7 @@ vi.mock("@/lib/espace", () => ({
           order: () => q,
           limit: () => q,
           maybeSingle: async () => ({
-            data: table === "versions_conditions" ? { identite_editeur: EDITEUR_COMPLET } : table === "acceptations_cgu" && mocks.conditionsAcceptees ? { id: "acceptation-1" } : null,
+            data: table === "versions_conditions" ? { identite_editeur: mocks.archive ?? EDITEUR_COMPLET } : table === "acceptations_cgu" && mocks.conditionsAcceptees ? { id: "acceptation-1" } : null,
             error: null,
           }),
         };
@@ -245,14 +247,31 @@ describe("garde de souscription à l’écran « Mon abonnement »", () => {
     expect(html).not.toContain(MOTIF_IDENTITE_HORS_ESSAI_HTML);
     expect(html).not.toContain("Continuer vers le paiement sécurisé");
   });
-  it("simulation : même si le réglage général est levé, sans médiateur le paiement reste fermé", async () => {
+  // Lot D7 (décision du dirigeant du 24/11/2026, Q7 : les ventes s'ouvrent sans médiateur, pas sans vendeur). Ce test
+  // affirmait que, règle levée, le MÉDIATEUR manquant fermait le paiement. C'est désormais l'identité du VENDEUR qui
+  // ferme la première souscription d'un particulier, règle levée ou non ; le médiateur ne ferme plus rien.
+  it("simulation : même si le réglage général est levé, sans vendeur le paiement reste fermé", async () => {
     mocks.stripePret = true;
     mocks.editeur = { editeur: EDITEUR_VIDE, indisponible: false };
     mocks.blocageIdentiteActif = false;
     mocks.conditionsAcceptees = false;
     const html = await rendre();
-    expect(html).toContain("coordonnées du médiateur de la consommation");
+    expect(html).toContain(MOTIF_IDENTITE_HORS_ESSAI_HTML);
+    expect(html).not.toContain("coordonnées du médiateur de la consommation");
     expect(html).not.toContain("Continuer vers le paiement sécurisé");
+  });
+  it("lot D7 : vendeur complet, médiateur non saisi — le paiement s'ouvre et l'écran dit qu'aucun médiateur n'est désigné", async () => {
+    mocks.stripePret = true;
+    const sansMediateur = { ...EDITEUR_COMPLET, mediateurNom: null, mediateurAdresse: null, mediateurSite: null };
+    mocks.editeur = { editeur: sansMediateur, indisponible: false };
+    // La version archivée des conditions porte la même identité (sans médiateur) : la commande n'attend rien d'autre.
+    mocks.archive = sansMediateur;
+    let html: string;
+    try { html = await rendre(); } finally { mocks.archive = null; }
+    expect(html).not.toContain(MOTIF_IDENTITE_HORS_ESSAI_HTML);
+    expect(html).not.toContain("coordonnées du médiateur de la consommation");
+    expect(html.replace(/&#x27;/g, "'")).toContain("Médiateur de la consommation : aucun n'est désigné à ce jour ; ses coordonnées figureront dans les mentions légales dès sa désignation.");
+    expect(html).toContain("Continuer vers le paiement sécurisé");
   });
   it("pilote gratuit : même avec Stripe prêt, médiateur et conditions acceptées, aucune commande", async () => {
     vi.stubEnv("GERIMMO_MODE", "commercial");

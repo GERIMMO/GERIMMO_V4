@@ -178,10 +178,15 @@ describe("/confidentialite (lot 4)", () => {
   });
 });
 
-describe("mentions légales (lot 4 : aucun changement de texte)", () => {
-  it("le médiateur manquant s'y dit « Adhésion à venir », sans fermer la vente", async () => {
+// Lot D7 (décision du dirigeant du 24/11/2026, Q7) : ce test figeait « Adhésion à venir : aucun organisme n'est désigné
+// à ce jour. ». Le texte change : il ne suppose plus une adhésion, il dit qu'aucun médiateur n'est désigné, que ses
+// coordonnées seront publiées à sa désignation, et où adresser une réclamation en attendant.
+describe("mentions légales (lot D7 : le médiateur non désigné)", () => {
+  it("le médiateur manquant s'y dit « aucun organisme n'est désigné », sans fermer la vente ni promettre un recours", async () => {
     const page = texte(renderToStaticMarkup(await Mentions()));
-    expect(page).toContain("Adhésion à venir : aucun organisme n’est désigné à ce jour.");
+    expect(page).toContain("Médiateur de la consommation : aucun organisme n’est désigné à ce jour. Ses coordonnées seront publiées sur cette page dès sa désignation.");
+    expect(page).not.toContain("Adhésion à venir");
+    expect(page).not.toContain("peut recourir gratuitement à un médiateur compétent");
     expect(page).not.toMatch(/vente (?:est )?fermée|fermée faute de médiateur/i);
   });
 });

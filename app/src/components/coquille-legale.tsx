@@ -46,7 +46,7 @@ export function Fait({ valeur, quoi }: { valeur: FaitEditeur; quoi: string }) {
  * coordonnées ne s'affichent que si son nom est saisi : une adresse ou un site
  * sans nom ne désigne aucun organisme, et les conditions les montraient alors
  * que les mentions disaient « aucun organisme n'est désigné ». Sans nom, rien :
- * chaque page dit l'adhésion à venir dans sa propre phrase.
+ * chaque page dit dans sa propre phrase qu'aucun médiateur n'est désigné.
  */
 export function CoordonneesMediateur({ editeur }: { editeur: Record<string, FaitEditeur> }) {
   if (!editeur.mediateurNom) return null;

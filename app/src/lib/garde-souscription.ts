@@ -6,8 +6,14 @@
 // les MÊMES phrases :
 //  1. l'identité de l'éditeur est complète — les faits requis de
 //     lib/editeur.ts, lus dans `supervision_identite` par-dessus le code
-//     (lib/editeur-serveur.ts). Le superadmin peut lever ce seul contrôle
-//     depuis les paramètres ; le serveur lit cette décision en base.
+//     (lib/editeur-serveur.ts). Le superadmin peut lever ce contrôle depuis
+//     les paramètres pour une hausse de capacité ; le serveur lit cette
+//     décision en base. Pour la PREMIÈRE souscription d'un particulier, il ne
+//     se lève pas : pas de vente à un consommateur sans vendeur identifié
+//     (décision du dirigeant du 24/11/2026, Q7).
+//     Le médiateur de la consommation ne ferme plus rien (même décision :
+//     « on peut ouvrir les ventes même sans ce dernier ») : tant qu'il n'est
+//     pas saisi, les pages et les courriers disent qu'il n'est pas désigné.
 //  2. le compte qui clique a accepté LA VERSION EN VIGUEUR des conditions
 //     générales (`acceptations_cgu`, ajout seul). Exigée pour la souscription
 //     initiale seulement (arbitrage du 19/10) : une hausse de capacité porte
@@ -59,18 +65,17 @@ export const ERREUR_ACCEPTATION_CONDITIONS =
 export type ContexteGarde = { enEssai: boolean; blocageIdentiteActif?: boolean; nouvelleSouscriptionParticulier?: boolean };
 
 /**
- * Le motif qui ferme le paiement, ou `null` si l'identité est complète ou la règle levée. Le
+ * Le motif qui ferme le paiement, ou `null` si l'identité est complète ou la règle levée (la règle ne se lève pas
+ * pour la première souscription d'un particulier : `nouvelleSouscriptionParticulier`). Le
  * détail des faits manquants n'est pas dit au client : il est déjà affiché au
  * dirigeant (/admin/sante, /admin/parametres). Pendant l'essai, la phrase
  * ajoute « Votre essai continue. » ; gelé ou abonné, elle s'arrête avant.
  */
 export function motifIdentiteEditeur(editeur: Record<string, FaitEditeur>, { enEssai, blocageIdentiteActif, nouvelleSouscriptionParticulier }: ContexteGarde): string | null {
-  if (blocageIdentiteActif !== false && faitsManquants(editeur).length > 0) {
+  // Décision du dirigeant du 24/11/2026 (Q7) : le médiateur ne ferme plus la première souscription d'un particulier
+  // (il la fermait même règle levée) ; c'est l'identité du vendeur qui la ferme, règle levée ou non.
+  if ((blocageIdentiteActif !== false || nouvelleSouscriptionParticulier) && faitsManquants(editeur).length > 0) {
     return enEssai ? MOTIF_IDENTITE_EDITEUR_ESSAI : MOTIF_IDENTITE_EDITEUR;
-  }
-  if (nouvelleSouscriptionParticulier && ["mediateurNom", "mediateurAdresse", "mediateurSite"].some(cle => !editeur[cle]?.trim())) {
-    const motif = "Le paiement en ligne n'est pas encore ouvert aux particuliers. Les coordonnées du médiateur de la consommation de Gerimmo doivent être publiées avant la première souscription.";
-    return enEssai ? `${motif} Votre essai continue.` : motif;
   }
   return null;
 }

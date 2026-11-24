@@ -7,7 +7,8 @@ import { reglerBlocageSouscription, reglerOuvertureVentes } from "@/app/actions/
 
 /**
  * `manquants` : les faits REQUIS absents, seuls à fermer le paiement ; `aCompleter` : ceux du médiateur, qui ne
- * ferment rien (lib/editeur.ts, A_COMPLETER). Relecture du 23/10 : sans `aCompleter`, la carte disait « L’identité
+ * ferment rien (lib/editeur.ts, A_COMPLETER ; décision du dirigeant du 24/11/2026, Q7 : pas même la première souscription
+ * d'un particulier, que ferme en revanche l'identité du vendeur, règle levée ou non). Relecture du 23/10 : sans `aCompleter`, la carte disait « L’identité
  * est complète » alors que la carte voisine comptait le médiateur « à compléter ». Seconde relecture : la carte nomme
  * les faits de `aCompleter` au lieu d'un « médiateur » écrit en dur, et la règle active ne dit plus le médiateur
  * « à compléter » quand il est fourni.
@@ -24,13 +25,13 @@ export function BlocageSouscription({ actif, revision, manquants, aCompleter }: 
       </div>
       <p className="text-sm">
         {actif
-          ? "Les informations légales requises manquantes bloquent les nouvelles souscriptions et les augmentations payantes. Pour un particulier, les coordonnées du médiateur restent requises avant une première commande."
-          : "Les souscriptions et augmentations payantes peuvent continuer même si des informations légales manquent."}
+          ? "Les informations légales requises manquantes bloquent les nouvelles souscriptions et les augmentations payantes. Le médiateur de la consommation ne bloque rien : tant qu’il n’est pas saisi, les pages légales et les courriels disent qu’aucun n’est désigné."
+          : "Les augmentations payantes peuvent continuer même si des informations légales manquent. La première souscription d’un particulier reste fermée tant que l’identité du vendeur est incomplète."}
       </p>
       {manquants.length > 0
         ? <p className="text-sm text-[var(--texte-secondaire)]">À compléter : {manquants.join(", ")}. Lever ce blocage ne complète pas les mentions légales.</p>
         : aCompleter.length > 0
-          ? <p className="text-sm text-[var(--texte-secondaire)]">L’identité requise est complète ; reste à compléter pour une première souscription particulière : {aCompleter.join(", ")}.</p>
+          ? <p className="text-sm text-[var(--texte-secondaire)]">L’identité requise est complète ; reste à compléter, sans rien bloquer : {aCompleter.join(", ")}.</p>
           : <p className="text-sm text-[var(--texte-secondaire)]">L’identité est complète : cette règle ne bloque actuellement aucune souscription.</p>}
       <p className="text-sm text-[var(--texte-secondaire)]">Les contrôles Stripe, les montants, la confirmation du client et l’acceptation des conditions restent obligatoires. Aucun paiement n’est déclenché par ce bouton.</p>
       {revision === null
@@ -54,6 +55,7 @@ export function OuvertureVentes({ ouvertes, revision }: { ouvertes: boolean; rev
   return <section className="loc-carte space-y-3">
     <h3>Nouvelles souscriptions payantes · {revision === null ? "État indisponible" : ouvertes ? "Ouvertes" : "Fermées"}</h3>
     <p>Les propriétaires du pilote gardent leur accès gratuit. Les abonnements en cours continuent normalement.</p>
+    <p>L’ouverture demande une identité du vendeur complète (rubrique « Contact et entreprise »). Le médiateur de la consommation n’est pas exigé.</p>
     {revision !== null && <form key={revision} action={action} className="space-y-3" data-saisie-confirmee>
       <input type="hidden" name="revision" value={revision} />
       <input type="hidden" name="ventes" value={ouvertes ? "fermer" : "ouvrir"} />

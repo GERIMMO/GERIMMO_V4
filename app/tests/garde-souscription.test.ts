@@ -237,7 +237,6 @@ describe("souscription : l'identité de l'éditeur, lue en base par-dessus le co
     expect(mocks.retrieve).not.toHaveBeenCalled();
   });
 
-  // Nouvelle souscription particulière : pas de vente avant la désignation du médiateur.
   it("en commercial, même un dossier complet ne peut ouvrir un nouvel abonnement pendant le pilote", async () => {
     etat(GRILLE);
     vi.stubEnv("GERIMMO_MODE","commercial");
@@ -263,22 +262,52 @@ describe("souscription : l'identité de l'éditeur, lue en base par-dessus le co
     } finally { vi.unstubAllEnvs(); }
   });
 
-  it.each(["mediateurNom", "mediateurAdresse", "mediateurSite"])("ferme le parcours Stripe quand seul %s manque, règle active", async (cle) => {
+  // LOT D7 — DÉCISION DU DIRIGEANT DU 24/11/2026 (Q7) : « on peut ouvrir les ventes même sans » médiateur de la
+  // consommation. Les deux tests d'ici affirmaient l'inverse (« ferme le parcours Stripe quand seul <champ du médiateur>
+  // manque » et « refuse le paiement même si le verrou facultatif est levé, sans médiateur ») : ils sont RÉÉCRITS pour
+  // dire la décision. Ce qui ne s'ouvre pas, règle levée ou non, c'est la première souscription d'un particulier SANS
+  // VENDEUR : la garde est déplacée, elle n'est pas retirée.
+  it("sans médiateur, vendeur complet, règle active : le parcours Stripe s'ouvre (le médiateur ne ferme plus rien)", async () => {
     etat(GRILLE);
-    identite({ ...EDITEUR_COMPLET, [cle]: null });
+    const sansMediateur = { ...EDITEUR_COMPLET, mediateurNom: null, mediateurAdresse: null, mediateurSite: null };
+    identite(sansMediateur);
+    mocks.archive = { identite_editeur: sansMediateur };
     const r = await demarrerAbonnement("org-1", {}, souscrire());
-    expect(r.erreur).toContain("coordonnées du médiateur de la consommation");
-    expect(r.erreur).toContain("Votre essai continue.");
+    expect(r.erreur).not.toContain("médiateur");
+    expect(r.erreur).not.toBe(MOTIF_IDENTITE);
+    expect(mocks.serviceRpc).toHaveBeenCalledWith("abonnement_client_pose", { p_org: "org-1", p_customer: "cus_connu" });
+  });
+
+  it.each(["denomination", "forme", "siege", "rcs", "siret", "directeurPublication", "email", "telephone"])(
+    "sans vendeur (%s manquant), médiateur saisi : le parcours Stripe reste fermé",
+    async (cle) => {
+      etat(GRILLE);
+      identite({ ...EDITEUR_COMPLET, [cle]: null });
+      const r = await demarrerAbonnement("org-1", {}, souscrire());
+      expect(r.erreur).toBe(MOTIF_IDENTITE);
+      expect(mocks.retrieve).not.toHaveBeenCalled();
+    },
+  );
+
+  it("refuse la première souscription d'un particulier même si le verrou facultatif est levé, sans vendeur", async () => {
+    etat(GRILLE);
+    identite({ ...EDITEUR_VIDE });
+    mocks.archive = { identite_editeur: { ...EDITEUR_VIDE } };
+    mocks.reglage = {data:{blocage_souscription_identite:false,revision:1},error:null};
+    const r = await demarrerAbonnement("org-1", {}, souscrire());
+    expect(r.erreur).toBe(MOTIF_IDENTITE);
     expect(mocks.retrieve).not.toHaveBeenCalled();
   });
 
-  it("refuse le paiement même si le verrou facultatif est levé, sans médiateur", async () => {
+  it("verrou levé, vendeur complet, sans médiateur : le parcours Stripe s'ouvre", async () => {
     etat(GRILLE);
-    identite({ ...EDITEUR_COMPLET, mediateurNom: null, mediateurAdresse: null, mediateurSite: null });
+    const sansMediateur = { ...EDITEUR_COMPLET, mediateurNom: null, mediateurAdresse: null, mediateurSite: null };
+    identite(sansMediateur);
+    mocks.archive = { identite_editeur: sansMediateur };
     mocks.reglage = {data:{blocage_souscription_identite:false,revision:1},error:null};
     const r = await demarrerAbonnement("org-1", {}, souscrire());
-    expect(r.erreur).toContain("coordonnées du médiateur de la consommation");
-    expect(mocks.retrieve).not.toHaveBeenCalled();
+    expect(r.erreur).not.toBe(MOTIF_IDENTITE);
+    expect(mocks.serviceRpc).toHaveBeenCalledWith("abonnement_client_pose", { p_org: "org-1", p_customer: "cus_connu" });
   });
 
   it("essai arrivé à son terme (gelé en lecture seule, statut encore « essai ») : la phrase sans « Votre essai continue »", async () => {
@@ -317,16 +346,34 @@ describe("souscription : l'identité de l'éditeur, lue en base par-dessus le co
   });
 });
 
+// LOT D7 (décision du dirigeant du 24/11/2026, Q7) : la levée du blocage n'ouvre plus la PREMIÈRE souscription d'un
+// particulier quand le vendeur n'est pas identifié. Le test « autorise le parcours de souscription malgré l'identité
+// incomplète » est donc RÉÉCRIT (il attend désormais le refus) ; les tests voisins, qui se servaient de l'identité vide
+// pour vérifier les AUTRES contrôles d'une souscription (conditions, confirmation, montant, Stripe), lèvent le blocage
+// avec un vendeur complet et sans médiateur (`leverAvecVendeur`) : ils vérifient toujours le même contrôle.
 describe("levée du blocage par le superadmin", () => {
+  function leverAvecVendeur() {
+    const sansMediateur = { ...EDITEUR_COMPLET, mediateurNom: null, mediateurAdresse: null, mediateurSite: null };
+    mocks.archive = { identite_editeur: sansMediateur };
+    identite(sansMediateur);
+    mocks.reglage = { data: { blocage_souscription_identite: false, revision: 1 }, error: null };
+  }
   function lever() {
     mocks.archive = { identite_editeur: { ...EDITEUR_VIDE, mediateurNom: EDITEUR_COMPLET.mediateurNom, mediateurAdresse: EDITEUR_COMPLET.mediateurAdresse, mediateurSite: EDITEUR_COMPLET.mediateurSite } };
     identite({ ...EDITEUR_VIDE, mediateurNom: EDITEUR_COMPLET.mediateurNom, mediateurAdresse: EDITEUR_COMPLET.mediateurAdresse, mediateurSite: EDITEUR_COMPLET.mediateurSite });
     mocks.reglage = { data: { blocage_souscription_identite: false, revision: 1 }, error: null };
   }
 
-  it("autorise le parcours de souscription malgré l'identité incomplète", async () => {
+  it("n'autorise plus la première souscription d'un particulier quand l'identité du vendeur est incomplète", async () => {
     etat(GRILLE);
     lever();
+    expect((await demarrerAbonnement("org-1", {}, souscrire())).erreur).toBe(MOTIF_IDENTITE);
+    expect(mocks.retrieve).not.toHaveBeenCalled();
+  });
+
+  it("vendeur complet, sans médiateur : la souscription atteint Stripe", async () => {
+    etat(GRILLE);
+    leverAvecVendeur();
     await demarrerAbonnement("org-1", {}, souscrire());
     expect(mocks.retrieve).toHaveBeenCalled();
   });
@@ -341,7 +388,7 @@ describe("levée du blocage par le superadmin", () => {
 
   it("exige toujours les conditions générales", async () => {
     etat(GRILLE);
-    lever();
+    leverAvecVendeur();
     mocks.versionsAcceptees = [];
     expect((await demarrerAbonnement("org-1", {}, souscrire())).erreur).toBe(MOTIF_CONDITIONS);
     expect(mocks.retrieve).not.toHaveBeenCalled();
@@ -349,7 +396,7 @@ describe("levée du blocage par le superadmin", () => {
 
   it("ne permet ni une souscription sans confirmation ni un montant différent", async () => {
     etat(GRILLE);
-    lever();
+    leverAvecVendeur();
     const sansConfirmation = souscrire(); sansConfirmation.delete("confirmation");
     expect((await demarrerAbonnement("org-1", {}, sansConfirmation)).erreur).toBeTruthy();
     const montantModifie = souscrire(); montantModifie.set("montant_attendu_cents", "1");
@@ -359,7 +406,7 @@ describe("levée du blocage par le superadmin", () => {
 
   it("conserve le refus lorsque Stripe n'est pas configuré", async () => {
     etat(GRILLE);
-    lever();
+    leverAvecVendeur();
     mocks.stripePret = false;
     expect((await demarrerAbonnement("org-1", {}, souscrire())).erreur).toBeTruthy();
     expect(mocks.retrieve).not.toHaveBeenCalled();

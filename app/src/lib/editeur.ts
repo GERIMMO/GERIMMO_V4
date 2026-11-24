@@ -19,13 +19,17 @@ import type { RegimeTva } from "@/lib/tarifs";
 export type FaitEditeur = string | null;
 
 export const EDITEUR = {
-  /** Dénomination sociale ou nom de l'entrepreneur individuel. */
+  /**
+   * Dénomination sociale d'une société ; pour un entrepreneur individuel, son nom et son prénom accompagnés de la
+   * mention « entrepreneur individuel » ou des initiales « EI » (fiches officielles F37351 et F31808 d'Entreprendre
+   * Service Public, lues le 24/11/2026 ; `validerIdentite` le vérifie à la saisie).
+   */
   denomination: null as FaitEditeur,
-  /** SAS, SARL, entreprise individuelle… */
+  /** SAS, SARL… ou « Entrepreneur individuel » (voir `estEntrepreneurIndividuel`). */
   forme: null as FaitEditeur,
   /** Capital social, si société. `null` pour une entreprise individuelle. */
   capital: null as FaitEditeur,
-  /** Adresse complète du siège. */
+  /** Adresse complète : siège d'une société, ou adresse de l'entreprise individuelle. */
   siege: null as FaitEditeur,
   /** Immatriculation RNE ou RCS ; clé historique conservée en base. */
   rcs: null as FaitEditeur,
@@ -63,10 +67,12 @@ export const REGIME_TVA: RegimeTva | null = { nature: "franchise" };
  * a pas), ni le numéro de TVA (selon le régime). Le téléphone professionnel
  * reste nécessaire pour le service proposé aux consommateurs.
  */
+// Décision du dirigeant du 24/11/2026 (Q7) : le vendeur est un entrepreneur individuel. Les libellés ne supposent plus
+// une société (« dénomination sociale », « siège »).
 const REQUIS = [
-  ["denomination", "la dénomination sociale"],
+  ["denomination", "le nom ou la dénomination de l'éditeur"],
   ["forme", "la forme juridique"],
-  ["siege", "l'adresse du siège"],
+  ["siege", "l'adresse de l'éditeur"],
   ["rcs", "l'immatriculation (RNE ou RCS)"],
   ["siret", "le SIRET"],
   ["directeurPublication", "le directeur de la publication"],
@@ -74,8 +80,9 @@ const REQUIS = [
   ["telephone", "le téléphone de contact"],
 ] as const satisfies readonly (readonly [keyof typeof EDITEUR, string])[];
 
-/** Les coordonnées du médiateur sont requises pour la première souscription
- * d’un particulier. Elles restent facultatives pour l’inscription gratuite. */
+/** Les coordonnées du médiateur de la consommation ne ferment rien, pas même la première souscription d'un
+ * particulier (décision du dirigeant du 24/11/2026, Q7 : « on peut ouvrir les ventes même sans ce dernier »). Tant
+ * qu'elles manquent, les pages et les courriers disent qu'aucun médiateur n'est désigné ; elles restent dues. */
 const A_COMPLETER = [
   ["mediateurNom", "le médiateur de la consommation"],
   ["mediateurAdresse", "l'adresse du médiateur"],
@@ -94,7 +101,7 @@ export function faitsManquants(editeur: Record<string, FaitEditeur> = EDITEUR): 
   return REQUIS.filter(([cle]) => !editeur[cle]).map(([, libelle]) => libelle);
 }
 
-/** Coordonnées du médiateur restant à renseigner avant les ventes aux particuliers. */
+/** Coordonnées du médiateur restant à renseigner, sans rien fermer. */
 export function faitsACompleter(editeur: Record<string, FaitEditeur> = EDITEUR): string[] {
   return A_COMPLETER.filter(([cle]) => !editeur[cle]).map(([, libelle]) => libelle);
 }
@@ -111,6 +118,19 @@ export function confidentialiteIncomplete(editeur: Record<string, FaitEditeur> =
 
 export function estEntrepreneurIndividuel(editeur: Record<string, FaitEditeur>): boolean {
   return /^(?:EI|entrepreneur individuel|entreprise individuelle)(?:\s|$)/i.test(editeur.forme?.trim() ?? "");
+}
+
+/** Le nom porte-t-il la mention « entrepreneur individuel » ou les initiales « EI » (en majuscules, mot entier) ? */
+export function porteLaMentionEI(nom: string | null | undefined): boolean {
+  return /(?:^|[^\p{L}\p{N}])EI(?:[^\p{L}\p{N}]|$)/u.test(nom ?? "") || /entrepreneur individuel/i.test(nom ?? "");
+}
+
+/** « 821 974 474 » et « 821 974 474 00032 » depuis un SIRET de 14 chiffres ; `null` si la saisie n'en est pas un. */
+export function sirenEtSiret(siret: string | null | undefined): { siren: string; siret: string } | null {
+  const chiffres = (siret ?? "").replace(/\s/g, "");
+  if (!/^\d{14}$/.test(chiffres)) return null;
+  const siren = `${chiffres.slice(0, 3)} ${chiffres.slice(3, 6)} ${chiffres.slice(6, 9)}`;
+  return { siren, siret: `${siren} ${chiffres.slice(9)}` };
 }
 
 // ── Où écrire à l'éditeur ──────────────────────────────────────────────────

@@ -30,6 +30,13 @@
 // Phase 3, lot 49 (V02) : un seul des niveaux qu'un nom de duplex nomme déjà (« 1er » ou « RDC » sous « Duplex RDC et 1er
 // étage », « 2e » sous « Duplex 1er et 2e étages ») n'est pas redit non plus : l'adresse imprimait « Duplex RDC et 1er étage,
 // 1er étage ».
+//
+// Reprise du lot 49 (V02) : la même règle pour toute énumération de niveaux, des deux côtés. Le nom du lot se lit aussi sans
+// « étage(s) » (« Duplex 1er et 2e »), avec « étage » au milieu (« Duplex 1er étage et 2e ») et sur plus de deux niveaux
+// (« Triplex 1er, 2e et 3e étages ») ; la saisie se lit avec les niveaux qui prolongent sa tête (« 1 et 2 », « étage 1 et 2 »,
+// « 1er étage et 2e », « 1er et RDC »). L'adresse imprimait « Duplex 1er et 2e étages, étage 1 et 2 » ou « Duplex 1er et 2e,
+// 2e étage ». Une mention n'est retirée qu'en entier : si un seul de ses niveaux manque au nom, ou si la suite n'est pas une
+// liste de niveaux close (« à 3 », « /2 », « et 2 pièces »), elle reste telle quelle.
 
 const sansAccents = (texte: string) => texte.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
@@ -58,6 +65,14 @@ const NIVEAU_EN_TETE = new RegExp(
 );
 // Ce qui prolonge un niveau au lieu de le clore : « étage 1 et 2 », « 1er étage et 2e », « étage 1 à 3 », « étage 1/2 ».
 const SUITE_DU_NIVEAU = /^\s*(?:(?:et|à)(?=\s|$)|&|\/|[-–—]?\s*\d)/i;
+// Reprise du lot 49 (V02) : un niveau qui en prolonge un autre dans la mention, et se lit avec lui : « et 2 » (« étage 1 et 2 »),
+// « et 2e », « et RDC » (« 1er étage et RDC »), « , 2e » (« 1er étage, 2e et 3e »). Après une virgule, un nombre nu n'est pas un
+// niveau (« 1er étage, 2 pièces »).
+const NIVEAU_ENUMERE = `(?:${REZ_DE_CHAUSSEE}|${UN_NIVEAU}|[eé]tages?\\s+-?\\d+)(?:\\s+[eé]tages?)?`;
+const NIVEAU_SUIVANT = new RegExp(
+  `^(?:(?:\\s+et\\s+|\\s*&\\s*)(${NIVEAU_ENUMERE}|-?\\d+)|\\s*,\\s*(${NIVEAU_ENUMERE}))${FIN_DE_MOT}`,
+  "i"
+);
 
 // Le niveau que nomme un texte, pour comparer le nom du lot et le champ Étage : "4" pour « 4e étage » ou « étage 4 », "0" pour
 // « RDC » ou « rez-de-chaussée ».
@@ -71,13 +86,26 @@ const EN_CHIFFRES: Record<string, string> = {
   premier: "1er", second: "2e", deuxieme: "2e", troisieme: "3e", quatrieme: "4e", cinquieme: "5e", sixieme: "6e",
   septieme: "7e", huitieme: "8e", neuvieme: "9e", dixieme: "10e",
 };
+const lire = (texte: string) =>
+  sansAccents(texte).replace(new RegExp(`\\b(${Object.keys(EN_CHIFFRES).join("|")})\\b`, "g"), (mot) => EN_CHIFFRES[mot]);
+
+// Reprise du lot 49 (V02) : plusieurs niveaux énumérés, dans un texte déjà lu (sans accents, ordinaux en chiffres). Chaque
+// niveau est un ordinal ou le rez-de-chaussée, suivi ou non de « étage(s) » ; les niveaux sont reliés par des virgules ou « et »,
+// avec au moins un « et » à la fin : « 1er et 2e étages », « 1er et 2e », « 1er étage et 2e », « RDC et 1er », « 1er, 2e et 3e étages »,
+// « 4e et 5e et dernier étage ». Un nombre nu ne s'y lit qu'après « étage(s) » (« étage 1 et 2 ») : « Lot 5 et 6 » nomme des
+// lots, pas des niveaux. Remplace les lectures « deux étages » (reprise du lot 43) et « RDC et un étage » (reprise du lot 48).
+const FIN_LU = "(?=$|[\\s,;.:()/–—-])";
+const NIVEAU_LU = `(?:(?:\\brdc|rez[\\s-]*de[\\s-]*chaussee)|(?<![a-z0-9])-?\\d+\\s?(?:er|re|ere|eme|e|°))${FIN_LU}(?:\\s+etages?\\b)?`;
+const ENUMERATION = new RegExp(`${NIVEAU_LU}(?:(?:\\s*,\\s*|\\s+et\\s+)${NIVEAU_LU})*\\s+et\\s+${NIVEAU_LU}(\\s+et\\s+dernier\\b)?`);
+const NOMBRE_LU = `-?\\d+${FIN_LU}`;
+const ENUMERATION_NUMEROTEE = new RegExp(`\\betages?\\s+${NOMBRE_LU}(?:(?:\\s*,\\s*|\\s+et\\s+)${NOMBRE_LU})*\\s+et\\s+${NOMBRE_LU}`);
+const niveauxEnumeres = (enumeration: string) =>
+  (enumeration.match(/\brdc|rez[\s-]*de[\s-]*chaussee|-?\d+/g) ?? []).map((x) => (/^-?\d+$/.test(x) ? String(Number(x)) : "0"));
+
 function niveau(texte: string): string | null {
-  const lu = sansAccents(texte).replace(new RegExp(`\\b(${Object.keys(EN_CHIFFRES).join("|")})\\b`, "g"), (mot) => EN_CHIFFRES[mot]);
-  const deux = lu.match(/(-?\d+)\s?(?:er|re|ere|e|eme|°)\s+et\s+(-?\d+)\s?(?:er|re|ere|e|eme|°)\s+etages?\b/);
-  if (deux) return `${Number(deux[1])} et ${Number(deux[2])}`;
-  // Reprise du lot 48 (U02) : le rez-de-chaussée et un étage (duplex bas), avec ou sans « étage(s) » : "0 et 1".
-  const bas = lu.match(/(?:\brdc|rez[\s-]*de[\s-]*chaussee)\s+et\s+(-?\d+)\s?(?:er|re|ere|e|eme|°)(?=$|[\s,;.:()/–—-])/);
-  if (bas) return `0 et ${Number(bas[1])}`;
+  const lu = lire(texte);
+  const liste = lu.match(ENUMERATION) ?? lu.match(ENUMERATION_NUMEROTEE);
+  if (liste) return `${niveauxEnumeres(liste[0].replace(/\s+et\s+dernier\b/, "")).join(" et ")}${liste[1] ? " et dernier" : ""}`;
   const dernier = lu.match(/(-?\d+)\s?(?:er|re|ere|e|eme|°)\s+et\s+dernier\s+etages?\b/);
   if (dernier) return `${Number(dernier[1])} et dernier`;
   const m = lu.match(/(-?\d+)\s?(?:er|re|ere|e|eme|°)\s+etage\b/) ?? lu.match(/\betage\s+(-?\d+)/) ?? lu.match(/(-?\d+)\s+etage\b/);
@@ -85,21 +113,33 @@ function niveau(texte: string): string | null {
   return /\brdc\b|rez[\s-]*de[\s-]*chaussee/.test(lu) ? "0" : null;
 }
 
-// Phase 3, lot 49 (V02) : les niveaux que nomme un niveau lu, "0 et 1" → ["0", "1"]. « 5 et dernier » ne s'y décompose pas :
-// c'est UN étage (le 5e, qui est le dernier), comparé tel quel.
+// Reprise du lot 49 (V02) : le niveau d'un seul élément qui prolonge la tête de la mention (« 2 », « 2e », « 2e étage »,
+// « étage 2 », « RDC »).
+function niveauSeul(element: string): string | null {
+  const lu = lire(element).replace(/\betages?\b/g, " ").trim();
+  if (/^(?:rdc|rez[\s-]*de[\s-]*chaussee)$/.test(lu)) return "0";
+  const m = /^(-?\d+)(?:\s?(?:er|re|ere|eme|e|°))?$/.exec(lu);
+  return m ? String(Number(m[1])) : null;
+}
+
+// Phase 3, lot 49 (V02) : les niveaux que nomme un niveau lu, "0 et 1" → ["0", "1"].
 const niveauxDe = (lu: string) => lu.split(" et ");
+const ET_DERNIER = / et dernier$/;
 
 // Le nom du lot couvre la mention s'il dit le même niveau, ou le même suivi de « et dernier » (lot 48, U02).
 // Phase 3, lot 49 (V02) : ou si chaque niveau de la mention est l'un de ceux que le nom nomme déjà : le nom d'un duplex
 // (« Duplex RDC et 1er étage », « Duplex 1er et 2e étages ») couvre chacun de ses niveaux (« 1er », « RDC », « 2e »).
 // L'adresse imprimait « Duplex RDC et 1er étage, 1er étage ». Un niveau que le nom ne dit pas (« 2e et 3e », « RDC et 2e »)
 // reste imprimé : la saisie contradictoire se voit.
+// Reprise du lot 49 (V02) : la même règle sur des énumérations de toute longueur (« 1 et 2 et 3 » pour un triplex).
+// « 5e et dernier » dit que le 5e est le dernier : seul un nom qui le dit aussi, du même niveau, le couvre (« T3 5e et dernier
+// étage », « Duplex 4e et 5e et dernier étage ») ; un nom qui ne dit que « 5e étage » ne le couvre pas (lot 48, U02).
 function nomCouvre(duNom: string | null, n: string): boolean {
   if (duNom === null) return false;
-  if (duNom === n || duNom === `${n} et dernier`) return true;
-  if (/dernier/.test(n) || /dernier/.test(duNom)) return false;
-  const duLot = niveauxDe(duNom);
-  return niveauxDe(n).every((x) => duLot.includes(x));
+  const duLot = niveauxDe(duNom.replace(ET_DERNIER, ""));
+  const lus = niveauxDe(n.replace(ET_DERNIER, ""));
+  if (ET_DERNIER.test(n) && !(ET_DERNIER.test(duNom) && duLot[duLot.length - 1] === lus[lus.length - 1])) return false;
+  return lus.every((x) => duLot.includes(x));
 }
 
 export function mentionEtage(etage: string | null | undefined, nomLot?: string | null): string | null {
@@ -116,9 +156,26 @@ export function mentionEtage(etage: string | null | undefined, nomLot?: string |
   const tete = nomLot ? mention.match(NIVEAU_EN_TETE) : null;
   if (!tete || !nomLot) return mention;
   const n = niveau(tete[0]);
-  if (n === null || !nomCouvre(niveau(nomLot), n)) return mention;
-  const reste = mention.slice(tete[0].length);
+  if (n === null) return mention;
+  // Reprise du lot 49 (V02) : les niveaux qui prolongent la tête se lisent avec elle (« étage 1 » et 2, « 1er étage » et 2e,
+  // « 1er étage » et RDC, « 1er étage », 2e et 3e) : la mention entière est comparée au nom, jamais sa tête seule.
+  const niveaux = [n];
+  let fin = tete[0].length;
+  let nombreNu = false;
+  for (let suite = ET_DERNIER.test(n) ? null : mention.slice(fin).match(NIVEAU_SUIVANT); suite; suite = mention.slice(fin).match(NIVEAU_SUIVANT)) {
+    const element = suite[1] ?? suite[2];
+    const x = niveauSeul(element);
+    if (x === null) break;
+    niveaux.push(x);
+    nombreNu = /^-?\d+$/.test(element);
+    fin += suite[0].length;
+  }
+  if (!nomCouvre(niveau(nomLot), niveaux.join(" et "))) return mention;
+  const reste = mention.slice(fin);
   // Un niveau suivi de « et 2 » n'est pas l'étage du nom à lui seul : le retirer laissait « et 2 » (reprise du lot 43).
   if (SUITE_DU_NIVEAU.test(reste)) return mention;
+  // Reprise du lot 49 (V02) : un nombre nu lu au-delà de la tête n'est un niveau que s'il clôt la mention (fin de la saisie ou
+  // ponctuation) : « étage 1 et 2 pièces » reste entier.
+  if (nombreNu && /^\s*[^\s,;()–—-]/.test(reste)) return mention;
   return reste.replace(/^[\s,;–—-]+/, "") || null;
 }

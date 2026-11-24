@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { titreIncident } from "@/lib/incidents";
+import { mentionEtage } from "@/lib/etage";
 import type { LigneAgenda } from "./acces";
 import { creneauTexte, STATUTS_MISSION, libelle } from "./libelles";
 import { Etiquette, MarqueAgence } from "./ui";
@@ -36,6 +37,9 @@ export function CarteMission({
   origine?: "aujourdhui";
 }) {
   const planifiee = Boolean(ligne.debut_prevu);
+  // Phase 3, reprise du lot 49 : l'étage suit la règle commune (lib/etage.ts) : « 1er » s'affiche « 1er étage », et n'est pas
+  // redit après un nom de lot qui le nomme déjà (« Studio — 1er étage · 1er étage » à l'écran).
+  const etage = mentionEtage(ligne.etage, ligne.lot_nom);
   // Des dates sont chez le locataire : l'artisan n'a RIEN à faire. Lui dire
   // « à fixer » l'enverrait reproposer, ce qui annule les dates en cours
   // (RM-10.4.1). L'étiquette, la ligne de créneau et la consigne le disent
@@ -109,7 +113,7 @@ export function CarteMission({
           .filter(Boolean)
           .join(" — ") || "Adresse communiquée par votre interlocuteur"}
         {ligne.lot_nom ? ` · ${ligne.lot_nom}` : ""}
-        {ligne.etage ? ` · ${ligne.etage}` : ""}
+        {etage ? ` · ${etage}` : ""}
       </p>
 
       {/* 25/09 (A1) : la carte entière est le lien, mais une carte sans flèche

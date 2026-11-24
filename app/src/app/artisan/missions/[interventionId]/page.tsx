@@ -5,6 +5,7 @@ import { AccuseAnnulation } from "./accuse-annulation";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { titreIncident } from "@/lib/incidents";
+import { mentionEtage } from "@/lib/etage";
 import { ligneReglementPourArtisan, phraseEtatPourArtisan } from "@/lib/reglement-facture";
 import { chargerAgenda, chargerCreneauxMission, chargerDemandesRdv, chargerFacturesRefusees, chargerPhotosDemande, chargerReglementsFactures, chargerRelancesFactures, chargerRendezVousManques, verifierAccesArtisan } from "../../acces";
 import { formaterDateParis } from "@/lib/heure-paris";
@@ -82,6 +83,9 @@ export default async function PageMission(
   if (agenda.erreur) return <LectureImpossibleArtisan href={`/artisan/missions/${interventionId}`} />;
   const mission = agenda.lignes.find((l) => l.intervention_id === interventionId);
   if (!mission) notFound();
+  // Phase 3, reprise du lot 49 : l'étage suit la règle des documents et des autres écrans (lib/etage.ts) : « 1er » s'affiche
+  // « 1er étage », et n'est pas redit quand le nom du lot le nomme déjà. L'écran affichait « Duplex RDC et 1er étage · 1er ».
+  const etage = mentionEtage(mission.etage, mission.lot_nom);
   // Reprise du lot 48 (U08) : l'en-tête de la discussion nommait le « Propriétaire » à l'artisan d'une mission d'agence, dont
   // l'interlocuteur est le gestionnaire. Le type de l'espace client se lit dans `organisations_portail`, déjà ouverte à
   // l'artisan membre de l'espace (aucun droit nouveau) ; illisible, l'en-tête reste celui d'avant (« Propriétaire »).
@@ -407,9 +411,9 @@ export default async function PageMission(
         <p className="text-base break-words text-[var(--corps)]">
           {adresse || "Adresse communiquée par votre interlocuteur"}
         </p>
-        {(mission.lot_nom || mission.etage || mission.piece) && (
+        {(mission.lot_nom || etage || mission.piece) && (
           <p className="mt-1 text-[0.9375rem] text-[var(--texte-secondaire)]">
-            {[mission.lot_nom, mission.etage, mission.piece].filter(Boolean).join(" · ")}
+            {[mission.lot_nom, etage, mission.piece].filter(Boolean).join(" · ")}
           </p>
         )}
         {/* Un appui, l'itinéraire : c'est le geste que l'artisan fait de toute

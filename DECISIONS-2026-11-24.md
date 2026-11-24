@@ -49,3 +49,11 @@ Décisions du dirigeant, mot pour mot :
 - « Mentionne tva non applicable pour l'instant »
 - « Publié mon adresse »
 - « Pour le médiateur ça sera mis vraiment lorsque tout sera fonctionnel mais on peux ouvrir les ventes même sans ce dernier »
+
+## Complément du 24/11 (soir) — questions nouvelles du lot D1 (Q13, Q20)
+
+Réponse du dirigeant, mot pour mot : « Fais soit selon les lois, sois selon ce que tu juge le plus pertinent par rapport à la vision de Gerimmo »
+
+Aucun texte lu ne fixe de règle précise sur ces points. Choix pris par Claude, réversibles :
+- Q13 : la mention « Rédigé avec l'aide de l'IA » figure sur la page de l'article et à la fin du post Facebook, pas sur les listes d'articles. Un article écrit entièrement à la main ne la porte pas : l'origine de chaque article est enregistrée.
+- Q20 : seul l'auteur de la note lit le motif de son retrait. Le locataire lit le motif pour sa note ; l'organisation ne peut plus lire celui de la note de son locataire ; l'artisan ne lit rien.

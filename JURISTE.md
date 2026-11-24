@@ -3,7 +3,7 @@
 **Règle suivie** : aucun des points ci-dessous n'est présenté comme conforme. Pour chacun, la question est fermée
 (oui ou non, ou un choix) pour qu'un juriste, un expert-comptable ou la CNIL puisse y répondre vite.
 
-**État au 22 novembre 2026** : première version. Les textes officiels n'ont pas pu être **ouverts** depuis mon
+**État au 22 novembre 2026** : première version (partie 5 ajoutée le 24 novembre : documents générés). Les textes officiels n'ont pas pu être **ouverts** depuis mon
 environnement (sites refusés par la règle réseau) ; les questions s'appuient sur des extraits de recherche et sur la
 lecture du code. Quand les textes seront ouverts, les questions qu'ils règlent seules seront retirées de cette liste
 et traitées dans le plan. Le numéro entre parenthèses renvoie à la ligne du tableau de l'annexe citée.
@@ -258,3 +258,92 @@ Une question fermée (oui ou non) par point.
    une durée de validité ou une mention d'actualisation ? (d) citer et lier le guide de prix d'un tiers appelle-t-il
    une autorisation ? En attendant : le repère n'est montré qu'au propriétaire, jamais comparé au devis reçu, et
    rien n'est présenté comme validé.
+
+---
+
+## 5. Documents générés — vérification de la phase 3 (lots 35 à 49, 23 et 24/11/2026)
+
+Les 46 modèles de documents du palier 1 ont été produits sur des dossiers fictifs complets et relus page par page ; les
+défauts ont été corrigés (JOURNAL.md, lots 35 à 49). Les points ci-dessous sont ceux qu'une correction ne pouvait pas
+trancher. Pour chacun, Gerimmo applique la formulation la plus prudente, indiquée « En attendant ». Aucun n'est présenté
+comme conforme. Les références de texte citées sont celles déjà présentes dans le code ou dans l'audit, non relues à la
+source (Q5).
+
+1. **Adresse du locataire sur les courriers de recouvrement.** Pour une mise en demeure « à notifier avec preuve de
+   réception » à un locataire qui occupe encore les lieux, l'adresse du logement loué suffit-elle ? Après le départ,
+   l'adresse donnée à l'état des lieux de sortie pour restituer le dépôt peut-elle servir d'adresse de notification ?
+   En attendant : sans adresse connue, le courrier porte le nom seul (aucune adresse inventée). Faut-il plutôt le refuser ?
+2. **Adresse du bailleur exigée en en-tête.** Chez un propriétaire qui gère lui-même, les relances, la mise en demeure,
+   la demande d'attestation d'assurance, le bordereau des clés, les courriers de charges, l'ordre d'intervention et la
+   quittance sont refusés tant que le domicile ou le siège du bailleur n'est pas renseigné. L'adresse du bailleur est-elle
+   une mention requise sur chacun de ces documents, ou une adresse de contact (celle de l'espace) peut-elle suffire ?
+3. **Acte de cautionnement pendant le préavis.** Gerimmo le refuse en préavis et après la fin du bail ; il ne l'accepte
+   qu'en préparation du bail ou pendant la location. Un cautionnement peut-il valablement être conclu pendant le préavis
+   (par exemple pour les sommes dues jusqu'à la sortie) ?
+4. **Congé du bailleur pendant le préavis du locataire.** Gerimmo refuse de le préparer quand un congé du locataire est
+   enregistré, et la base refuse de l'enregistrer. Existe-t-il un cas où le bailleur doit quand même délivrer son propre
+   congé (par exemple si le congé du locataire est contesté) ?
+5. **Avis d'échéance établi après l'échéance.** Il indique le terme, ce qui est reçu, le reste à régler et le total dû à
+   sa date, sans mise en demeure, et se présente comme « établi après la date d'échéance : il rappelle un terme restant à
+   régler ». Peut-il être adressé tel quel au locataire, ou faut-il réserver ce rappel aux courriers de relance ?
+6. **Révision du loyer qui prend effet en cours de mois** (Q43). Écrire au locataire que le terme du mois « reste au loyer
+   de 700,00 € : aucun complément n'est appelé pour la période du 15/10 au 31/10 » peut-il valoir renonciation du bailleur
+   à la différence ? Facturer le mois entier au loyer révisé quand le terme est appelé après la révision (jours d'avant
+   l'effet compris) est-il compatible avec l'absence de rétroactivité de la révision (article 17-1 I cité dans le code) ?
+   En cas de baisse, le bailleur doit-il rembourser ou déduire la différence au prorata, et sous quelle forme ?
+7. **Protocole d'apurement — clause de caducité.** Formulation imprimée : « Une mensualité qui n'est pas réglée N jours
+   après son échéance est constatée comme manquée. À M mensualités manquées et non rattrapées, l'accord devient caduc et
+   les sommes restantes sont immédiatement exigibles », avec « Le bailleur ne renonce à aucun droit, ni à la clause
+   résolutoire du bail ». Est-elle suffisante et opposable pour un accord amiable signé par le locataire ? Faut-il une
+   mention des délais de paiement que le juge peut accorder ?
+8. **Attestation de loyer et dossier CAF d'un bail en préavis.** La phrase « Un congé est enregistré : le contrat prend fin
+   le JJ/MM/AAAA » suffit-elle pour une attestation remise à un organisme ? Faut-il dire qui a donné le congé ?
+9. **Notice d'information et bail signé électroniquement** (Q46 ; complète les points 4, 5 et 37 de la partie 1). Le bail
+   déclare la notice « annexée au présent contrat ». L'enveloppe de signature ne contient que les diagnostics, le
+   règlement de copropriété éventuel et un résumé établi par Gerimmo, présenté comme un document d'information qui ne
+   remplace pas la notice officielle ; l'écran demande au bailleur de remettre la notice officielle lui-même. Cette remise
+   séparée suffit-elle pour un bail signé électroniquement, ou la notice officielle doit-elle être dans le même dossier
+   signé ? Dans ce cas, Gerimmo doit-il bloquer l'envoi tant qu'elle n'est pas jointe ?
+10. **Plafond des loyers en colocation à contrats individuels.** Le contrat individuel imprime « Loyer maximal applicable au
+    logement entier : X € » et « La somme des loyers des contrats individuels ne peut excéder le montant applicable au
+    logement entier », et la base applique ce plafond partout. Ce plafond vaut-il en toute zone, ou seulement par renvoi
+    aux zones d'encadrement ? Selon la réponse, faut-il le présenter comme une règle légale ou comme un plafond retenu par
+    le bailleur ?
+11. **Travaux d'une première location.** Le contrat imprime « Sans objet — première location » dans la rubrique des travaux
+    effectués depuis la fin du dernier contrat ; les travaux saisis n'y figurent pas. Est-ce exact ? Des travaux récents
+    doivent-ils figurer ailleurs pour une première location ?
+12. **Durée réduite et avenant de remplacement.** (a) Le bail meublé imprime la rubrique « durée réduite justifiée par un
+    événement précis », prévue pour le bail nu : s'applique-t-elle au meublé, et au bail étudiant de neuf mois ? (b) Pour
+    l'avenant de remplacement d'un colocataire, les signataires prévus sont le bailleur, le sortant, l'entrant et les
+    colocataires restants : les cautions du sortant et de l'entrant doivent-elles signer aussi ?
+13. **Date d'un état des lieux.** Constaté sur place un jour, signé un autre jour : quelle date doit porter « Fait à …,
+    le » ? Gerimmo imprime la date du constat, et la date de signature seulement si la première manque.
+14. **Chiffrage des retenues et état des lieux de sortie** (Q49). Le coût, la vétusté et le montant des retenues peuvent-ils
+    figurer dans l'état des lieux de sortie signé par les deux parties, ou doivent-ils rester dans un décompte séparé émis
+    par le bailleur ? Gerimmo les réserve aux décomptes.
+15. **Délai d'un mois avant une régularisation de charges** (complète le point 7 de la partie 2 ; Q50). Gerimmo laisse au
+    moins un mois entre l'émission d'une régularisation et la première somme réclamée (échéancier de charges, et désormais
+    étalement d'une régularisation tardive). Ce délai est-il le bon, et court-il jusqu'à l'enregistrement de la
+    régularisation, jusqu'à l'exigibilité du solde ou jusqu'à la première mensualité ? Le courrier peut-il dire « le
+    décompte par nature de charges et le mode de répartition sont communiqués un mois avant la régularisation » ? En
+    attendant : la phrase n'est imprimée que si les dates du dossier la rendent vraie.
+16. **Compteurs et clés dans l'état des lieux** (Q49). (a) Le numéro du compteur est-il une mention attendue, ou seul
+    l'index relevé l'est-il ? Gerimmo imprime « — » pour un numéro non saisi. (b) Faut-il interdire d'enregistrer la
+    signature tant que l'index de chaque compteur et le nombre de chaque clé ne sont pas saisis ? (c) Sinon, « non relevé »
+    et « non compté » sont-ils acceptables sur la reproduction d'un état des lieux signé, dont l'original a pu être complété
+    à la main ? Même question pour le bordereau de remise des clés.
+17. **« Établi contradictoirement » sur un inventaire préparé à l'avance.** Les inventaires d'entrée et de sortie, préparés
+    avant la signature, impriment « établi contradictoirement » (« lors de la restitution des clés » pour la sortie). Peut-on
+    l'écrire sans savoir si les deux parties seront présentes, ou faut-il une formule conditionnelle (« à établir… ») ?
+18. **Bailleur particulier et données de son locataire.** La page Compte d'un locataire d'un propriétaire qui gère lui-même
+    dit « écrivez à votre bailleur depuis Mon bailleur : c'est lui qui y répond, sous un mois ». Un bailleur particulier ou
+    une SCI familiale qui gère lui-même avec Gerimmo est-il responsable du traitement des données de son locataire ?
+    Doit-il répondre lui-même aux demandes d'accès, de rectification et d'effacement, et dans quel délai ? Sinon, comment
+    formuler ce renvoi ?
+19. **Quittance : quel bailleur, quelle adresse, quelles coordonnées** (Q52). (a) L'adresse imprimée sur une quittance d'un
+    bailleur personne physique ou d'une SCI qui gère elle-même doit-elle être celle de son domicile ou siège, ou l'adresse
+    de gestion de l'espace peut-elle suffire ? (b) La quittance consultée en ligne et le PDF de la même quittance doivent-ils
+    porter exactement le même nom et la même adresse d'émetteur ? (c) Pour une quittance émise avant une vente du
+    logement, la quittance consultée ensuite doit-elle nommer le bailleur de la date de la quittance ou le propriétaire
+    actuel ? Peut-on montrer à un ancien locataire les coordonnées d'un propriétaire arrivé après son bail ? (d) Faut-il
+    imprimer l'e-mail et le téléphone du bailleur ?

@@ -320,3 +320,91 @@ Cinq lignes par lot, en français simple : ce qui a été fait, ce qui a été v
 - **Une erreur d'écran corrigée avant d'être poussée (lot 33)** : voir l'entrée du lot 33, « congé pour reprise ».
 - **Le parcours qui manquait** : aucun ne jouait le report ni l'annulation d'un rendez-vous par le locataire (noté pour la vérification finale). Il est écrit et joué : report demandé puis accepté par l'artisan ; second report refusé avec un motif ; plus de report proposé après deux, avec la raison ; annulation confirmée en deux temps ; l'artisan en prend acte. Chaque étape est vérifiée à l'écran et en base. Joué seul puis dans le même passage complet : réussi du premier coup, captures relues.
 - **Incident de banc** : la base de données locale de mon banc s'est arrêtée avec un redémarrage de ma session ; un contrôle n'a pas pu démarrer. Relancée ; mes scripts la relancent désormais d'eux-mêmes. Aucun effet sur la préproduction ni sur la production.
+
+## 23/11/2026 — Phase 3, vérification des documents : les 46 modèles du palier 1 produits et relus page par page
+
+- **Ce que j'ai fait** : j'ai monté sur mon banc six espaces de propriétaire fictifs complets : baux, colocation, dépôt et sortie, loyers, impayés, charges et travaux. Les données sont inventées et chaque geste passe par l'application. J'y ai produit les 46 modèles de documents du palier 1, avec leurs variantes, soit environ 150 PDF.
+- **Comment je les ai relus** : chaque page de chaque PDF a été relue, en texte et en image. Chaque défaut relevé a ensuite été soumis à trois contradicteurs, qui cherchaient à prouver qu'il n'en était pas un. Seuls les défauts qui ont résisté sont gardés : **97 défauts confirmés**, dont 1 bloquant (un calcul de prorata faux) et une trentaine de majeurs.
+- **Quelques exemples de défauts majeurs** : un congé ou un avenant proposé pour un bail terminé ; un courrier émis au nom de l'espace de travail au lieu du bailleur ; des codes de la base imprimés tels quels ; un protocole d'apurement qui promettait une suspension des relances que l'application ne faisait pas ; des retenues décidées après coup imprimées dans l'état des lieux de sortie signé ; un ordre d'intervention sans horaire ni travaux commandés.
+- **Correction** : quatorze lots (35 à 48), un par cause commune. Chaque lot a été corrigé, puis relu par deux relecteurs indépendants (l'un défaut par défaut, l'autre à la recherche de régressions), repris sur leurs constats, puis contre-relu. Deux tours de plus ont traité ce que les contre-relectures avaient encore trouvé.
+- **Rien n'est présenté comme conforme.** Les points de droit vont dans JURISTE.md (partie 5), et les choix qui vous reviennent dans QUESTIONS.md (Q40 à Q53). Dans les deux cas, l'option la plus prudente est appliquée en attendant.
+
+## 23/11/2026 — Lot 35 : mise en forme commune des documents
+
+- **Fait** : l'étage n'est plus écrit deux fois (« 2e étage », jamais « étage 2e étage ») et les surfaces, volumes et index s'écrivent à la française (« 45 m² », « 4 521,3 »). Le point final n'est plus doublé, et le blanc avant une virgule a disparu. Les signatures et la mention « Fait à » ne partent plus seules sur une page, et les titres ne restent plus en bas de page séparés de leur suite. On lit aussi « le 1er du mois ».
+- **Point délicat, traité** : un bail déjà préparé pour la signature électronique est contrôlé, à son activation, par une empreinte du texte. Changer la mise en page aurait bloqué l'activation des baux préparés avant la publication. Gerimmo garde donc l'ancienne mise en page pour les relire. Un relecteur a vérifié sur 70 dossiers variés que le code de la production actuelle et le nouveau donnent la même empreinte.
+- **Vérifié** : sur les six espaces, les 150 variantes gardent le même état qu'avant, et chaque défaut corrigé a été contrôlé dans le texte et à l'image. Les tests nouveaux échouaient tous sur l'ancien code.
+- **Reste** : avant la publication, vérifier en production qu'aucun circuit de signature n'attend une activation (plan de publication). Les circuits préparés mais pas encore envoyés seront à préparer de nouveau : un message clair le dit.
+- **Retour en arrière** : aucun changement en base ; revenir à la version précédente de l'application suffit.
+
+## 23/11/2026 — Lot 36 : des libellés lisibles à la place des codes de la base
+
+- **Fait** : les documents impriment désormais les mots des écrans au lieu des codes techniques. C'est le cas pour les diagnostics, l'état du mobilier (« Usagé », « Absent »), le mode de règlement, la période d'un terme (« février 2025 — prorata du 15/02 au 28/02 »), l'état d'un incident, d'un devis ou d'une écriture, et les titres de classement. Les prix des devis n'ont plus seize décimales.
+- **Documents d'incident** : ils ne reprennent plus les consignes internes de l'écran du gestionnaire (« à requalifier », « à réaffecter »). L'entreprise lit des états neutres : « Signalé », « Terminé », « Refusée »…
+- **Vérifié** : 43 cas de test nouveaux (39 échouaient avant). Aucun document n'a changé d'état ni de nombre de pages.
+- **Reste** : les catégories d'écriture des documents d'agence (palier 2), vérifiées par tests seulement, faute de dossier fictif d'agence.
+- **Retour en arrière** : aucun changement en base.
+
+## 23/11/2026 — Lot 37 : le bon émetteur et le bon destinataire
+
+- **Fait** : chez un propriétaire qui gère lui-même, les documents d'un bail sont émis et signés par le bailleur, et non plus au nom technique de l'espace : bordereau des clés, courriers de charges, demande d'attestation d'assurance… « Votre gestionnaire » et « le bailleur ou son mandataire » n'apparaissent plus que dans une agence. L'ordre et le compte rendu d'intervention partent du donneur d'ordre. Les courriers de recouvrement portent l'adresse postale du locataire.
+- **Prudence** : faute d'adresse connue après la sortie, le courrier porte le nom seul : aucune adresse n'est inventée (juriste partie 5, point 1).
+- **Vérifié** : 52 cas de test nouveaux, agence comprise (48 échouaient avant), et les PDF des six espaces relus.
+- **Reste** : un colocataire parti n'est plus traité comme locataire (lot 46). Le même travail a été fait ensuite dans les e-mails et les écrans du locataire (lot 47).
+- **Retour en arrière** : aucun changement en base.
+
+## 23/11/2026 — Lot 38 : chaque document ne propose que les dossiers qu'il accepte
+
+- **Fait** : on ne peut plus préparer un avenant ou un congé du bailleur sur un bail terminé, un accusé de congé sans congé, un avis d'échéance sur un terme payé, un inventaire sur un logement vide. L'acte de cautionnement n'est plus proposé pendant le préavis. Gerimmo refuse aussi un dossier imposé par l'adresse, en disant pourquoi et quoi faire. Un incident des parties communes produit maintenant ses documents, avec l'immeuble.
+- **Avis d'un terme passé ou payé en partie** : il dit au passé que l'échéance est passée, ce qui est déjà reçu, ce qui reste à payer, et le total réellement dû à sa date (lot 44).
+- **Vérifié** : 68 cas de test nouveaux (38 échouaient avant). Dans les six espaces, plus aucun document n'est proposé puis refusé pour l'état du dossier (lot 46).
+- **Reste** : dans un très grand parc, une page de la liste peut montrer moins de 50 dossiers ; le lien « Dossiers suivants » complète (Q48).
+- **Retour en arrière** : aucun changement en base.
+
+## 23/11/2026 — Lot 39 : loyers et impayés, des documents qui disent ce que fait Gerimmo
+
+- **Le défaut bloquant est corrigé** : le décompte au prorata imprimait le loyer actuel du bail (710,50 €) au lieu de celui du mois concerné (700 €). Il imprime maintenant la base et la formule de l'appel.
+- **Fait** : l'avis et les courriers qui demandent un virement impriment l'IBAN du profil. S'il manque, le PDF est refusé et un lien mène au profil, au lieu d'un tiret. Chaque échéance a son reste dû. Les attestations d'un bail en préavis donnent la date de fin. Le protocole d'apurement reprend le plan enregistré et ne promet plus rien que l'application ne fasse pas. Aucune relance n'est proposée ni enregistrée pendant un plan d'apurement (lots 39 et 44).
+- **Révision du loyer prise en cours de mois** : le calcul n'est pas modifié. La lettre dit désormais honnêtement ce qui se passe pour le mois de l'effet (Q43, juriste partie 5, point 6).
+- **Vérifié** : 43 cas de test nouveaux, et un rendu avec un IBAN et un plan d'apurement fictifs.
+- **Retour en arrière** : aucun changement en base.
+
+## 23/11/2026 — Lot 40 : baux, notice, inventaires et avenants disent ce qui est
+
+- **Fait** : la notice est présentée partout comme un résumé, qui ne remplace pas la notice officielle. Les inventaires sont datés à la signature et l'inventaire de sortie a ses colonnes propres. Une première location imprime « Sans objet » dans la rubrique des travaux. Le bail étudiant n'est plus décrit avec une « durée de droit commun ». L'avenant de remplacement d'un colocataire a ses vraies signatures et choisit le sortant parmi les titulaires. Chaque avenant a une référence stable.
+- **Une migration** (20261123170000) : le message de la base qui refuse un contrat individuel sans plafond parle désormais du « loyer maximal applicable au logement entier », comme le contrat. Son retour arrière est écrit et testé.
+- **Vérifié** : 43 cas de test nouveaux (37 échouaient avant). Les PDF baux et colocation relus, en texte et à l'image.
+- **Non fait** : un contrôle de la date du constat d'inventaire, faute de règle existante. Seules les dates impossibles sont refusées (Q47).
+- **Retour en arrière** : script de retour de la migration, puis version précédente de l'application.
+
+## 23/11/2026 — Lot 41 : dépôt, états des lieux, clés et congé
+
+- **Fait** : l'état des lieux de sortie imprime la pièce de chaque écart. Il n'imprime plus les retenues : elles sont décidées après sa signature et figurent dans les deux décomptes (juriste partie 5, point 14). L'état des lieux est daté du jour du constat, et le bordereau des clés du jour de la remise. Un numéro de compteur ou une référence de clé non saisis s'impriment « — ». Pour le congé du bailleur, le catalogue demande ce qu'exige le motif choisi.
+- **Livrables mis à jour** : la recette D0.4 et le plan de livraison ne promettent plus le comparatif chiffré dans l'état des lieux de sortie.
+- **Vérifié** : 32 cas de test nouveaux, et la famille dépôt-sortie rendue avant et après.
+- **Reste** : le décompte des retenues reste bloqué quand une retenue n'a pas de justificatif (Q49).
+- **Retour en arrière** : aucun changement en base.
+
+## 23/11/2026 — Lot 42 : charges, travaux et comptabilité
+
+- **Fait** : l'ordre d'intervention donne les heures du créneau et décrit les travaux du devis retenu. Il est refusé pour une mission sans devis. Le comparatif et le récapitulatif suivent l'état réel du dossier. Le journal de clôture indique le logement et la catégorie. La contre-écriture est datée. Une ligne à compléter imprime « à compléter » au lieu de 0,00 €, et l'année en cours porte « document provisoire ».
+- **Une migration** (20261123150000) : la première mensualité d'une régularisation étalée tombe au moins un mois après son émission, comme pour l'échéancier de charges. Les régularisations déjà émises ne sont pas modifiées. Le courrier n'annonce plus « un mois avant » quand les dates le contredisent (Q50, juriste partie 5, point 15).
+- **Vérifié** : 74 cas de test nouveaux, migration rejouée, retour arrière rejoué, PDF relus.
+- **Reste** : le nom du fichier d'un devis et la référence imprimée dessus diffèrent (défaut ancien, Q51).
+- **Retour en arrière** : script de retour de la migration, puis version précédente de l'application.
+
+## 23/11/2026 — Lots 43 à 47 : ce que les contre-relectures ont encore trouvé
+
+- **Lot 43** : un test du lot 42 était cassé, et le code est réparé sans toucher au test. Les autres corrections : « non déposé » pour une mission terminée sans compte rendu ; les dates des documents de mandat en clair ; le protocole et l'autorisation de travaux datés à la signature ; une phrase propre à l'inventaire de sortie ; « Le 1er de chaque mois » sur trois écrans.
+- **Lot 44 (majeur)** : l'avis d'un terme passé annonçait un total trop bas. Il oubliait les termes suivants déjà échus : 1 120 € au lieu de 1 890,50 €. Les trois avis du jeu d'essai annoncent maintenant le même total vrai. Pendant un plan d'apurement, plus aucun écran ne propose de relance.
+- **Lot 45 (majeur)** : la fiche du bail pouvait ouvrir l'ancien résumé de la notice après une mise à jour. La fiche, le récapitulatif et la signature retiennent maintenant le même, le plus récent. Un état des lieux signé sans index de compteur ni nombre de clés n'est plus bloqué pour toujours : il imprime « non relevé » ou « non compté » (Q49, juriste partie 5, point 16).
+- **Lot 46** : plus aucun document n'est proposé puis refusé pour l'état du dossier. Un colocataire parti n'est plus traité comme locataire. Chaque « À renseigner » mène à l'écran où l'information se corrige.
+- **Lot 47 (majeur)** : chez un propriétaire, les e-mails et les écrans du locataire disaient encore « votre gestionnaire ». Ils disent « votre bailleur », et « gestionnaire » ne reste qu'en agence. Aucun e-mail réel n'a été envoyé.
+
+## 24/11/2026 — Lots 48 et 49 : les derniers constats, et un retrait par prudence
+
+- **Un test qui dépendait de l'heure** : un test des relances sous plan d'apurement réussissait le 23/11 au matin et échouait le soir, parce qu'il comparait une date figée à l'heure réelle. Il a maintenant son horloge figée, sans rien changer à ce qu'il vérifie. En avançant l'horloge jusqu'à sept ans, j'ai trouvé quatre autres tests du même genre : ils sont figés aussi.
+- **Corrigé aussi** : chaque « À renseigner » mène à l'écran où l'information manque vraiment, en agence comme chez un propriétaire. En agence, le fil de discussion d'une intervention dit « Gestionnaire » au lieu de « Propriétaire ». Un contrat signé de première location renvoie au texte du contrat. Un duplex dont le nom du lot dit déjà les niveaux ne voit plus son étage répété.
+- **Retiré par prudence** : le lot 48 avait aligné la quittance consultée en ligne sur le PDF, par une modification de la base. Le locataire, même un ancien colocataire, aurait alors lu l'adresse, l'e-mail et le téléphone des propriétaires actuels, même après une vente. Et des quittances déjà émises lui seraient devenues inaccessibles tant que la fiche du propriétaire n'aurait pas d'adresse. Ce choix vous revient (Q52). La quittance en ligne reste donc comme aujourd'hui en production. Le retour arrière a été joué sur mon banc, et la version complète reste dans l'historique de la branche.
+- **Un recul évité** : la dernière reprise de la règle de l'étage voulait couvrir des saisies rares, mais elle lisait mal une adresse courante (« 1er étage, 2e porte à droite »). Je suis revenu à la règle précédente, plus simple. Les saisies rares d'un duplex peuvent encore répéter un niveau : c'est une limite connue (Q41).
+- **Vérifié** : chaque défaut a son test, qui échouait avant la correction. Les six espaces fictifs ont été rendus de nouveau : 108 documents au même état, textes et 148 images identiques, sauf ce qui était visé. Chaque lot a été relu par deux relecteurs, repris, puis contre-relu.

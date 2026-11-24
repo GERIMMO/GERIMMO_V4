@@ -1,4 +1,5 @@
 import { LienSectionIncident } from "@/components/lien-section-incident";
+import { phraseNoteRetiree } from "@/lib/evaluation-retiree";
 import { PrioriteIncident, RubriqueIncident } from "@/components/navigation-incident";
 import { consigneMission } from "@/lib/consigne-incident";
 import { EchangesIntervention } from "@/components/echanges-intervention";
@@ -220,6 +221,8 @@ type Evaluation = {
   source: string;
   note_globale: number;
   retiree_le: string | null;
+  // Décision du 24/11/2026 (Q20) : le client qui a noté lit le motif du retrait de sa note.
+  retrait_motif: string | null;
 };
 
 type Avenant = {
@@ -427,7 +430,7 @@ export async function VoletArtisan({
           // l'unicité (intervention_id, source) tient en base indépendamment
           // du retrait. Les masquer ferait rouvrir un formulaire que la base
           // refuserait — « déjà évaluée par l'agence ».
-          .select("id, intervention_id, source, note_globale, retiree_le")
+          .select("id, intervention_id, source, note_globale, retiree_le, retrait_motif")
           .eq("organization_id", orgId)
           .in("intervention_id", idsInterventions)
       : Promise.resolve({ data: [], error: null }),
@@ -914,8 +917,9 @@ export async function VoletArtisan({
                     // l'agence — « l'agence est juge et partie ». Le retrait est
                     // la décision de la plateforme ; on l'annonce, on ne
                     // rouvre pas le formulaire (une note par acteur, retirée ou
-                    // non).
-                    `Votre note (${noteDuGerant.note_globale}/5) a été retirée par Gerimmo : elle ne compte plus dans la moyenne de l'artisan.`
+                    // non). Décision du 24/11/2026 (Q20) : le client lit aussi le
+                    // motif du retrait de SA note ; l'artisan ne le lit nulle part.
+                    phraseNoteRetiree(noteDuGerant)
                   : `Vous avez noté cette intervention ${noteDuGerant.note_globale}/5`}
                 {!noteDuGerant.retiree_le &&
                   (evaluations.some(

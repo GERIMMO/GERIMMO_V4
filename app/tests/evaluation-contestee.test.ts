@@ -101,7 +101,9 @@ describe("formulaire de retrait", () => {
   });
 
   it("dit vrai sur qui lit le motif : l'organisation le peut, l'artisan non", () => {
-    expect(html).toContain("Le motif est conservé avec l’évaluation, que l’organisation peut consulter. L’artisan ne le voit pas.");
+    // Décision du 24/11/2026 (Q20) : le client qui a noté lit désormais le motif à l'écran (dossier de l'intervention).
+    // La phrase le dit au superviseur avant qu'il écrive ; l'ancienne (« que l’organisation peut consulter ») était vague.
+    expect(html).toContain("Le motif est conservé avec l’évaluation. Quand c’est la note de l’organisation qui est retirée, elle lit ce motif dans le dossier de l’intervention. L’artisan ne le voit pas.");
     expect(html).not.toMatch(/reste (privé|confidentiel)/i);
   });
 });

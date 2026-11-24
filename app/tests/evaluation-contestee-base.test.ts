@@ -204,6 +204,45 @@ describe.skipIf(!url)("évaluation contestée (avec base)", () => {
     expect(await note()).toEqual({ nb_evaluations: 1, note: 1 });
   });
 
+  // Décision du dirigeant du 24/11/2026 (Q20) : « le client qui a noté lit le motif du retrait. L'artisan non. »
+  // Aucune règle de la base n'a été changée pour cela : ce test tient celles qui existent, sous les vrais rôles.
+  it("le motif du retrait se lit dans l'organisation qui a noté et à la supervision ; ni l'artisan, ni une autre organisation, ni un visiteur", async () => {
+    await agir(sa);
+    expect(await retirer(evalGerant)).toBe("");
+    const motifLu = async () => (await db.query("select retrait_motif from public.artisan_evaluations where id=$1", [evalGerant])).rows;
+
+    // Le client qui a noté : il lit le motif de SA note, sous ses droits.
+    await agir(gerant);
+    expect(await motifLu()).toEqual([{ retrait_motif: MOTIF }]);
+
+    // L'artisan concerné, et un autre artisan : la table leur reste fermée, motif compris.
+    for (const artisanConnecte of [compteArtisan, compteAutreArtisan]) {
+      await agir(artisanConnecte);
+      expect(await motifLu(), artisanConnecte).toEqual([]);
+    }
+    // … et ce que l'artisan lit dans le suivi de sa contestation ne reprend pas le motif.
+    await agir(compteArtisan);
+    const suivi = (await db.query("select message from public.retours_historique where retour_id=$1", [contestation])).rows;
+    expect(JSON.stringify(suivi)).not.toContain("mauvais dossier");
+
+    // Le gestionnaire d'une AUTRE organisation ne lit rien.
+    await base();
+    const autreOrg = await id("insert into public.organizations(name,status,type) values('Autre agence fictive','active','agence') returning id");
+    const autreGerant = await compte("autregerant");
+    await db.query("insert into auth.sessions(id,user_id) values($1,$1)", [autreGerant]);
+    await db.query("insert into public.memberships(account_id,organization_id,role) values($1,$2,'admin_agence')", [autreGerant, autreOrg]);
+    await agir(autreGerant);
+    expect(await motifLu()).toEqual([]);
+
+    // Un visiteur sans compte n'a aucun droit sur la table.
+    await agir(null, "anon");
+    expect(await refus("select retrait_motif from public.artisan_evaluations where id=$1", [evalGerant])).toMatch(/permission denied/);
+
+    // La supervision le lit par la fonction tracée de la contestation.
+    await agir(sa);
+    expect((await lire()).rows.find((r) => r.evaluation_id === evalGerant)).toMatchObject({ retrait_motif: MOTIF });
+  });
+
   it("refuse le retrait sans motif réel, hors contestation, ou pour l'évaluation d'un autre artisan", async () => {
     await agir(sa);
     for (const motif of [null, "", "   ", "neuf car.", "x".repeat(1001)]) {

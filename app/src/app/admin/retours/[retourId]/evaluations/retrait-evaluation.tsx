@@ -17,8 +17,9 @@ export function RetraitEvaluation({ retourId, evaluationId }: { retourId: string
       <textarea name="motif" className={champ} rows={3} required minLength={10} maxLength={1000} />
     </label>
     <p className="text-xs text-muted-foreground">
-      Le motif est conservé avec l’évaluation, que l’organisation peut consulter. L’artisan ne le voit pas.
-      N’y reprenez pas ce qu’il vous a confié en privé.
+      {/* Décision du 24/11/2026 (Q20) : le client qui a noté lit ce motif à l'écran ; l'artisan ne le lit pas. */}
+      Le motif est conservé avec l’évaluation. Quand c’est la note de l’organisation qui est retirée, elle lit ce motif
+      dans le dossier de l’intervention. L’artisan ne le voit pas. N’y reprenez pas ce qu’il vous a confié en privé.
     </p>
     <label className="flex items-start gap-2 text-sm">
       <input type="checkbox" name="confirmation" required className="mt-1" />

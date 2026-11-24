@@ -96,6 +96,13 @@ test("G-01/G-02 : bail signé sur papier — refusé tant que la base bloque, pu
     await ouvrirEtape(page, adresse, "07");
     const depot = page.locator("#bail-signe");
     await expect(depot.getByText("Bail signé", { exact: true })).toBeVisible();
+    // Décision du dirigeant du 24/11/2026 (Q11) : la signature électronique est proposée en premier, le papier reste
+    // toujours possible. La carte du dépôt papier le dit, et elle vient APRÈS le panneau de la signature électronique.
+    await expect(depot).toContainText("Signature sur papier, toujours possible.");
+    const electronique = page.getByRole("heading", { name: "Signature électronique · Bail de location" });
+    await expect(electronique).toBeVisible();
+    expect(await electronique.evaluate(e => Boolean(e.compareDocumentPosition(document.getElementById("bail-signe")!) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+    await expect(page.locator("#signature")).toContainText("La signature sur papier reste toujours possible : déposez le contrat signé dans la carte « Bail signé », plus bas.");
     await expect(depot.getByRole("link", {name: "Ouvrir la mise en location du logement"})).toHaveAttribute("href", `/espace/${ORG}/parc/${bien}/lots/${lot}#statut-lot`);
     await expect(depot.locator("#depot-bail-signe")).toHaveCount(0);
     await expect(db.query("update public.lots set etat='disponible' where id=$1", [lot])).rejects.toThrow(/DPE absent ou expiré/);

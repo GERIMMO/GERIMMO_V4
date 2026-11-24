@@ -13,6 +13,7 @@ import { DonneesStructurees } from "@/components/donnees-structurees";
 import { articleJournal, filAriane } from "@/lib/donnees-structurees";
 import { adresseCanonique } from "@/lib/site";
 import { CHARTE_GERIMMO } from "@/lib/charte-gerimmo";
+import { MentionIaArticle } from "@/components/mention-ia-article";
 
 export const revalidate = 3600;
 
@@ -106,6 +107,8 @@ export default async function PageArticle({ params }: PageProps<"/journal/[slug]
 
         <h1 className="mt-1">{titreSansDoublon(a.titre)}</h1>
         {paruLe && <p className="mono-discret mt-2.5">Paru le {paruLe}</p>}
+        {/* Décision du 24/11/2026 (Q13) : la mention est visible sur chaque article, sous sa date. */}
+        <MentionIaArticle className="mono-discret sans-majuscules mt-1" />
         {/* 06/10 : l'illustration de l'article en tête, format large. */}
         <ImageJournal url={a.facebook_image_url} titre={titreSansDoublon(a.titre)} priorite className="mt-6" />
         {a.chapo && (

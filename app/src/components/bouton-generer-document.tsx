@@ -69,10 +69,12 @@ export function BoutonGenererDocument({
 
   return (
     <span className="inline-flex flex-wrap items-center gap-2">
+      {/* Décision du 24/11/2026 (Q11) : la signature électronique est proposée en premier ; le PDF à imprimer et à
+          faire signer sur papier reste là, juste après. */}
+      {proposerSignature && Object.hasOwn(DOCUMENTS_ZOHO,code) && <OuvrirSignatureDocument orgId={orgId} selection={{code:code as ModeleSignature,cibleId,options}}/>}
       <Button type="button" size={size} variant={variant} disabled={enCours} onClick={generer}>
         {enCours ? <><Spinner /> Génération…</> : libelle}
       </Button>
-      {proposerSignature && Object.hasOwn(DOCUMENTS_ZOHO,code) && <OuvrirSignatureDocument orgId={orgId} selection={{code:code as ModeleSignature,cibleId,options}}/>}
       {affichage?.documentId && (
         <a
           href={`${base}/documents/${affichage.documentId}/fichier`}

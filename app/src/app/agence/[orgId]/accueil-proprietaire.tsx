@@ -24,6 +24,7 @@ import { construireTachesAccueil, type TacheAccueil } from "@/lib/taches-accueil
 import { ActionsRapidesIncident } from "@/components/actions-rapides-incident";
 import { chargerIncidentsVerifications } from "@/lib/incidents-verifications";
 import { ValeurVivante } from "@/components/valeur-vivante";
+import { LiensTableauDeBord } from "@/components/liens-tableau-de-bord";
 import styles from "./accueil-proprietaire.module.css";
 
 export async function AccueilProprietaire({ supabase, orgId, prenom = null, userId, lectureSeule = false }: {
@@ -180,6 +181,8 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
         <ConseilsAccueilProprietaire db={supabase} base={base}/>
       </aside>
     </div>
+    {/* Décision du 24/11/2026 (Q18) : Statistiques et Journal s'ouvrent d'ici, le menu reste court. */}
+    <LiensTableauDeBord base={base} />
     <details className={styles.reglagesDiscrets}>
       <summary><Settings2 size={17} aria-hidden="true"/>Mes automatismes et outils</summary>
       <div className={styles.outilsSecondaires}>

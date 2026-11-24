@@ -70,11 +70,12 @@ export function FormulaireCatalogue({orgId,modeleId,choix,garants=[],titulaires=
       {c.aide&&<span className="block text-xs font-normal text-muted-foreground">{c.aide}</span>}
       {c.repli==="detail_enregistre"&&choixCourant?.detailEnregistre&&<span className="block text-xs font-normal text-muted-foreground">Cette régularisation porte déjà un détail : laissez vide pour le reprendre tel quel.</span>}
       {c.cle==="interets_emprunt"&&infoInterets&&<span role="status" className="block text-xs font-medium">{infoInterets}</span>}</label>)}</div>
+    {/* Décision du 24/11/2026 (Q11) : la signature électronique est proposée en premier, avant le PDF à imprimer. */}
+    {signature&&<div><OuvrirSignatureDocument orgId={orgId} selection={signature}/></div>}
     <p className="text-sm text-muted-foreground">Le PDF sera enregistré dans Documents. Aucun envoi automatique.</p>
     <Button disabled={enCours||!cible||!choix.length||calcul} type="submit">{enCours?"Préparation du PDF…":"Générer le PDF"}</Button>
     {etat.erreur&&!etat.manquants?.length&&<p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}
     {etat.succes&&<p role="status" className="text-sm text-success">{etat.succes}</p>}
-    {signature&&<OuvrirSignatureDocument orgId={orgId} selection={signature}/>}
     {etat.documentId&&<Link className="block font-medium text-primary underline" href={`${base}/documents/${etat.documentId}/fichier`} target="_blank" rel="noopener">Ouvrir le PDF</Link>}
     {!!etat.manquants?.length&&<section aria-label="Informations à compléter" role="status" className="rounded-xl border border-[var(--or-filet)] bg-[var(--or-clair)] p-4">
       <h3 className="text-sm font-semibold">Encore {etat.manquants.length} {etat.manquants.length===1?"information":"informations"} à compléter</h3>

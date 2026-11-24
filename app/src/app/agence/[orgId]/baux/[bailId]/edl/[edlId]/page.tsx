@@ -1,4 +1,5 @@
 import { EdlConsultation } from "./edl-consultation";
+import { PAPIER_TOUJOURS_POSSIBLE } from "@/lib/textes-signature-actes";
 import { EtapesSaisie } from "@/components/etapes-saisie";
 import Link from "next/link";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
@@ -231,7 +232,7 @@ export default async function PageEdl(
         {titre:"Informations", detail:"Identifiez les personnes présentes et les mentions du document."},
         {titre:"Les pièces", detail:"Examinez une pièce à la fois. Enregistrez la grille avant de poursuivre."},
         {titre:"Compteurs et clés", detail:"Renseignez les relevés et les clés remises, puis enregistrez."},
-        {titre:"Validation", detail:"Vérifiez le dossier, préparez le PDF puis déposez la preuve de signature."},
+        {titre:"Validation", detail:"Vérifiez le dossier, puis faites-le signer : signature électronique, ou sur papier avec dépôt de la preuve de signature."},
       ]} contenus={[
       <Card key="mentions">
         <CardHeader>
@@ -377,9 +378,13 @@ export default async function PageEdl(
         </CardContent>
       </Card>,
       ...(!signe ? [<div key="validation" className="space-y-4">
-        <div id="edl-validation" />
         <p className="text-sm text-muted-foreground">Les mentions, les relevés et les clés enregistrés seront repris dans le document. Vérifiez-les avant de le faire signer aux parties.</p>
+        {/* Décision du 24/11/2026 (Q11) : la signature électronique est proposée en premier (ce bouton commun la place
+            avant le PDF). La voie papier reste entière, juste en dessous : la grille y pose son bouton
+            « Enregistrer et signer », qui demande la preuve de signature. */}
         <BoutonGenererDocument orgId={orgId} code="edl" cibleId={edlId} cheminRetour={`${base}/baux/${bailId}/edl/${edlId}`} libelle="Générer le PDF" />
+        <p className="text-sm text-muted-foreground" data-voie-papier>{PAPIER_TOUJOURS_POSSIBLE} : enregistrez la grille, puis déposez l’état des lieux signé par les parties.</p>
+        <div id="edl-validation" />
       </div>] : []),
       ]} />}
     </main>

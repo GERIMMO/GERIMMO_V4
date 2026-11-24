@@ -10,7 +10,7 @@ import { actualiserSignatureBail, annulerSignatureBail, envoyerSignatureBail, li
 
 import { DOCUMENTS_ZOHO, type SelectionSignature } from "@/lib/politique-signature";
 import { formaterDate } from "@/lib/ged";
-import { confirmationEdlSurPlace, dateVisiteFr } from "@/lib/textes-signature-actes";
+import { confirmationEdlSurPlace, dateVisiteFr, LIBELLE_SIGNATURE_ELECTRONIQUE } from "@/lib/textes-signature-actes";
 import { estResumeNoticeJoint } from "@/lib/documents-bail";
 
 /** Le jour de Paris, « AAAA-MM-JJ » : borne de la date de la visite (jamais dans le futur). */
@@ -103,7 +103,7 @@ export function SignatureElectroniqueBail({orgId,bailId,selection,apresSignature
   return <section aria-labelledby={titreId} className="min-w-0 rounded-2xl border border-border bg-card p-4 sm:p-5 space-y-4 [&_button]:h-auto [&_button]:min-h-10 [&_button]:max-w-full [&_button]:whitespace-normal">
     <header className="flex flex-wrap items-start justify-between gap-3">
       <div className="flex min-w-0 gap-3"><span className="shrink-0 rounded-xl bg-primary/10 p-2.5 text-primary h-fit"><FileSignature size={22}/></span><div className="min-w-0">
-        <h4 id={titreId} className="font-semibold text-base">Signature · {DOCUMENTS_ZOHO[code]}</h4>
+        <h4 id={titreId} className="font-semibold text-base">{LIBELLE_SIGNATURE_ELECTRONIQUE} · {DOCUMENTS_ZOHO[code]}</h4>
         <p className="text-sm text-muted-foreground">{code === "devis_artisan" ? "L’offre validée par l’artisan est jointe sans modification. Les propriétaires signent leur acceptation." : "Un document commun, les propriétaires signent en dernier."}</p>
       </div></div>
       {c&&<span className={`rounded-full px-3 py-1 text-xs font-semibold ${c.etat==="termine"?"bg-success-soft text-foreground":"bg-primary/10 text-primary"}`}>{attente?.etat==="en_attente"&&!mobileCautionConfirme?"En attente de la caution":attenteGarant?"En attente du garant":ETATS[c.etat]}</span>}

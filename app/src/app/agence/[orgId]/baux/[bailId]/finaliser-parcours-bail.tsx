@@ -13,6 +13,7 @@ import { LecteurDocument } from "@/components/lecteur-document";
 import { SignatureElectroniqueBail } from "@/components/signature-electronique-bail";
 import { OuvrirSignatureDocument } from "@/components/ouvrir-signature-document";
 import { useBaseEspace, useRacineEspace } from "@/components/racine-espace-contexte";
+import { PAPIER_TOUJOURS_POSSIBLE } from "@/lib/textes-signature-actes";
 import styles from "./finaliser-parcours-bail.module.css";
 
 type Controle = { manquants: string[]; erreur?: string } | null;
@@ -66,8 +67,11 @@ function PdfEtatDesLieux({ orgId, edlId, retour, revision, lectureSeule, signe }
     {courant && generation?.resultat.erreur && <p className={styles.erreur} role="alert">{generation.resultat.erreur}</p>}
     {courant && Boolean(generation?.resultat.manquants?.length) && <p className={styles.message}>À compléter dans la grille : {generation!.resultat.manquants!.join(" · ")}.</p>}
     {generation?.resultat.documentId && !courant && <p className={styles.message} role="status">Le dossier a changé. Actualisez le PDF de l’état des lieux.</p>}
-    <a className={styles.lien} href={`${retour}/edl/${edlId}`}>{lectureSeule || signe ? "Consulter la grille" : "Compléter la grille"} →</a>
+    {/* Décision du 24/11/2026 (Q11) : la signature électronique d'abord ; la voie papier (dépôt de l'état des lieux signé,
+        depuis la grille) reste toujours offerte, juste en dessous. */}
     {!lectureSeule && !signe && <div className={styles.signatureEdl}><OuvrirSignatureDocument orgId={orgId} selection={{ code: "edl", cibleId: edlId }}/></div>}
+    <a className={styles.lien} href={`${retour}/edl/${edlId}`}>{lectureSeule || signe ? "Consulter la grille" : "Compléter la grille"} →</a>
+    {!lectureSeule && !signe && <p className={styles.message} data-voie-papier>{PAPIER_TOUJOURS_POSSIBLE} : déposez l’état des lieux signé depuis la grille.</p>}
   </>;
 }
 
@@ -100,7 +104,10 @@ export function FinaliserParcoursBail({ orgId, bailId, code, edlId, edlSigne = f
     });
   }
   return <section className={styles.finalisation} id="signature" aria-labelledby={titreId}>
-    <header className={styles.entete}><h3 id={titreId}>Documents et signatures</h3><p>{documentSigne ? "Le contrat signé est disponible. La location reste à activer." : "Relisez les documents avant de lancer les signatures."}</p></header>
+    <header className={styles.entete}><h3 id={titreId}>Documents et signatures</h3><p>{documentSigne ? "Le contrat signé est disponible. La location reste à activer." : "Relisez les documents avant de lancer les signatures."}
+      {/* Décision du 24/11/2026 (Q11). Seul le propriétaire direct a la signature électronique du bail : c'est à lui qu'on
+          annonce les deux voies, dans l'ordre où l'écran les présente. */}
+      {!documentSigne && proprietaireDirect && !lectureSeule && <span data-ordre-signatures> La signature électronique vous est proposée en premier. {PAPIER_TOUJOURS_POSSIBLE} : déposez le contrat signé dans la carte « Bail signé », plus bas.</span>}</p></header>
     {!documentSigne && <PointsManquantsFinalisation manquants={manquants} manquantsRecap={controle?.manquants ?? []} recapitulatifStructure={recapitulatifStructure} orgId={orgId} racine={racine}/>}
     <div className={styles.documents}>
       <section className={styles.carte} aria-labelledby={`${titreId}-contrat`}>

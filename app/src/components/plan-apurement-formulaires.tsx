@@ -93,8 +93,9 @@ function PlanEnCours({ orgId, bailId, base, plan }: { orgId: string; bailId: str
     <div className="flex flex-wrap items-center gap-2">
       {plan.document_id && <ApercuDocumentEspace fichier={`${base}/documents/${plan.document_id}/fichier`} titre="Protocole d’apurement" />}
       {plan.document_signe_id && <ApercuDocumentEspace fichier={`${base}/documents/${plan.document_signe_id}/fichier`} titre="Protocole signé" />}
-      {["propose", "actif", "en_defaut"].includes(plan.etat) && <Protocole orgId={orgId} bailId={bailId} planId={plan.plan_id} base={base} dejaGenere={Boolean(plan.document_id)} />}
+      {/* Décision du 24/11/2026 (Q11) : la signature électronique est proposée en premier, avant le PDF à imprimer. */}
       {["propose", "actif", "en_defaut"].includes(plan.etat) && <OuvrirSignatureDocument orgId={orgId} selection={{ code: "protocole_apurement", cibleId: bailId, options: { plan_id: plan.plan_id } }} />}
+      {["propose", "actif", "en_defaut"].includes(plan.etat) && <Protocole orgId={orgId} bailId={bailId} planId={plan.plan_id} base={base} dejaGenere={Boolean(plan.document_id)} />}
     </div>
     {plan.etat === "propose" && <Activation orgId={orgId} bailId={bailId} planId={plan.plan_id} />}
     {["propose", "actif", "en_defaut"].includes(plan.etat) && <Annulation orgId={orgId} bailId={bailId} planId={plan.plan_id} />}

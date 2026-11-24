@@ -580,7 +580,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             <CardDescription>
               {bail.document_signe
                 ? "Le contrat signé est disponible dans les documents du locataire."
-                : "Déposez le contrat signé par les parties pour démarrer la location. Le locataire le retrouve ensuite dans « Mes documents »."}
+                : `${estProprietaire ? "Signature sur papier, toujours possible. " : ""}Déposez le contrat signé par les parties pour démarrer la location. Le locataire le retrouve ensuite dans « Mes documents ».`}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

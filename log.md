@@ -8068,3 +8068,29 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
   fait l'application ; les encadrés des pages [[Relances et mise en demeure]], [[Plan d'apurement]] et
   [[Mission palier 1 — audit du 22 novembre 2026]] le disent, et la seule question qui reste au dirigeant est de savoir
   s'il veut, au contraire, tout refuser pendant un plan.
+
+## [2026-11-24] ingest | Mission palier 1 : décisions du dirigeant du 24/11 et lots 50 à 54
+
+- **Source** : `DECISIONS-2026-11-24.md` (réponses du dirigeant à Q1–Q53, mot pour mot), `REPONSES-JURISTE.md` (réponses
+  reçues aux questions de `JURISTE.md`, non signées), `TEXTES-OFFICIELS-LUS-2026-11-24.md` (fiches officielles lues le
+  24/11), `JOURNAL.md` (entrées du 24/11 : « Phase 3, lots 50 à 54 » et « Décisions du dirigeant reçues ») ; aucune
+  source déposée dans `raw/`.
+- **Pages mises à jour** : aucune. Les pages du wiki seront mises à jour quand le code des lots 50 à 54 et des décisions
+  sera vérifié et poussé. Seuls `QUESTIONS.md` (colonne « Décision du 24/11/2026 », Q54 à Q64, points informatifs),
+  `JURISTE.md` (note en tête, partie 6, points informatifs) et `JOURNAL.md` sont complétés.
+- **Lots 50 à 54** : 48 défauts de documents relevés par la première passe de recette, traités en cinq lots, chacun
+  relu par un relecteur indépendant. Vérification complète : 15 183 tests réussis ; un parcours navigateur corrigé,
+  rejoué ensuite quatre fois de suite avec succès. Les lots sont poussés sur la branche de préproduction ; rien n'est publié.
+- **Décisions** : 24 options confirmées, 29 questions tranchées autrement ; plan d'application en sept lots (D1 à D7),
+  non commencé. Contrôle de la production en lecture seule le 24/11 : aucun appel ni régularisation de charges, aucune
+  ancienne demande de signature, un seul circuit de signature (un bail, terminé).
+- **Ce que le wiki n'affirme pas** : qu'une règle ou un document est conforme. Légifrance n'a pas pu être lu : aucun
+  article de loi n'a été relu mot à mot, aucune question n'est retirée de `JURISTE.md`, et les réponses reçues ne sont
+  pas une consultation signée.
+- **Contradictions relevées, à reporter dans les pages concernées lors de leur mise à jour** : (1) révision du loyer —
+  la décision Q43 applique la révision « au premier terme qui suit la demande », la fiche officielle lue dit « à partir
+  de la date de la demande » ([[Révision annuelle IRL]]) ; (2) mention de franchise de TVA — une fiche officielle donne
+  une nouvelle référence depuis le 01/09/2026, deux autres et la doctrine fiscale citent toujours l'ancienne ;
+  (3) quittance — la décision Q52 garde l'adresse de l'espace en ligne alors que la réponse reçue (partie 5, point 19)
+  demande le même émetteur en ligne et sur le PDF ([[Quittance conforme]]) ; (4) diagnostic énergétique — la décision
+  Q28 retient le plus récent, aucune page officielle lue ne le dit ([[Mission palier 1 — audit du 22 novembre 2026]]).

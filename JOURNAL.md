@@ -416,3 +416,58 @@ Cinq lignes par lot, en français simple : ce qui a été fait, ce qui a été v
 - **Contrôle de stabilité** : j'ai rejoué six fois de suite tout le fichier de ce parcours, à deux navigateurs, sans second essai permis. Un autre parcours du même fichier a alors échoué trois fois, parce que deux exécutions simultanées déposaient le même PDF d'essai, ce que la base refuse à juste titre. Chaque exécution a désormais son propre fichier. Nouveau passage de six répétitions : 97 réussis sur 97, au premier essai.
 - **Poussé** sur la branche de préproduction (d43eb1a0). Rien n'est publié en production.
 - **Suite** : la première passe de recette complète de la phase 3 (chaque écran, chaque bouton, IA activée puis coupée, documents, sécurité et isolation).
+
+## 24/11/2026 — Phase 3, lots 50 à 54 : les 48 défauts de documents de la première passe
+
+La première passe de recette a relu de nouveau tous les documents produits. Elle a confirmé 48 défauts, presque tous de présentation ou de rédaction. Cinq lots les traitent. Chaque lot a été relu par un relecteur indépendant, puis repris sur ses constats. Rien n'est présenté comme conforme.
+
+- **Lot 50 — baux, colocation, notice (8 défauts).**
+  - Fait : un bail payé par virement n'imprime plus « Coordonnées bancaires : — ». Il est refusé tant que l'IBAN manque. Le bail meublé généré est classé « à faire signer ». Le résumé de la notice n'annonce plus des « voies d'indemnisation » qu'il ne traitait pas.
+  - Vérifié : un test par défaut, documents rendus de nouveau et relus.
+  - Relecteur : un vrai défaut. Le lien « Compléter ici » pour l'IBAN manquant menait au mauvais écran. Il mène maintenant au profil de l'espace.
+  - Reste : une ligne « eau chaude » encore coupée en fin de ligne ; la personne qui entre dans une colocation par avenant se saisit encore en texte libre (Q45 pour l'IBAN, juriste partie 6, points 1 et 2).
+- **Lot 51 — état des lieux, dépôt, cautionnement, congé (14 défauts).**
+  - Fait : une grille d'état des lieux coupée par la page redit le nom de la pièce. Le reçu de dépôt tient sur une page. Chaque acte de cautionnement a son propre numéro. Le congé du bailleur n'imprime plus de consignes destinées à l'expéditeur. Le contrat est désigné par sa date dans les documents du dossier de bail (Q55).
+  - Vérifié : un test par défaut, documents rendus de nouveau et relus.
+  - Relecteur : aucun défaut bloquant. Deux petits : une phrase de vétusté imprimée à tort, et deux formes d'apostrophe. Corrigés au lot 53.
+  - Reste : le signe « € » peut encore passer seul à la ligne ailleurs que dans le cautionnement (Q54) ; trois formules du congé pour vendre sont à faire vérifier (juriste partie 6, points 4 à 6).
+- **Lot 52 — loyers, révision, attestations (10 défauts, dont un en partie).**
+  - Fait : le décompte au prorata tient sur une page. L'IBAN s'imprime par groupes de quatre. La lettre de révision cite la date de la demande, les indices à deux décimales et l'origine de l'indice. Le dossier pour la CAF se dit « récapitulatif » partout (Q56).
+  - Relecteur : **un vrai défaut dans la correction elle-même.** Le décompte au prorata ne tenait sur une page que sans image de signature. Avec une signature enregistrée, la fin du document repartait en page 2. Corrigé, puis prouvé sur un rendu réel avec une signature et deux locataires.
+  - Relecteur, suite : un IBAN mal saisi pouvait être regroupé en un IBAN faux. Il n'est regroupé que si sa clé de contrôle est juste ; sinon la saisie est imprimée telle quelle.
+  - Reste : le nom du titulaire du compte n'est pas imprimé (Q45) ; dans un cas extrême, l'avis d'échéance fait deux pages, mais sa fin part entière.
+- **Lot 53 — impayés (3 défauts).**
+  - Fait : le solde reste sous le tableau qu'il totalise. La mise en demeure n'imprime plus de consigne destinée à l'expéditeur : elle est donnée à l'écran, sous le bouton. Les courriers d'impayés sont archivés avec leur date (Q57).
+  - Relecteur : **un vrai défaut dans la correction elle-même.** Sur un relevé de dette de 36 à 38 lignes, soit un bail de trois ans environ, la signature partait seule en page 3. Corrigé : le solde est la dernière ligne du tableau, et la fin du document n'est jamais coupée.
+  - Vérifié : relevés rendus de 1 à 45 lignes, avec et sans image de signature.
+  - Reste : le protocole d'apurement n'a pas reçu cette correction, parce qu'il se signe en ligne (Q40) ; mention du mode d'envoi sur la mise en demeure (juriste partie 6, point 8).
+- **Lot 54 — charges, travaux, comptabilité (13 défauts, dont un non corrigé et un en partie).**
+  - Fait : les trois courriers de charges sont signés. Les consignes destinées à l'utilisateur sortent du courrier. L'ordre d'une mission déjà terminée est « établi pour le dossier ». Le comparatif ne parle de « comparaison des offres » que s'il y a plusieurs entreprises (Q58).
+  - Relecteur : aucun défaut bloquant, six points repris. Les deux principaux : la période d'occupation n'est imprimée que si elle est certaine (Q60) ; l'ordre d'intervention se signe à la main, sans image enregistrée (Q61).
+  - Non corrigé : l'autorisation de travaux ne dit pas qui autorise qui. C'est une question pour le juriste (partie 6, point 9).
+  - Reste : avec la signature ajoutée, quelques variantes très longues gagnent une page (64 cas sur 504 essayés), toujours avec leur fin entière ; un compte rendu peut encore imprimer « Cause constatée : — ».
+- **Dernière relecture des reprises des lots 52 et 53** : aucun défaut bloquant. Deux petits points corrigés.
+- **Conséquence pour la publication** : ces corrections changent la mise en page de documents qui se signent en ligne. Un dossier préparé mais pas encore envoyé devra être préparé de nouveau (Q40, complétée). En production, aucun dossier n'est dans ce cas le 24/11.
+- **Vérification complète après les lots 50 à 54** : 15 183 tests réussis. Les 2 seuls fichiers en échec sont ceux qui ne tournent que dans la vérification automatique du dépôt : c'est attendu sur mon banc. Parcours navigateur : 307 réussis, 1 en échec deux fois de suite. La cause : une capture d'écran prise trop tôt ; l'écran lui-même était juste. Le parcours est corrigé, et le contrôle répété est en cours : je ne l'annonce pas encore comme réussi.
+- **Tests de rendu réel** : vérifié, ils tournent aussi dans la vérification automatique du dépôt (elle dispose du navigateur nécessaire).
+- **Suite, même jour** : le parcours corrigé a été rejoué quatre fois de suite, sans nouvel essai automatique : 17 réussites sur 17. Un premier contrôle, où les copies tournaient en même temps, avait échoué : elles se disputaient le même réglage. Les lots 50 à 54 sont poussés sur la branche de préproduction. Rien n'est publié en production.
+- **Nouvelles questions** : Q54 à Q61 dans QUESTIONS.md, et la partie 6 de JURISTE.md.
+
+## 24/11/2026 — Décisions du dirigeant reçues
+
+- **Reçu** : vos réponses aux questions Q1 à Q53. Vingt-quatre options sont confirmées. Les autres décisions sont recopiées mot pour mot dans QUESTIONS.md, colonne « Décision du 24/11/2026 ». Vos règles générales sont notées : tout respecte les textes ; rien n'est « conforme » sans texte officiel lu ; le projet reste simple à reprendre par un informaticien ; je ne publie qu'après votre message « je valide la publication ».
+- **Accès aux sites officiels** : approuvé par vous le 24/11 (Q5). J'ai lu les fiches de service-public, des impôts et de la CNIL. Ce qui a été lu est consigné dans TEXTES-OFFICIELS-LUS-2026-11-24.md.
+- **Légifrance** refuse les lectures automatiques. Aucun article de loi n'a donc été lu mot à mot. Choix prudent, en attendant votre réponse (Q62) : une fiche officielle lue suffit pour une règle de fond. Ce qui demande le mot à mot d'un article, ou repose sur un texte de 2026 non lu, n'est pas corrigé et reste dans JURISTE.md.
+- **Réponses aux questions du juriste** : reçues le 24/11 (REPONSES-JURISTE.md). Ce n'est pas une consultation signée, et leur règle est que le texte de loi relu l'emporte. Aucune question n'est donc retirée de JURISTE.md, et rien n'est corrigé sur leur seule base.
+- **Contrôle de la production, en lecture seule, le 24/11** : 10 comptes en tout, dont 2 créés le 19/11, aucun autre depuis le 14/11. Aucune ancienne demande de signature « télécharger, signer, redéposer ». Aucun appel de charges. Aucune régularisation de charges. Un seul circuit de signature, celui d'un bail, terminé. La table de liste d'attente que vous avez citée est vide.
+- **Ce que ce contrôle règle** : aucune liste à faire pour Q27 et Q50 ; l'ancien écran de signature peut être retiré (Q21). **Ce qu'il ne règle pas** : je ne peux pas dire si les 2 comptes du 19/11 sont de vraies personnes. Vous seul le savez (Q64).
+- **Deux alertes lues sur les sites officiels** : la référence légale de la mention « TVA non applicable » aurait changé le 01/09/2026, avec des sources officielles qui ne disent pas toutes la même chose ; un nouveau modèle de bail s'applique depuis le 01/10/2026. Les deux sont posées au juriste (partie 6, points 13 et 14).
+- **Plan d'application de vos décisions, en sept lots** (aucun n'est encore fait) :
+  - **D1 — écrans** : signature électronique proposée en premier ; liens vers Statistiques et Journal sur le tableau de bord ; motif du retrait d'une évaluation lu par le client qui a noté ; mention « rédigé avec l'aide de l'IA » sur chaque article (Q11, Q18, Q20, Q13).
+  - **D2 — révision du loyer** : date limite affichée, second rappel 30 jours avant, refus au-delà ; révision appliquée au premier terme qui suit la demande ; date limite au calendrier (Q23, Q43, Q34).
+  - **D3 — dossier du bail et sortie** : notice officielle déposée par le bailleur, envoi en signature bloqué sans elle ; avertissement quand il y a plusieurs diagnostics ; deux décomptes alignés ; date et source des repères fiscaux (Q46, Q28, Q49, Q38).
+  - **D4 — envois et conditions** : relance à la main ouverte ; cinquième envoi automatique avec son interrupteur ; nouvelle version des conditions avec accord exprès. L'ouverture des envois et le mode commercial se régleront le jour de la publication (Q24, Q37, Q15, Q6, Q16).
+  - **D5 — ancien parcours de signature** : retrait de l'écran et de son code, le contrôle de la production étant fait (Q21).
+  - **D6 — facture de l'artisan fabriquée par Gerimmo** : avec mandat, validation de chaque facture, numérotation propre et acompte ; fermée jusqu'à l'accord d'un expert-comptable (Q14).
+  - **D7 — vendeur Sauve Expert** : en attente de sa forme, de son SIREN, de son adresse, de son régime de TVA et du médiateur (Q7, Q63).
+- **Restent à faire avec vous** : la nouvelle clé des sauvegardes (Q9) ; le référentiel unique (Q2) ; le guide de reprise pour un informaticien. Le point « Antivirus à installer » est noté en fin de QUESTIONS.md et de JURISTE.md (Q8).

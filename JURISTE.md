@@ -8,6 +8,15 @@ environnement (sites refusés par la règle réseau) ; les questions s'appuient 
 lecture du code. Quand les textes seront ouverts, les questions qu'ils règlent seules seront retirées de cette liste
 et traitées dans le plan. Le numéro entre parenthèses renvoie à la ligne du tableau de l'annexe citée.
 
+**Note du 24 novembre 2026 — des réponses ont été reçues, mais aucune question n'est retirée.** Le 24/11, des
+réponses aux 133 questions de ce fichier ont été reçues (fichier `REPONSES-JURISTE.md`). Elles ne sont pas une
+consultation signée par un juriste. Leur propre règle est de rouvrir chaque texte cité avant de corriger : si le texte
+dit autre chose, le texte l'emporte. Or Légifrance refuse les lectures automatiques : aucun article de loi, de décret ou
+d'arrêté n'a pu être lu mot à mot. Seules des fiches officielles ont été lues (service-public, impôts, CNIL ; fichier
+`TEXTES-OFFICIELS-LUS-2026-11-24.md`). Rien n'est donc corrigé sur la seule base de ces réponses, et toutes les questions
+restent ouvertes. La façon de lire Légifrance est une question posée au dirigeant (QUESTIONS.md, Q62). La partie 6, en
+fin de fichier, ajoute les points de droit des lots 50 à 54 et des décisions du 24/11.
+
 Tant qu'une question reste ouverte, Gerimmo garde le comportement le plus prudent : il avertit au lieu d'affirmer,
 et ne présente pas un document comme valable s'il manque une mention.
 
@@ -347,3 +356,94 @@ source (Q5).
     logement, la quittance consultée ensuite doit-elle nommer le bailleur de la date de la quittance ou le propriétaire
     actuel ? Peut-on montrer à un ancien locataire les coordonnées d'un propriétaire arrivé après son bail ? (d) Faut-il
     imprimer l'e-mail et le téléphone du bailleur ?
+
+---
+
+## 6. Lots 50 à 54 et décisions du 24/11/2026
+
+Ces points viennent de la seconde série de corrections des documents (JOURNAL.md, lots 50 à 54) et des décisions du
+dirigeant du 24/11. Aucun n'est présenté comme conforme. Aucun article de loi n'a été lu mot à mot (voir la note en
+tête). Quand une fiche officielle a été lue, c'est dit, avec ce qu'elle ne tranche pas.
+
+1. **Coordonnées bancaires dans un bail payé par virement** (Q45). Quand le bail prévoit un paiement par virement, les
+   coordonnées bancaires du bailleur doivent-elles figurer dans le contrat lui-même, oui ou non ? En attendant : le
+   projet de bail est refusé tant que l'IBAN manque.
+2. **Résumé de la notice d'information.** Le résumé annonçait « les voies de recours et d'indemnisation » sans traiter
+   l'indemnisation ; le mot a été retiré. Un document d'information remis avec le bail doit-il décrire une voie
+   d'indemnisation du locataire, et laquelle ? (Complète les points 4, 5 et 37 de la partie 1 et le point 9 de la
+   partie 5.)
+3. **Attestation de fin de bail : quelle date ?** L'attestation imprime la date de fin du bail et la date de sortie
+   réelle du locataire. Laquelle fait foi pour un tiers (nouveau bailleur, organisme) ? Faut-il n'en imprimer qu'une ?
+4. **Congé pour vendre : la phrase sur les deux premiers mois.** La lettre imprime : « À défaut d'acceptation pendant
+   les deux premiers mois du délai de préavis, vous êtes déchu de plein droit… ». Cette phrase est-elle exacte et
+   complète ? Lu le 24/11 sur la fiche officielle de service-public : l'offre de vente vaut pendant les deux premiers
+   mois du préavis. La sanction n'y est pas décrite.
+5. **Congé pour vendre : nullité de quoi ?** La lettre écrit « à peine de nullité de l'offre ». Un relecteur pense, de
+   mémoire et sans l'avoir vérifié, que la loi vise la nullité du congé. Laquelle des deux formules est juste ?
+6. **Congé pour vendre : notification par le notaire.** La lettre écrit « le notaire doit vous notifier » un prix ou des
+   conditions plus avantageux. Un relecteur pense, de mémoire et sans l'avoir vérifié, que la loi ajoute « lorsque le
+   bailleur n'y a pas préalablement procédé ». Faut-il ajouter cette réserve ? (Les points 4 à 6 complètent les points
+   17 à 19 et 38 de la partie 1.)
+7. **Révision du loyer notifiée après sa date d'effet** (complète le point 6 de la partie 5). La lettre cite maintenant
+   la date à laquelle la demande du bailleur a été enregistrée dans Gerimmo. Cette date suffit-elle ? Faut-il aussi
+   dire par quel moyen la demande a été faite (courrier, recommandé…), ce que Gerimmo n'enregistre pas ?
+8. **Mise en demeure : le mode d'envoi.** La consigne « à notifier avec preuve de réception » n'est plus imprimée dans
+   le courrier : elle est donnée à l'écran, à celui qui l'envoie. Le courrier doit-il porter lui-même une mention du
+   mode d'envoi (par exemple « Lettre recommandée avec accusé de réception »), à compléter à la main ?
+9. **Autorisation de travaux : qui autorise qui ?** Le document ne dit pas clairement si le bailleur autorise le
+   locataire à faire des travaux, ou si le locataire accepte des travaux du bailleur. Quel sens doit-il avoir, et par
+   quelle phrase doit-il s'ouvrir ? Ce défaut n'est pas corrigé : il attend la réponse.
+10. **Image de signature enregistrée sur un ordre d'intervention** (Q61). L'accord recueilli auprès du bailleur vise
+    « quittances, reçus, attestations et courriers ». Couvre-t-il un ordre de travaux, qui engage celui qui commande ?
+    Couvre-t-il les trois courriers de charges ? En attendant : l'ordre se signe à la main ; les courriers de charges
+    portent l'image enregistrée.
+11. **Régularisation de charges : la période d'occupation** (Q60). Le courrier de régularisation doit-il indiquer la
+    période d'occupation et le prorata appliqué ? En attendant : la phrase n'est imprimée que si elle est certaine ;
+    sinon rien n'est imprimé. Cette absence pose-t-elle un problème ?
+12. **Articles rédigés avec l'aide de l'IA** (Q13). Les articles du site paraissent automatiquement. Le dirigeant a
+    décidé d'y ajouter la mention « rédigé avec l'aide de l'IA ». Cette mention est-elle obligatoire, et sous quelle
+    forme (texte visible, emplacement, marquage lisible par une machine) ? Vaut-elle aussi pour la publication sur
+    Facebook ? Lu le 24/11 sur le site de la CNIL : le règlement européen sur l'IA comporte des obligations de
+    transparence depuis le 2 août 2026, et de marquage des contenus au 2 décembre 2026 pour les systèmes déjà sur le
+    marché. La page ne dit pas si l'éditeur d'un blog est visé. Le règlement lui-même n'a pas été lu.
+13. **Alerte — référence de la mention de franchise de TVA.** Une fiche officielle (entreprendre.service-public, vérifiée
+    le 07/08/2026) indique que depuis le 1er septembre 2026 la mention « TVA non applicable, art. 293 B du CGI » doit
+    être remplacée par « TVA non applicable, art. L. 223 et s. du code des impositions sur les biens et services », avec
+    une tolérance pour l'ancienne jusqu'au 31 décembre 2027. Deux autres fiches officielles et la doctrine fiscale lues
+    le même jour citent toujours l'article 293 B. Le nouveau code n'a pas été lu. Quelle référence faut-il imprimer
+    aujourd'hui sur les factures d'abonnement de Gerimmo (Q7, Q63) et sur les factures des artisans en franchise
+    (partie 4, point 3) ? En attendant : rien n'est changé.
+14. **Alerte — nouveau modèle de bail depuis le 1er octobre 2026** (complète les points 1 à 3 de la partie 1). La fiche
+    officielle de service-public (vérifiée le 01/10/2026) annonce un nouveau modèle réglementaire pour les baux signés
+    depuis le 1er octobre 2026, vide et meublé. Différences visibles sur la fiche : le téléphone portable des parties,
+    et la destination de l'immeuble avec, si nécessaire, la servitude de résidence principale. Le texte du modèle n'a
+    pas été lu. Les baux de Gerimmo reprennent-ils toutes ses rubriques ? Tant que ce n'est pas vérifié, ils ne sont pas
+    présentés comme à jour.
+15. **Plusieurs diagnostics de performance énergétique : lequel décide ?** (Q28). Le dirigeant a décidé que le
+    diagnostic à la date d'établissement la plus récente doit décider, après lecture du texte. Aucune page officielle
+    lue le 24/11 ne le dit. Est-ce bien la règle ? Qu'en est-il d'une attestation de l'Ademe qui remplace l'étiquette
+    d'un diagnostic plus ancien ? Les diagnostics faits de 2013 à 2017 sont-ils encore valables ? En attendant : un
+    avertissement, sans changer la règle.
+16. **Révision du loyer : à partir de quand ?** (Q23, Q43 ; complète le point 6 de la partie 5). Le dirigeant a décidé :
+    jamais pour des jours antérieurs à la demande ; application au premier terme qui suit la demande. La fiche
+    officielle lue le 24/11 dit que la révision s'applique « à partir de la date de la demande », et qu'elle est perdue
+    un an après la date de révision. (a) Appliquer le nouveau loyer seulement au terme suivant est-il permis, et
+    faut-il l'écrire comme une renonciation pour les jours entre la demande et ce terme ? (b) La « date de la demande »
+    est-elle la date d'envoi ou la date de réception du courrier ? (c) Le délai d'un an se compte-t-il bien à partir de
+    la date de révision prévue au bail ?
+17. **Facture fabriquée par Gerimmo au nom de l'artisan** (Q14 ; complète la partie 4, points 2, 4 et 5) —
+    expert-comptable. Le dirigeant a retenu : mandat de facturation accepté par l'artisan, validation de chaque facture
+    par lui, mention « au nom et pour le compte de », numérotation propre à l'artisan, facture d'acompte. La doctrine
+    fiscale lue le 24/11 va dans ce sens (mandat préalable, acceptation de chaque facture, numérotation propre à chaque
+    mandant). Elle ne traite pas l'acompte versé par un client particulier. Ces conditions suffisent-elles, y compris
+    avec la facturation électronique ? En attendant : la fonction reste fermée jusqu'à l'accord d'un expert-comptable.
+
+---
+
+## Points informatifs
+
+Ces points ne sont pas des questions. Ils sont notés pour ne pas être oubliés.
+
+- **Antivirus à installer.** Les fichiers déposés dans Gerimmo ne passent par aucun antivirus. Le dirigeant a décidé le
+  24/11 de ne pas en installer maintenant (QUESTIONS.md, Q8). Les dépôts restent limités en taille et en format (PDF,
+  JPEG, PNG, 10 Mo).

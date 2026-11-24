@@ -47,7 +47,9 @@ export function GenererCongeBailleur({
         Le congé du bailleur ne vaut qu&apos;au terme du bail : il doit parvenir au
         locataire au moins <b className="font-semibold">{meuble ? "3 mois" : "6 mois"}</b> avant
         l&apos;échéance. À notifier par lettre recommandée AR, acte d&apos;huissier ou remise
-        en main propre contre émargement — à chaque locataire individuellement.
+        en main propre contre émargement — à chaque locataire individuellement. Gerimmo ne
+        notifie pas ce congé : le délai s&apos;apprécie à la première présentation, dont la date est à
+        enregistrer ensuite sur la fiche du bail.
         {terme
           ? ` Terme de la période en cours : ${formaterDate(terme)} — si le préavis n'y tient plus à la date de présentation, le congé vise l'échéance suivante.`
           : " Le terme du bail ne se calcule pas (durée réduite ou date de début manquante) : il restera à compléter sur l'épreuve."}

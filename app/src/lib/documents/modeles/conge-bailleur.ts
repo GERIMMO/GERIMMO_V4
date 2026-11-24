@@ -116,12 +116,12 @@ export async function assemblerCongeBailleur(
   const preavisMois = meuble ? 3 : 6;
 
   // Congé pour vente d'un logement NU : le congé vaut offre de vente, le prix
-  // en est une mention obligatoire (art. 15 II). Pas de PDF sans prix.
+  // en est une mention obligatoire (art. 15-II). Pas de PDF sans prix.
   const prixVente = prixDepuisOptions(options?.prix_vente);
   if (motif === "vente" && !meuble && prixVente === null) {
     return {
       erreur:
-        "Congé pour vente d'un logement loué nu : indiquez le prix de vente proposé — le congé vaut offre de vente au locataire (article 15 II de la loi du 6 juillet 1989).",
+        "Congé pour vente d'un logement loué nu : indiquez le prix de vente proposé — le congé vaut offre de vente au locataire (article 15-II de la loi du 6 juillet 1989).",
     };
   }
 
@@ -187,10 +187,12 @@ export async function assemblerCongeBailleur(
            conditions ? `.<br/>Conditions de la vente : ${echapper(conditions)}${pointFinal(conditions)}` : "."
          }</p>
          <p class="mentions">Le prix et les conditions de la vente figurent dans le congé à peine de
-         nullité de l'offre. À défaut d'acceptation dans ce délai, vous êtes déchu de plein droit de
-         tout titre d'occupation au terme du préavis. Si le logement est ensuite vendu à des
-         conditions ou à un prix plus avantageux, le notaire doit vous notifier ces conditions et ce
-         prix (article 15 II).</p>`;
+         nullité de l'offre. À défaut d'acceptation pendant les deux premiers mois du délai de préavis,
+         vous êtes déchu de plein droit de tout titre d'occupation au terme du préavis. Si le logement est
+         ensuite vendu à des conditions ou à un prix plus avantageux, le notaire doit vous notifier ces
+         conditions et ce prix (article 15-II).</p>`;
+    // Phase 3, lot 51 (W22) : « dans ce délai » renvoyait à un délai que le paragraphe ne nomme pas (lisible comme les six mois
+    // du préavis) ; le délai de l'offre est répété tel que l'écrit le paragraphe du droit de préemption. Graphie « 15-II » unique.
   } else if (motif === "reprise") {
     blocMotif = `<p>Le présent congé vous est délivré au motif de la <b>reprise</b> du logement
       pour l'habiter à titre de résidence principale, au bénéfice de
@@ -253,15 +255,9 @@ export async function assemblerCongeBailleur(
     <p>Vous devrez avoir libéré les lieux et restitué l'ensemble des clés au plus tard à la date
     d'effet ; un état des lieux de sortie sera établi contradictoirement.</p>
 
-    <div class="encadre">
-      <p class="etiquette">Notification</p>
-      <p>À notifier par <b>lettre recommandée avec accusé de réception</b>, par <b>acte
-      d'huissier</b> ou par <b>remise en main propre contre récépissé ou émargement</b>, à chaque
-      locataire et colocataire individuellement. Gerimmo génère et suit ce document — il ne le
-      notifie jamais : le délai s'apprécie à la première présentation, dont la date est à
-      enregistrer sur la fiche du bail.</p>
-    </div>
-
+    ${/* Phase 3, lot 51 (W17) : l'encadré « Notification » (modes d'envoi, « Gerimmo … ne le notifie jamais », date à
+         enregistrer sur la fiche du bail) s'adressait à l'expéditeur, dans la lettre notifiée au locataire. Ces consignes
+         restent à l'écran de préparation du congé (generer-conge-bailleur.tsx, catalogue-options.ts) ; elles sortent du PDF. */ ""}
     ${section("Mentions")}
     <div class="mentions">
       <p>Pendant le délai de préavis, le locataire n'est redevable du loyer et des charges que
@@ -281,7 +277,9 @@ export async function assemblerCongeBailleur(
     titreDocument: "Congé délivré par le bailleur",
     nomPied: "Congé du bailleur",
     reference,
-    corps,
+    // Phase 3, lot 51 (W21) : à la taille commune, « BAILLEUR » passait seul sur une seconde ligne ; même réglage du titre que
+    // les documents du catalogue de la même famille (attestation, accusé de réception, bordereau des clés).
+    corps: `<style>h1{font-size:19pt;letter-spacing:.2em}</style>${corps}`,
   });
 
   return {

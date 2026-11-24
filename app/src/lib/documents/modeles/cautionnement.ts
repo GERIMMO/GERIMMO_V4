@@ -31,6 +31,7 @@ import {
   nomsBailleurs,
   nomsLocataires,
   referenceCourte,
+  referenceDuContenu,
 } from "./communs";
 import type { Assemblage } from "./index";
 
@@ -81,7 +82,13 @@ export async function assemblerCautionnement(
 
   const f = new Fusion();
   const exp = expediteur(ctx);
-  const reference = referenceCourte("CAUT", garant.id);
+  // Phase 3, lot 51 (W12, même défaut que C18) : la référence se tire du garant ET de l'engagement (bail, forme, plafond) : deux
+  // actes différents du même garant n'ont plus le même numéro ; le même acte garde le sien d'une génération à l'autre.
+  const reference = referenceDuContenu("CAUT", garant.id, {
+    bail: ctx.bail.id,
+    forme: solidaire ? "solidaire" : "simple",
+    montant_max: montantMax === null ? "" : montantMax.toFixed(2),
+  });
   const bailleurPrincipal = ctx.bailleurs[0] ?? null;
   const plusieursBailleurs = ctx.bailleurs.length > 1;
   // Garant nominatif : il ne couvre qu'un des locataires du bail
@@ -94,13 +101,17 @@ export async function assemblerCautionnement(
     ? f.champ(nomPersonne(locataireCouvert), "nom et prénom(s) du locataire couvert")
     : nomsLocataires(f, ctx.locataires);
   // Le même libellé sert dans l'étendue et dans la mention : compté une fois
+  // Phase 3, lot 51 (W13) : dans le texte courant, le « € » passait seul à la ligne (« 1 200,50 » / « € ») ; une espace
+  // insécable le garde avec le nombre, comme pour « % ». La mention transmise au prestataire de signature (mentionCaution)
+  // n'est pas touchée.
+  const plafondImprime = montantMax !== null ? eur(montantMax).replace(/ €$/, "\u00a0€") : "";
   const montantMaxHtml =
     montantMax !== null
-      ? `<b>${eur(montantMax)}</b> (${montantEnLettres(montantMax)})`
+      ? `<b>${plafondImprime}</b> (${montantEnLettres(montantMax)})`
       : f.champ(null, "montant maximal garanti");
   const montantMaxLettresHtml =
     montantMax !== null
-      ? `${montantEnLettres(montantMax)} (${eur(montantMax)})`
+      ? `${montantEnLettres(montantMax)} (${plafondImprime})`
       : f.champ(null, "montant maximal garanti");
   const chargesMode =
     ctx.bail.charges_mode === "forfait"
@@ -220,7 +231,7 @@ export async function assemblerCautionnement(
       locataires: (locataireCouvert ? [locataireCouvert] : ctx.locataires).map(p=>nomPersonne(p)).filter(Boolean).join(", "),
       plafond: `${montantEnLettres(montantMax)} (${eur(montantMax)})`, solidaire,
     }),
-    titreGed: `Cautionnement — ${nomPersonne(garant) ?? garant.nom}`,
+    titreGed: `Cautionnement ${solidaire ? "solidaire" : "simple"} — ${nomPersonne(garant) ?? garant.nom}`,
     nomFichier: `cautionnement-${reference.toLowerCase()}`,
     liens: [
       { entite: "bail", entiteId: ctx.bail.id },

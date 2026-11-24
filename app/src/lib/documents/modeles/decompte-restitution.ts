@@ -234,7 +234,10 @@ export async function assemblerDecompteRestitution(
         loyerHc !== null ? ` (soit ${eur(loyerHc * 0.1)})` : ""
       } pour chaque période mensuelle commencée en retard (article 22 de la loi du 6 juillet 1989).</p>
       <p>Les justificatifs déposés (devis, facture, constat comparé des états des lieux) sont tenus à la
-      disposition du locataire sur demande. Une retenue marquée « Non fourni » n'est appuyée d'aucune pièce.</p>
+      disposition du locataire sur demande.${
+        // Phase 3, lot 51 (W15) : la légende du marquage « Non fourni » ne s'imprime que si une retenue le porte.
+        retenues.some((r) => libelleJustificatifRetenue(r) === "Non fourni") ? " Une retenue marquée « Non fourni » n'est appuyée d'aucune pièce." : ""
+      }</p>
     </div>
     ${faitA(f, exp.ville, restitution.date_emission ?? new Date().toISOString())}
     ${blocSignatureEmetteur(exp.nom, await signatureOrganisation(supabase, orgId))}

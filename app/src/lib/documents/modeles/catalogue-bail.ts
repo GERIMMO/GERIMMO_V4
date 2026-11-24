@@ -248,6 +248,11 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
       const conges = await lireLignes(supabase.from("conges").select("date_premiere_presentation,date_effet,preavis_mois,par").eq("organization_id",orgId).eq("bail_id",bailId).is("annule_le",null).order("created_at",{ascending:false}).limit(1));
       if (!conges.length) return { erreur: "Aucun congé en cours n’est enregistré pour ce contrat." };
       const c = conges[0];
+      // Phase 3, lot 51 (W18) : l'attestation date la fin du contrat (date de fin du bail, posée à l'enregistrement du congé) et,
+      // si elle est enregistrée, la sortie réelle des lieux (terminer_bail, décision D34) ; elle disait seulement « Le contrat est
+      // clôturé dans le dossier », sans date.
+      const sortieReelle = code === "attestation_fin_bail" ? texte((await lireLignes(supabase.from("baux").select("date_sortie_reelle").eq("organization_id",orgId).eq("id",bailId).limit(1)))[0]?.date_sortie_reelle) : "";
+      const finDuContrat = code === "attestation_fin_bail" ? `Le contrat a pris fin le ${f.date(ctx.bail.date_fin ?? (texte(c.date_effet) || null),"date de fin du bail")}.${sortieReelle ? ` Sortie des lieux enregistrée le ${f.date(sortieReelle)}.` : ""}` : "";
       if (code === "accuse_conge") {
         if (c.par !== "locataire") return { erreur: "Le congé enregistré a été donné par le bailleur : l’accusé de réception concerne un congé reçu du locataire." };
         const edlSortie = await lireLignes(supabase.from("etats_des_lieux").select("id").eq("organization_id",orgId).eq("bail_id",bailId).eq("type","sortie").eq("etat","signe").limit(1));
@@ -256,7 +261,7 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
       contenu = `${section(code === "accuse_conge" ? "Congé reçu" : "Fin du contrat")}
         <p>Congé donné par ${c.par === "locataire" ? "le locataire" : "le bailleur"}, reçu le ${f.date(texte(c.date_premiere_presentation))}.
         Durée du préavis : ${f.champ(texte(c.preavis_mois),"durée du préavis")} mois ; date d’effet enregistrée : ${f.date(texte(c.date_effet))}.</p>
-        <p>${code === "accuse_conge" ? `L’état des lieux de sortie, la remise des clés et la transmission de la nouvelle adresse sont à organiser avec le ${interlocuteur}.` : "Le contrat est clôturé dans le dossier. Cette attestation ne constitue pas une quittance ni une renonciation au règlement des sommes restant dues."}</p>`;
+        <p>${code === "accuse_conge" ? `L’état des lieux de sortie, la remise des clés et la transmission de la nouvelle adresse sont à organiser avec le ${interlocuteur}.` : `${finDuContrat} Cette attestation ne constitue pas une quittance ni une renonciation au règlement des sommes restant dues.`}</p>`;
       signatures = code === "attestation_fin_bail";
     } else if (code === "decompte_retenues") {
       const rs = await lireLignes(supabase.from("restitutions").select("id,statut").eq("bail_id",bailId).eq("organization_id",orgId).limit(1));
@@ -268,6 +273,8 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
       const lignesRetenues = retenues.map(l=>({...l,age_ans:l.age_ans==null?null:nombreFr(l.age_ans as number|string),duree_vie_ans:l.duree_vie_ans==null?null:nombreFr(l.duree_vie_ans as number|string)}));
       // Phase 3 (C35) : comme le décompte de restitution, les justificatifs sont tenus à disposition (aucune pièce n'est jointe au PDF).
       contenu = `${section("Retenues enregistrées")}${lignesTableau(f,lignesRetenues,[["Motif","libelle","texte"],["Coût","cout","montant"],["Âge (ans)","age_ans","facultatif"],["Durée de vie (ans)","duree_vie_ans","facultatif"],["Retenue","montant_retenu","montant"]])}
+        ${/* Phase 3, lot 51 (W16) : la décote appliquée est nommée et sa règle écrite (celle du calcul de la base et du décompte de
+             restitution) ; le coût devenait une retenue plus faible sans explication. */ ""}${retenues.some(l=>l.duree_vie_ans!=null && l.age_ans!=null) ? "<p>Vétusté : la retenue tient compte de l’âge de l’élément ; elle est égale au coût × (durée de vie − âge) / durée de vie.</p>" : ""}
         ${sansDecote ? "<p>« — » : âge ou durée de vie non renseigné ; aucune décote de vétusté n’est appliquée, le coût est retenu en intégralité.</p>" : ""}
         <p>Total : ${eur(retenues.reduce((s,l)=>s+montant(l.montant_retenu),0))}. État du dossier : ${rs[0].statut === "finalise" ? "finalisé" : "en préparation"}.</p>
         <p>Les justificatifs déposés (devis, facture, constat comparé des états des lieux) sont tenus à la disposition du locataire sur demande. Les sommes ci-dessus sont propres à ce contrat.</p>`;
@@ -332,9 +339,13 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
     const reference = avenant?.reference ?? referenceCourte(code.toUpperCase().replaceAll("_","-"), bailId);
     // C24 : plusieurs locataires au bail → « Locataires », « Les locataires » (le singulier valait pour deux colocataires).
     const plusieurs = ctx.locataires.length > 1;
+    // Phase 3, lot 51 (W19, même lacune que C25) : la case « Contrat » donne la date de prise d'effet avec la référence, comme
+    // l'avenant de remplacement et le congé du bailleur ; la référence seule ne disait rien au locataire ni à un tiers. Une date
+    // de début non saisie (dossier en préparation) n'est pas exigée ici : la case garde alors la référence seule.
+    const contratDesigne = `Réf. ${referenceCourte("BAIL",bailId)}${ctx.bail.date_debut ? ` — prise d’effet le ${f.date(ctx.bail.date_debut)}` : ""}`;
     const caseLocataires = plusieurs ? "Locataires" : "Locataire";
     const corps = `${enTete(f,exp,avenant ? {libelle:"Avenant",reference:avenant.reference,etabliLe:aujourdhui} : {libelle:"Dossier",reference:referenceCourte("BAIL",bailId),etabliLe:aujourdhui})}${titre(meta.nom,avenant ? "Modification du contrat commun de location" : "Dossier de location",[])}
-      ${cartouches([["Bailleur",nomsBailleurs(f,ctx.bailleurs)],adresseDestinataire === undefined ? [caseLocataires,nomsLocataires(f,ctx.locataires)] : [`${caseLocataires} (${plusieurs ? "destinataires" : "destinataire"})`,`${nomsLocataires(f,ctx.locataires)}${adresseDestinataire.map(ligne => `<div>${facultatif(ligne)}</div>`).join("")}`],["Locaux concernés",f.champ(adresseLogement(ctx.lot,ctx.bien),"adresse du logement")],["Contrat",avenant?.contrat ?? referenceCourte("BAIL",bailId)]])}
+      ${cartouches([["Bailleur",nomsBailleurs(f,ctx.bailleurs)],adresseDestinataire === undefined ? [caseLocataires,nomsLocataires(f,ctx.locataires)] : [`${caseLocataires} (${plusieurs ? "destinataires" : "destinataire"})`,`${nomsLocataires(f,ctx.locataires)}${adresseDestinataire.map(ligne => `<div>${facultatif(ligne)}</div>`).join("")}`],["Locaux concernés",f.champ(adresseLogement(ctx.lot,ctx.bien),"adresse du logement")],["Contrat",avenant?.contrat ?? contratDesigne]])}
       ${contenu}${avenant ? `${faitALaSignature(f,exp.ville)}${avenant.signatures}` : `${dateALaSignature ? faitALaSignature(f,exp.ville) : faitA(f,exp.ville,aujourdhui)}${signatureEmetteur ?? (signatures ? `<div class="signatures">${cadreSignature(libelleSignataireBailleur(ctx.organisation.type),nomsBailleurs(f,ctx.bailleurs))}${cadreSignature(plusieurs ? "Les locataires" : "Le locataire",nomsLocataires(f,ctx.locataires))}</div>` : "")}`}`;
     return { document:assemblerPage({f,titreDocument:meta.nom,nomPied:meta.nom,reference,corps:`<style>.bloc-titre{padding:10pt 0;margin-bottom:8pt}h1{font-size:19pt;letter-spacing:.2em}h2{margin:14pt 0 8pt}.cartouches{margin:10pt 0}p{margin:4pt 0}</style>${corps}`}),titreGed:meta.nom,nomFichier:`${code}-${bailId.slice(0,8)}`,liens:[{entite:"bail",entiteId:bailId},{entite:"lot",entiteId:ctx.lot.id},...liensLocataires(ctx)] };
   } catch(e) { if(e instanceof RefusDocument) return {erreur:e.message}; throw e; }

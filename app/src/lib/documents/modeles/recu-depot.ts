@@ -61,7 +61,9 @@ export function construireRecuDepot(d: DonneesRecuDepot) {
       ["Bailleur", `<div>${d.bailleurNom}</div>`],
       ["Locataire", `<div>${d.locatairesNoms}</div>`],
       ["Logement loué", `<div>${f.champ(d.logementAdresse, "adresse complète, étage, porte")}</div>`],
-      ["Bail", `Réf. ${f.champ(d.referenceBail, "référence du bail")} du ${f.date(d.dateBail)}`],
+      // Phase 3, lot 51 (W11, même défaut que C14) : la date imprimée est la prise d'effet du bail, pas sa conclusion ; « du »
+      // la présentait comme la date du contrat (un reçu du 28/06 renvoyait à un bail « du 01/07 »).
+      ["Bail", `Réf. ${f.champ(d.referenceBail, "référence du bail")} — prise d'effet le ${f.date(d.dateBail)}`],
     ])}
     <p>Je soussigné(e) ${d.bailleurNom}, bailleur du logement désigné ci-dessus, reconnais avoir reçu
     ${d.versant ? `de ${f.champ(d.versant, "versant")}` : `de ${d.locatairesNoms}`}
@@ -95,7 +97,11 @@ export function construireRecuDepot(d: DonneesRecuDepot) {
     titreDocument: "Reçu de dépôt de garantie",
     nomPied: "Reçu de dépôt de garantie",
     reference: d.reference,
-    corps,
+    // Phase 3, lot 51 (W14) : à la taille commune (23 pt), le titre passait sur deux lignes (« REÇU DE DÉPÔT DE » / « GARANTIE »)
+    // et le bloc des conditions de restitution, de la date et de la signature (insécable) partait seul en page 2. La mise en
+    // page compacte des documents du catalogue (catalogue-bail.ts, catalogue-gestion.ts : titre à 19 pt, marges réduites) garde
+    // le titre sur une ligne et ce reçu d'une page sur une seule feuille.
+    corps: `<style>.bloc-titre{padding:10pt 0;margin-bottom:8pt}h1{font-size:19pt;letter-spacing:.2em}h2{margin:14pt 0 8pt}.cartouches{margin:10pt 0}p{margin:4pt 0}</style>${corps}`,
   });
 }
 

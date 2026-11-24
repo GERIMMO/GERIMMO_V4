@@ -431,12 +431,18 @@ export function referenceCourte(prefixe: string, id: string): string {
 // les pages de signature l'impriment (« Référence : … ») et l'empreinte du circuit la lit : un avenant préparé ne
 // correspondait plus à lui-même au moment de l'envoi.
 export function referenceAvenant(bailId: string, contenu: Record<string, string | null | undefined>): string {
+  return referenceDuContenu("AVT", bailId, contenu);
+}
+
+// La même règle pour un autre acte (phase 3, lot 51, W12 : acte de cautionnement) : « CAUT-<garant>-<empreinte du contenu> ».
+// Tirée du seul garant, la référence était la même pour l'acte solidaire et l'acte simple, ou pour deux plafonds différents.
+export function referenceDuContenu(prefixe: string, id: string, contenu: Record<string, string | null | undefined>): string {
   const canonique = JSON.stringify(
     Object.keys(contenu)
       .sort()
       .map((cle) => [cle, (contenu[cle] ?? "").replace(/\r\n?/g, "\n").trim()])
   );
-  return `${referenceCourte("AVT", bailId)}-${createHash("sha256").update(canonique).digest("hex").slice(0, 8).toUpperCase()}`;
+  return `${referenceCourte(prefixe, id)}-${createHash("sha256").update(canonique).digest("hex").slice(0, 8).toUpperCase()}`;
 }
 
 // La signature préenregistrée de l'organisation, en data-URI prête à

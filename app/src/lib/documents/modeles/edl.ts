@@ -165,7 +165,10 @@ export function construireEdl(d: DonneesEdl) {
       ([piece, lignes]) => `
       <h3>${echapper(piece)}</h3>
       ${tableau(
-        [{ libelle: "Élément" }, { libelle: "État" }, { libelle: "Observations" }],
+        // Phase 3, lot 51 (W09, W10) : seul l'en-tête du tableau se répète après un saut de page (thead), pas le titre de la
+        // pièce. La suite d'une grille coupée arrivait en haut de page sans dire à quelle pièce elle appartient (la ligne qui
+        // fonde une retenue, dans l'acte signé). L'en-tête nomme donc la pièce (tableau() échappe le libellé).
+        [{ libelle: `Élément — ${piece}` }, { libelle: "État" }, { libelle: "Observations" }],
         lignes.map((l) => [
           echapper(l.libelle),
           l.etat ? echapper(ETATS[l.etat] ?? l.etat) : f.champ(null, `État de ${l.libelle} — ${piece}`),
@@ -200,8 +203,10 @@ export function construireEdl(d: DonneesEdl) {
       // Phase 3, lot 45 (T17, décision prudente) : l'index relevé (facultatif à la saisie) et le nombre de clés restent exigés
       // AVANT la signature (« À renseigner », vers la saisie). Une fois l'état des lieux signé, plus rien ne se complète : le PDF
       // n'est plus bloqué pour toujours, il dit ce qui est enregistré, « non relevé » ou « non compté ».
+      // Phase 3, lot 51 (W09) : un tableau de quelques compteurs ne se coupe plus entre deux pages (une ligne seule en haut de
+      // la suivante) ; il passe entier, comme une photo de la grille (même règle d'insécabilité).
       d.compteurs.length
-        ? tableau(
+        ? `<div style="break-inside:avoid-page;page-break-inside:avoid">${tableau(
             [{ libelle: "Fluide" }, { libelle: "Numéro de compteur" }, { libelle: "Index relevé", droite: true }],
             d.compteurs.map((c) => [
               echapper(c.type),
@@ -213,7 +218,7 @@ export function construireEdl(d: DonneesEdl) {
                 ? echapper(nombreFr(c.releve))
                 : d.fige ? "non relevé" : f.champ(null, "index"),
             ])
-          )
+          )}</div>`
         : `<p>${d.fige ? "Relevés de compteurs : non relevés." : f.champ(null, "relevés de compteurs")}</p>`
     }
 

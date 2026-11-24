@@ -204,6 +204,9 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
     // daté du jour de sa génération au-dessus de cadres vides : « Fait à …, le » se complète à la signature, comme les
     // inventaires (lot 40), le protocole d'apurement et l'autorisation de travaux (lot 43). « Établi le » garde ce jour.
     let dateALaSignature = false;
+    // Phase 3, lot 51 (W20) : la qualité de l'autre signataire. Le bordereau des clés est signé par le ou les locataires du bail
+    // (« Le locataire », « Les locataires », comme les documents du bail) ; les accords avec le mandant gardent le libellé commun.
+    let qualiteAutrePartie = "Partie concernée";
     // Phase 3, lot 42 (C88) : le logement s'écrit comme dans les documents du bail (adresseLogement), étage et porte compris ;
     // l'ordre envoyé à l'artisan n'en donnait que le nom et l'adresse de l'immeuble.
     const lotConcerne = async (id:string) => {
@@ -260,7 +263,8 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
         <p>Date du dossier : ${f.date(texte(r.date_emission))}. Ce PDF ne déclenche aucun prélèvement ni envoi.</p>`;
     } else if (code === "restitution_cles") {
       const edl = await unique("etats_des_lieux",cibleId);
-      await bailConcerne(texte(edl.bail_id));
+      const ctxCles = await bailConcerne(texte(edl.bail_id));
+      qualiteAutrePartie = ctxCles.locataires.length > 1 ? "Les locataires" : "Le locataire";
       const cles = await lireLignes(lire("edl_cles").eq("edl_id",cibleId).order("libelle"));
       // Phase 3, reprise du lot 45 (T17) : un état des lieux signé est figé (enregistrer_annexes_edl et le déclencheur refusent tout
       // ajout de clé) ; « Renseignez les clés » y était une consigne impossible à suivre. Le refus dit ce qui est. Option prudente :
@@ -522,7 +526,7 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
     // « Destinataire » : le mot de repli « Organisation » ne désignait personne.
     const corps = `${enTete(f,exp,{libelle:"Dossier",reference,etabliLe:dateDocument})}${titre(meta.nom,"Document de gestion",[])}
       ${cartouches([["Dossier",reference],...(destinataire ? [["Destinataire",destinataire] as [string,string]] : []),...(logement ? [[libelleLieu,logement] as [string,string]] : [])])}${contenu}${dateALaSignature ? faitALaSignature(f,exp.ville) : faitA(f,exp.ville,dateDocument)}
-      ${signatures?`<div class="signatures">${cadreSignature(code === "restitution_cles" ? libelleSignataireBailleur(organisation.type) : "Le mandataire",f.champ(exp.nom,"nom et prénom(s), ou dénomination"))}${cadreSignature("Partie concernée",destinataire)}</div>`:""}`;
+      ${signatures?`<div class="signatures">${cadreSignature(code === "restitution_cles" ? libelleSignataireBailleur(organisation.type) : "Le mandataire",f.champ(exp.nom,"nom et prénom(s), ou dénomination"))}${cadreSignature(qualiteAutrePartie,destinataire)}</div>`:""}`;
     return {document:assemblerPage({f,titreDocument:meta.nom,nomPied:meta.nom,reference,corps:`<style>.bloc-titre{padding:10pt 0;margin-bottom:8pt}h1{font-size:19pt;letter-spacing:.2em}h2{margin:14pt 0 8pt}.cartouches{margin:10pt 0}p{margin:4pt 0}</style>${corps}`}),titreGed:meta.nom,nomFichier:`${code}-${cibleId.slice(0,8)}`,liens};
   } catch(e) { if(e instanceof RefusDocument) return {erreur:e.message}; throw e; }
 }

@@ -124,3 +124,120 @@ Environnement des tests : `…/scratchpad/decisions/d4-env.sh`.
    texte envoyée au client sur support durable après son accord : est-ce suffisant ?
 4. Annexe 1 (sous-traitance) : information par courriel un mois à l'avance — repris des notes T4, point 8.6, inchangé.
 5. Relance à la main : aucun texte d'e-mail modifié, aucune référence légale ajoutée.
+
+---
+
+# REPRISE D4 (relecture D4R, 24/11) — arbre `palier1-t`, parent `cb731af9` (lot D5), commit local, rien de poussé
+
+Base : `gerimmo_ci_sonde_tquatre` (et `…_api`), migration de la reprise appliquée aux deux. Aucun serveur, aucun port
+(émulateur neutralisé : port 59999), aucun e-mail réel (`fetch` simulé). Environnement : `…/scratchpad/decisions/d4-env.sh`.
+Option retenue pour chaque défaut : section « REPRISE D4 » de `recueil/PETITES-REPRISES.md`.
+
+## R1. Fait
+- **D4R-01 (base)** — migration `20261125150000_accord_conditions_version_archivee` (+ retour, LISEZ-MOI, manifeste,
+  registre, test en série) : `accepter_cgu` refuse (22023, rien d'écrit) un accord **source « compte », document
+  `conditions_clients`** dont la version n'est pas dans `versions_conditions`. Inchangés : conditions artisans, règles
+  des invités, source « espace_proprietaire », inscription (déclencheur de auth.users). Mêmes droits (authenticated ;
+  ni public ni anon), SECURITY DEFINER, `search_path` vide ; remplacement seulement si la définition est celle du 24/10.
+- **D4R-01 (application)** — `preuveConditionsEnVigueur` ne compte qu'une ligne **à empreinte** (`empreinte_sha256` non
+  nulle). Le repli « colonne `document` absente » (M3, code avant la migration du 24/10) est gardé tel quel.
+- **D4R-02** — `archiverConditionsPubliees` refuse d'archiver une **nouvelle** version des conditions clients s'il existe
+  au moins un abonné actif (souscription chez le prestataire non close : tout statut sauf `canceled`,
+  `incomplete_expired` ; lecture en échec = refus). Message au super-administrateur : nombre d'abonnés, article 16
+  (notification par courriel et dans l'espace avant la prise d'effet), Gerimmo n'envoie pas encore cette annonce,
+  l'annoncer d'abord. Une version déjà archivée se revérifie toujours. Conditions artisans non concernées. Aucune
+  fonction d'envoi ajoutée. Texte des conditions NON modifié (empreinte du 24/11 intacte).
+  Écran d'accord : « rien ne change » retiré (alinéa 2 de l'article 16 : les autres changements s'appliquent à la date
+  annoncée) → « votre abonnement continue et vos données restent accessibles ; l'article 16 des conditions générales
+  précise ce qui s'applique à la date annoncée ». Même retrait dans le refus « version non archivée ».
+- **D4R-03** — même migration : déclencheur `relance_loyer_manuelle_sans_reprise` sur `courriels_durables` : dès qu'un
+  contexte `relance_loyer_manuelle` est posé, `reprise_autonome = false` et copie chiffrée effacée (lignes déjà en file
+  comprises). La tâche des reprises ne la renvoie plus ; le propriétaire renvoie d'un clic (même clé, un seul e-mail),
+  et seule l'action écrit la consigne `relances`. Correction en base car `repriseAutonome:false` côté code supprimait
+  aussi l'attache du contexte (la preuve de la base aurait alors toujours refusé l'envoi).
+- **D4R-04** — NON corrigé en base (note) : une garde dans `demander_periodicite_suivante` devrait connaître la
+  déclaration des versions (`conditions-versions.json` : « nouvelles souscriptions uniquement », « au prochain acte »,
+  date d'effet), que la base ignore ; elle refuserait des changements que l'application admet (ex. abonné du 24/10 qui
+  n'a jamais eu à accepter les versions du 11/11 et du 15/11). Contournement toujours possible par appel direct :
+  à décider (révoquer la fonction aux comptes et la faire appeler par la clé de service après la garde, ou l'accepter).
+- **D4R-05** — à décider : la relance à la main n'a pas de plafond par espace (deux e-mails par terme impayé et par
+  destinataire) ; question au dirigeant (plafond ?). **D4R-06** — rien à faire (LISEZ-MOI suffisant).
+- **Test « Ordre complet » (jour-de-paris-suite-migrations-rejeu)** — cause : le retour de `20261122210000` (motifs
+  envoyés à l'artisan, maillon de la chaîne des e-mails posé le 22/11 au-dessus de `20261122200000`) manquait à la chaîne
+  du LISEZ-MOI ; le retour de `20261122200000` se refusait donc. Défaut présent avant D4 (même échec à `fde4cbb4`, même
+  base). Corrigé à la source (ligne ajoutée entre `20261122220000` et `20261122200000`) ; nouveau test sans base : dès
+  qu'un maillon est nommé, tous les plus récents le sont.
+
+## R2. Vérifié
+- `npx tsc --noEmit` : 0 ; `npx eslint` sur les 21 fichiers .ts touchés : 0.
+- Tests « échoue avant / passe après » : `accord-conditions-archivee-base` (9, en base, rôle `authenticated` : refus
+  '2099-01-01' et version en vigueur non archivée, archivée acceptée avec empreinte, artisans/invités/espace
+  propriétaire inchangés, anon refusé, droits, preuve d'application sans empreinte = nulle, déclencheur, rejeu, retour au
+  texte exact du 24/10, marche avant) — 6 échecs avant migration, 1 échec sans le correctif applicatif ;
+  `relances-d4-base` (nouveau cas : envoi en échec puis passe de reprise → aucun second envoi ; renvoi à la main → un
+  envoi) — échoue avant ; `conditions-versions-archivage` (4 cas de refus D4R-02) — échouent sans le correctif ;
+  `jour-de-paris…` (cas « chaque maillon ») et `incident-bien-categorie-base` — échouent avec l'ancien LISEZ-MOI.
+- Migration jouée deux fois, retour joué deux fois, reposée (transaction annulée + test). Droits relevés avant/après :
+  identiques (`{postgres, authenticated, service_role}` sur `accepter_cgu`).
+- 322 fichiers liés, sur ma base : 6 002 réussis, 29 sautés, 5 échecs dans 10 fichiers, tous d'environnement : 6 exigent
+  une base nommée du banc (`lot2-…`, `lot3-…`, `fiabilite-priorites-base`, `finalisation-courriels-base`,
+  `perimetre-pilote-base` — liste fermée `gerimmo_ci_priorites1|sql|vun` —, `reprise-courriels-base`), 3 l'émulateur
+  (`liste-attente-agences-action-api`, `premier-mot-de-passe-session-banc`, `rapports-mensuels-api` : « fetch failed »
+  sur le port neutralisé), et la chaîne « Ordre complet » (voir R3). Journal : `…/scratchpad/zz-scripts/lies2.log`.
+  Tests réécrits avec commentaire (ils affirmaient l'ancien état) : phrase de l'écran (`accord-expres-prochain-acte-d4`),
+  filtres lus (`garde-souscription-deploiement`), suite du manifeste (`type-vendeur-vente-sans-mediateur-base`), voisin
+  de `20261122220000` dans la chaîne (`incident-bien-categorie-base`) ; faux clients complétés d'un `.not` (7 fichiers)
+  et `tests/fixtures/supabase-sur-pg.ts` (`.not(col, "is", null)`, `.limit`).
+- `contrats-durables-base` : passe. `patrimoine-finance-retours-base` (2 échecs) : **environnement** — le fichier vise la
+  base historique « avant lots » (`GERIMMO_HISTORIQUE_DB`, migrations < 20261109) ; sur la base complète, la table
+  `factures_automatiques` est tenue par une clé de `factures_automatiques_evenements` (20261109202743, hors de sa liste).
+  Mêmes 2 échecs, même message, à `fde4cbb4` sur la même base. `perimetre-pilote-base` : **environnement** (nom de base
+  imposé), idem à `fde4cbb4`.
+
+## R3. Supposé, limites
+- Chaîne « Ordre complet » : sur ma base COMPLÈTE, une fois le maillon ajouté, le test s'arrête plus loin, au retour de
+  `20261117095320`, qui se refuse par conception (« corriger en avant ») — comme 13 autres retours de la chaîne (14 refus
+  relevés par un rejeu à blanc), dont `cron.unschedule` absent. Ce test est fait pour la base historique (banc :
+  `GERIMMO_HISTORIQUE_DB`, migrations < 20261109), où ces migrations ne sont pas appliquées et où la chaîne des e-mails
+  n'existe pas : non rejoué là (base du banc interdite). Supposé : il y passe.
+- D4R-01 : tant que la version en vigueur n'est pas archivée, la case des conditions clients (souscription, inscription
+  d'un propriétaire après invitation, accord à une nouvelle version) est refusée — d'où l'ordre des gestes ci-dessous.
+  Une acceptation déjà enregistrée sans empreinte (ou celle de l'ouverture d'un espace) ne vaut plus preuve : la case est
+  redemandée à la souscription. Aucun abonné aujourd'hui (Q64) : sans effet supposé en production.
+- D4R-02 : un client en essai (sans souscription) n'est pas compté comme abonné ; avec un seul abonné actif, plus aucune
+  nouvelle version des conditions clients ne peut être archivée — donc plus aucune nouvelle version ne peut être mise en
+  ligne sans bloquer les souscriptions (D4R-01) — tant que l'annonce n'est pas écrite.
+- PostgREST plafonne peut-être la lecture des abonnements (1 000 lignes) : sans effet (le refus vaut dès une ligne).
+
+## R4. À rejouer sur le banc
+1. Appliquer `20261125150000` aux bases du banc ; suite vitest complète, dont les 9 fichiers ci-dessus qui exigent le banc.
+2. `jour-de-paris-suite-migrations-rejeu` avec `GERIMMO_HISTORIQUE_DB` (base historique) ; `patrimoine-finance-retours-base` idem.
+3. Parcours navigateur : archivage depuis /admin/sante avec un abonné fictif actif (refus et message), puis sans abonné.
+4. Relance à la main avec un service d'envoi simulé en échec (429), passe de la tâche des courriels : aucun envoi.
+
+## R5. Gestes du jour de publication (remplacent les points 1 et 4 du § 5)
+1. Base : les migrations des lots T4/D7, `20261125110000`, `20261125140000`, **sans `20261125150000`**. Puis le code.
+2. **Contrôle avant d'archiver : zéro abonné actif** (`select count(*) from public.abonnements where stripe_subscription_id
+   is not null and coalesce(stripe_statut,'') not in ('canceled','incomplete_expired')` → 0). Sinon la console refuse.
+3. Archiver la version du 24 novembre 2026 (/admin/sante), aussitôt le code déployé : entre-temps, la souscription
+   attend l'archive (la preuve d'accord exige l'empreinte).
+4. Puis `20261125150000`. Contrôle : `select count(*) from public.acceptations_sans_version_archivee()` côté console ;
+   un appel `accepter_cgu('2099-01-01')` par un compte de test doit être refusé.
+5. Les autres gestes du § 5 (Q16, Q6 + Q37, Q24, contrôle) inchangés.
+
+## R6. Questions au dirigeant
+1. D4R-02 : l'annonce par courriel des nouvelles versions est à écrire avant toute version future dès qu'il y aura un
+   abonné (sinon : ni archivage ni mise en ligne d'une version). La prévoir dans quel lot ?
+2. D4R-04 : garde de la périodicité en base (révoquer la fonction aux comptes, appel par la clé de service) ou accepter ?
+3. D4R-05 : plafond de relances à la main par espace ?
+4. Un client en essai, sans souscription, doit-il compter comme « abonné » pour le refus d'archivage ?
+
+## R7. Points JURISTE (s'ajoutent au § 7)
+1. Article 16, second alinéa face à l'accord exprès demandé (déjà posé, § 7.1) : l'écran renvoie désormais à l'article
+   sans dire « rien ne change ». Quels changements de la version du 24/11 (conservation des factures à dix ans,
+   médiation, annexe OpenAI) s'appliquent à la date annoncée à un abonné qui n'a pas répondu ?
+2. Article 16, premier alinéa : la notification par courriel et le préavis ne sont pas automatisés ; Gerimmo refuse donc
+   l'archivage tant qu'il y a un abonné. Le refus suffit-il, ou faut-il, avec des abonnés, repousser la date d'effet ?
+3. Un client en période d'essai est-il un « Client » à qui la notification de l'article 16 est due ?
+
+Commit local de la reprise : `3788220b` (sur `cb731af9`), non poussé.

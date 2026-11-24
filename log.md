@@ -8149,3 +8149,34 @@ cahier V3 et le wiki (sans autre document). La décision la plus récente l'empo
 - **Pages en retard relevées, non modifiées** : [[Révision annuelle IRL]] (date d'effet du 29/09 et saisie de l'indice,
   remplacées par Q43 et par le lot 14), [[Super Admin]] (« impersonation » du 22/07, contredite par la décision du
   25/09), [[Incident]], [[Artisan]] (note à trois sources), [[Signature électronique]] (historique Yousign).
+
+## [2026-11-24] ingest | Mission palier 1 : lot D3 des décisions du 24/11 et lot 61 (espace du locataire), faits localement
+
+- **Source** : les messages des commits `c309760f`, `3fdd87df`, `fde4cbb4` (lot D3) et `4405265a`, `f152b3ba` (lot 61)
+  de l'arbre de travail de préproduction, et les notes de travail des relectures ; aucune source déposée dans `raw/`.
+- **Pages mises à jour** : aucune page du wiki. Sont complétés : `JOURNAL.md` (deux entrées), `QUESTIONS.md` (colonne
+  « Décision du 24/11/2026 » de Q28, Q38, Q46 et Q49), `JURISTE.md` (partie 8, quatre points), `GUIDE-DE-REPRISE.md`
+  (section « La base d'abord » : les six migrations du lot D3, dans l'ordre du manifeste).
+- **Lot D3** (Q28, Q38, Q46, Q49) : notice d'information déposée par le bailleur, envoi en signature électronique
+  bloqué sans elle, pour les seuls biens d'habitation ; avertissement quand un logement a plusieurs diagnostics de
+  performance énergétique, règle de choix inchangée ; une pièce par retenue, un devis suffit, pour les deux
+  décomptes ; source du contrôle des repères fiscaux enregistrée avec sa date. Deux reprises après relecture : un
+  défaut bloquant (un devis ne pouvait justifier qu'une retenue), puis cinq points mineurs, corrigés.
+- **Migrations du lot D3** : `20261124180000`, `20261124190000`, `20261124200000`, `20261124210000`,
+  `20261124220000`, `20261124230000`, chacune avec son retour arrière ; à jouer avant le code.
+- **Lot 61** : 26 défauts d'écran côté locataire (17 différents) traités, sauf E141 (texte de la politique de
+  confidentialité, question au dirigeant) ; une reprise, six points mineurs corrigés ; aucune migration.
+- **Vérification** : la vérification complète est **en cours**, son résultat n'est pas connu. Les deux lots ne sont
+  pas encore poussés sur la branche de préproduction ; rien n'est publié en production.
+- **Ce que le wiki n'affirme pas** : qu'une règle est conforme. Ni l'article 22 de la loi de 1989 ni l'arrêté de la
+  notice n'ont été lus ; Gerimmo ne fournit pas le texte de la notice et ne vérifie pas le fichier déposé.
+- **Contradictions relevées, à reporter dans les pages concernées lors de leur mise à jour** : (1) diagnostics — la
+  décision Q28 dit « le plus récent par date d'établissement décide » ; l'application retient toujours le diagnostic
+  non remplacé (en général le dernier enregistré), et le contrôle de la mise en location regarde tous les
+  diagnostics en vigueur ; (2) notice — la décision Q46 demande
+  la notice officielle entière dans la version en vigueur à la signature ; l'application ne vérifie ni le contenu ni
+  la version du fichier déposé ; (3) notice — le blocage suit le type de bien (habitation), alors que l'obligation
+  n'a été relevée que pour la location vide et meublée.
+- **Questions notées dans les relectures, pas encore numérotées dans `QUESTIONS.md`** : durée de conservation et
+  accès du locataire à la notice déposée ; pièce exigée dès la saisie d'une retenue ; pièces liées à un mandat ;
+  trois points d'écran du lot 61.

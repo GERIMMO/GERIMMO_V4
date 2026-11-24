@@ -400,6 +400,17 @@ Tout retour arrière en production demande une **décision du dirigeant**, et se
 - **Retour à la main.** Vercel garde les anciennes versions. `app/docs/publication-controlee.md` renvoie à la documentation Vercel du retour à une version précédente.
 - **Dans le code.** Annuler la fusion par un commit inverse (`git revert`), puis republier par la procédure normale.
 
+**Migrations du lot D3 (24/11/2026), pas encore publiées.** Six fichiers, à nommer dans cet ordre, qui est celui du manifeste, avant de publier le code :
+
+1. `20261124180000_notice_information_deposee.sql`
+2. `20261124190000_reperes_fiscaux_source.sql`
+3. `20261124200000_justificatif_retenue_piece_existante.sql`
+4. `20261124210000_reperes_fiscaux_ancien_reglage_sans_source.sql`
+5. `20261124220000_justificatif_retenue_dossier_du_bail.sql`
+6. `20261124230000_reperes_fiscaux_ancien_reglage_journal_source.sql`
+
+Elles viennent après celles des lots D1 et D2 dans le manifeste. Chacune a son retour arrière ; l'ordre des retours et leurs conditions sont dans le `LISEZ-MOI.md` des retours (avant de revenir au code précédent, activer ou annuler les circuits de signature de bail en cours). Le jour de la publication : saisir les repères fiscaux et leur source dans la console du super admin (aucune valeur n'est écrite par les migrations). Ces migrations n'ont été jouées que sur des bases d'essai.
+
 **Ce circuit ne restaure jamais la base.** Si la migration publiée n'est pas compatible avec l'ancien code, remettre l'ancien site ne suffit pas.
 
 ### Niveau 2 : jouer les retours arrière de la base

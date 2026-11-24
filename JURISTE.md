@@ -16,7 +16,7 @@ d'arrêté n'a pu être lu mot à mot. Seules des fiches officielles ont été l
 `TEXTES-OFFICIELS-LUS-2026-11-24.md`). Rien n'est donc corrigé sur la seule base de ces réponses, et toutes les questions
 restent ouvertes. La façon de lire Légifrance est une question posée au dirigeant (QUESTIONS.md, Q62). La partie 6, en
 fin de fichier, ajoute les points de droit des lots 50 à 54 et des décisions du 24/11. La partie 7 ajoute ceux des lots
-D1 et D2 et du vendeur.
+D1 et D2 et du vendeur. La partie 8 ajoute ceux du lot D3.
 
 Tant qu'une question reste ouverte, Gerimmo garde le comportement le plus prudent : il avertit au lieu d'affirmer,
 et ne présente pas un document comme valable s'il manque une mention.
@@ -492,6 +492,45 @@ vision de Gerimmo ») : ils sont signalés.
    officielle sur ce point. **Non lu :** la loi pour la confiance dans l'économie numérique (art. 6 III), citée par
    la réponse. Les mentions légales, les conditions de vente et les factures d'un entrepreneur individuel
    doivent-elles porter cette adresse ? Si elle est aussi son domicile, une autre adresse est-elle admise ?
+
+## 8. Lot D3 (décisions du 24/11/2026 : notice, retenues, diagnostics)
+
+Ces points viennent de l'application des décisions Q28, Q46 et Q49 (JOURNAL.md, lot D3). Le lot est fait dans le code
+de préproduction ; il n'est pas publié. Aucun n'est présenté comme conforme. Aucun article de loi, de décret ou
+d'arrêté n'a été lu mot à mot.
+
+1. **Un devis comme justificatif d'une retenue sur le dépôt de garantie** (Q49 ; complète le point 14 de la partie 5).
+   Gerimmo exige maintenant une pièce pour chaque retenue et accepte un devis. Un même devis, ou l'état des lieux de
+   sortie, peut justifier plusieurs retenues. Sans pièce, le décompte ne se produit pas ; l'écran dit que ce blocage
+   n'arrête pas le délai de restitution. **Lu :** la fiche officielle lue le 24/11 cite les factures et les devis
+   parmi les justificatifs admis. **Non lu :** l'article 22 de la loi de 1989. (a) Un devis seul, sans facture ni
+   travaux faits, suffit-il à justifier une retenue, oui ou non ? (b) Un seul devis peut-il justifier plusieurs
+   retenues ? (c) L'état des lieux de sortie peut-il, à lui seul, servir de justificatif d'une retenue ? (d) Bloquer
+   le décompte tant qu'une pièce manque fait-il courir un risque au bailleur, puisque le délai de restitution
+   continue ?
+2. **Notice d'information déposée par le bailleur : quelle version, et qui la vérifie ?** (Q46 ; complète les points
+   4, 5 et 37 de la partie 1 et le point 9 de la partie 5). En attendant de joindre lui-même le texte officiel,
+   Gerimmo demande au bailleur de déposer la notice. L'envoi en signature électronique est bloqué sans elle ; déposée,
+   elle est jointe au dossier signé. Gerimmo ne fournit pas le texte et ne vérifie ni le contenu du fichier ni sa
+   version. Le résumé établi par Gerimmo reste joint, comme document d'information. **Non lu :** l'arrêté qui fixe la
+   notice. (a) Une notice fournie par le bailleur et non vérifiée, jointe au dossier signé, suffit-elle ? (b) La
+   version exigée est-elle bien celle en vigueur le jour de la signature, et qui répond d'une version périmée déposée
+   par le bailleur ? (c) Les baux déjà signés sans la notice officielle doivent-ils être régularisés (voir aussi le
+   point 5 de la partie 1) ? (d) Pour la signature sur papier, Gerimmo ne bloque rien et rappelle seulement d'annexer
+   la notice : est-ce suffisant ?
+3. **Notice d'information : pour quels baux ?** (Q46). Gerimmo n'exige la notice que pour un bien d'habitation
+   (appartement, maison, immeuble), quel que soit le type de bail. L'obligation n'a été relevée que pour la location
+   vide et la location meublée. La notice est-elle due aussi pour une colocation à contrats individuels et pour un
+   bail mobilité ? Hors habitation, Gerimmo ne demande ni la notice ni son résumé : est-ce exact ?
+4. **Plusieurs diagnostics de performance énergétique** (Q28 ; complète le point 15 de la partie 6, toujours ouvert).
+   L'avertissement est maintenant affiché ; la règle de Gerimmo n'est pas changée. Aujourd'hui, enregistrer un
+   diagnostic remplace le précédent : c'est donc le dernier enregistré qui décide pour le bail et la révision du
+   loyer, même si un diagnostic remplacé porte une date d'établissement plus récente (un diagnostic ancien saisi
+   après coup). Quand plusieurs diagnostics sont restés en vigueur (données anciennes), le bail et la révision lisent
+   le plus récent par date d'établissement, alors que le contrôle de la mise en location les regarde tous : un seul
+   en classe G suffit à bloquer. (a) Entre le dernier enregistré et le plus récent par date d'établissement, lequel
+   doit décider ? (b) Quand deux diagnostics en vigueur donnent des classes différentes, lequel décide pour la mise
+   en location, et lequel pour la hausse du loyer ? (c) À dates d'établissement égales, lequel retenir ?
 
 ---
 

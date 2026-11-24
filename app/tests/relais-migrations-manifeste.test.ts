@@ -273,6 +273,10 @@ const MISSION_OCTOBRE = [
   // 24/11, décisions du dirigeant (lot D2, Q23 et Q43) : la révision du loyer d'une année est refusée passé un an après sa date
   // de révision ; le loyer révisé s'applique au premier terme qui suit la demande.
   "20261124100000_revision_loyer_delai_et_premier_terme.sql",
+  // 24/11, décisions du dirigeant (lot D1, reprise) : origine d'un article du Journal (Q13, la mention « Rédigé avec l'aide de
+  // l'IA » ne s'affiche que pour l'origine « ia ») ; motif du retrait d'une note lu par son seul auteur (Q20).
+  "20261124110000_publications_origine.sql",
+  "20261124120000_motif_retrait_reserve_a_l_auteur.sql",
 
 
 ];

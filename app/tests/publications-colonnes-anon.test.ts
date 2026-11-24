@@ -26,8 +26,15 @@ const retour = readFileSync(`supabase/retours-arriere/${NOM}.retour.sql`, "utf8"
   .replace(/^begin;$/m, "")
   .replace(/^commit;$/m, "");
 
-/** Ce que les pages publiques lisent (journal/[slug]/page.tsx, journal/page.tsx, page.tsx, sitemap.ts), filtres compris. */
-const PUBLIQUES = ["id", "slug", "titre", "chapo", "corps", "publie_le", "updated_at", "seo_description", "sources", "veine", "facebook_image_url", "statut"];
+/**
+ * Ce que les pages publiques lisent (journal/[slug]/page.tsx, journal/page.tsx, page.tsx, sitemap.ts), filtres compris.
+ * Reprise du lot D1 (24/11/2026, M4 ; migration 20261124110000) : la page publique d'un article lit aussi `origine`
+ * (« ia » ou « manuel ») pour n'afficher la mention « Rédigé avec l’aide de l’IA » que sur un article d'origine « ia ».
+ */
+const PUBLIQUES = ["id", "slug", "titre", "chapo", "corps", "publie_le", "updated_at", "seo_description", "sources", "veine", "facebook_image_url", "statut", "origine"];
+/** La migration du 24/11 qui ouvre `origine` : rejouée après celle du 19/10, dont le « revoke » de table referme toutes les colonnes. */
+const allerOrigine = readFileSync("supabase/migrations/20261124110000_publications_origine.sql", "utf8");
+const retourOrigine = readFileSync("supabase/retours-arriere/20261124110000_publications_origine.retour.sql", "utf8");
 
 describe.skipIf(!DB)("Articles et formulaire de contact : ce que anon peut lire", () => {
   let db: Client;
@@ -100,7 +107,7 @@ describe.skipIf(!DB)("Articles et formulaire de contact : ce que anon peut lire"
   it("avec le rôle anon : les lectures des pages publiques passent, une colonne interne et le formulaire de contact sont refusés", async () => {
     await anon();
     // journal/[slug]
-    await db.query("select titre, chapo, corps, publie_le, seo_description, sources, veine, facebook_image_url from public.publications where slug='un-article' and statut='publiee'");
+    await db.query("select titre, chapo, corps, publie_le, seo_description, sources, veine, facebook_image_url, origine from public.publications where slug='un-article' and statut='publiee'");
     // journal et accueil
     await db.query("select id, titre, slug, chapo, publie_le, facebook_image_url from public.publications where statut='publiee' order by publie_le desc limit 50");
     // plan du site
@@ -114,13 +121,18 @@ describe.skipIf(!DB)("Articles et formulaire de contact : ce que anon peut lire"
 
   it("rejeu sans effet ; retour : la lecture de table entière revient ; réapplication identique", async () => {
     const attendu = await empreinte();
+    // Les migrations se rejouent dans leur ordre : celle du 19/10, puis celle du 24/11 qui ajoute `origine` à la liste.
     await db.query(aller);
+    await db.query(allerOrigine);
     expect(await empreinte()).toEqual(attendu);
+    // Les retours se jouent dans l'ordre inverse : celui du 24/11 (il retire le droit sur `origine`), puis celui du 19/10.
+    await db.query(retourOrigine);
     await db.query(retour);
     expect((await db.query("select has_table_privilege('anon','public.publications','SELECT') t")).rows[0].t).toBe(true);
     expect((await db.query("select has_table_privilege('anon','public.demandes_devis','SELECT') t")).rows[0].t).toBe(true);
     expect((await db.query("select count(*)::int n from pg_attribute where attrelid='public.publications'::regclass and attacl is not null")).rows[0].n).toBe(0);
     await db.query(aller);
+    await db.query(allerOrigine);
     expect(await empreinte()).toEqual(attendu);
   });
 });

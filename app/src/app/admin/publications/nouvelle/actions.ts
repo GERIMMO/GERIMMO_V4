@@ -35,6 +35,10 @@ export async function creerArticleVierge(
   if (titre.length < 5 || titre.length > 180) return { erreur: "Donnez un titre de 5 à 180 caractères. Il reste modifiable.", valeurs };
   const { data, error } = await supabase.from("publications").insert({
     periode: aujourdhuiParis(), statut: "brouillon", titre, chapo: "", corps: "",
+    // Reprise du 24/11/2026 (M4) : un brouillon vierge est écrit à la main, il ne portera pas la mention « Rédigé avec
+    // l’aide de l’IA ». Partout ailleurs la base pose « ia » par défaut. Si une aide de l'IA est un jour proposée sur un
+    // article existant (réécriture, génération), elle devra poser origine « ia » ; la base refuse le sens inverse.
+    origine: "manuel",
   }).select("id").single();
   if (error || !data) return { erreur: "Le brouillon n’a pas pu être enregistré.", valeurs };
   await journaliserSupervision(supabase, "publication_brouillon_cree", { publication: data.id });

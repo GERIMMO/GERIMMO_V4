@@ -16,15 +16,15 @@ export default async function PageArticle({ params }: PageProps<"/agence/[orgId]
   // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
   const base = baseEspace(orgId, estProprietaire);
   const { data: a, error } = await supabase.from("publications")
-    .select("titre, chapo, corps, publie_le, facebook_image_url")
+    .select("titre, chapo, corps, publie_le, facebook_image_url, origine")
     .eq("slug", slug).eq("statut", "publiee").lte("publie_le", new Date().toISOString()).maybeSingle();
   if (!error && !a) notFound();
   return <main className={`mx-auto w-full max-w-4xl p-4 sm:p-7 ${styles.page}`}>
     <Link href={`${base}/journal`} className={styles.retour}>← Tous les articles</Link>
     {error || !a ? <p className="err" role="alert">L’article n’a pas pu être chargé. Rechargez la page dans un instant.</p> : <article className={styles.lecture}>
       <header><p className="eyebrow">Le journal Gerimmo</p><h1>{titreSansDoublon(a.titre)}</h1><time dateTime={a.publie_le}>{new Date(a.publie_le).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Paris" })}</time>
-        {/* Décision du 24/11/2026 (Q13) : la mention est visible sur chaque article, sous sa date. */}
-        <MentionIaArticle className={styles.mentionIa} /></header>
+        {/* Décision du 24/11/2026 (Q13) : la mention est visible sous la date, pour un article d'origine « ia » (M4). */}
+        <MentionIaArticle origine={a.origine} className={styles.mentionIa} /></header>
       <ImageJournal url={a.facebook_image_url} titre={a.titre} priorite />
       {a.chapo && <p className={styles.chapo}>{a.chapo}</p>}
       <TexteMarkdown contenu={a.corps ?? ""} />

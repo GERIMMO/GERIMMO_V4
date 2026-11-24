@@ -812,7 +812,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
 
       {/* Décision du 24/11/2026 (Q18) : Statistiques et Journal s'ouvrent aussi d'ici (le Journal n'avait aucun lien). */}
       <div className="mt-6">
-        <LiensTableauDeBord base={base} />
+        <LiensTableauDeBord base={base} agence={!estProprietaire} />
       </div>
     </main>
   );

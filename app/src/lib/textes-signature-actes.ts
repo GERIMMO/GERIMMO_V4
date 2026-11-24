@@ -62,10 +62,5 @@ export const MENTION_PAGE_SIGNATURE_GARANT =
 export const REFUS_SANS_GARANTIE_CUMULEE =
   "Confirmez l'absence d'assurance loyers impayés ou d'autre garantie avant de préparer l'acte.";
 
-/**
- * Décision du dirigeant du 24/11/2026 (Q11) : la signature électronique est proposée EN PREMIER ; la signature sur papier
- * reste TOUJOURS possible. Les deux libellés sont écrits une seule fois ici : le bail, l'état des lieux et les autres
- * documents disent la même chose. Rien n'est retiré : le dépôt du document signé sur papier garde son écran et ses contrôles.
- */
-export const LIBELLE_SIGNATURE_ELECTRONIQUE = "Signature électronique";
-export const PAPIER_TOUJOURS_POSSIBLE = "La signature sur papier reste toujours possible";
+// Les libellés de la décision du 24/11/2026 (Q11) vivent dans lib/voie-signature.ts, avec l'état de la voie électronique.
+export { LIBELLE_SIGNATURE_ELECTRONIQUE, PAPIER_TOUJOURS_POSSIBLE } from "./voie-signature";

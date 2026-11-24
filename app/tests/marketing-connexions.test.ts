@@ -4,7 +4,8 @@ import { campagnesFacebook, depenseFacebookDuMois, santeFacebook } from '../src/
 import { envoyerSurFacebook } from '../src/lib/facebook';
 
 const requete = vi.fn();
-const article = { titre: 'Conseil', chapo: null, slug: 'conseil', facebookTexte: null, facebookImageUrl: null };
+// Reprise du lot D1 (24/11/2026, M3) : un article porte son origine ; « ia » est le cas de la parution automatique.
+const article = { titre: 'Conseil', chapo: null, slug: 'conseil', facebookTexte: null, facebookImageUrl: null, origine: 'ia' as const };
 beforeEach(() => {
   requete.mockReset();
   vi.stubGlobal('fetch', requete);

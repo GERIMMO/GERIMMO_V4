@@ -1,5 +1,5 @@
 import { EdlConsultation } from "./edl-consultation";
-import { PAPIER_TOUJOURS_POSSIBLE } from "@/lib/textes-signature-actes";
+import { voieElectronique } from "@/lib/signature-ouverture";
 import { EtapesSaisie } from "@/components/etapes-saisie";
 import Link from "next/link";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
@@ -26,7 +26,9 @@ export default async function PageEdl(
 ) {
   const { orgId, bailId, edlId } = await props.params;
   exigerUuids(bailId, edlId);
-  const { supabase, estProprietaire, user, traverseeLectureSeule } = await verifierAccesEspace(orgId);
+  const { supabase, estProprietaire, user, role, traverseeLectureSeule } = await verifierAccesEspace(orgId);
+  // Relecture du 24/11/2026 (B1, B2) : l'étape « Validation » ne cite la signature électronique qu'à qui peut s'en servir.
+  const signatureElectroniqueOuverte = voieElectronique("edl", orgId, role === "proprietaire_direct" && !traverseeLectureSeule) === "ouverte";
   // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
   const base = baseEspace(orgId, estProprietaire);
 
@@ -232,7 +234,9 @@ export default async function PageEdl(
         {titre:"Informations", detail:"Identifiez les personnes présentes et les mentions du document."},
         {titre:"Les pièces", detail:"Examinez une pièce à la fois. Enregistrez la grille avant de poursuivre."},
         {titre:"Compteurs et clés", detail:"Renseignez les relevés et les clés remises, puis enregistrez."},
-        {titre:"Validation", detail:"Vérifiez le dossier, puis faites-le signer : signature électronique, ou sur papier avec dépôt de la preuve de signature."},
+        {titre:"Validation", detail: signatureElectroniqueOuverte
+          ? "Vérifiez le dossier, puis faites-le signer : signature électronique, ou sur papier avec dépôt de la preuve de signature."
+          : "Vérifiez le dossier, préparez le PDF puis déposez la preuve de signature."},
       ]} contenus={[
       <Card key="mentions">
         <CardHeader>
@@ -379,11 +383,11 @@ export default async function PageEdl(
       </Card>,
       ...(!signe ? [<div key="validation" className="space-y-4">
         <p className="text-sm text-muted-foreground">Les mentions, les relevés et les clés enregistrés seront repris dans le document. Vérifiez-les avant de le faire signer aux parties.</p>
-        {/* Décision du 24/11/2026 (Q11) : la signature électronique est proposée en premier (ce bouton commun la place
-            avant le PDF). La voie papier reste entière, juste en dessous : la grille y pose son bouton
-            « Enregistrer et signer », qui demande la preuve de signature. */}
-        <BoutonGenererDocument orgId={orgId} code="edl" cibleId={edlId} cheminRetour={`${base}/baux/${bailId}/edl/${edlId}`} libelle="Générer le PDF" />
-        <p className="text-sm text-muted-foreground" data-voie-papier>{PAPIER_TOUJOURS_POSSIBLE} : enregistrez la grille, puis déposez l’état des lieux signé par les parties.</p>
+        {/* Décision du 24/11/2026 (Q11) : quand la voie électronique est ouverte, ce bouton commun la place avant le PDF
+            et dit que le papier reste possible ; service fermé, il présente le papier d'abord. La voie papier reste
+            entière, juste en dessous : la grille y pose son bouton « Enregistrer et signer », qui demande la preuve. */}
+        <BoutonGenererDocument orgId={orgId} code="edl" cibleId={edlId} cheminRetour={`${base}/baux/${bailId}/edl/${edlId}`} libelle="Générer le PDF"
+          voiePapier="enregistrez la grille, puis déposez l’état des lieux signé par les parties." />
         <div id="edl-validation" />
       </div>] : []),
       ]} />}

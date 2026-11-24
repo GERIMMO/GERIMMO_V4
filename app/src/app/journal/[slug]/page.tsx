@@ -23,7 +23,7 @@ async function charger(slug: string) {
   // mais on garde le filtre par sécurité si la politique changeait un jour.
   const { data } = await supabase
     .from("publications")
-    .select("titre, chapo, corps, publie_le, updated_at, seo_description, sources, veine, facebook_image_url")
+    .select("titre, chapo, corps, publie_le, updated_at, seo_description, sources, veine, facebook_image_url, origine")
     .eq("slug", slug)
     .eq("statut", "publiee")
     .maybeSingle();
@@ -107,8 +107,8 @@ export default async function PageArticle({ params }: PageProps<"/journal/[slug]
 
         <h1 className="mt-1">{titreSansDoublon(a.titre)}</h1>
         {paruLe && <p className="mono-discret mt-2.5">Paru le {paruLe}</p>}
-        {/* Décision du 24/11/2026 (Q13) : la mention est visible sur chaque article, sous sa date. */}
-        <MentionIaArticle className="mono-discret sans-majuscules mt-1" />
+        {/* Décision du 24/11/2026 (Q13) : la mention est visible sous la date, pour un article d'origine « ia » (M4). */}
+        <MentionIaArticle origine={a.origine} className="mono-discret sans-majuscules mt-1" />
         {/* 06/10 : l'illustration de l'article en tête, format large. */}
         <ImageJournal url={a.facebook_image_url} titre={titreSansDoublon(a.titre)} priorite className="mt-6" />
         {a.chapo && (

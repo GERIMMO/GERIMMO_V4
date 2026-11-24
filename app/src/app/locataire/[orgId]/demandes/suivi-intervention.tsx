@@ -1,5 +1,6 @@
 "use client";
 
+import { phraseNoteRetiree } from "@/lib/evaluation-retiree";
 import { useEffect, useId, useRef, useState } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { useActionFormulaire } from "@/lib/use-action-formulaire";
@@ -58,6 +59,8 @@ export type SuiviIntervention = {
   nouvelle_intervention_necessaire: boolean;
   photos_apres: string[];
   deja_notee: boolean;
+  /** Décision du 24/11/2026 (Q20, reprise M5) : sa note a été retirée par Gerimmo ; il en lit le motif. Posé par la page. */
+  retrait_de_ma_note?: { note_globale: number; retrait_motif: string | null } | null;
 };
 
 export type CreneauPropose = {
@@ -519,8 +522,10 @@ function TravailFait({
       {etat.succes ? (
         <p className="text-sm text-success-soft-foreground">{etat.succes}</p>
       ) : suivi.deja_notee ? (
-        <p className="text-xs text-muted-foreground">
-          Merci, votre avis sur cette intervention est enregistré.
+        <p className="text-xs text-muted-foreground" data-ma-note={suivi.retrait_de_ma_note ? "retiree" : "enregistree"}>
+          {suivi.retrait_de_ma_note
+            ? phraseNoteRetiree(suivi.retrait_de_ma_note)
+            : "Merci, votre avis sur cette intervention est enregistré."}
         </p>
       ) : peutAgir && suivi.intervention_id ? (
         <form data-saisie-confirmee onSubmit={action}>

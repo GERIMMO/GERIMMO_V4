@@ -1,6 +1,7 @@
 "use client";
 import { DOCUMENTS_ZOHO, type SelectionSignature } from "@/lib/politique-signature";
 import { OuvrirSignatureDocument } from "@/components/ouvrir-signature-document";
+import { PhraseVoiesSignature } from "@/components/voies-signature";
 import { lienPourManquant } from "@/lib/documents/ou-renseigner";
 import { useEffect, useState } from "react";
 import { useActionFormulaire } from "@/lib/use-action-formulaire";
@@ -70,12 +71,16 @@ export function FormulaireCatalogue({orgId,modeleId,choix,garants=[],titulaires=
       {c.aide&&<span className="block text-xs font-normal text-muted-foreground">{c.aide}</span>}
       {c.repli==="detail_enregistre"&&choixCourant?.detailEnregistre&&<span className="block text-xs font-normal text-muted-foreground">Cette régularisation porte déjà un détail : laissez vide pour le reprendre tel quel.</span>}
       {c.cle==="interets_emprunt"&&infoInterets&&<span role="status" className="block text-xs font-medium">{infoInterets}</span>}</label>)}</div>
-    {/* Décision du 24/11/2026 (Q11) : la signature électronique est proposée en premier, avant le PDF à imprimer. */}
-    {signature&&<div><OuvrirSignatureDocument orgId={orgId} selection={signature}/></div>}
+    {/* Décision du 24/11/2026 (Q11) : voie électronique ouverte, elle est proposée avant le PDF à imprimer. Service
+        fermé ou agence (relecture B1, B2) : le bouton reste après le PDF, comme avant la décision. Un seul des deux
+        boutons s'affiche, selon l'état de la voie. */}
+    {signature&&<OuvrirSignatureDocument place="avant" enveloppe="" orgId={orgId} selection={signature}/>}
     <p className="text-sm text-muted-foreground">Le PDF sera enregistré dans Documents. Aucun envoi automatique.</p>
     <Button disabled={enCours||!cible||!choix.length||calcul} type="submit">{enCours?"Préparation du PDF…":"Générer le PDF"}</Button>
     {etat.erreur&&!etat.manquants?.length&&<p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}
     {etat.succes&&<p role="status" className="text-sm text-success">{etat.succes}</p>}
+    {signature&&<OuvrirSignatureDocument place="apres" orgId={orgId} selection={signature}/>}
+    {signature&&<PhraseVoiesSignature code={signature.code} papier="générez le PDF, imprimez-le et faites-le signer par les parties." />}
     {etat.documentId&&<Link className="block font-medium text-primary underline" href={`${base}/documents/${etat.documentId}/fichier`} target="_blank" rel="noopener">Ouvrir le PDF</Link>}
     {!!etat.manquants?.length&&<section aria-label="Informations à compléter" role="status" className="rounded-xl border border-[var(--or-filet)] bg-[var(--or-clair)] p-4">
       <h3 className="text-sm font-semibold">Encore {etat.manquants.length} {etat.manquants.length===1?"information":"informations"} à compléter</h3>

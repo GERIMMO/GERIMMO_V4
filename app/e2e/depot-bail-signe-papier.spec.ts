@@ -96,13 +96,19 @@ test("G-01/G-02 : bail signé sur papier — refusé tant que la base bloque, pu
     await ouvrirEtape(page, adresse, "07");
     const depot = page.locator("#bail-signe");
     await expect(depot.getByText("Bail signé", { exact: true })).toBeVisible();
-    // Décision du dirigeant du 24/11/2026 (Q11) : la signature électronique est proposée en premier, le papier reste
-    // toujours possible. La carte du dépôt papier le dit, et elle vient APRÈS le panneau de la signature électronique.
+    // Décision du dirigeant du 24/11/2026 (Q11) : la signature électronique est proposée en premier QUAND elle est
+    // ouverte ; le papier reste toujours possible, et la carte du dépôt papier le dit.
+    // Reprise du même jour (B2) : ce banc tourne avec le service de signature FERMÉ (le réglage livré ; l'ouverture se
+    // fait à la publication). L'écran ne dit donc plus « proposée en premier » au-dessus d'un panneau « en préparation » :
+    // il présente le papier comme la voie qui fonctionne, et la carte du dépôt papier vient AVANT le panneau électronique.
+    // (Service ouvert, l'ordre s'inverse : tests/decisions-24-11-lot-d1-reprise.test.ts joue les deux états.)
     await expect(depot).toContainText("Signature sur papier, toujours possible.");
     const electronique = page.getByRole("heading", { name: "Signature électronique · Bail de location" });
     await expect(electronique).toBeVisible();
-    expect(await electronique.evaluate(e => Boolean(e.compareDocumentPosition(document.getElementById("bail-signe")!) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
-    await expect(page.locator("#signature")).toContainText("La signature sur papier reste toujours possible : déposez le contrat signé dans la carte « Bail signé », plus bas.");
+    await expect(page.locator("#signature")).toContainText("Signature en ligne en préparation.");
+    expect(await electronique.evaluate(e => Boolean(e.compareDocumentPosition(document.getElementById("bail-signe")!) & Node.DOCUMENT_POSITION_PRECEDING))).toBe(true);
+    await expect(page.locator("#signature")).toContainText("La signature électronique est en préparation. Aujourd’hui, la signature se fait sur papier : déposez le contrat signé dans la carte « Bail signé », plus bas.");
+    await expect(page.locator("#signature")).not.toContainText("proposée en premier");
     await expect(depot.getByRole("link", {name: "Ouvrir la mise en location du logement"})).toHaveAttribute("href", `/espace/${ORG}/parc/${bien}/lots/${lot}#statut-lot`);
     await expect(depot.locator("#depot-bail-signe")).toHaveCount(0);
     await expect(db.query("update public.lots set etat='disponible' where id=$1", [lot])).rejects.toThrow(/DPE absent ou expiré/);

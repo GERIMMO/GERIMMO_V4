@@ -8,7 +8,9 @@ import { ArrowRight, BookOpen, ChartColumn } from "lucide-react";
  * Aucun droit n'est ouvert : les deux pages gardent leur contrôle (`verifierAccesEspace`), le même que celui du tableau
  * de bord. Toute personne qui voit ces liens pouvait donc déjà ouvrir ces deux pages par leur adresse.
  */
-export function LiensTableauDeBord({ base }: { base: string }) {
+export function LiensTableauDeBord({ base, agence = false }: { base: string; agence?: boolean }) {
+  // Relecture du 24/11/2026 (M6) : « votre location » parle au propriétaire ; une agence gère les locations de ses clients.
+  const sousTitreJournal = agence ? "Actualités et conseils de gestion locative" : "Actualités et conseils pour votre location";
   const lien = "flex min-h-14 items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm hover:underline hover:underline-offset-4";
   return (
     <nav aria-label="Statistiques et journal" data-liens-tableau-de-bord className="grid gap-3 sm:grid-cols-2">
@@ -19,7 +21,7 @@ export function LiensTableauDeBord({ base }: { base: string }) {
       </Link>
       <Link href={`${base}/journal`} className={lien}>
         <BookOpen size={20} aria-hidden="true" className="shrink-0" />
-        <span className="min-w-0 flex-1"><b className="block font-semibold">Journal</b><small className="text-muted-foreground">Actualités et conseils pour votre location</small></span>
+        <span className="min-w-0 flex-1"><b className="block font-semibold">Journal</b><small className="text-muted-foreground">{sousTitreJournal}</small></span>
         <ArrowRight size={16} aria-hidden="true" className="shrink-0" />
       </Link>
     </nav>

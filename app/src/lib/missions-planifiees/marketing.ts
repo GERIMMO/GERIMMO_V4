@@ -40,8 +40,8 @@ export function maintenantParis(date=new Date()){
  const c=composantesParis(date);
  return {date:dateParis(date),jour:c.isodow,objet:new Date(`${dateParis(date)}T12:00:00Z`)};
 }
-const CHAMPS='id,titre,slug,chapo,statut,facebook_texte,facebook_image_url,facebook_post_id,facebook_envoi_demarre_le,image_empreinte,image_essais,image_en_cours_le,updated_at,programmee_pour,veille_source_id,marketing_jour';
-type Article={id:string;titre:string;slug:string;chapo:string|null;statut:string;facebook_texte:string|null;facebook_image_url:string|null;facebook_post_id:string|null;facebook_envoi_demarre_le:string|null;image_empreinte:string|null;image_essais:number;image_en_cours_le:string|null;updated_at:string;programmee_pour:string|null;veille_source_id:string|null;marketing_jour:string|null};
+const CHAMPS='id,titre,slug,chapo,statut,facebook_texte,facebook_image_url,facebook_post_id,facebook_envoi_demarre_le,image_empreinte,image_essais,image_en_cours_le,updated_at,programmee_pour,veille_source_id,marketing_jour,origine';
+type Article={id:string;titre:string;slug:string;chapo:string|null;statut:string;facebook_texte:string|null;facebook_image_url:string|null;facebook_post_id:string|null;facebook_envoi_demarre_le:string|null;image_empreinte:string|null;image_essais:number;image_en_cours_le:string|null;updated_at:string;programmee_pour:string|null;veille_source_id:string|null;marketing_jour:string|null;origine:'ia'|'manuel'};
 type Reglages={phase_editoriale?:Phase;actif:boolean;publication_automatique:boolean;diffusion_version:number;jours_semaine:number[];heure_paris:number;heure_preparation_paris:number;validation_obligatoire:boolean;veille_mots_inclus:string[];veille_mots_exclus:string[]};
 type Db=NonNullable<ReturnType<typeof clientDeService>>;
 
@@ -74,7 +74,7 @@ export async function diffuserPostsEchus(db:Db,r:Reglages,options:{manuel?:boole
   if(!article)continue;
   const a=article as Article;
   if(a.facebook_envoi_demarre_le){
-   const preuve=await retrouverPostFacebook({id:a.id,titre:a.titre,chapo:a.chapo,slug:a.slug,facebookTexte:a.facebook_texte,facebookImageUrl:a.facebook_image_url},a.facebook_envoi_demarre_le).catch(()=>null);
+   const preuve=await retrouverPostFacebook({id:a.id,titre:a.titre,chapo:a.chapo,slug:a.slug,facebookTexte:a.facebook_texte,facebookImageUrl:a.facebook_image_url,origine:a.origine},a.facebook_envoi_demarre_le).catch(()=>null);
    if(preuve){
     const trace=await db.from('publications').update({facebook_post_id:preuve,facebook_publie_le:new Date().toISOString(),facebook_erreur:null}).eq('id',a.id).is('facebook_post_id',null).select('id').maybeSingle();
     if(!trace.error && trace.data){diffuses.push(a.id);continue;}
@@ -103,7 +103,7 @@ export async function diffuserPostsEchus(db:Db,r:Reglages,options:{manuel?:boole
    reserve=true;
   };
   try{
-   const resultat=await envoyerSurFacebook({id:a.id,titre:a.titre,chapo:a.chapo,slug:a.slug,facebookTexte:a.facebook_texte,facebookImageUrl:a.facebook_image_url,afficheMarketing:{empreinte:a.image_empreinte}},reserverAvantPublication);
+   const resultat=await envoyerSurFacebook({id:a.id,titre:a.titre,chapo:a.chapo,slug:a.slug,facebookTexte:a.facebook_texte,facebookImageUrl:a.facebook_image_url,origine:a.origine,afficheMarketing:{empreinte:a.image_empreinte}},reserverAvantPublication);
    const trace=await db.from('publications').update({facebook_post_id:resultat.post_id,facebook_publie_le:new Date().toISOString(),facebook_erreur:null}).eq('id',a.id);
    if(trace.error){erreurs.push(`${a.id} : Facebook a répondu, confirmation non conservée. Ne pas renvoyer.`);continue;}
    diffuses.push(a.id);

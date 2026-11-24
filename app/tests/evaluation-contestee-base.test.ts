@@ -205,20 +205,26 @@ describe.skipIf(!url)("évaluation contestée (avec base)", () => {
   });
 
   // Décision du dirigeant du 24/11/2026 (Q20) : « le client qui a noté lit le motif du retrait. L'artisan non. »
-  // Aucune règle de la base n'a été changée pour cela : ce test tient celles qui existent, sous les vrais rôles.
+  // Reprise du lot D1 (M5, migration 20261124120000) : seul l'AUTEUR de la note lit le motif. La colonne n'est plus lisible
+  // directement par un compte connecté ; l'organisation lit le motif de SA note par `retraits_de_mes_notes`. Ce test
+  // lisait la colonne sous les droits du gestionnaire : il passe désormais par la fonction, et tient en plus que la lecture
+  // directe est refusée. Le détail de chaque profil (locataire auteur, autre locataire…) : motif-retrait-auteur-base.test.ts.
   it("le motif du retrait se lit dans l'organisation qui a noté et à la supervision ; ni l'artisan, ni une autre organisation, ni un visiteur", async () => {
     await agir(sa);
     expect(await retirer(evalGerant)).toBe("");
-    const motifLu = async () => (await db.query("select retrait_motif from public.artisan_evaluations where id=$1", [evalGerant])).rows;
+    const motifLu = async () => (await db.query("select retrait_motif from public.retraits_de_mes_notes($1)", [org])).rows;
+    const lectureDirecte = () => refus("select retrait_motif from public.artisan_evaluations where id=$1", [evalGerant]);
 
-    // Le client qui a noté : il lit le motif de SA note, sous ses droits.
+    // Le client qui a noté : il lit le motif de SA note, sous ses droits — par la fonction, plus par la colonne.
     await agir(gerant);
     expect(await motifLu()).toEqual([{ retrait_motif: MOTIF }]);
+    expect(await lectureDirecte()).toMatch(/permission denied for table artisan_evaluations/);
 
-    // L'artisan concerné, et un autre artisan : la table leur reste fermée, motif compris.
+    // L'artisan concerné, et un autre artisan : rien par la fonction, et la table leur reste fermée, motif compris.
     for (const artisanConnecte of [compteArtisan, compteAutreArtisan]) {
       await agir(artisanConnecte);
       expect(await motifLu(), artisanConnecte).toEqual([]);
+      expect(await lectureDirecte(), artisanConnecte).toMatch(/permission denied for table artisan_evaluations/);
     }
     // … et ce que l'artisan lit dans le suivi de sa contestation ne reprend pas le motif.
     await agir(compteArtisan);
@@ -233,10 +239,12 @@ describe.skipIf(!url)("évaluation contestée (avec base)", () => {
     await db.query("insert into public.memberships(account_id,organization_id,role) values($1,$2,'admin_agence')", [autreGerant, autreOrg]);
     await agir(autreGerant);
     expect(await motifLu()).toEqual([]);
+    expect(await lectureDirecte()).toMatch(/permission denied for table artisan_evaluations/);
 
-    // Un visiteur sans compte n'a aucun droit sur la table.
+    // Un visiteur sans compte n'a aucun droit, ni sur la table ni sur la fonction.
     await agir(null, "anon");
-    expect(await refus("select retrait_motif from public.artisan_evaluations where id=$1", [evalGerant])).toMatch(/permission denied/);
+    expect(await lectureDirecte()).toMatch(/permission denied/);
+    expect(await refus("select * from public.retraits_de_mes_notes($1)", [org])).toMatch(/permission denied/);
 
     // La supervision le lit par la fonction tracée de la contestation.
     await agir(sa);

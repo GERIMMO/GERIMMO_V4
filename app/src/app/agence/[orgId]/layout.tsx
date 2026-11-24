@@ -28,6 +28,8 @@ import { NouvelleVersionConditions } from "@/components/nouvelle-version-conditi
 import { LienContenu } from "@/components/lien-contenu";
 import { FournisseurEtatIA } from "@/components/etat-ia";
 import { etatIA } from "@/lib/etat-ia";
+import { FournisseurVoiesSignature } from "@/components/voies-signature";
+import { voiesSignature } from "@/lib/signature-ouverture";
 
 // Jours entre aujourd'hui (Paris) et une date ISO — négatif si elle est passée.
 //
@@ -65,6 +67,9 @@ export default async function LayoutAgence({
     await verifierAccesEspace(orgId);
   // Interrupteur IA (22/11/2026) : lu une fois ici, offert aux composants de l'espace.
   const etatDeLIA = await etatIA(supabase);
+  // Décision Q11 du 24/11/2026, relecture B1 et B2 : la signature électronique n'est mise en avant que pour qui peut
+  // s'en servir, et seulement si le service est ouvert. Calculé une fois ici (réglages du serveur), offert aux écrans.
+  const voiesDeSignature = voiesSignature({ org: orgId, role, lectureSeule: traverseeLectureSeule });
   // Audit palier 1 (P1-08) : le bandeau de l'agence ne dit « suspendu » que pour ce qui l'est encore. Les deux envois
   // ouverts par le superviseur : plus de bandeau. (Lu pour l'agence seulement : le propriétaire a sa propre information.)
   const envoisOuverts = estProprietaire ? null : await lireEnvoisProposes(supabase);
@@ -323,7 +328,7 @@ export default async function LayoutAgence({
         )}
         {estProprietaire && <span id="contenu-espace" tabIndex={-1} className="sr-only" />}
         {!estProprietaire && piloteLimite() && bandeauEnvoisSuspendus && <p role="status" className="mx-4 my-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">{bandeauEnvoisSuspendus}</p>}
-        <FournisseurEtatIA etat={etatDeLIA}>{children}</FournisseurEtatIA>
+        <FournisseurEtatIA etat={etatDeLIA}><FournisseurVoiesSignature voies={voiesDeSignature}>{children}</FournisseurVoiesSignature></FournisseurEtatIA>
         <BarreBasse espace={espace} navigation={navigation} orgId={orgId} racine={racine} organisations={estProprietaire ? [] : organisations} />
       </div>
       <Toasteur />

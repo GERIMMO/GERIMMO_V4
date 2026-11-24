@@ -19,6 +19,7 @@ import { assemblerSignatureDocument, selectionDuCircuit } from "@/lib/signature-
 import { selectionSignatureValide, type SelectionSignature } from "@/lib/politique-signature";
 import { signatureEnEssai } from "@/lib/signature-essai";
 import { fermetureModeleSignature } from "@/lib/signature-interrupteurs";
+import { modeSelonReglages } from "@/lib/signature-ouverture";
 import { ERREUR_MENTION_CAUTION } from "@/lib/mention-caution";
 import { REFUS_CONFIRMATION_EDL, controlerEnvoi, envoyerApresControle, estCircuitDeBail, garantsSansMobileConfirme, telephoneGarantConfirme } from "@/lib/signature-envoi";
 import { demanderConfirmationMobileCaution, echeanceLisible } from "@/lib/confirmation-mobile-caution";
@@ -109,7 +110,7 @@ export async function lireSignatureBail(org: string, bail: string, choix?: Selec
     // Elle ne vaut que pour un NOUVEL envoi : un circuit déjà envoyé (préparation, en cours, à vérifier) garde le mode d'avant et
     // ne porte pas le message, dont le « signer hors ligne » serait trompeur alors que les invitations sont parties (relecture du 19/10).
     const fermeture = circuit && ["preparation", "en_cours", "a_verifier"].includes(circuit.etat) ? undefined : fermetureModeleSignature(selection.code) ?? undefined;
-    const mode = fermeture ? "indisponible" : (selection.code !== "devis_artisan" || process.env.ZOHO_SIGN_DEVIS_ACTIF === "true" || signatureEnEssai(org)) && (selection.code === "bail" || (fournisseur === "zoho" && (process.env.ZOHO_SIGN_DOCUMENTS_ACTIF === "true" || signatureEnEssai(org)))) ? configurationSignatureBail(process.env,fournisseur,org)?.environnement ?? "indisponible" : "indisponible";
+    const mode = fermeture ? "indisponible" : modeSelonReglages(selection.code, org, fournisseur);
     // Un dossier déjà envoyé reste consultable même si ses données courantes ont changé.
     if (circuit && circuit.etat !== "pret") return { bailId:circuit.bail_id, selection:selectionDuCircuit(circuit), circuit, signataires:circuit.signataires, annexes:circuit.annexes, mode, essai:signatureEnEssai(org) || circuit.essai, fermeture };
     const preparation = await assemblerSignatureDocument(supabase,org,selection);

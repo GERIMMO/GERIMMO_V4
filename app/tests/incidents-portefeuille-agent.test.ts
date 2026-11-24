@@ -111,11 +111,16 @@ describe.skipIf(!DB_URL)("Incidents dans le portefeuille de l'agent", () => {
   const tables = ["incidents", "incident_evenements", "incident_consultations", "incident_sollicitations",
     "incident_devis", "incident_interventions", "intervention_creneaux", "intervention_comptes_rendus",
     "intervention_photos", "artisan_evaluations"];
+  // Reprise du lot D1 (24/11/2026, M5 ; migration 20261124120000) : la colonne `artisan_evaluations.retrait_motif` n'est plus
+  // lisible directement par un compte connecté (seul l'auteur d'une note lit le motif de son retrait, par une fonction).
+  // « select * » y est donc refusé : pour cette table, le test lit une colonne ouverte. La règle du portefeuille est
+  // inchangée et se vérifie pareil : une ligne pour l'agent A, aucune pour l'agent B.
+  const colonnes = (table: string) => (table === "artisan_evaluations" ? "id, intervention_id, note_globale, retiree_le" : "*");
   it.each(tables)("%s : l'agent A lit son dossier, l'agent B ne lit rien", async (table) => {
     await devenir(agentA);
-    expect((await db.query(`select * from public.${table} where organization_id=$1`, [org])).rows).toHaveLength(1);
+    expect((await db.query(`select ${colonnes(table)} from public.${table} where organization_id=$1`, [org])).rows).toHaveLength(1);
     await devenir(agentB);
-    expect((await db.query(`select * from public.${table} where organization_id=$1`, [org])).rows).toHaveLength(0);
+    expect((await db.query(`select ${colonnes(table)} from public.${table} where organization_id=$1`, [org])).rows).toHaveLength(0);
   });
 
   const mutations = () => [

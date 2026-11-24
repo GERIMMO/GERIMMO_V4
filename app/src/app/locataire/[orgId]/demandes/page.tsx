@@ -14,6 +14,7 @@ import { auteurCoteEspace } from "@/lib/interlocuteur-locataire";
 import { lireEnvoisProposes } from "@/lib/envois-suspendus";
 import { instantRdv, type RendezVousLocataire } from "@/lib/rendez-vous-locataire";
 import { etiquetteNouveauxMessages, lireEchangesNonLus } from "@/lib/echanges-intervention";
+import { lireRetraitsDeMesNotes } from "@/lib/evaluation-retiree";
 import { phraseRendezVousManque, rendezVousManquesAffiches, type RendezVousManqueLocataire } from "@/lib/rendez-vous-manque";
 
 export const metadata = { title: "Mes demandes" };
@@ -47,6 +48,7 @@ export default async function PageDemandesLocataire(
     { data: rendezVousBruts, error: eRendezVous },
     echangesNonLus,
     { data: rdvManquesBruts },
+    retraitsDeMesNotes,
   ] = await Promise.all([
     supabase.rpc("mes_incidents_locataire", { p_org: orgId }),
     supabase.rpc("mon_suivi_intervention", { p_org: orgId }),
@@ -67,6 +69,9 @@ export default async function PageDemandesLocataire(
     // Audit palier 1 (P2-04) : un rendez-vous confirmé manqué, et qui est dit absent. Lecture d'appoint : en échec,
     // rien n'est affiché (l'absence reste consignée au dossier, chez le propriétaire).
     supabase.rpc("mes_rdv_manques_locataire", { p_org: orgId }),
+    // Décision du 24/11/2026 (Q20, reprise M5) : le locataire lit le motif du retrait de SA note. La base ne rend que
+    // les notes retirées dont il est l'auteur.
+    lireRetraitsDeMesNotes(supabase, orgId),
   ]);
   const peutSignaler = adhesionActive && signalementOuvert(baux as { etat: string }[] | null);
   // Audit palier 1 (P1-08) : le rappel de la veille est un envoi que le superviseur ouvre. Fermé (le défaut) ou
@@ -74,7 +79,11 @@ export default async function PageDemandesLocataire(
   const rappelPromis = (await lireEnvoisProposes(supabase)).rappel_rendez_vous;
 
   const incidents = (incidentsBruts ?? []) as IncidentLocataire[];
-  const suivis = (suivisBruts ?? []) as SuiviIntervention[];
+  // Chaque suivi porte, s'il y a lieu, le retrait de la note que CE locataire a donnée (jamais celle d'un autre).
+  const suivis = ((suivisBruts ?? []) as SuiviIntervention[]).map((s) => ({
+    ...s,
+    retrait_de_ma_note: retraitsDeMesNotes.find((r) => r.source === "locataire" && r.intervention_id === s.intervention_id) ?? null,
+  }));
   const creneaux = (creneauxBruts ?? []) as CreneauPropose[];
   const { rendezvous: selection } = await props.searchParams;
   const rendezVous = (rendezVousBruts ?? []) as RendezVousLocataire[];

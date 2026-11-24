@@ -1,5 +1,5 @@
 import { LienSectionIncident } from "@/components/lien-section-incident";
-import { phraseNoteRetiree } from "@/lib/evaluation-retiree";
+import { lireRetraitsDeMesNotes, phraseNoteRetiree } from "@/lib/evaluation-retiree";
 import { PrioriteIncident, RubriqueIncident } from "@/components/navigation-incident";
 import { consigneMission } from "@/lib/consigne-incident";
 import { EchangesIntervention } from "@/components/echanges-intervention";
@@ -221,8 +221,6 @@ type Evaluation = {
   source: string;
   note_globale: number;
   retiree_le: string | null;
-  // Décision du 24/11/2026 (Q20) : le client qui a noté lit le motif du retrait de sa note.
-  retrait_motif: string | null;
 };
 
 type Avenant = {
@@ -430,7 +428,7 @@ export async function VoletArtisan({
           // l'unicité (intervention_id, source) tient en base indépendamment
           // du retrait. Les masquer ferait rouvrir un formulaire que la base
           // refuserait — « déjà évaluée par l'agence ».
-          .select("id, intervention_id, source, note_globale, retiree_le, retrait_motif")
+          .select("id, intervention_id, source, note_globale, retiree_le")
           .eq("organization_id", orgId)
           .in("intervention_id", idsInterventions)
       : Promise.resolve({ data: [], error: null }),
@@ -557,6 +555,11 @@ export async function VoletArtisan({
     ? (evaluations.find(
         (e) => e.intervention_id === mission.id && e.source === "gerant"
       ) ?? null)
+    : null;
+  // Décision du 24/11/2026 (Q20, reprise M5) : l'organisation lit le motif du retrait de SA note, et seulement de la
+  // sienne. La colonne n'est plus lisible directement : la base ne rend le motif qu'à l'auteur de la note.
+  const motifRetraitDeMaNote = mission && noteDuGerant?.retiree_le
+    ? ((await lireRetraitsDeMesNotes(supabase, orgId)).find((r) => r.intervention_id === mission.id && r.source === "gerant")?.retrait_motif ?? null)
     : null;
   // L'écart devis → réalisé, dit en clair. Le module 9 le veut « alerté sans
   // blocage » : l'artisan justifie, l'agent tranche. Faute de facture dans le
@@ -919,7 +922,7 @@ export async function VoletArtisan({
                     // rouvre pas le formulaire (une note par acteur, retirée ou
                     // non). Décision du 24/11/2026 (Q20) : le client lit aussi le
                     // motif du retrait de SA note ; l'artisan ne le lit nulle part.
-                    phraseNoteRetiree(noteDuGerant)
+                    phraseNoteRetiree({ note_globale: noteDuGerant.note_globale, retrait_motif: motifRetraitDeMaNote })
                   : `Vous avez noté cette intervention ${noteDuGerant.note_globale}/5`}
                 {!noteDuGerant.retiree_le &&
                   (evaluations.some(

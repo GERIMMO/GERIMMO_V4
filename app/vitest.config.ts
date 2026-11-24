@@ -79,6 +79,8 @@ export const FICHIERS_EN_SERIE = [
   "tests/regularisation-premiere-mensualite-base.test.ts",
   "tests/contrat-individuel-message-plafond-base.test.ts",
   "tests/revision-loyer-delai-premier-terme-base.test.ts",
+  "tests/publications-origine-base.test.ts",
+  "tests/motif-retrait-auteur-base.test.ts",
   "tests/artisan-activation-securite.test.ts",
   "tests/retours-atomicite.test.ts",
   // Rejeu transactionnel des droits Stripe et de la lecture de session (DDL).

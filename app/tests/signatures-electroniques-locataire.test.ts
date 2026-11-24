@@ -95,7 +95,9 @@ describe("ce que la carte affirme est ce que le code fait", () => {
   it("la page lit l'état par la fonction réservée au locataire, et signale une lecture en panne", () => {
     const page = readFileSync("src/app/locataire/[orgId]/documents/page.tsx", "utf8");
     expect(page).toContain('supabase.rpc("mes_signatures_electroniques", { p_org: orgId })');
-    expect(page).toContain("aEchoue(ePieces, eEcheancier, eDemandes, eSignatures, eCircuits)");
+    // Lot D5 du 24/11 (Q21) : la lecture des anciennes demandes manuelles (eSignatures) est retirée avec leur écran.
+    expect(page).toContain("aEchoue(ePieces, eEcheancier, eDemandes, eCircuits)");
+    expect(page).not.toContain("mes_demandes_signature");
     expect(page).toContain("<SignaturesElectroniques signatures={signaturesElectroniques} />");
     expect(page).not.toMatch(/from\(["']bail_signature_circuits["']\)/);
   });

@@ -6,7 +6,6 @@ vi.mock("next/navigation", () => ({ usePathname: () => "/locataire/org/documents
 vi.mock("@/lib/quittance-conforme", () => ({ disponibilitesQuittances: async () => ({}) }));
 vi.mock("@/app/locataire/[orgId]/formulaire-attestation", () => ({ FormulaireAttestation: () => null }));
 vi.mock("@/app/locataire/[orgId]/documents/depot-piece", () => ({ DepotPiece: () => null }));
-vi.mock("@/app/locataire/[orgId]/documents/depot-signature", () => ({ DepotSignature: () => null }));
 vi.mock("@/lib/espace", () => ({
   verifierAccesEspaceLocataire: async () => ({
     personne: { id: "alice", prenom: "Alice" }, adhesionActive: true,

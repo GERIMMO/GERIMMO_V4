@@ -23,7 +23,8 @@ export function interlocuteurMajuscule(interlocuteur: InterlocuteurLocataire): s
  * par migration ; l'action qui les affiche les rend ici dans les mots de l'espace. Seules les tournures « votre
  * gestionnaire » et (reprise) « dans cette agence » changent, et seulement hors agence : le reste du message est celui
  * de la base. « Aucune fiche rattachée à votre compte dans cette agence » vient de deposer_ma_piece,
- * mon_conge_locataire, deposer_mon_attestation, retourner_document_signe et declarer_mon_incident.
+ * mon_conge_locataire, deposer_mon_attestation et declarer_mon_incident (et, en base seulement depuis le retrait de
+ * l'ancien parcours de signature manuelle le 24/11, retourner_document_signe).
  */
 export function messageDeLaBasePourLocataire(message: string, interlocuteur: InterlocuteurLocataire): string {
   return interlocuteur === "gestionnaire"

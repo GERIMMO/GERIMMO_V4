@@ -576,27 +576,6 @@ export function messagePieceDemandee(p: {
   };
 }
 
-export function messageSignatureDemandee(p: {
-  emetteur: string;
-  prenom?: string | null;
-  titreDocument: string;
-  lien: string | null;
-}): Message {
-  return {
-    sujet: `Document à signer : ${p.titreDocument}`,
-    html: gabaritNotification({
-      titre: "Un document attend votre signature",
-      prenom: p.prenom,
-      emetteur: p.emetteur,
-      lignes: [
-        `${p.emetteur} vous soumet « ${p.titreDocument} » pour signature.`,
-        "Téléchargez-le depuis votre espace, signez-le, puis déposez le document signé au même endroit.",
-      ],
-      action: { libelle: "Voir le document", lien: p.lien },
-    }),
-  };
-}
-
 // — Vers l'agence ——————————————————————————————————————————————————————————
 
 export function messageIncidentUrgent(p: {
@@ -1322,25 +1301,6 @@ export async function notifierPieceDemandee(
     });
   } catch (e) {
     console.error("[notifications] piece_demandee :", e instanceof Error ? e.message : e);
-    return NON;
-  }
-}
-
-/** Signature demandée (`envoyer_pour_signature`, parcours manuel) → le signataire. */
-export async function notifierSignatureDemandee(db: SupabaseClient, orgId: string, personId: string, documentId: string, demandeId: string): Promise<ResultatNotification> {
-  try {
-    const [personne, nom, { data: doc }] = await Promise.all([
-      lirePersonne(db, orgId, personId),
-      emetteurPourLocataire(db, orgId),
-      db.from("documents").select("titre").eq("id", documentId).eq("organization_id", orgId).maybeSingle(),
-    ]);
-    if (!personne) return { envoyee: false, motif: "introuvable" };
-    return expedier(db, {
-      orgId, to: personne.email, role: "locataire", evenement: "signature_demandee", objet: demandeId,
-      message: messageSignatureDemandee({ emetteur: nom, prenom: personne.prenom, titreDocument: doc?.titre ?? "Document", lien: lien(`/locataire/${orgId}/documents`) }),
-    });
-  } catch (e) {
-    console.error("[notifications] signature_demandee :", e instanceof Error ? e.message : e);
     return NON;
   }
 }

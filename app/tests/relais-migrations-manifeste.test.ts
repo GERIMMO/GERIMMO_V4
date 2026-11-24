@@ -312,6 +312,8 @@ const MISSION_OCTOBRE = [
   "20261125106000_type_vendeur_et_vente_sans_mediateur.sql",
   // 24/11, décisions du dirigeant, lot D4 (Q37, Q24) : cinquième envoi automatique (relance d'une demande de report) avec son interrupteur fermé ; relance de loyer à la main admise sous l'interrupteur de la relance.
   "20261125110000_relance_report_rdv_et_relance_a_la_main.sql",
+  // 24/11, décisions du dirigeant, lot D5 (Q21) : ancien parcours « télécharger, signer, redéposer » retiré ; les trois fonctions qui y écrivaient ne sont plus appelables par un compte connecté (rien n'est supprimé).
+  "20261125140000_ancien_parcours_signature_manuelle_droits_retires.sql",
 
 
 ];

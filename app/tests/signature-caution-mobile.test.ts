@@ -444,7 +444,10 @@ describe("relectures adverses du 24/10", () => {
 
   it("la page d'un lien déjà utilisé ne promet pas une invitation déjà partie", () => {
     expect(MESSAGES_LIEN_CAUTION_CLOS.utilise).not.toContain("vous parvient");
-    expect(MESSAGES_LIEN_CAUTION_CLOS.utilise).toContain("dès que l’acte sera envoyé");
+    // Défaut d'écran E173 : ce test attendait « dès que l’acte sera envoyé », lu comme l'acte de cautionnement par le
+    // garant qui ne signe que le bail ; le lien clos ne dit pas lequel des deux documents il fait signer.
+    expect(MESSAGES_LIEN_CAUTION_CLOS.utilise).toContain("dès que le document à signer sera envoyé");
+    expect(MESSAGES_LIEN_CAUTION_CLOS.utilise).not.toContain("l’acte");
   });
 
   it("le cautionnement suspendu par réglage s'annonce dès l'ouverture de la page, sans rien lire du dossier", async () => {

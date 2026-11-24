@@ -113,11 +113,15 @@ export function calculerRevisionIrl(e: EntreeIrl): ResultatIrl {
   };
 }
 
-/** L'exemple pré-rempli de la page (à vérifier sur le site de l'Insee avant tout usage réel). */
+/**
+ * L'exemple pré-rempli de la saisie manuelle : un loyer et deux trimestres, SANS valeur d'indice (défauts d'écran
+ * E054 = E167). Les deux indices écrits ici auparavant s'affichaient, quand la série de l'Insee n'était pas lue, comme
+ * s'ils venaient de l'Insee ; ils sont désormais lus dans la série officielle ou saisis par l'utilisateur.
+ */
 export const EXEMPLE_IRL: EntreeIrl = {
   loyer: 850,
-  indiceReference: 146.68,
+  indiceReference: null,
   trimestreReference: { trimestre: 2, annee: 2025 },
-  indiceNouveau: 148.37,
+  indiceNouveau: null,
   trimestreNouveau: { trimestre: 2, annee: 2026 },
 };

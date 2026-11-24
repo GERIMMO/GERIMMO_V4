@@ -75,10 +75,19 @@ test("calcul IRL : 850 € × 148,37 ÷ 146,68 = 859,79 €, alerte au-delà d'u
   // Attendre que l'un des deux états soit rendu avant de trancher : `isVisible`
   // ne patiente pas, et tranchait parfois avant l'hydratation (CI du 30/09).
   await expect(manuel.or(indisponible).first()).toBeVisible();
-  if (await manuel.isVisible()) await manuel.click();
-  await page.getByLabel("Loyer actuel hors charges").fill("850");
   const reference = page.getByRole("group", { name: "Indice de référence" });
   const nouveau = page.getByRole("group", { name: "Nouvel indice" });
+  if (await manuel.isVisible()) await manuel.click();
+  else {
+    // Défauts d'écran E054 = E167 : série non lue, aucun indice n'est prérempli (l'exemple écrit dans le code
+    // s'affichait comme un indice de l'Insee) ; rien n'est calculé et la lettre ne s'imprime pas.
+    await expect(reference.getByLabel("Valeur de l'indice")).toHaveValue("");
+    await expect(nouveau.getByLabel("Valeur de l'indice")).toHaveValue("");
+    await expect(page.getByTestId("irl-etat")).toHaveText("À compléter");
+    await expect(page.getByTestId("irl-nouveau-loyer")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Imprimer la lettre" })).toBeDisabled();
+  }
+  await page.getByLabel("Loyer actuel hors charges").fill("850");
   await reference.getByRole("radio", { name: "T2" }).check();
   await reference.getByLabel("Année").selectOption("2025");
   await reference.getByLabel("Valeur de l'indice").fill("146,68");

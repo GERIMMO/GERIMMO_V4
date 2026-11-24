@@ -217,7 +217,9 @@ export const MESSAGES_LIEN_CAUTION_CLOS: Record<Exclude<EtatLienCaution["etat"],
   invalide: "Ce lien n’est pas valable. Vérifiez que vous avez ouvert le lien complet reçu par e-mail.",
   annule: "Ce lien n’est plus valable : une demande plus récente a pu le remplacer. Demandez au bailleur de vous en envoyer un nouveau.",
   // Relecture du 24/10 : l'envoi a pu échouer après la confirmation ; rien ne garantit que l'invitation est partie.
-  utilise: "Ce lien a déjà servi : votre numéro est confirmé. L’invitation à signer vous parviendra par e-mail de la part de Zoho Sign dès que l’acte sera envoyé.",
+  // Défaut d'écran E173 : « l'acte » se lisait comme l'acte de cautionnement, y compris pour le garant qui ne signe que
+  // le bail ; le lien clos ne dit pas lequel des deux il fait signer.
+  utilise: "Ce lien a déjà servi : votre numéro est confirmé. L’invitation à signer vous parviendra par e-mail de la part de Zoho Sign dès que le document à signer sera envoyé.",
   expire: "Ce lien a expiré. Demandez au bailleur de vous en envoyer un nouveau.",
   // Relecture du 24/10 : le réglage serveur qui suspend le cautionnement électronique se dit dès l'ouverture.
   suspendu: "La signature électronique de cet acte est suspendue pour le moment. Le bailleur vous proposera de le signer autrement.",

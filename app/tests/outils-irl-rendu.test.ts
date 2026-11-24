@@ -49,4 +49,19 @@ describe("repli (série indisponible)", () => {
     expect(html).toContain('id="irl-indice-nouv"');
     expect(html).not.toContain("Saisir les indices moi-même");
   });
+
+  // Défauts d'écran E054 = E167 (passe 1) : les deux indices démarraient avec l'exemple écrit dans le code (146,68 et
+  // 148,37). Sans série lue, l'écran affichait « Indices cohérents », un nouveau loyer de 859,79 € et une lettre
+  // imprimable fondés sur des indices que personne n'avait relevés chez l'Insee.
+  it("aucun indice n'est prérempli : pas de montant ni d'« Indices cohérents » tant qu'ils ne sont pas saisis", () => {
+    const t = texte(html);
+    for (const champ of ["irl-indice-ref", "irl-indice-nouv"]) expect(html).toMatch(new RegExp(`id="${champ}"[^>]*value=""`));
+    expect(t).not.toMatch(/146,68|148,37|859,79/);
+    expect(t).not.toContain("Indices cohérents");
+    expect(t).toContain("À compléter");
+    expect(t).toContain("Renseignez l'indice de référence, le nouvel indice.");
+    // La lettre garde ses blancs, et son bouton d'impression reste inactif.
+    expect(t).toMatch(/Indice de référence \(T2 2025\) \[indice\]/);
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>.*?Imprimer la lettre/);
+  });
 });

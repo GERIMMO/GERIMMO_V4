@@ -99,11 +99,14 @@ export function CalculateurIrl({ serie }: { serie: ObservationIrl[] | null }) {
   const [trimBail, setTrimBail] = useState<CodeTrimestre>(() => referencePublieeA(dateExemple(serie))?.trimestre ?? "T2");
   const [saisieManuelle, setSaisieManuelle] = useState(false);
 
-  // Saisie manuelle
-  const [indiceRef, setIndiceRef] = useState(enTexte(EXEMPLE_IRL.indiceReference));
+  // Saisie manuelle. Les deux indices démarrent VIDES (défauts d'écran E054 = E167) : préremplis avec un exemple
+  // écrit dans le code, ils donnaient, quand la série de l'Insee n'était pas lue, un « Indices cohérents », un nouveau
+  // loyer et une lettre fondés sur des indices que l'utilisateur n'avait pas relevés. Ils ne se remplissent que par
+  // sa saisie, ou par « Saisir les indices moi-même », qui reprend ceux lus chez l'Insee.
+  const [indiceRef, setIndiceRef] = useState("");
   const [trimRef, setTrimRef] = useState<CodeTrimestre>(codeDe(EXEMPLE_IRL.trimestreReference.trimestre));
   const [anneeRef, setAnneeRef] = useState(String(EXEMPLE_IRL.trimestreReference.annee));
-  const [indiceNouv, setIndiceNouv] = useState(enTexte(EXEMPLE_IRL.indiceNouveau));
+  const [indiceNouv, setIndiceNouv] = useState("");
   const [trimNouv, setTrimNouv] = useState<CodeTrimestre>(codeDe(EXEMPLE_IRL.trimestreNouveau.trimestre));
   const [anneeNouv, setAnneeNouv] = useState(String(EXEMPLE_IRL.trimestreNouveau.annee));
 
@@ -164,9 +167,9 @@ export function CalculateurIrl({ serie }: { serie: ObservationIrl[] | null }) {
   }
 
   /**
-   * Corse ou outre-mer : l'indice est spécifique. Les indices pré-remplis
-   * (exemple ou série métropolitaine) sont effacés en entrant dans la zone,
-   * pour qu'aucun indice de la métropole n'y soit appliqué.
+   * Corse ou outre-mer : l'indice est spécifique. Les indices déjà repris de
+   * la série métropolitaine sont effacés en entrant dans la zone, pour
+   * qu'aucun indice de la métropole n'y soit appliqué.
    */
   function viderSiZoneSpecifique(cp: string | null) {
     const z = zoneIrlDuCodePostal(cp);

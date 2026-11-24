@@ -18,10 +18,14 @@ import {
 import { arrondiCentime, formaterEuros, lireNombre } from "../src/lib/outils/nombres";
 
 const codes = (e: EntreeIrl) => alertesIrl(e).map((a) => a.code);
+// Défauts d'écran E054 = E167 : l'exemple de la page ne porte plus aucune valeur d'indice. Les calculs ci-dessous
+// prennent les deux indices du jeu d'essai de la série Insee (tests/fixtures/insee-irl-generic.xml, T2 2025 et T2 2026),
+// qui ne sont écrits que dans les tests.
+const ENTREE: EntreeIrl = { ...EXEMPLE_IRL, indiceReference: 146.68, indiceNouveau: 148.37 };
 
 describe("calcul de la révision", () => {
-  it("l'exemple de la page : 850 € × 148,37 ÷ 146,68 = 859,79 €", () => {
-    const r = calculerRevisionIrl(EXEMPLE_IRL);
+  it("850 € × 148,37 ÷ 146,68 = 859,79 €", () => {
+    const r = calculerRevisionIrl(ENTREE);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.nouveauLoyer).toBe(859.79);
@@ -31,20 +35,27 @@ describe("calcul de la révision", () => {
   });
 
   it("un champ manquant ne donne aucun montant", () => {
-    const r = calculerRevisionIrl({ ...EXEMPLE_IRL, indiceNouveau: null });
+    const r = calculerRevisionIrl({ ...ENTREE, indiceNouveau: null });
     expect(r.ok).toBe(false);
     if (r.ok) return;
     expect(r.manque).toContain("le nouvel indice");
+  });
+
+  it("l'exemple de la page, sans indice saisi, ne donne aucun montant", () => {
+    const r = calculerRevisionIrl(EXEMPLE_IRL);
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.manque).toEqual(["l'indice de référence", "le nouvel indice"]);
   });
 });
 
 describe("alertes", () => {
   it("trimestres différents", () => {
-    expect(codes({ ...EXEMPLE_IRL, trimestreNouveau: { trimestre: 3, annee: 2026 } })).toContain("trimestres-differents");
+    expect(codes({ ...ENTREE, trimestreNouveau: { trimestre: 3, annee: 2026 } })).toContain("trimestres-differents");
   });
 
   it("plus d'un an entre les indices : révision non rattrapable, sans rétroactivité", () => {
-    const e = { ...EXEMPLE_IRL, trimestreNouveau: { trimestre: 2 as const, annee: 2027 } };
+    const e = { ...ENTREE, trimestreNouveau: { trimestre: 2 as const, annee: 2027 } };
     expect(codes(e)).toEqual(["plus-d-un-an"]);
     const message = alertesIrl(e)[0].message;
     expect(message).toMatch(/un an/);
@@ -53,11 +64,11 @@ describe("alertes", () => {
   });
 
   it("indice en baisse", () => {
-    expect(codes({ ...EXEMPLE_IRL, indiceNouveau: 145 })).toEqual(["indice-en-baisse"]);
+    expect(codes({ ...ENTREE, indiceNouveau: 145 })).toEqual(["indice-en-baisse"]);
   });
 
   it("nouvel indice antérieur ou identique : erreur", () => {
-    expect(codes({ ...EXEMPLE_IRL, trimestreNouveau: { trimestre: 2, annee: 2025 } })).toContain("ordre-des-indices");
+    expect(codes({ ...ENTREE, trimestreNouveau: { trimestre: 2, annee: 2025 } })).toContain("ordre-des-indices");
   });
 
   it("trimestres : écart et libellé", () => {
@@ -83,10 +94,15 @@ describe("nombres saisis à la française", () => {
 });
 
 describe("aucune valeur d'indice n'est embarquée", () => {
-  it("la bibliothèque ne contient que l'exemple, et renvoie vers l'Insee", () => {
-    const src = readFileSync(path.resolve(__dirname, "../src/lib/outils/irl.ts"), "utf8");
-    const indices = src.match(/\b1[2-6]\d\.\d{2}\b/g) ?? [];
-    expect(new Set(indices)).toEqual(new Set(["146.68", "148.37"]));
+  // E054 = E167 : ce test admettait les deux indices de l'exemple (146.68 et 148.37), que l'écran préremplissait et
+  // présentait comme lus chez l'Insee. Plus aucune valeur d'indice n'est écrite, ni dans la bibliothèque ni à l'écran.
+  it("ni la bibliothèque ni le calculateur ne contiennent d'indice, et ils renvoient vers l'Insee", () => {
+    for (const fichier of ["../src/lib/outils/irl.ts", "../src/app/outils/calcul-irl/calculateur-irl.tsx", "../src/app/outils/calcul-irl/page.tsx"]) {
+      const src = readFileSync(path.resolve(__dirname, fichier), "utf8");
+      expect(src.match(/\b1[2-6]\d[.,]\d{2}\b/g) ?? [], fichier).toEqual([]);
+    }
+    expect(EXEMPLE_IRL.indiceReference).toBeNull();
+    expect(EXEMPLE_IRL.indiceNouveau).toBeNull();
     expect(URL_SERIE_INSEE_IRL).toBe("https://www.insee.fr/fr/statistiques/serie/001515333");
   });
 });

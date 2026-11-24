@@ -565,6 +565,16 @@ export const CONDITIONS_VERSION = "2026-11-24";
 /** Date d'entrée en vigueur affichée en tête des conditions. */
 export const CONDITIONS_DATE = "24 novembre 2026";
 
+// ── Date de la page Confidentialité ────────────────────────────────────────
+//
+// Défaut d'écran E056 : /confidentialite affichait `CONDITIONS_DATE`. Modifiée le 22/11/2026 (envois à OpenAI) sans
+// nouvelle version des conditions, elle se disait encore « mise à jour » le 15 novembre ; une version des conditions
+// qui ne la touche pas l'aurait, à l'inverse, datée à tort. Ce n'est pas un texte contractuel ni archivé : elle porte
+// sa propre date, à changer à CHAQUE modification de ce qu'elle dit (son texte, ou les rôles et localisations des
+// PRESTATAIRES qu'elle affiche). La garde de tests/confidentialite-v1.test.ts (empreinte du texte rendu) le rappelle.
+// 24/11/2026 : factures conservées dix ans, médiateur, droits des comptes sans espace (lots D7 et T4).
+export const CONFIDENTIALITE_DATE = "24 novembre 2026";
+
 // ── Version des conditions de l'espace artisan ─────────────────────────────
 //
 // Plan de conformité du 23/10/2026 (constat R10) : les artisans n'acceptent plus les conditions écrites pour les

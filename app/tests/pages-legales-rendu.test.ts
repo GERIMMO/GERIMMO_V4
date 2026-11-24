@@ -14,7 +14,8 @@ import Conditions from "../src/app/conditions/page";
 
 beforeEach(() => {
   lecture.valeurs = {
-    denomination: "Personne fictive", forme: "Entrepreneur individuel (EI)",
+    // Seconde reprise du 24/11/2026 (T4R-03) : le type de vendeur est choisi, il n'est plus deviné dans la forme.
+    typeVendeur: "entrepreneur_individuel", denomination: "Personne fictive", forme: "Entrepreneur individuel (EI)",
     siege: "1 rue Exemple, Paris", rcs: "RNE — 000 000 000", siret: "00000000000000",
     directeurPublication: "Personne fictive", email: "contact@example.test",
     telephone: "01 00 00 00 00", localisationBan: "France",
@@ -45,6 +46,7 @@ describe("les pages rendent les informations enregistrées", () => {
   });
   it("conserve la réserve de capital pour une société qui n’en a pas renseigné", async () => {
     lecture.valeurs.forme = "SAS";
+    lecture.valeurs.typeVendeur = "personne_morale";
     expect(renderToStaticMarkup(await Mentions())).toContain("capital social (à venir)");
   });
   it("une confidentialité renseignée n’est pas marquée incomplète à cause du médiateur", async () => {
@@ -82,7 +84,9 @@ const MEDIATEUR = { mediateurNom: "Médiateur fictif", mediateurAdresse: "2 rue 
 
 const ARTICLE_17_MEDIATION =
   "Le Client consommateur a le droit de recourir gratuitement à un médiateur de la consommation en vue de la résolution amiable d'un litige qui l'oppose à l'Éditeur, après une réclamation écrite restée sans solution. " +
-  "Dès qu'un médiateur est désigné, son nom et ses coordonnées figurent aux mentions légales et sont rappelés dans la réponse de l'Éditeur à la réclamation. " +
+  // Seconde reprise du 24/11/2026 (relecture T4R-07) : « rappelés dans la réponse de l'Éditeur à la réclamation » promettait
+  // plus que le code ne tient ; la promesse est bornée à la réponse qui clôt une réclamation faite dans l'application.
+  "Dès qu'un médiateur est désigné, son nom et ses coordonnées figurent aux mentions légales ; la réponse par laquelle l'Éditeur clôt une réclamation faite depuis la page « Aide et retours » les rappelle. " +
   "Tant qu'aucun médiateur n'est désigné, les mentions légales et cette réponse l'indiquent expressément ; le Client garde alors la réclamation écrite prévue ci-dessus et les voies de droit commun.";
 
 describe("article 17 des conditions : un seul texte, les mentions légales portent le médiateur", () => {

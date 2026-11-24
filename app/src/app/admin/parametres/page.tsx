@@ -14,6 +14,7 @@ import { envoisOuverts, FLUX_ENVOIS_AUTOMATIQUES, type AccordsEspaces, type Etat
 import { ReperesFiscauxReglage } from "./reperes-fiscaux";
 import { chargerReperesFiscaux, libelleVerification } from "@/lib/reperes-fiscaux";
 import { aujourdhuiParis } from "@/lib/ged";
+import { formaterDateHeureParis } from "@/lib/heure-paris";
 
 export const metadata = { title: "Paramètres généraux" };
 
@@ -49,6 +50,9 @@ export default async function PageParametres() {
   const reperesFiscaux = await chargerReperesFiscaux(db);
   const jourDeParis = aujourdhuiParis();
   const requis = faitsManquants({});
+  // Seconde reprise du 24/11/2026 (relecture T4R-05) : le statut de la rubrique lit la même liste que la garde de
+  // paiement (`defautsVendeur` : faits requis, type de vendeur, mention « EI »), et non les seuls faits requis.
+  const defauts = defautsVendeur(editeur);
   const manquants = new Set(faitsManquants(editeur));
   // Le médiateur se complète à part : il ne ferme que la première souscription d'un particulier (lib/editeur.ts, A_COMPLETER).
   const nonBloquants = faitsACompleter({});
@@ -82,9 +86,9 @@ export default async function PageParametres() {
         <Link className="lien-discret mt-4 inline-flex" href="/admin/journaux?registre=supervision_identite">Historique des modifications →</Link>
       </section>
 
-      <ConsoleSection id="souscriptions" titre="Ouverture des abonnements" description="Ouverture des ventes, et règle de blocage tant que l’identité du vendeur est incomplète ou que le médiateur de la consommation manque." icone="securite" ton="ambre" statut={indisponible || regle.revision === null ? "Lecture indisponible" : manquants.size ? `${manquants.size} à fournir` : 'Identité requise complète'}>
+      <ConsoleSection id="souscriptions" titre="Ouverture des abonnements" description="Ouverture des ventes, et règle de blocage tant que l’identité du vendeur est incomplète ou que le médiateur de la consommation manque." icone="securite" ton="ambre" statut={indisponible || regle.revision === null ? "Lecture indisponible" : defauts.length ? `${defauts.length} à fournir` : 'Identité du vendeur complète'}>
         <OuvertureVentes ouvertes={regle.ventesOuvertes} revision={regle.revision} />
-        <BlocageSouscription actif={regle.blocageIdentiteActif} revision={regle.revision} manquants={defautsVendeur(editeur)} aCompleter={[...aCompleter]} />
+        <BlocageSouscription actif={regle.blocageIdentiteActif} revision={regle.revision} manquants={defauts} aCompleter={[...aCompleter]} venteSansMediateurDepuis={regle.venteSansMediateurLe ? formaterDateHeureParis(regle.venteSansMediateurLe) : null} />
       </ConsoleSection>
 
       <section id="ia" className="scroll-mt-24">

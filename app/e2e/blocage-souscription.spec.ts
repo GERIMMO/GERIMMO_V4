@@ -26,7 +26,7 @@ test("le superadmin lève puis réactive le blocage, avec persistance et histori
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.screenshot({ path: "e2e/.results/blocage-leve-mobile.png", animations: "disabled" });
     await regle.getByRole("link", { name: "Historique des changements" }).click();
-    await expect(page.getByText("Blocage des abonnements (identité du vendeur incomplète, médiateur absent) : levé.", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText("Blocage des abonnements (identité du vendeur incomplète : augmentations payantes) : levé.", { exact: true }).first()).toBeVisible();
   } finally {
     await page.goto("/admin/parametres#souscriptions");
     await expect(regle).toBeVisible();

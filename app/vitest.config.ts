@@ -110,6 +110,10 @@ export const FICHIERS_EN_SERIE = [
   "tests/factures-conservation-dix-ans-base.test.ts",
   // Même lot : rejeu de 20261125104000 et de son retour (fonction de preuve des courriers d'incident de contrat).
   "tests/courrier-impaye-version-conditions-base.test.ts",
+  // Seconde reprise du lot T4 (24/11) : rejeu de 20261125105000 (purge des archives de comptes) et de 20261125106000
+  // (contraintes, colonne et déclencheur de supervision_identite) et de leurs retours, dans la transaction du fichier.
+  "tests/archive-compte-apres-client-stripe-base.test.ts",
+  "tests/type-vendeur-vente-sans-mediateur-base.test.ts",
   // Textes officiels, lot T3 : rejoue la migration 20261125111000 et son retour (trois fonctions) dans sa transaction.
   "tests/textes-t3-base.test.ts",
   // Reprise du lot T3 (T3R-1, 25/11) : rejoue 20261125151000 et son retour, puis le retour du lot T3, dans sa transaction

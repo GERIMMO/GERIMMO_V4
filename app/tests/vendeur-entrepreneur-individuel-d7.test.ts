@@ -45,6 +45,8 @@ import Conditions from "../src/app/conditions/page";
 /** Le vendeur fictif : un entrepreneur individuel sous un nom commercial, sans capital ni numéro de TVA. */
 const VENDEUR: Record<string, string | null> = {
   denomination: "MARTIN Camille EI",
+  // Seconde reprise du 24/11/2026 (T4R-03) : le type de vendeur est choisi ; la forme n'est plus qu'un texte affiché.
+  typeVendeur: "entrepreneur_individuel",
   forme: "Entrepreneur individuel (nom commercial EXEMPLEXPERT)",
   capital: null,
   siege: "1 rue de l'Exemple, 75000 Paris",
@@ -79,13 +81,19 @@ describe("garde : fermée sans vendeur ; sans médiateur, fermée au particulier
   const particulier = { enEssai: true, blocageIdentiteActif: true, nouvelleSouscriptionParticulier: true };
 
   // Reprise du 24/11/2026 : ce test affirmait « rien ne ferme ». Par défaut, sans médiateur, le particulier ne
-  // souscrit pas ; le super admin peut lever ce blocage (troisième ligne).
-  it("vendeur complet, aucun médiateur : la première souscription d'un particulier est fermée par défaut, ouverte si le blocage est levé", () => {
+  // souscrit pas.
+  // Seconde reprise (relecture T4R-02) : la troisième ligne affirmait « ouverte si le blocage est levé ». Une levée
+  // enregistrée avant le lot aurait ainsi ouvert la vente sans médiateur d'office. Seule la décision à part, datée,
+  // l'ouvre ; la levée du blocage n'y change plus rien.
+  it("vendeur complet, aucun médiateur : la première souscription d'un particulier est fermée par défaut, blocage levé ou non ; ouverte sur décision distincte", () => {
     expect(faitsManquants(VENDEUR)).toEqual([]);
     expect(faitsACompleter(VENDEUR)).toEqual(["le médiateur de la consommation", "l'adresse du médiateur", "le site du médiateur"]);
     expect(motifIdentiteEditeur(VENDEUR, particulier)).toBe(`${MOTIF_MEDIATEUR} Votre essai continue.`);
     expect(motifIdentiteEditeur(VENDEUR, { ...particulier, enEssai: false })).toBe(MOTIF_MEDIATEUR);
-    expect(motifIdentiteEditeur(VENDEUR, { ...particulier, blocageIdentiteActif: false })).toBeNull();
+    expect(motifIdentiteEditeur(VENDEUR, { ...particulier, blocageIdentiteActif: false })).toBe(`${MOTIF_MEDIATEUR} Votre essai continue.`);
+    expect(motifIdentiteEditeur(VENDEUR, { ...particulier, venteSansMediateurDecidee: false })).toBe(`${MOTIF_MEDIATEUR} Votre essai continue.`);
+    expect(motifIdentiteEditeur(VENDEUR, { ...particulier, venteSansMediateurDecidee: true })).toBeNull();
+    expect(motifIdentiteEditeur(VENDEUR, { ...particulier, blocageIdentiteActif: false, venteSansMediateurDecidee: true })).toBeNull();
   });
 
   it("vendeur complet, médiateur saisi : rien ne ferme non plus", () => {
@@ -114,9 +122,12 @@ describe("garde : fermée sans vendeur ; sans médiateur, fermée au particulier
 
   it("le motif du vendeur ne parle pas du médiateur ; celui du médiateur ne dit pas qu'il en existe un", () => {
     for (const m of [MOTIF_IDENTITE_EDITEUR, MOTIF_IDENTITE_EDITEUR_ESSAI]) expect(m).not.toMatch(/médiateur/i);
+    // Seconde reprise (relecture T4R-08) : « les coordonnées du médiateur de la consommation de Gerimmo doivent être
+    // publiées » présupposait un médiateur existant, ce que ce test dit vouloir éviter. Phrase corrigée.
     expect(MOTIF_MEDIATEUR).toBe(
-      "Le paiement en ligne n'est pas encore ouvert aux particuliers. Les coordonnées du médiateur de la consommation de Gerimmo doivent être publiées avant la première souscription."
+      "Le paiement en ligne n'est pas encore ouvert aux particuliers. Un médiateur de la consommation doit d'abord être désigné, et ses coordonnées publiées, avant la première souscription."
     );
+    expect(MOTIF_MEDIATEUR).not.toMatch(/médiateur de la consommation de Gerimmo|du médiateur|le médiateur/i);
   });
 });
 
@@ -186,7 +197,9 @@ describe("conditions de vente : le vendeur et le médiateur", () => {
   // coordonnées imprimées dans le contrat. L'article est désormais le MÊME texte dans les deux cas.
   const ARTICLE_17 =
     "Le Client consommateur a le droit de recourir gratuitement à un médiateur de la consommation en vue de la résolution amiable d'un litige qui l'oppose à l'Éditeur, après une réclamation écrite restée sans solution. " +
-    "Dès qu'un médiateur est désigné, son nom et ses coordonnées figurent aux mentions légales et sont rappelés dans la réponse de l'Éditeur à la réclamation. " +
+    // Seconde reprise (relecture T4R-07) : « rappelés dans la réponse de l'Éditeur à la réclamation » promettait plus
+    // que le code ne tient ; la promesse est bornée à la réponse qui clôt une réclamation faite dans l'application.
+    "Dès qu'un médiateur est désigné, son nom et ses coordonnées figurent aux mentions légales ; la réponse par laquelle l'Éditeur clôt une réclamation faite depuis la page « Aide et retours » les rappelle. " +
     "Tant qu'aucun médiateur n'est désigné, les mentions légales et cette réponse l'indiquent expressément ; le Client garde alors la réclamation écrite prévue ci-dessus et les voies de droit commun.";
 
   it("sans médiateur : l'article 17 ne promet aucun recours existant, aucune adhésion, et renvoie aux mentions légales", async () => {
@@ -337,9 +350,12 @@ describe("saisie en console : cohérente avec un entrepreneur individuel", () =>
 
   it("refuse un capital social pour un entrepreneur individuel ; une société garde ses champs", () => {
     expect(validerIdentite(form({ ...VENDEUR, capital: "1 000 €" })).erreur).toContain("pas de capital social");
-    const societe = validerIdentite(form({ ...VENDEUR, denomination: "Exemple", forme: "SAS", capital: "1 000 €" }));
+    // Seconde reprise (T4R-03) : une société se déclare par le type de vendeur choisi, plus par le texte de la forme.
+    const societe = validerIdentite(form({ ...VENDEUR, typeVendeur: "personne_morale", denomination: "Exemple", forme: "SAS", capital: "1 000 €" }));
     expect(societe.erreur).toBeUndefined();
     expect(societe.valeurs?.capital).toBe("1 000 €");
+    // Le texte de la forme ne décide de rien : type « entrepreneur individuel » et forme « SAS », la mention reste exigée.
+    expect(validerIdentite(form({ ...VENDEUR, denomination: "Exemple", forme: "SAS" })).erreur).toContain("« EI »");
   });
 
   it("le médiateur se saisit en entier ou pas du tout (règle inchangée)", () => {

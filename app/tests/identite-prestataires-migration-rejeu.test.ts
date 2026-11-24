@@ -31,7 +31,14 @@ const MIGRATION = readFileSync(`supabase/migrations/${NOM}.sql`, "utf8");
 const REJOUABLE = MIGRATION.replace(/^select public\.fermer_fonctions_a_anon\(\);$/m, "");
 const RETOUR = readFileSync(`supabase/retours-arriere/${NOM}.retour.sql`, "utf8");
 
-const CLES = Object.keys(CHAMPS_EDITEUR);
+// Seconde reprise des lots D7 et T4 (24/11/2026) : le formulaire a une vingt-sixième clé, `typeVendeur`, que la migration
+// 20261125106000 ajoute à la liste fermée (avec une contrainte sur ses deux valeurs). Ce fichier éprouve la migration du
+// 19/10 SEULE : la migration du 24/11 est défaite dans la transaction (son retour se joue avant celui du 19/10, comme
+// l'écrit le LISEZ-MOI), et les clés sont les vingt-cinq de la migration du 19/10.
+// tests/type-vendeur-vente-sans-mediateur-base.test.ts tient la vingt-sixième.
+const RETOUR_TYPE_VENDEUR = readFileSync("supabase/retours-arriere/20261125106000_type_vendeur_et_vente_sans_mediateur.retour.sql", "utf8")
+  .replace(/^select public\.fermer_fonctions_a_anon\(\);$/m, "");
+const CLES = Object.keys(CHAMPS_EDITEUR).filter((k) => k !== "typeVendeur");
 const NOUVELLES = Object.keys(CHAMPS_PRESTATAIRES);
 const ANCIENNES = CLES.filter((k) => !NOUVELLES.includes(k));
 /** Les deux contraintes telles que la migration 20261018061548 les a posées (relevé de production du 19/10, identique). */
@@ -52,6 +59,7 @@ describe.skipIf(!DB_URL)("identité de l'éditeur : clés des prestataires — m
     db = new Client({ connectionString: DB_URL });
     await db.connect();
     await db.query("begin");
+    await db.query(RETOUR_TYPE_VENDEUR);
     // Un superviseur permanent fictif : l'écran écrit sous son identité (politique identite_admin, déclencheur de traçage).
     const { rows: [u] } = await db.query(
       `insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data)

@@ -423,9 +423,18 @@ describe("identité individuelle et réserves propres à chaque document (20/10)
       expect(confidentialiteIncomplete({ ...individuel, [cle]: " " })).toBe(true);
     }
   });
-  it("reconnaît une EI sans appliquer cette exception aux sociétés ou à une forme inconnue", () => {
-    for (const forme of ["EI", "entrepreneur individuel (EI)", "Entreprise individuelle"]) expect(estEntrepreneurIndividuel({ forme })).toBe(true);
-    for (const forme of [null, "", "SAS", "EIRL société"]) expect(estEntrepreneurIndividuel({ forme })).toBe(false);
+  // Seconde reprise du 24/11/2026 (relectures T4R-03 et T4R-04) : ce test faisait reconnaître l'entrepreneur individuel
+  // dans le texte libre de la forme juridique. Des personnes physiques y échappaient (« Auto-entreprise », « Artisan »)
+  // et des sociétés y tombaient (« SAS (ex-entreprise individuelle) »). Le type de vendeur se CHOISIT : la forme, quelle
+  // qu'elle soit, ne décide plus de rien.
+  it("reconnaît une EI au type de vendeur choisi, jamais au texte de la forme juridique", () => {
+    for (const forme of ["EI", "entrepreneur individuel (EI)", "Entreprise individuelle", "SAS", "EIRL société", "", null]) {
+      expect(estEntrepreneurIndividuel({ forme, typeVendeur: "entrepreneur_individuel" }), String(forme)).toBe(true);
+      expect(estEntrepreneurIndividuel({ forme, typeVendeur: "personne_morale" }), String(forme)).toBe(false);
+      // Sans choix (ou avec une valeur inconnue), personne n'est tenu pour un entrepreneur individuel… ni pour un vendeur complet.
+      expect(estEntrepreneurIndividuel({ forme }), String(forme)).toBe(false);
+      expect(estEntrepreneurIndividuel({ forme, typeVendeur: "Entrepreneur individuel" }), String(forme)).toBe(false);
+    }
   });
   it("garde le téléphone dans les réserves et les coordonnées de médiation à compléter", () => {
     const manquants = faitsManquants({});

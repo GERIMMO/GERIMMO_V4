@@ -457,6 +457,9 @@ describe.skipIf(!url)('les huit retours du lot « supervision et signatures » :
     await db.query(sql('20261024140000_conservation_et_prospection'));
     // Rétablir également la colonne commerciale et ses privilèges sur le singleton recréé.
     await db.query(sql('20261114001320_ouverture_souscriptions_payantes'));
+    // Seconde reprise des lots D7 et T4 (24/11) : la table recréée retrouve aussi la clé « type de vendeur » de sa liste
+    // fermée, la colonne de la décision « vente aux particuliers sans médiateur » et ses droits.
+    await db.query(sql('20261125106000_type_vendeur_et_vente_sans_mediateur'));
     expect(await etat()).toEqual(avant);
     expect(await versionsPresentes()).toEqual([...TOUTES_VERSIONS, SENTINELLE].sort());
     expect(await ouvertesAnon()).toBe(0);

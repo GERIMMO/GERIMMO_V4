@@ -17,10 +17,14 @@
 //     24/11/2026 (décision de pilotage) : le recueil fourni par le dirigeant
 //     contient les articles L. 612-1 et L. 616-1 du code de la consommation
 //     (le professionnel garantit au consommateur le recours effectif à une
-//     médiation et lui communique les coordonnées du médiateur). Le superadmin
-//     peut ouvrir quand même aux particuliers en levant le blocage, en
-//     connaissance de cause (l'écran de console cite ces deux articles) ; la
-//     levée est inscrite à l'historique. Un professionnel n'est pas concerné.
+//     médiation et lui communique les coordonnées du médiateur). Un
+//     professionnel n'est pas concerné.
+//     Seconde reprise du 24/11/2026 (relecture T4R-02) : ouvrir quand même aux
+//     particuliers est une décision À PART du superadmin, datée par la base
+//     (`vente_particuliers_sans_mediateur_le`), prise sur la carte qui cite ces
+//     deux articles, case « j'ai lu » cochée. Le bouton « Lever le blocage »
+//     ne l'ouvre plus : une levée enregistrée avant ce lot (elle ne visait
+//     alors que les hausses) n'ouvre donc rien aux particuliers.
 //  2. le compte qui clique a accepté LA VERSION EN VIGUEUR des conditions
 //     générales (`acceptations_cgu`, ajout seul). Exigée pour la souscription
 //     initiale seulement (arbitrage du 19/10) : une hausse de capacité porte
@@ -30,7 +34,7 @@
 // l'utilisent tel quel. Les lectures en base vivent dans
 // lib/garde-souscription-serveur.ts.
 
-import { CONDITIONS_VERSION, defautsVendeur, mediateurDesigne, type FaitEditeur } from "@/lib/editeur";
+import { CONDITIONS_VERSION, defautsVendeur, faitsManquants, mediateurDesigne, type FaitEditeur } from "@/lib/editeur";
 
 /**
  * Le refus tant que les mentions légales de l'éditeur manquent. Même phrase
@@ -71,8 +75,13 @@ export const ERREUR_ACCEPTATION_CONDITIONS =
  */
 export type ContexteGarde = {
   enEssai: boolean;
-  /** `false` seulement si le superadmin a levé le blocage (lu en base) ; absent ou illisible : actif. */
+  /** `false` seulement si le superadmin a levé le blocage (lu en base) ; absent ou illisible : actif. Ne concerne que les hausses. */
   blocageIdentiteActif?: boolean;
+  /**
+   * `true` seulement si le superadmin a décidé de vendre aux particuliers sans médiateur (décision datée, lue en
+   * base) ; absent, retiré ou illisible : la première souscription d'un particulier attend le médiateur.
+   */
+  venteSansMediateurDecidee?: boolean;
   /** Vrai pour toute première souscription, quel que soit le client : le vendeur doit être identifié, blocage levé ou non. */
   premiereSouscription?: boolean;
   /** Vrai pour la première souscription d'un particulier (tarif « propriétaire ») : elle est aussi une première souscription. */
@@ -80,31 +89,85 @@ export type ContexteGarde = {
 };
 
 /**
- * Le refus fait au particulier tant qu'aucun médiateur de la consommation n'est saisi (phrase d'avant le lot D7,
- * rétablie). Elle commence comme les autres motifs (« Le paiement en ligne n'est pas encore ouvert ») et ne dit pas
- * qu'un médiateur existe.
+ * Le refus fait au particulier tant qu'aucun médiateur de la consommation n'est saisi. Elle commence comme les autres
+ * motifs (« Le paiement en ligne n'est pas encore ouvert »). Seconde reprise du 24/11/2026 (relecture T4R-08) :
+ * « les coordonnées du médiateur de la consommation de Gerimmo doivent être publiées » laissait entendre qu'un
+ * médiateur existe déjà ; la phrase dit désormais qu'il reste à désigner.
  */
 export const MOTIF_MEDIATEUR =
-  "Le paiement en ligne n'est pas encore ouvert aux particuliers. Les coordonnées du médiateur de la consommation de Gerimmo doivent être publiées avant la première souscription.";
+  "Le paiement en ligne n'est pas encore ouvert aux particuliers. Un médiateur de la consommation doit d'abord être désigné, et ses coordonnées publiées, avant la première souscription.";
 
 /**
  * Le motif qui ferme le paiement, ou `null`.
  *  - Vendeur incomplet : ferme toute première souscription, blocage levé ou non ; ferme une hausse tant que le blocage
  *    est actif. Le détail des manques n'est pas dit au client : il est affiché au dirigeant (/admin/sante,
  *    /admin/parametres).
- *  - Médiateur non saisi : ferme la première souscription d'un particulier tant que le blocage est actif.
+ *  - Médiateur non saisi : ferme la première souscription d'un particulier, sauf décision distincte et datée du
+ *    superadmin (`venteSansMediateurDecidee`). Le blocage levé n'y change rien (relecture T4R-02).
  * Pendant l'essai, la phrase ajoute « Votre essai continue. » ; gelé ou abonné, elle s'arrête avant.
  */
-export function motifIdentiteEditeur(editeur: Record<string, FaitEditeur>, { enEssai, blocageIdentiteActif, premiereSouscription, nouvelleSouscriptionParticulier }: ContexteGarde): string | null {
+export function motifIdentiteEditeur(editeur: Record<string, FaitEditeur>, { enEssai, blocageIdentiteActif, venteSansMediateurDecidee, premiereSouscription, nouvelleSouscriptionParticulier }: ContexteGarde): string | null {
   const blocageLeve = blocageIdentiteActif === false;
   const premiere = Boolean(premiereSouscription || nouvelleSouscriptionParticulier);
   if ((!blocageLeve || premiere) && defautsVendeur(editeur).length > 0) {
     return enEssai ? MOTIF_IDENTITE_EDITEUR_ESSAI : MOTIF_IDENTITE_EDITEUR;
   }
-  if (nouvelleSouscriptionParticulier && !blocageLeve && !mediateurDesigne(editeur)) {
+  if (nouvelleSouscriptionParticulier && venteSansMediateurDecidee !== true && !mediateurDesigne(editeur)) {
     return enEssai ? `${MOTIF_MEDIATEUR} Votre essai continue.` : MOTIF_MEDIATEUR;
   }
   return null;
+}
+
+/**
+ * Ce que /admin/sante dit de l'identité du vendeur, avec la MÊME vérité que la garde (relecture T4R-05) : la page
+ * lisait les seuls faits requis et annonçait « L'identité requise est complète » pour un entrepreneur individuel dont
+ * le nom ne porte pas « EI », alors que la garde fermait tout. `horsFaits` : ce qui ferme la vente sans être un fait
+ * requis des pages légales (type de vendeur non choisi, mention « EI » absente).
+ */
+export function etatVendeurPourLaSante(
+  editeur: Record<string, FaitEditeur>,
+  { blocageIdentiteActif, venteSansMediateurDecidee }: Pick<ContexteGarde, "blocageIdentiteActif" | "venteSansMediateurDecidee">,
+): { defauts: string[]; horsFaits: string[]; phrase: string } {
+  const manquants = faitsManquants(editeur);
+  const defauts = defautsVendeur(editeur);
+  const horsFaits = defauts.filter((d) => !manquants.includes(d));
+  const mediateur = mediateurDesigne(editeur)
+    ? "Le médiateur de la consommation est saisi."
+    : venteSansMediateurDecidee === true
+      ? "Aucun médiateur de la consommation n’est saisi : les mentions légales disent qu’aucun n’est désigné. Vous avez décidé, dans les paramètres, de vendre quand même aux particuliers ; cette décision se retire au même endroit."
+      : "Reste le médiateur de la consommation : tant qu’il n’est pas saisi, les mentions légales disent qu’aucun n’est désigné, et la première souscription d’un particulier reste fermée, sauf décision de votre part enregistrée dans les paramètres (« Vente aux particuliers sans médiateur de la consommation »).";
+  const phrase = defauts.length === 0
+    ? `L’identité du vendeur est complète. ${mediateur}`
+    : manquants.length === 0
+      ? `Les faits requis par les pages légales sont fournis, mais l’identité du vendeur n’est pas complète : il manque ${horsFaits.join(", ")}. Toute première souscription reste fermée${blocageIdentiteActif === false ? "" : ", comme les augmentations payantes"}.`
+      : blocageIdentiteActif === false
+        ? "Tant qu’un fait « manquant » n’est pas fourni, les pages légales affichent l’encadré « Document en cours de finalisation ». Le blocage des abonnements est levé dans les paramètres : ces manques ne ferment plus les augmentations payantes ; toute première souscription reste fermée."
+        : "Tant qu’un fait « manquant » n’est pas fourni, les pages légales affichent l’encadré « Document en cours de finalisation » et le paiement en ligne reste fermé.";
+  return { defauts, horsFaits, phrase };
+}
+
+/**
+ * Ce que /admin/journaux écrit pour une modification du réglage des abonnements (registre `supervision_identite`, états
+ * avant et après tels que la base les a enregistrés). Seconde reprise du 24/11/2026 (relecture T4R-02) : la ligne du
+ * blocage ne parle plus du médiateur (elle écrivait « médiateur absent » même quand il était saisi) ; la décision de
+ * vendre aux particuliers sans médiateur a sa propre ligne, qui dit l'état RÉEL du médiateur à cette date, lu dans
+ * l'identité enregistrée avec elle.
+ */
+export function lignesJournalReglage(avant: Record<string, unknown> | null | undefined, apres: Record<string, unknown> | null | undefined): string[] {
+  const lignes: string[] = [];
+  if (!apres) return lignes;
+  if (typeof apres.blocage_souscription_identite === "boolean" && avant?.blocage_souscription_identite !== apres.blocage_souscription_identite) {
+    lignes.push(`Blocage des abonnements (identité du vendeur incomplète : augmentations payantes) : ${apres.blocage_souscription_identite ? "réactivé" : "levé"}.`);
+  }
+  const decision = (etat: Record<string, unknown> | null | undefined) => (typeof etat?.vente_particuliers_sans_mediateur_le === "string" ? etat.vente_particuliers_sans_mediateur_le : null);
+  if (decision(avant) !== decision(apres) && Boolean(decision(avant)) !== Boolean(decision(apres))) {
+    const valeurs = apres.valeurs && typeof apres.valeurs === "object" ? (apres.valeurs as Record<string, unknown>) : {};
+    const faits: Record<string, FaitEditeur> = {};
+    for (const [cle, v] of Object.entries(valeurs)) faits[cle] = typeof v === "string" ? v : null;
+    const etatMediateur = mediateurDesigne(faits) ? "un médiateur de la consommation était saisi" : "aucun médiateur de la consommation n’était saisi";
+    lignes.push(`Vente aux particuliers sans médiateur de la consommation : ${decision(apres) ? "décision prise" : "décision retirée"} (à cette date, ${etatMediateur}).`);
+  }
+  return lignes;
 }
 
 /** Vrai si la valeur est la version en vigueur — égalité stricte, jamais une comparaison d'ordre. */

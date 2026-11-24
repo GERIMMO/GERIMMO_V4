@@ -40,6 +40,8 @@ const VERSION_EN_VIGUEUR = CONDITIONS_VERSION;
 const EDITEUR_COMPLET: Record<string, string | null> = {
   denomination: "Éditeur de test",
   forme: "SAS",
+  // Seconde reprise du 24/11/2026 (T4R-03) : le type de vendeur est un choix explicite ; sans lui, le vendeur est incomplet.
+  typeVendeur: "personne_morale",
   capital: null,
   siege: "1 rue de l'Essai, 75000 Paris",
   rcs: "RCS Paris 000 000 000",
@@ -269,8 +271,10 @@ describe("souscription : l'identité de l'éditeur, lue en base par-dessus le co
   // concerné ; et sans vendeur, rien ne s'ouvre, blocage levé ou non, agence comprise. Les tests ci-dessous disent
   // cette règle ; celui qui affirmait « le médiateur ne ferme plus rien » est réécrit pour dire l'inverse.
   const SANS_MEDIATEUR = { ...EDITEUR_COMPLET, mediateurNom: null, mediateurAdresse: null, mediateurSite: null };
+  // Seconde reprise du 24/11/2026 (relecture T4R-08) : l'ancienne phrase (« les coordonnées du médiateur de la
+  // consommation de Gerimmo doivent être publiées ») laissait entendre qu'un médiateur existait déjà. Phrase corrigée.
   const MOTIF_MEDIATEUR_ESSAI =
-    "Le paiement en ligne n'est pas encore ouvert aux particuliers. Les coordonnées du médiateur de la consommation de Gerimmo doivent être publiées avant la première souscription. Votre essai continue.";
+    "Le paiement en ligne n'est pas encore ouvert aux particuliers. Un médiateur de la consommation doit d'abord être désigné, et ses coordonnées publiées, avant la première souscription. Votre essai continue.";
 
   it("particulier, sans médiateur, vendeur complet, règle active (par défaut) : le parcours Stripe reste fermé, avec sa phrase", async () => {
     etat(GRILLE);
@@ -318,7 +322,8 @@ describe("souscription : l'identité de l'éditeur, lue en base par-dessus le co
   // Relecture D7R-05 : une identité enregistrée avant le contrôle de saisie (« NOM Prénom » sans « EI ») ne vend pas.
   it.each([true, false])("entrepreneur individuel dont le nom ne porte pas « EI », règle active = %s : fermé comme un vendeur incomplet", async (actif) => {
     etat(GRILLE);
-    identite({ ...EDITEUR_COMPLET, forme: "Entrepreneur individuel", denomination: "DUPONT Jeanne" });
+    // Seconde reprise (T4R-03) : c'est le type de vendeur CHOISI qui fait exiger « EI », plus le texte de la forme.
+    identite({ ...EDITEUR_COMPLET, typeVendeur: "entrepreneur_individuel", forme: "Entrepreneur individuel", denomination: "DUPONT Jeanne" });
     mocks.reglage = { data: { blocage_souscription_identite: actif, revision: 1 }, error: null };
     const r = await demarrerAbonnement("org-1", {}, souscrire());
     expect(r.erreur).toBe(MOTIF_IDENTITE);
@@ -346,15 +351,48 @@ describe("souscription : l'identité de l'éditeur, lue en base par-dessus le co
     expect(mocks.retrieve).not.toHaveBeenCalled();
   });
 
-  it("verrou levé par le super admin, vendeur complet, sans médiateur : le parcours Stripe s'ouvre au particulier", async () => {
+  // Seconde reprise du 24/11/2026 (relecture T4R-02). Ce test affirmait « verrou levé : le parcours Stripe s'ouvre au
+  // particulier sans médiateur ». Une levée enregistrée AVANT le lot (elle ne visait alors que les hausses) aurait donc
+  // ouvert d'office la vente sans médiateur au déploiement. La levée seule ne l'ouvre plus : il faut la décision à
+  // part, datée (`vente_particuliers_sans_mediateur_le`).
+  it("T4R-02 : verrou levé par le super admin (levée d'avant le lot), vendeur complet, sans médiateur — le particulier reste FERMÉ", async () => {
     etat(GRILLE);
     const sansMediateur = { ...EDITEUR_COMPLET, mediateurNom: null, mediateurAdresse: null, mediateurSite: null };
     identite(sansMediateur);
     mocks.archive = { identite_editeur: sansMediateur };
-    mocks.reglage = {data:{blocage_souscription_identite:false,revision:1},error:null};
+    for (const data of [
+      { blocage_souscription_identite: false, revision: 1 },
+      { blocage_souscription_identite: false, revision: 1, vente_particuliers_sans_mediateur_le: null },
+      // Une valeur qui n'est pas une date (colonne mal lue) ne vaut pas décision.
+      { blocage_souscription_identite: false, revision: 1, vente_particuliers_sans_mediateur_le: true },
+      { blocage_souscription_identite: false, revision: 1, vente_particuliers_sans_mediateur_le: "oui" },
+    ]) {
+      mocks.reglage = { data, error: null };
+      const r = await demarrerAbonnement("org-1", {}, souscrire());
+      expect(r.erreur).toBe(MOTIF_MEDIATEUR_ESSAI);
+    }
+    expect(mocks.retrieve).not.toHaveBeenCalled();
+    expect(mocks.serviceRpc).not.toHaveBeenCalled();
+  });
+
+  it.each([true, false])("T4R-02 : décision datée « vendre aux particuliers sans médiateur », blocage actif = %s — le parcours Stripe s'ouvre au particulier", async (actif) => {
+    etat(GRILLE);
+    const sansMediateur = { ...EDITEUR_COMPLET, mediateurNom: null, mediateurAdresse: null, mediateurSite: null };
+    identite(sansMediateur);
+    mocks.archive = { identite_editeur: sansMediateur };
+    mocks.reglage = { data: { blocage_souscription_identite: actif, revision: 1, vente_particuliers_sans_mediateur_le: "2026-11-25T09:00:00+00:00" }, error: null };
     const r = await demarrerAbonnement("org-1", {}, souscrire());
     expect(r.erreur).not.toBe(MOTIF_IDENTITE);
+    expect(r.erreur).not.toBe(MOTIF_MEDIATEUR_ESSAI);
     expect(mocks.serviceRpc).toHaveBeenCalledWith("abonnement_client_pose", { p_org: "org-1", p_customer: "cus_connu" });
+  });
+
+  it("T4R-02 : la décision datée n'ouvre rien si le vendeur est incomplet", async () => {
+    etat(GRILLE);
+    identite({ ...EDITEUR_VIDE });
+    mocks.reglage = { data: { blocage_souscription_identite: false, revision: 1, vente_particuliers_sans_mediateur_le: "2026-11-25T09:00:00+00:00" }, error: null };
+    expect((await demarrerAbonnement("org-1", {}, souscrire())).erreur).toBe(MOTIF_IDENTITE);
+    expect(mocks.retrieve).not.toHaveBeenCalled();
   });
 
   it("essai arrivé à son terme (gelé en lecture seule, statut encore « essai ») : la phrase sans « Votre essai continue »", async () => {
@@ -403,7 +441,9 @@ describe("levée du blocage par le superadmin", () => {
     const sansMediateur = { ...EDITEUR_COMPLET, mediateurNom: null, mediateurAdresse: null, mediateurSite: null };
     mocks.archive = { identite_editeur: sansMediateur };
     identite(sansMediateur);
-    mocks.reglage = { data: { blocage_souscription_identite: false, revision: 1 }, error: null };
+    // Seconde reprise (T4R-02) : sans médiateur, la levée du blocage ne suffit plus ; ces tests, qui vérifient les
+    // AUTRES contrôles d'une souscription, portent aussi la décision datée de vendre sans médiateur.
+    mocks.reglage = { data: { blocage_souscription_identite: false, revision: 1, vente_particuliers_sans_mediateur_le: "2026-11-25T09:00:00+00:00" }, error: null };
   }
   function lever() {
     mocks.archive = { identite_editeur: { ...EDITEUR_VIDE, mediateurNom: EDITEUR_COMPLET.mediateurNom, mediateurAdresse: EDITEUR_COMPLET.mediateurAdresse, mediateurSite: EDITEUR_COMPLET.mediateurSite } };

@@ -98,7 +98,13 @@ describe("prestataires saisissables (19/10) : clés du formulaire et de la base"
     const sql = lireApp(`supabase/migrations/${MIGRATION}.sql`);
     const listes = [...sql.matchAll(/array\[([^\]]+)\]::text\[\]/g)].map((m) => [...m[1].matchAll(/'([A-Za-z]+)'/g)].map((c) => c[1]));
     expect(listes).toHaveLength(1);
-    expect(listes[0]).toEqual(Object.keys(CHAMPS_EDITEUR));
+    // Seconde reprise du 24/11/2026 (T4R-03) : le formulaire a une vingt-sixième clé, `typeVendeur`, ajoutée en dernier
+    // par la migration 20261125106000 ; celle du 19/10 ouvre toujours la liste aux vingt-cinq premières, dans l'ordre.
+    expect(Object.keys(CHAMPS_EDITEUR).at(-1)).toBe("typeVendeur");
+    expect(listes[0]).toEqual(Object.keys(CHAMPS_EDITEUR).slice(0, -1));
+    const suite = lireApp("supabase/migrations/20261125106000_type_vendeur_et_vente_sans_mediateur.sql");
+    const listesSuite = [...suite.matchAll(/array\[([^\]]+)\]::text\[\]/g)].map((m) => [...m[1].matchAll(/'([A-Za-z]+)'/g)].map((c) => c[1]));
+    expect(listesSuite).toEqual([Object.keys(CHAMPS_EDITEUR)]);
     expect(sql).toMatch(/octet_length\(valeurs::text\)\s*<\s*40000/);
     expect(sql).toMatch(/^select public\.fermer_fonctions_a_anon\(\);\s*$/m);
     expect(sql).toContain("lock_timeout");

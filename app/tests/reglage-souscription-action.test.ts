@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const VENDEUR = {
-  denomination: "Personne fictive EI", forme: "Entrepreneur individuel", siege: "1 rue Exemple, 75000 Paris",
+  denomination: "Personne fictive EI", forme: "Entrepreneur individuel", typeVendeur: "entrepreneur_individuel", siege: "1 rue Exemple, 75000 Paris",
   rcs: "RNE 000 000 000", siret: "00000000000000", directeurPublication: "Personne fictive",
   email: "contact@example.test", telephone: "01 00 00 00 00",
 };

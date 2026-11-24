@@ -15,7 +15,10 @@
  *    remplacés dans le relevé du 11/11, dans le HTML et dans les données de navigation ; la structure du flux (marques,
  *    segments, scripts) est celle du relevé. Le test « au caractère près » prouve que le texte est bien celui du rendu
  *    d'aujourd'hui ; il ne prouve plus qu'un `next start` d'aujourd'hui sert ce flux. À RELEVER DE NOUVEAU sur le banc
- *    (le parcours e2e/conditions-flux.spec.ts le vérifie sur le build) ;
+ *    (le parcours e2e/conditions-flux.spec.ts le vérifie sur le build).
+ *    Seconde reprise du même jour (relectures T4R-06, T4R-07, T4R-09) : même procédé pour les articles 15.3 et 17
+ *    corrigés, et pour l'empreinte d'identité posée par la page normale — l'identité porte une clé de plus, le type de
+ *    vendeur, vide dans l'identité fictive du banc. Toujours à relever de nouveau ;
  *  - un vrai flux de React (renderToReadableStream), passages imbriqués et frontière d'attente compris, sur une page
  *    simple puis sur la page /conditions elle-même, chaque article arrivant en retard : le texte reconstitué est,
  *    au caractère près, celui du rendu d'un seul tenant ;

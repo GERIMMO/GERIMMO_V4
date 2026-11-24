@@ -89,7 +89,7 @@ vi.mock("@/lib/supabase/server", () => ({
 vi.mock("@/lib/editeur-serveur", () => ({
   lireEditeur: async () => ({
     editeur: {
-      denomination: "Éditeur de test", forme: "SAS", capital: null, siege: "1 rue de l'Essai, 75000 Paris",
+      denomination: "Éditeur de test", forme: "SAS", typeVendeur: "personne_morale", capital: null, siege: "1 rue de l'Essai, 75000 Paris",
       rcs: "RCS Paris 000 000 000", siret: "00000000000000", tvaIntracommunautaire: null,
       directeurPublication: "Personne de test", email: "contact@example.invalid", telephone: "01 00 00 00 00",
       mediateurNom: "Médiateur de test", mediateurAdresse: "1 rue Exemple, Paris", mediateurSite: "https://example.invalid/mediateur",

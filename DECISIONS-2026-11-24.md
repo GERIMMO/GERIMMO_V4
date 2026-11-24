@@ -38,3 +38,14 @@ Q43 : la révision ne s'applique jamais à des jours antérieurs à la demande d
 Q46 : joins la notice officielle entière, dans la version en vigueur à la signature. En attendant, le bailleur la dépose lui-même, et l'envoi en signature électronique est bloqué sans elle.
 Q49 : aligne les deux décomptes : chaque retenue a son justificatif, un devis suffit.
 Q52 : option B, l'adresse de l'espace reste en ligne.
+
+---
+
+## Complément du 24/11 (soir) — vendeur (Q7, Q63)
+
+Avis de situation Sirene du 24/11/2026 transmis par le dirigeant (capture non enregistrée dans le dépôt) : entrepreneur individuel, nom commercial SAUVEXPERT, SIREN 821 974 474, SIRET du siège 821 974 474 00032, adresse de l'établissement 3 rue de l'Église, 91360 Épinay-sur-Orge, activité déclarée 85.59A (formation continue d'adultes), actif depuis le 03/02/2026. Le vendeur n'est donc pas une société.
+
+Décisions du dirigeant, mot pour mot :
+- « Mentionne tva non applicable pour l'instant »
+- « Publié mon adresse »
+- « Pour le médiateur ça sera mis vraiment lorsque tout sera fonctionnel mais on peux ouvrir les ventes même sans ce dernier »

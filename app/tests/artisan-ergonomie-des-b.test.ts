@@ -125,11 +125,14 @@ describe("DES-B-05 — navigation, boutons et cibles des modules « clients exte
     const liens = [...nav.matchAll(/<a\b[^>]*>[^<]*<\/a>/g)].map((m) => m[0]);
     const masque = (texte: string) => classesDe(liens.find((l) => l.includes(`>${texte}<`)) ?? "").includes("min-[1000px]:hidden");
     expect(masque("Clients externes")).toBe(true);
-    expect(masque("Agenda")).toBe(true);
-    expect(masque("Facturation")).toBe(true);
+    // Phase 3, lot 60 (E011) : « Agenda » et « Facturation » étaient attendues ici, masquées à 1000 px. Sous 1000 px elles
+    // répétaient aussi la barre du bas (où la même page s'appelle « Factures ») : elles n'existent plus à aucune largeur.
+    expect(liens.some((l) => l.includes(">Agenda<") || l.includes(">Facturation<"))).toBe(false);
     // Ces deux gestes n'ont pas d'entrée dans le menu latéral : ils restent atteignables.
     expect(masque("Nouveau chantier et devis")).toBe(false);
-    expect(masque("Exporter mon registre")).toBe(false);
+    // Lot 60 (E128) : l'ancien libellé « Exporter mon registre » n'annonçait ni le fichier ni son contenu.
+    expect(liens.some((l) => l.includes(">Exporter toutes mes données (fichier JSON)<"))).toBe(true);
+    expect(masque("Exporter toutes mes données (fichier JSON)")).toBe(false);
   });
 
   it("les noms de la liste des clients sont des cibles de 48 px (le lien en ligne ignorait min-h-12)", async () => {

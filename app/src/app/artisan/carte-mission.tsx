@@ -23,11 +23,14 @@ export function CarteMission({
   origine,
   badgeRdv,
   nouveauxMessages = 0,
+  datesAGarder = [],
 }: {
   ligne: LigneAgenda;
   /** Ce que la mission attend de lui, en toutes lettres. Rien si elle n'attend rien. */
   aFaire?: string;
   badgeRdv?: string | null;
+  /** Lot 60 (E006, E116) : les dates proposées au locataire, en toutes lettres — l'agenda ne donnait que leur nombre. */
+  datesAGarder?: string[];
   /** Audit palier 1 (P1-05) : messages de la discussion de cette mission qu'il n'a pas encore lus. */
   nouveauxMessages?: number;
   /**
@@ -138,6 +141,17 @@ export function CarteMission({
             {aFaire}
           </p>
         ))}
+
+      {datesAGarder.length > 0 && (
+        <div data-dates-a-garder className="mt-1.5 text-[0.9375rem] text-[var(--corps)]">
+          <p className="text-[var(--texte-secondaire)]">À garder libre{datesAGarder.length > 1 ? "s" : ""} jusqu&apos;à sa réponse :</p>
+          <ul className="mt-0.5 space-y-0.5 font-medium">
+            {datesAGarder.map((d) => (
+              <li key={d}>{d}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </Link>
   );
 }

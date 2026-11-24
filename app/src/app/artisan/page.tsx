@@ -304,7 +304,7 @@ export default async function PageArtisanAccueil() {
         <details className={styles.networkNote}>
           <summary>Votre profil est privé</summary>
           <p>{rappelReseau.texte}</p>
-          <Link href="/artisan/entreprise" className="inline-flex min-h-11 items-center underline underline-offset-4">Mon entreprise</Link>
+          <Link href="/artisan/entreprise" className="inline-flex min-h-11 items-center underline underline-offset-4">Ma fiche entreprise</Link>
         </details>
       )}
     </div>

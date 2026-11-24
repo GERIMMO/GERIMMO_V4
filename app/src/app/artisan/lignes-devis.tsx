@@ -1,5 +1,6 @@
 "use client";
 import { useId, useState, useTransition } from "react";
+import { ChevronDown } from "lucide-react";
 import { calculerDevis, erreurPrixSaisi, erreurQuantiteSaisie, lireQuantite, montantEnCentimes, type LigneDevis } from "@/lib/devis-structure";
 import type { LigneDevisSaisie } from "@/lib/brouillon-devis-local";
 import { avecLigneGardee, detailLigneGardee, reprendreLigne, type LigneGardee } from "@/lib/lignes-devis-gardees";
@@ -80,8 +81,9 @@ export function LignesDevis({ initiales = [], saisieInitiale, titre = "Détail d
     <input type="hidden" name="lignes_devis_saisie" value={JSON.stringify(lignes)} />
     <input type="hidden" name="lignes_devis" value={JSON.stringify(donnees)} />
     <p className="clear-both text-[0.9375rem] text-[var(--texte-secondaire)]">Précisez chaque prestation ou fourniture. Choisissez le taux de TVA adapté à votre situation et aux travaux.</p>
-    {mesLignes && <details data-mes-lignes className="rounded-[var(--rayon-champ)] border border-[var(--filet)] px-3.5 open:pb-3">
-      <summary className="flex min-h-12 cursor-pointer items-center text-base font-semibold text-[var(--encre)]">Mes lignes gardées{offertes && gardees.length ? ` (${gardees.length})` : ""}</summary>
+    {/* Phase 3, lot 60 (E117) : en `flex`, le titre du volet perd le triangle du navigateur et rien ne disait qu'il s'ouvre ; un chevron le remplace et se retourne à l'ouverture. */}
+    {mesLignes && <details data-mes-lignes className="group rounded-[var(--rayon-champ)] border border-[var(--filet)] px-3.5 open:pb-3">
+      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 text-base font-semibold text-[var(--encre)] [&::-webkit-details-marker]:hidden"><span>Mes lignes gardées{offertes && gardees.length ? ` (${gardees.length})` : ""}</span><ChevronDown size={18} aria-hidden="true" className="shrink-0 text-[var(--texte-secondaire)] group-open:rotate-180" /></summary>
       {!offertes ? <p role="alert" className={CLASSE_ERREUR_CHAMP}>Vos lignes gardées n’ont pas pu être lues : rechargez la page avant d’en reprendre une.</p>
         : gardees.length === 0 ? <p className={CLASSE_AIDE}>Aucune ligne gardée pour l’instant. Sous une ligne de ce devis, « Garder cette ligne » la met de côté, avec son prix et sa TVA, pour vos prochains devis.</p>
         : <ul className="space-y-3">{gardees.map(g => <li key={g.id} data-ligne-gardee className="space-y-2 border-t border-[var(--filet-leger)] pt-3 first:border-t-0 first:pt-0">

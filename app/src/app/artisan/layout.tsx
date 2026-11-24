@@ -149,7 +149,7 @@ export default async function LayoutArtisan({
   const nom = fiche?.raison_sociale ?? "Espace artisan";
   const initiales = nom.split(/\s+/).filter(Boolean).slice(0, 2).map((mot) => mot[0]).join("");
   const compteLiens = [
-    ...(fiche ? [{ href: "/artisan/entreprise", libelle: "Mon entreprise" }] : []),
+    ...(fiche ? [{ href: "/artisan/entreprise", libelle: "Ma fiche entreprise" }] : []),
     { href: "/compte", libelle: "Sécurité du compte" },
     ...(autresEspaces ? [{ href: "/espaces", libelle: "Mes espaces" }] : []),
   ];

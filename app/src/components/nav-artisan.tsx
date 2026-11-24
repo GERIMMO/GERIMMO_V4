@@ -9,6 +9,20 @@ import styles from "@/app/artisan/portail-artisan.module.css";
 
 /** Sur téléphone : quatre accès directs, puis le menu des autres rubriques. */
 
+// Phase 3, lot 60 (E007, E124). « Nouveau chantier et devis » vit à l'adresse /artisan/devis/nouveau mais appartient aux
+// clients externes (son retour y mène, son sous-titre dit « sans demande reçue par Gerimmo ») : comparée par son début,
+// l'adresse allumait « Devis » — les demandes reçues par Gerimmo, avec leur badge. Elle est donc retirée de « Devis » et
+// rattachée à « Clients externes », comme les fiches de chantier.
+const PAGES_CLIENTS_EXTERNES = ["/artisan/chantiers", "/artisan/devis/nouveau"];
+const SAUF_DEVIS = ["/artisan/devis/nouveau"];
+
+/** Une entrée est allumée sur son adresse et ses sous-pages, sur les adresses rattachées (`aussi`), jamais sur celles retirées (`sauf`). */
+export function entreeActive(pathname: string, e: { href: string; exact?: boolean; aussi?: string[]; sauf?: string[] }): boolean {
+  if (e.exact) return pathname === e.href;
+  if ((e.sauf ?? []).some((p) => pathname.startsWith(p))) return false;
+  return pathname.startsWith(e.href) || (e.aussi ?? []).some((p) => pathname.startsWith(p));
+}
+
 const IC: Record<string, string> = {
   jour: '<path d="M4 7h16M4 12h16M4 17h10"/>',
   agenda:
@@ -19,6 +33,18 @@ const IC: Record<string, string> = {
   entreprise:
     '<path d="M4 20V9.5L12 4l8 5.5V20"/><path d="M9.5 20v-6h5v6"/>',
 };
+
+/** Les rubriques du menu du téléphone (celles qui n'ont pas d'onglet dans la barre du bas). */
+export function entreesMenuArtisan({ clientsExternes, piecesAAJour }: { clientsExternes: boolean; piecesAAJour: boolean }): { href: string; libelle: string; aussi?: string[]; point?: boolean }[] {
+  return [
+    { href: "/artisan/entreprise", libelle: "Ma fiche entreprise" },
+    { href: "/artisan/attestations", libelle: "Mes attestations", point: !piecesAAJour },
+    ...(clientsExternes ? [{ href: "/artisan/clients", libelle: "Clients externes", aussi: PAGES_CLIENTS_EXTERNES }] : []),
+    { href: "/artisan/note", libelle: "Mes évaluations" },
+    { href: "/artisan/regles", libelle: "Les règles à connaître" },
+    { href: "/assistance?ecran=%2Fartisan&action=lien&retour=%2Fartisan", libelle: "Aide en cas de problème" },
+  ];
+}
 
 function Icone({ nom }: { nom: string }) {
   return (
@@ -68,18 +94,18 @@ export function NavArtisan({
       aussi: ["/artisan/missions"],
       badge: 0,
     },
-    { href: "/artisan/devis", libelle: "Devis", icone: "devis", badge: devisAChiffrer },
+    { href: "/artisan/devis", libelle: "Devis", icone: "devis", badge: devisAChiffrer, sauf: SAUF_DEVIS },
     { href: "/artisan/facturation", libelle: "Factures", icone: "factures", badge: 0, point: false },
-  ];
+  ] as { href: string; libelle: string; icone: string; exact?: boolean; badge: number; aussi?: string[]; sauf?: string[]; point?: boolean }[];
 
   if (presentation === "bureau") {
-    const groupes: { titre: string; liens: { href: string; libelle: string; icone: LucideIcon; exact?: boolean; badge?: number; aussi?: string[]; point?: boolean }[] }[] = [
+    const groupes: { titre: string; liens: { href: string; libelle: string; icone: LucideIcon; exact?: boolean; badge?: number; aussi?: string[]; sauf?: string[]; point?: boolean }[] }[] = [
       { titre: "Mon activité", liens: [
         { href: "/artisan", libelle: "Aujourd’hui", icone: LayoutDashboard, exact: true, badge: aFaireMaintenant },
         { href: "/artisan/agenda", libelle: "Mon agenda", icone: CalendarDays, aussi: ["/artisan/missions"] },
-        { href: "/artisan/devis", libelle: "Demandes de devis", icone: FileText, badge: devisAChiffrer },
+        { href: "/artisan/devis", libelle: "Demandes de devis", icone: FileText, badge: devisAChiffrer, sauf: SAUF_DEVIS },
         { href: "/artisan/facturation", libelle: "Ma facturation", icone: Banknote },
-        ...(clientsExternes ? [{ href: "/artisan/clients", libelle: "Clients externes", icone: Users, aussi: ["/artisan/chantiers"] }] : []),
+        ...(clientsExternes ? [{ href: "/artisan/clients", libelle: "Clients externes", icone: Users, aussi: PAGES_CLIENTS_EXTERNES }] : []),
       ] },
       { titre: "Mon entreprise", liens: [
         { href: "/artisan/entreprise", libelle: "Ma fiche entreprise", icone: Building2 },
@@ -95,7 +121,7 @@ export function NavArtisan({
             <p>{groupe.titre}</p>
             <ul>
               {groupe.liens.map((lien) => {
-                const actif = lien.exact ? pathname === lien.href : pathname.startsWith(lien.href) || (lien.aussi ?? []).some((p) => pathname.startsWith(p));
+                const actif = entreeActive(pathname, lien);
                 const IconeMenu = lien.icone;
                 return (
                   <li key={lien.href}>
@@ -122,10 +148,7 @@ export function NavArtisan({
     >
       <ul className="mx-auto flex w-full max-w-[960px]">
         {entrees.map((e) => {
-          const actif = e.exact
-            ? pathname === e.href
-            : pathname.startsWith(e.href) ||
-              (e.aussi ?? []).some((a) => pathname.startsWith(a));
+          const actif = entreeActive(pathname, e);
           const nb = e.badge ?? 0;
           return (
             <li key={e.href} className="min-w-0 flex-1">
@@ -171,15 +194,14 @@ export function NavArtisan({
         <li className="min-w-0 flex-1"><button type="button" aria-haspopup="dialog" aria-expanded={menuOuvert} onClick={() => setMenuOuvert(true)} className="relative flex min-h-16 w-full flex-col items-center justify-center gap-1 px-1 py-2 text-[var(--encre)]"><Icone nom="menu" /><span className="text-[0.6875rem] font-medium">Menu</span>{!piecesAAJour && <span className="absolute right-3 top-2 size-2 rounded-full bg-[var(--warning)]"><span className="sr-only">Attestations à déposer ou à renouveler</span></span>}</button></li>
       </ul>
     </nav>
+    {/* Phase 3, lot 60.
+        E001 : « Aide en cas de problème » menait à /artisan/panne, la page d'échec de lecture de la fiche : l'artisan
+        qui cherchait de l'aide y lisait une panne qui n'avait pas eu lieu. L'entrée mène à la page d'aide.
+        E003, E008 : le point orange du bouton « Menu » n'était repris par aucune entrée du menu ouvert ; il est posé
+        sur « Mes attestations », avec les mêmes mots qu'en présentation bureau.
+        E121, E127 : la page s'appelle « Ma fiche entreprise » partout (« Mon entreprise » reste le titre du groupe du menu bureau). */}
     {menuOuvert && <Tiroir titre="Menu artisan" fermer={() => setMenuOuvert(false)}><nav aria-label="Autres rubriques artisan" className="grid gap-1">
-      {[
-        ["/artisan/entreprise", "Mon entreprise"],
-        ["/artisan/attestations", "Mes attestations"],
-        ...(clientsExternes ? [["/artisan/clients", "Clients externes"]] : []),
-        ["/artisan/note", "Mes évaluations"],
-        ["/artisan/regles", "Les règles à connaître"],
-        ["/artisan/panne", "Aide en cas de problème"],
-      ].map(([href, libelle]) => <Link key={href} href={href} aria-current={pathname.startsWith(href) ? "page" : undefined} onClick={() => setMenuOuvert(false)} className="flex min-h-12 items-center rounded-[var(--rayon-bouton)] px-3 text-[0.9375rem] font-medium text-[var(--encre)] transition-colors hover:bg-[var(--survol)] aria-[current=page]:bg-[var(--filet-leger)] aria-[current=page]:font-semibold">{libelle}</Link>)}
+      {entreesMenuArtisan({ clientsExternes, piecesAAJour }).map((e) => <Link key={e.href} href={e.href} aria-current={entreeActive(pathname, e) ? "page" : undefined} onClick={() => setMenuOuvert(false)} className="flex min-h-12 items-center gap-2 rounded-[var(--rayon-bouton)] px-3 text-[0.9375rem] font-medium text-[var(--encre)] transition-colors hover:bg-[var(--survol)] aria-[current=page]:bg-[var(--filet-leger)] aria-[current=page]:font-semibold">{e.libelle}{e.point && <span data-point-attestations className="ml-auto size-2.5 shrink-0 rounded-full bg-[var(--warning)]"><span className="sr-only"> — attestations à déposer ou à renouveler</span></span>}</Link>)}
     </nav></Tiroir>}
     </>
   );

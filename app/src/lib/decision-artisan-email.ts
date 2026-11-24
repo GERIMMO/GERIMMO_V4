@@ -45,15 +45,16 @@ export function corpsDecisionArtisan(m: MotifsDecisionArtisan): string {
     : `La validation de l’inscription ${de}<strong>${entreprise}</strong> au réseau d’artisans de Gerimmo est suspendue depuis le ${jour(m.decideLe)}. Tant que cette suspension dure, vous n’êtes plus proposé pour de nouvelles demandes.`;
   // Le motif est celui du superviseur, mot pour mot ; ses retours à la ligne sont gardés.
   const motif = echapperHtml(m.motif.trim()).replace(/\r?\n/g, "<br>");
+  // Phase 3, lot 60 (E121) : la rubrique porte à l'écran un seul nom, « Ma fiche entreprise » ; le courriel le reprend.
   const espace = m.site
-    ? `<p>Ce motif figure aussi dans votre espace artisan, rubrique « Mon entreprise » : <a href="${echapperHtml(m.site)}/artisan/entreprise">${echapperHtml(m.site)}/artisan/entreprise</a>.</p>`
-    : "<p>Ce motif figure aussi dans votre espace artisan, rubrique « Mon entreprise ».</p>";
+    ? `<p>Ce motif figure aussi dans votre espace artisan, rubrique « Ma fiche entreprise » : <a href="${echapperHtml(m.site)}/artisan/entreprise">${echapperHtml(m.site)}/artisan/entreprise</a>.</p>`
+    : "<p>Ce motif figure aussi dans votre espace artisan, rubrique « Ma fiche entreprise ».</p>";
   return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#1c2333">
 <p>Bonjour,</p>
 <p>${annonce}</p>
 <p style="margin-bottom:4px"><strong>Motif communiqué par Gerimmo :</strong></p>
 <blockquote style="margin:0 0 16px 0;padding:8px 12px;border-left:3px solid #c8ccd6;color:#1c2333">${motif}</blockquote>
-<p>Vous pouvez répondre à cette décision et demander un réexamen : depuis votre espace artisan, rubrique « Mon entreprise », lien « Contactez Gerimmo ».</p>
+<p>Vous pouvez répondre à cette décision et demander un réexamen : depuis votre espace artisan, rubrique « Ma fiche entreprise », lien « Contactez Gerimmo ».</p>
 ${espace}
 <p style="color:#5b6478">L’équipe Gerimmo</p>
 </div>`;

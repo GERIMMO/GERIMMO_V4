@@ -18,12 +18,18 @@ export function Champ({label,...props}:{label:string}&InputHTMLAttributes<HTMLIn
 export function Texte({label,name,value,required=true}:{label:string;name:string;value?:string;required?:boolean}){return <label className="block space-y-1.5"><span className={CLASSE_LIBELLE}>{label}</span><textarea name={name} className={CLASSE_ZONE_TEXTE} defaultValue={value} required={required} maxLength={8000} rows={3}/></label>;}
 export function Piece({label="Justificatif (PDF, JPEG ou PNG)",photo=false,required=true}:{label?:string;photo?:boolean;required?:boolean}){return <PieceFichier label={label} photo={photo} required={required}/>;}
 export function LienPiece({id,children}:{id:string|null|undefined;children:ReactNode}){return id?<a className="bouton-gerimmo inline-flex min-h-12 w-fit items-center justify-center rounded-[var(--rayon-bouton)] border border-[var(--filet-champ)] bg-[var(--ivoire)] px-4 text-[0.9375rem] font-semibold text-[var(--encre)] hover:border-[var(--marque)] hover:bg-[var(--survol)]" href={`/api/artisan-prive/pieces/${id}`} target="_blank" rel="noreferrer">{children}</a>:null;}
-export function NavigationPrivee(){
- // À partir de 1000 px le menu latéral (NavArtisan, présentation « bureau ») porte déjà Clients externes, Agenda et Facturation :
- // ces trois pastilles y répétaient le menu (DES-B-05). « Nouveau chantier et devis » et l'export n'y ont pas d'entrée : ils restent.
- const liens:[string,string,boolean][]=[['Clients externes','/artisan/clients',true],['Nouveau chantier et devis','/artisan/devis/nouveau',false],['Agenda','/artisan/agenda',true],['Facturation','/artisan/facturation',true]];
- const classe="bouton-gerimmo inline-flex min-h-12 items-center justify-center rounded-[var(--rayon-bouton)] border border-[var(--filet-champ)] bg-[var(--ivoire)] px-4 text-sm font-semibold text-[var(--encre)] hover:border-[var(--marque)] hover:bg-[var(--survol)]";
- return <nav aria-label="Clients externes et règlements" className="flex flex-wrap gap-2">{liens.map(([label,href,redondant])=><Link key={href} className={redondant?`${classe} min-[1000px]:hidden`:classe} href={href}>{label}</Link>)}<a className={classe} href="/api/artisan-prive/export" download>Exporter mon registre</a></nav>;
+// Phase 3, lot 60 :
+//  - E011 : les pastilles « Agenda » et « Facturation » répétaient la navigation à toutes les largeurs (barre du bas sous
+//    1000 px, où la même page s'appelle « Factures » ; menu latéral au-delà) : elles sont retirées ;
+//  - E012, E123 : la pastille de la page affichée ne se distinguait pas des autres ; l'écran dit laquelle (`enCours`) ;
+//  - E128 : « Exporter mon registre » n'annonçait ni le fichier (JSON) ni son contenu, plus large que le carnet de clients.
+// « Clients externes » reste masquée à partir de 1000 px, où le menu latéral la porte (DES-B-05) ; « Nouveau chantier et
+// devis » et l'export n'ont d'entrée dans aucun menu : ils restent.
+export const LIBELLE_EXPORT_ARTISAN="Exporter toutes mes données (fichier JSON)";
+export function NavigationPrivee({enCours}:{enCours?:"/artisan/clients"|"/artisan/devis/nouveau"}){
+ const liens:[string,string,boolean][]=[['Clients externes','/artisan/clients',true],['Nouveau chantier et devis','/artisan/devis/nouveau',false]];
+ const classe="bouton-gerimmo inline-flex min-h-12 items-center justify-center rounded-[var(--rayon-bouton)] border border-[var(--filet-champ)] bg-[var(--ivoire)] px-4 text-sm font-semibold text-[var(--encre)] hover:border-[var(--marque)] hover:bg-[var(--survol)] aria-[current=page]:border-2 aria-[current=page]:border-[var(--marque)] aria-[current=page]:bg-[var(--filet-leger)]";
+ return <nav aria-label="Clients externes et règlements" className="flex flex-wrap gap-2">{liens.map(([label,href,redondant])=><Link key={href} className={redondant?`${classe} min-[1000px]:hidden`:classe} href={href} aria-current={href===enCours?"page":undefined}>{label}</Link>)}<a className={classe} href="/api/artisan-prive/export" download title="Clients externes, chantiers, devis, factures et règlements déclarés, avec vos données Gerimmo">{LIBELLE_EXPORT_ARTISAN}</a></nav>;
 }
 export function libelleEtatPrive(etat:string){const noms:Record<string,string>={brouillon:'Brouillon',valide:'Validé',accepte:'Accepté',refuse:'Refusé',planifie:'Planifié',en_cours:'En cours',termine:'Terminé',annule:'Annulé',remplace:'Remplacé',retenu:'retenu'};return noms[etat]??etat;}
 export function libelleActionPrive(action:string){const noms:Record<string,string>={chantier:'Chantier créé',devis:'Version du devis enregistrée',valider_devis:'PDF du devis validé',decision:'Réponse du client consignée',planning:'Rendez-vous confirmé',demarrer:'Chantier démarré',bilan:'Compte rendu enregistré',facture:'Facture déposée',annuler_facture:'Facture annulée par un avoir',annuler:'Chantier annulé'};return noms[action]??action.replaceAll('_',' ');}

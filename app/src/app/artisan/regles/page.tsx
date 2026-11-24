@@ -15,7 +15,7 @@ const PAR_PAGE = 20;
  * (ni barre d'onglets, ni en-tête standard), sous un hero bleu plein, avec
  * les filtres des quatre autres publics. Cet écran lit la même table
  * (`regulatory_watch_published`, aucune lecture nouvelle), ne montre que ce
- * qui concerne les artisans, et l'état vide ramène à « Mon entreprise ».
+ * qui concerne les artisans, et l'état vide ramène à « Ma fiche entreprise ».
  */
 export default async function PageReglesArtisan(props: PageProps<"/artisan/regles">) {
   const { supabase } = await verifierAccesArtisan();
@@ -46,7 +46,7 @@ export default async function PageReglesArtisan(props: PageProps<"/artisan/regle
 
   return (
     <div className="space-y-6">
-      <Retour href="/artisan/entreprise">Mon entreprise</Retour>
+      <Retour href="/artisan/entreprise">Ma fiche entreprise</Retour>
 
       <EnteteSousPage
         rubrique="journal"
@@ -57,7 +57,7 @@ export default async function PageReglesArtisan(props: PageProps<"/artisan/regle
       {error ? (
         <Erreur>Les informations sont momentanément indisponibles. Rechargez dans un instant.</Erreur>
       ) : lignes.length === 0 ? (
-        <Vide action={{ href: "/artisan/entreprise", libelle: "Revenir à mon entreprise" }}>
+        <Vide action={{ href: "/artisan/entreprise", libelle: "Revenir à ma fiche entreprise" }}>
           Aucune nouvelle règle pour les artisans pour l&apos;instant. Ce qui vous
           concerne apparaîtra ici, relu avant publication.
         </Vide>

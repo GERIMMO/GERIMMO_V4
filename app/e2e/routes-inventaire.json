@@ -356,7 +356,7 @@
   {
     "path": "/artisan/entreprise",
     "persona": "artisan",
-    "label": "Mon entreprise",
+    "label": "Ma fiche entreprise",
     "dynamic": ""
   },
   {
@@ -410,7 +410,7 @@
   {
     "path": "/artisan/panne",
     "persona": "artisan",
-    "label": "Aide en cas de panne",
+    "label": "Lecture de la fiche impossible (page d’échec, renvoie à l’espace si la fiche se lit)",
     "dynamic": ""
   },
   {

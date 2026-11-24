@@ -477,8 +477,12 @@ export default async function PageMission(
               Appeler {mission.occupant_telephone}
             </a>
           )}
-          <p className={`mt-2 ${CLASSE_AIDE}`}>
-            Ce contact vous est ouvert le temps de la mission, et refermé à la fin.
+          {/* Phase 3, lot 60 (E005) : sans numéro, la carte promettait un « contact ouvert » qu'elle ne donnait pas.
+              Elle dit ce qui manque et où écrire ; la base décide toujours seule de ce qu'elle rend. */}
+          <p className={`mt-2 ${CLASSE_AIDE}`} data-contact-occupant={mission.occupant_telephone ? "telephone" : "nom-seul"}>
+            {mission.occupant_telephone
+              ? "Ce contact vous est ouvert le temps de la mission, et refermé à la fin."
+              : "Aucun numéro de téléphone n’a été communiqué pour cette personne. Son nom vous est donné le temps de la mission ; pour un message, voyez la discussion de l’intervention, plus bas."}
           </p>
         </Carte>
       )}

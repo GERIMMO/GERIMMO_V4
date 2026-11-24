@@ -19,3 +19,12 @@ T2R-1 (important) : `formulaire-colocation.tsx:106` et `actions/baux.ts:983` aff
 - T3R-6 : pièce unique déjà reçue non redemandable (identité périmée) ; I-B et II-C même nom.
 - T3R-7 : reçu de dépôt « deux mois » sous le seul en-tête « Article 22 » (art. 25-6 absent du recueil) → ne pas citer d'article pour le meublé, ou formulation neutre.
 - T3R-8 : en-tête de migration et tests : le terme change aussi pour des baux étudiants de neuf mois (30/05, 31/05, 31/07, 31/12, 29/05) → le dire et le tester. Question au juriste : terme 28/02 et date limite 31/08.
+
+# REPRISE D4 (Q15, Q24) — rapport : $S/decisions/D4R/rapport.md
+À faire dans $S/palier1-t après le lot D5 en cours (pas de banc partagé ; base `gerimmo_ci_sonde_tquatre`). Contrat/sécurité → relecture ensuite si le changement dépasse quelques lignes.
+- D4R-01 (important) : `accepter_cgu` enregistre un accord pour une version `conditions_clients` non archivée et sans empreinte (ex. '2099-01-01'), ce qui satisfait ensuite `preuveConditionsEnVigueur`. Correction : la fonction de base refuse une version absente de `versions_conditions` pour la source « compte » ET un accord sans empreinte ne compte pas comme preuve. Migration additive + retour, droits identiques, test EN BASE (D4R-07).
+- D4R-02 (important) : l'article 16 des conditions promet un courriel et un mois de préavis avant l'effet d'une nouvelle version ; le code n'envoie rien et demande l'accord dès l'archivage ; l'écran dit « rien ne change ». Option prudente (aucun abonné réel aujourd'hui) : l'archivage d'une nouvelle version est REFUSÉ s'il existe au moins un abonné actif tant que l'annonce n'a pas été faite (pas de nouvelle fonction d'envoi dans ce lot) ; la console le dit ; l'écran d'accord ne dit plus « rien ne change » ; note pour JURISTE (article 16 alinéa 2 face à l'accord exprès). Contrôle à faire le jour J : zéro abonné avant d'archiver.
+- D4R-03 (important) : relance de loyer à la main — en cas d'échec d'envoi puis reprise autonome, l'e-mail part sans trace dans `relances`. Correction la plus simple : `repriseAutonome:false` pour ce type (comme avant), avec test.
+- D4R-04 : `demander_periodicite_suivante` appelable directement sans accord → garde dans la fonction, ou note écrite.
+- D4R-05 : relance à la main sans plafond par espace → noter comme question (plafond ?).
+- D4R-06 : rien à faire (LISEZ-MOI suffit).

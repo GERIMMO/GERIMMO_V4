@@ -358,7 +358,6 @@ describe("garde-fou sur les textes de l'espace locataire", () => {
     "src/app/actions/incidents-locataire.ts",
     "src/app/actions/conge-locataire.ts",
     "src/app/actions/attestation-locataire.ts",
-    "src/app/actions/signature-locataire.ts",
     "src/app/actions/pieces-demandees.ts",
     "src/app/actions/plan-apurement.ts",
     // Second tour : écrans du locataire servis hors de src/app/locataire, que la première liste ne couvrait pas.

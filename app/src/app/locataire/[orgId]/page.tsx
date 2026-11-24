@@ -64,7 +64,6 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
     { data: gestionnaires, error: eGestionnaire },
     { data: annonces, error: eAnnonces },
     { data: piecesDemandees, error: eDemandes },
-    { data: signatures, error: eSignatures },
     rendezVous,
     { data: creneaux, error: eCreneaux },
     { data: restitutions, error: eRestitution },
@@ -75,11 +74,12 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
     supabase.rpc("mes_incidents_locataire", { p_org: orgId }),
     supabase.rpc("mon_gestionnaire_locataire", { p_org: orgId }),
     supabase.rpc("mes_annonces_locataire", { p_org: orgId }),
-    // Les deux lectures que le menu faisait déjà de son côté : elles
-    // alimentent « Ce qui vous attend » (occasion relevée le 11/09) et
-    // remettent l'accueil d'accord avec le badge « Mes documents ».
+    // La lecture que le menu faisait déjà de son côté : elle alimente
+    // « Ce qui vous attend » (occasion relevée le 11/09) et remet l'accueil
+    // d'accord avec le badge « Mes documents ». (Décision Q21 du 24/11 : l'ancien
+    // parcours « télécharger, signer, redéposer » est retiré ; la signature
+    // électronique se lit dans « Mes documents ».)
     supabase.rpc("mes_pieces_demandees", { p_org: orgId }),
-    supabase.rpc("mes_demandes_signature", { p_org: orgId }),
     // Le rendez-vous à choisir : c'est le SEUL geste que l'intervention demande
     // au locataire, et il n'apparaissait que dans « Mes demandes ». Celui qui
     // n'ouvre pas cet écran ne sait pas qu'on attend sa disponibilité, et le
@@ -197,7 +197,6 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
   );
   const gestionnaire = ((gestionnaires ?? []) as Gestionnaire[])[0];
   const nbPiecesDemandees = ((piecesDemandees ?? []) as unknown[]).length;
-  const nbSignatures = ((signatures ?? []) as unknown[]).length;
   const creneauxAChoisir = (creneaux ?? []) as { intervention_id: string; categorie: string }[];
   const interventionsAPlanifier = new Set(creneauxAChoisir.map((c) => c.intervention_id)).size;
 
@@ -305,18 +304,6 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
       action: "Voir / contester",
     });
   }
-  if (nbSignatures > 0) {
-    aFaire.push({
-      cle: "signature",
-      titre:
-        nbSignatures > 1
-          ? `${nbSignatures} documents à signer`
-          : "Un document à signer",
-      detail: `À télécharger, signer, puis redéposer — votre ${qui} est prévenu.`,
-      href: `/locataire/${orgId}/documents`,
-      action: "Ouvrir",
-    });
-  }
   if (nbPiecesDemandees > 0) {
     aFaire.push({
       cle: "pieces",
@@ -365,14 +352,13 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
         eIncidents,
         eGestionnaire,
         eAnnonces,
-        eDemandes,
-        eSignatures
+        eDemandes
       ) && <PanneLecture quoi="l'essentiel de votre logement" interlocuteur={qui} />}
 
       {!eBaux && adhesionActive && (!bail || bail.etat === "brouillon") && !signalementOuvert(baux as BailLocataire[] | null) && <section className="loc-carte" aria-label="Situation de votre bail">
         <h2 className="titre-carte text-base font-medium">Votre bail n’est pas encore actif</h2>
         <p className="mt-2 text-sm text-muted-foreground">{bail ? (bail.document_signe ? "Un contrat signé est enregistré. Votre bailleur doit encore vérifier le dossier et activer le bail." : "Le contrat signé n’est pas encore disponible dans votre espace. Votre bailleur doit finaliser le dossier, puis activer le bail.") : "Aucun bail n’est encore rattaché à votre espace. Votre bailleur doit préparer ou vérifier ce rattachement."}</p>
-        <p className="mt-2 text-sm">Responsable de la prochaine étape : votre bailleur.{(nbPiecesDemandees > 0 || nbSignatures > 0) && " Des pièces ou signatures vous sont aussi demandées dans Mes documents."}</p>
+        <p className="mt-2 text-sm">Responsable de la prochaine étape : votre bailleur.{nbPiecesDemandees > 0 && " Des pièces vous sont aussi demandées dans Mes documents."}</p>
         <Link href={`/locataire/${orgId}/contact`} className="lien-discret mt-2 inline-flex min-h-11 items-center">Écrire à mon bailleur →</Link>
       </section>}
 

@@ -330,13 +330,14 @@ describe("« dans cette agence » seulement dans un espace d'agence", () => {
     });
   }
 
-  // Les cinq fonctions du locataire qui lèvent « … dans cette agence » : chaque action rend leur refus dans les mots de
-  // l'espace (attestation d'assurance, document signé, signalement : mêmes chemins que la pièce et le congé ci-dessus).
+  // Les fonctions du locataire qui lèvent « … dans cette agence » : chaque action rend leur refus dans les mots de
+  // l'espace (attestation d'assurance, signalement : mêmes chemins que la pièce et le congé ci-dessus).
+  // Décision Q21 du 24/11 (lot D5) : l'action du retour d'un document signé (ancien parcours « télécharger, signer,
+  // redéposer ») est retirée avec son écran ; sa ligne sort de cette liste.
   it.each([
     ["src/app/actions/pieces-demandees.ts", "deposer_ma_piece"],
     ["src/app/actions/conge-locataire.ts", "mon_conge_locataire"],
     ["src/app/actions/attestation-locataire.ts", "deposer_mon_attestation"],
-    ["src/app/actions/signature-locataire.ts", "retourner_document_signe"],
     ["src/app/actions/incidents.ts", "declarer_mon_incident_reprise"],
   ])("%s (%s)", (fichier, fonction) => {
     const source = readFileSync(fichier, "utf8");

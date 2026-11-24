@@ -64,7 +64,6 @@ export default async function LayoutLocataire({
     { data: nonLus, error: eNonLus },
     { data: demandes, error: eDemandes },
     { data: baux, error: eBaux },
-    { data: signatures, error: eSignatures },
     echangesNonLus,
   ] =
     await Promise.all([
@@ -73,7 +72,6 @@ export default async function LayoutLocataire({
       supabase.rpc("messages_non_lus_locataire", { p_org: orgId }),
       supabase.rpc("mes_pieces_demandees", { p_org: orgId }),
       supabase.rpc("mon_bail_locataire", { p_org: orgId }),
-      supabase.rpc("mes_demandes_signature", { p_org: orgId }),
       // Audit palier 1 (P1-05) : les discussions d'intervention qui portent un message qu'il n'a pas lu.
       lireEchangesNonLus(supabase, orgId),
     ]);
@@ -107,7 +105,6 @@ export default async function LayoutLocataire({
     eNonLus,
     eDemandes,
     eBaux,
-    eSignatures,
     // (aEchoue attend une erreur ou rien : « false » y passerait pour une panne.)
     echangesNonLus.erreur ? true : null
   );
@@ -129,8 +126,7 @@ export default async function LayoutLocataire({
           libelleContact={identite.titre}
           badgeDocuments={
             (assuranceOk ? 0 : 1) +
-            ((demandes ?? []) as unknown[]).length +
-            ((signatures ?? []) as unknown[]).length
+            ((demandes ?? []) as unknown[]).length
           }
           // Audit palier 1 (P1-05) : une discussion d'intervention à lire s'ajoute aux demandes en cours.
           badgeDemandes={demandesEnCours + echangesNonLus.lignes.length}

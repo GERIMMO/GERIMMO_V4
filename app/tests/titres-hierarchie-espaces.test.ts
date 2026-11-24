@@ -39,7 +39,9 @@ describe("DES-A-03 : hiérarchie des titres", () => {
     // 45 depuis le 22/11/2026 : la carte « Rendez-vous du … manqué » de « Mes demandes » (audit P2-04).
     // 46 depuis le 24/11/2026 (lot 61, reprise M1) : la carte « Les données d'une location » de /compte/donnees, pour
     // l'ancien locataire et les comptes sans adhésion active de locataire.
-    expect(avecClasse.length).toBe(46);
+    // 45 depuis le 24/11/2026 (lot D5, décision Q21) : la carte « Documents à signer » de « Mes documents » du
+    // locataire (ancien parcours « télécharger, signer, redéposer ») est retirée.
+    expect(avecClasse.length).toBe(45);
     const accueil = readFileSync("src/app/locataire/[orgId]/page.tsx", "utf8");
     for (const titre of ["Votre bail n’est pas encore actif", "Ce qui vous attend"])
       expect(accueil).toMatch(new RegExp(`<h2[^>]*titre-carte[^>]*>${titre}</h2>`));

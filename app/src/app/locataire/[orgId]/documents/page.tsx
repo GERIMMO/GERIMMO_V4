@@ -17,7 +17,6 @@ import {
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { ConsultationDocument } from "../consultation-document";
 import { FormulaireAttestation } from "../formulaire-attestation";
-import { DepotSignature } from "./depot-signature";
 import { SignaturesElectroniques, type SignatureLocataire } from "./signatures-electroniques";
 import { DepotPiece, type DemandePiece } from "./depot-piece";
 import { aEchoue, LectureImpossible, PanneLecture } from "../panne-lecture";
@@ -94,25 +93,17 @@ export default async function PageDocumentsLocataire(
     { data: piecesBrutes, error: ePieces },
     { data: echeancier, error: eEcheancier },
     { data: demandesBrutes, error: eDemandes },
-    { data: signaturesBrutes, error: eSignatures },
     rectifications,
     { data: circuitsBruts, error: eCircuits },
   ] = await Promise.all([
     supabase.rpc("mes_pieces_locataire", { p_org: orgId }),
     supabase.rpc("mon_echeancier_locataire", { p_org: orgId }),
     supabase.rpc("mes_pieces_demandees", { p_org: orgId }),
-    supabase.rpc("mes_demandes_signature", { p_org: orgId }),
     supabase.rpc("mes_rectifications_quittances", { p_org: orgId }),
     // Audit palier 1 (P1-06) : l'état des signatures électroniques où le locataire est signataire.
     supabase.rpc("mes_signatures_electroniques", { p_org: orgId }),
   ]);
   const signaturesElectroniques = (circuitsBruts ?? []) as SignatureLocataire[];
-  const aSigner = ((signaturesBrutes ?? []) as {
-    id: string;
-    document_id: string;
-    titre: string | null;
-    demandee_le: string;
-  }[]);
   const demandes = (demandesBrutes ?? []) as DemandePiece[];
   const pieces = [...new Map(((piecesBrutes ?? []) as Piece[]).map(p => [p.document_id, p])).values()];
   const quittances = ((echeancier ?? []) as LigneEcheancier[]).filter((l) => l.quittance_id);
@@ -160,7 +151,7 @@ export default async function PageDocumentsLocataire(
         )}
       </div>
 
-      {aEchoue(ePieces, eEcheancier, eDemandes, eSignatures, eCircuits) && (
+      {aEchoue(ePieces, eEcheancier, eDemandes, eCircuits) && (
         <PanneLecture quoi="vos documents" interlocuteur={qui} />
       )}
 
@@ -170,28 +161,12 @@ export default async function PageDocumentsLocataire(
 
       <SignaturesElectroniques signatures={signaturesElectroniques} />
 
-      {(aSigner.length > 0 || demandes.length > 0 || (adhesionActive && !lecturePiecesKO && !etatAssurance.nonExpiree)) && <p className="flex flex-wrap items-center gap-x-2 rounded-[var(--rayon-carte)] border border-[var(--filet)] bg-[var(--carte)] px-4 py-2 text-sm shadow-[var(--ombre-1)]"><span><b>À faire :</b> vérifiez les pièces ou signatures attendues.</span> <a className="inline-flex min-h-11 items-center font-medium text-[var(--bleu)] underline underline-offset-2" href="#documents-a-transmettre">Voir les éléments à transmettre →</a></p>}
+      {(demandes.length > 0 || (adhesionActive && !lecturePiecesKO && !etatAssurance.nonExpiree)) && <p className="flex flex-wrap items-center gap-x-2 rounded-[var(--rayon-carte)] border border-[var(--filet)] bg-[var(--carte)] px-4 py-2 text-sm shadow-[var(--ombre-1)]"><span><b>À faire :</b> vérifiez les pièces attendues.</span> <a className="inline-flex min-h-11 items-center font-medium text-[var(--bleu)] underline underline-offset-2" href="#documents-a-transmettre">Voir les éléments à transmettre →</a></p>}
       <OngletsDossier libelle="Rubriques de mes documents"
         initiale="documents-disponibles"
         rubriques={[
           { id: "documents-a-transmettre", titre: "À transmettre", contenu: <>
       {/* Les pièces que votre gestionnaire attend (RM-0b.2.5) */}
-      {aSigner.length > 0 && adhesionActive && (
-        <div className="loc-carte">
-          <div className="entete-carte !mb-1">
-            <h2 className="titre-carte text-base font-medium">
-              {aSigner.length > 1 ? "Documents à signer" : "Un document à signer"}
-            </h2>
-            <span className="loc-tag ambre">à signer</span>
-          </div>
-          <div className="divide-y divide-border">
-            {aSigner.map((d) => (
-              <DepotSignature key={d.id} orgId={orgId} demande={d} interlocuteur={qui} />
-            ))}
-          </div>
-        </div>
-      )}
-
       {demandes.length > 0 && (
         <div className="loc-carte">
           <div className="entete-carte !mb-0">
@@ -210,8 +185,8 @@ export default async function PageDocumentsLocataire(
 
       {/* L'obligation annuelle d'abord : l'assurance, avec le dépôt sur place.
           id="assurance" : les lignes d'assurance de l'accueil pointent sur
-          /documents#assurance — sur 390 px cette carte est le 3ᵉ bloc, sous
-          « Documents à signer » et « Des pièces vous sont demandées », c'est-
+          /documents#assurance — sur 390 px cette carte est le 2ᵉ bloc, sous
+          « Des pièces vous sont demandées », c'est-
           à-dire précisément quand il y a le plus à faire (relevé 11/09).
           scroll-mt : l'en-tête .loc-haut est collant (globals.css:627). */}
       <div

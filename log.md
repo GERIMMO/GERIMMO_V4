@@ -8180,3 +8180,9 @@ cahier V3 et le wiki (sans autre document). La décision la plus récente l'empo
 - **Questions notées dans les relectures, pas encore numérotées dans `QUESTIONS.md`** : durée de conservation et
   accès du locataire à la notice déposée ; pièce exigée dès la saisie d'une retenue ; pièces liées à un mandat ;
   trois points d'écran du lot 61.
+
+## [2026-11-24] ingest | Recueil des textes officiels (37 références, v6) déposé par le dirigeant
+
+- Fichier : `raw/Gerimmo-textes-officiels-recueil-v6.pdf` (166 pages). Chaque texte porte une adresse Légifrance et une date de version.
+- Provenance : recueil assemblé pour le dirigeant ; non recontrôlé par nous sur Légifrance (accès refusé). Traité comme « texte fourni, source déclarée ».
+- En cours : confrontation au code et aux réponses du juriste (trois lectures). Page-résumé du wiki et pages touchées à écrire une fois les lectures rendues.

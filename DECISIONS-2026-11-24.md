@@ -63,3 +63,18 @@ Aucun texte lu ne fixe de règle précise sur ces points. Choix pris par Claude,
 Décision du dirigeant, mot pour mot : « Pas de copie de base (Q1 annulée). Publication directe en production après mon message "je valide la publication". »
 
 Conséquences notées par Claude : aucune copie de base hébergée n'est créée (aucun coût). Il n'y aura donc pas de lien de préproduction utilisable avec un compte : les vérifications se font sur le banc local de Claude, avec des données fictives, puis en production juste après la publication (parcours de vérification de 15 minutes, retour en arrière prêt).
+
+## Complément du 24/11 (nuit) — périmètre, comptes, clé, textes
+
+Décisions du dirigeant, mot pour mot :
+- « Q64 c'est des tests »
+- « q9 pas encore » … « pour la clés, rappel le moi plus tard »
+- « Reporte la facture et les défaut mineurs mais retiens les. »
+- « Donne moi en pdf tout les articles dont ta besoin et je te répondrais avec un autre pdf (je vais demander à chat gpt) »
+
+Ce que cela donne :
+- Q64 : les deux comptes créés le 19/11 sont des comptes de test.
+- Q14 (facture fabriquée par Gerimmo pour l'artisan) : REPORTÉE après la publication. Rien n'est codé. À reprendre ensuite, sous interrupteur fermé, avec l'accord d'un expert-comptable.
+- Défauts MINEURS de la console du super admin : REPORTÉS après la publication. Les défauts majeurs de la console sont corrigés avant. La liste complète est gardée (lots 64 et 65 de la relecture des écrans).
+- Q9 (clé des sauvegardes) : pas encore faite ; à rappeler au dirigeant ; une sauvegarde neuve, relisible, doit exister avant la publication.
+- Q62 : la liste des textes à fournir est dans livrables/Gerimmo-textes-officiels-a-fournir.pdf. Un texte n'est tenu pour « lu » que s'il vient de Légifrance, avec son adresse et sa date de version ; un texte récité par une intelligence artificielle sans source ne compte pas.

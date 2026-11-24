@@ -34,6 +34,7 @@ import { assemblerComplementBail } from "@/lib/documents/modeles/catalogue-bail"
 import { construireBailNu } from "@/lib/documents/modeles/bail-nu";
 import { construireBailMeuble } from "@/lib/documents/modeles/bail-meuble";
 import { assemblerBailColocation } from "@/lib/documents/modeles/bail-colocation";
+import { assemblerBailIndividuel } from "@/lib/documents/modeles/bail-individuel";
 import { assemblerNotice } from "@/lib/documents/modeles/notice";
 import { assemblerAvenant } from "@/lib/documents/modeles/avenant";
 import { assemblerCautionnement } from "@/lib/documents/modeles/cautionnement";
@@ -177,18 +178,33 @@ describe("W33 — garde : le HTML des documents signés en ligne ne change pas (
     avenant: "574e5d33716c8970cd60e45ff90f103c59a4b461497c60762969ce6b9b04f332",
     avenant_remplacement: "748025b2c70cd30b567d950747e521071274ac92e92c12ec81d0529f16f96179",
     bail_colocation: "aed3af5dd5e3a23dad87b6507188448d6d5a449f443ad4bcd536f52637f96111",
+    bail_individuel: "c050239518810a2abc538d9a483c8157afbddb3d4d90abcd1ea538b176127304",
     bail_meuble: "0c4a7adc4096de3362a1090b75659b596e0bb4b90722416d0eda14b10cfc2b88",
     bail_nu: "154c4f7e321d4ffbd05908727375d52ec009ca1fe12289cd87d6b159d05ceb7d",
     cautionnement: "29215ed449ecd868c147fec1121d43e9eb3fcf208879f1d5327dc8f6053e9a0c",
     edl_entree: "200466aa191403c439ec7ba0aba70e9bc255f06cec214a3a70aac0c4f78cf6cf",
     edl_sortie: "7b7b1f541e38f105cd3ebd5addcb4b95a99e7a190338fea149000cb381ac8752",
     notice: "23f70583f1c11c540538fe8ac29c4e7cb6dc29fad487de257f6b534075985a89",
-    protocole_apurement: "5b5f7821e7a0d864c1c40370bfa4fecfe1f39c5e44011b7fa8881c2bc20c7fd4",
+    // Relecture des reprises 52-53 : l'IBAN du contexte d'essai (« FR76 3000 4000 0500 0012 3456 789 ») est fictif et sa clé de
+    // contrôle est fausse ; ibanLisible ne le regroupe plus, il s'imprime tel que saisi. Seul un protocole dont l'IBAN enregistré
+    // a une clé fausse change donc d'empreinte ; avec un IBAN valide, son HTML est le même qu'avant (cas du banc, contrôlé au
+    // rendu des familles). Ancienne empreinte : 5b5f7821e7a0d864c1c40370bfa4fecfe1f39c5e44011b7fa8881c2bc20c7fd4.
+    protocole_apurement: "1c51d3a4d4f6fdd8b0acb0393b9f99846f0b2374fd9d6f9b47e1d7261af9f359",
   };
   const documents: [string, () => Promise<DocumentAssemble>][] = [
     ["bail_nu", async () => construireBailNu(ctx, { dpeClasse: "D", f: new Fusion() })],
     ["bail_meuble", async () => construireBailMeuble(ctx, { dpeClasse: "D", inventaire, f: new Fusion() } as never)],
     ["bail_colocation", async () => { vi.mocked(chargerContexteBail).mockResolvedValueOnce(colocation()); return succes(await assemblerBailColocation(clientColocation(), "org", "b1")).document; }],
+    // Relecture des reprises 52-53 : le contrat individuel de colocation est signé en ligne (politique-signature.ts) ; sa garde
+    // manquait. Empreinte relevée sur 962ee6ea, code du contrat inchangé depuis le lot 50 (comparaison.txt de la reprise 53).
+    ["bail_individuel", async () => {
+      const c = colocation();
+      c.locataires.splice(1);
+      Object.assign(c.bail, { chambre_id: "c1" });
+      c.chambre = { id: "c1", nom: "Chambre 2", surface_m2: "14.00" as never, volume_m3: "35.00" as never, description: "Porte palière à gauche.", espaces_partages: "Cuisine, salle d'eau.", equipements: "Lit, bureau." };
+      vi.mocked(chargerContexteBail).mockResolvedValueOnce(c);
+      return succes(await assemblerBailIndividuel(clientColocation(), "org", "b1")).document;
+    }],
     ["notice", async () => succes(await assemblerNotice(base(), "org", "b1")).document],
     ["edl_entree", async () => construireEdl(donneesEdl("entree"))],
     ["edl_sortie", async () => construireEdl(donneesEdl("sortie"))],

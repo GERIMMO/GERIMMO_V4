@@ -506,7 +506,16 @@ export function ibanLisible(iban: string | null | undefined): string | null {
   const saisie = String(iban ?? "").trim();
   if (!saisie) return null;
   const brut = saisie.replace(/\s+/g, "").toUpperCase();
-  return /^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(brut) ? brut.replace(/(.{4})(?=.)/g, "$1\u00a0") : saisie;
+  return /^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(brut) && cleIbanValide(brut) ? brut.replace(/(.{4})(?=.)/g, "$1\u00a0") : saisie;
+}
+// Relecture des reprises 52-53 : la forme seule laissait passer « FR76… 189 LCL » (un IBAN suivi du nom de la banque), recoupé
+// en un IBAN faux. La clé de contrôle (reste 1 modulo 97, norme ISO 13616) départage : une saisie dont la clé ne tombe pas juste
+// s'imprime telle quelle.
+function cleIbanValide(brut: string): boolean {
+  const chiffres = (brut.slice(4) + brut.slice(0, 4)).replace(/[A-Z]/g, (l) => String(l.charCodeAt(0) - 55));
+  let reste = 0;
+  for (const c of chiffres) reste = (reste * 10 + Number(c)) % 97;
+  return reste === 1;
 }
 export function coordonneesBancaires(f: Fusion, lieuPaiement: string | null | undefined, iban: string | null | undefined): string {
   return demandeVirement(lieuPaiement) ? f.champ(iban, LIBELLE_COORDONNEES_BANCAIRES) : facultatif(iban);

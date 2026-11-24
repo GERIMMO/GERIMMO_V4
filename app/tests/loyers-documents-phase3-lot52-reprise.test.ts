@@ -162,3 +162,17 @@ describe("Révision du loyer — la date du courrier est le jour de Paris", () =
     expect(texteDe(construireRevisionIrl(donnees()).html)).not.toContain("après cette date d'effet");
   });
 });
+
+describe("relecture des reprises 52-53 — un IBAN ne se regroupe que si sa clé de contrôle est juste", () => {
+  it.each([
+    ["FR7630006000011234567890189", "FR76 3000 6000 0112 3456 7890 189"],
+    ["fr76 3000 6000 0112 3456 7890 189", "FR76 3000 6000 0112 3456 7890 189"],
+    ["BE68539007547034", "BE68 5390 0754 7034"],
+    ["DE89370400440532013000", "DE89 3704 0044 0532 0130 00"],
+    ["FR76 3000 6000 0112 3456 7890 189 LCL", "FR76 3000 6000 0112 3456 7890 189 LCL"],
+    ["FR7630006000011234567890180", "FR7630006000011234567890180"],
+  ])("« %s » → « %s »", async (saisie, attendu) => {
+    const { ibanLisible } = await import("@/lib/documents/modeles/communs");
+    expect(ibanLisible(saisie)).toBe(attendu);
+  });
+});

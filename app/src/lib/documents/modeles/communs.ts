@@ -484,6 +484,15 @@ export const LIBELLE_COORDONNEES_BANCAIRES = "coordonnées bancaires (IBAN) du c
 export function demandeVirement(lieuPaiement: string | null | undefined): boolean {
   return /virement/i.test(lieuPaiement ?? "");
 }
+// Phase 3, lot 52 (W24) : l'IBAN d'un courrier qui demande un virement s'imprime comme sur le portail du locataire (page
+// « Loyers ») : sans espace saisie, en majuscules, par groupes de quatre — il sortait d'un bloc de 27 caractères, difficile à
+// recopier. Les groupes sont liés par des espaces insécables : l'IBAN ne se coupe pas en fin de ligne. Vide : null (le manque
+// reste signalé par coordonneesBancaires). Les baux ne l'emploient pas : leur texte entre dans l'empreinte d'un circuit de
+// signature déjà préparé, recalculée à l'activation.
+export function ibanLisible(iban: string | null | undefined): string | null {
+  const brut = String(iban ?? "").replace(/\s+/g, "").toUpperCase();
+  return brut ? brut.replace(/(.{4})(?=.)/g, "$1\u00a0") : null;
+}
 export function coordonneesBancaires(f: Fusion, lieuPaiement: string | null | undefined, iban: string | null | undefined): string {
   return demandeVirement(lieuPaiement) ? f.champ(iban, LIBELLE_COORDONNEES_BANCAIRES) : facultatif(iban);
 }

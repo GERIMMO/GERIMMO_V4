@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Fusion, assemblerPage, cadreSignature, blocSignatureEmetteur, cartouches, enTete, faitA, faitALaSignature, section, tableau, titre, eur, nombreFr, pointFinal, facultatif, ouNeant, echapper, formaterDateFr } from "../gabarit";
 import { CATALOGUE_DOCUMENTS } from "../catalogue";
-import { signatureOrganisation, chargerContexteBail, expediteur, adresseLogement, adressePostaleLogement, nomsBailleurs, nomsLocataires, nomPersonne, liensLocataires, referenceCourte, referenceAvenant, libellePeriodeTerme, interlocuteurLocataire, libelleSignataireBailleur, coordonneesBancaires, demandeVirement } from "./communs";
+import { signatureOrganisation, chargerContexteBail, expediteur, adresseLogement, adressePostaleLogement, nomsBailleurs, nomsLocataires, nomPersonne, liensLocataires, referenceCourte, referenceAvenant, libellePeriodeTerme, interlocuteurLocataire, libelleSignataireBailleur, coordonneesBancaires, ibanLisible, demandeVirement } from "./communs";
 import { TYPES_DIAGNOSTIC } from "@/lib/parc";
 import { LIBELLE_ETAT_INVENTAIRE } from "@/lib/inventaire-meuble";
 import { modeSignatureDocument } from "@/lib/politique-signature";
@@ -136,16 +136,25 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
       // de sa génération, au-dessus de cadres vides (et parfois AVANT le constat qu'il consigne) : la date se porte à la signature.
       dateALaSignature = true;
     } else if (code === "attestation_loyer" || code === "attestation_caf") {
+      // Phase 3, lot 52 (W31) : le dossier CAF se dit récapitulatif d'un bout à l'autre ; il reprenait les formules de
+      // l'attestation de loyer (« Le bailleur atteste », « Destinataire », « Cette attestation ») puis disait ne pas valoir
+      // formulaire. L'attestation de loyer ne change pas.
+      const caf = code === "attestation_caf";
+      // Lot 52 : dans ce paragraphe, le « € » passait seul à la ligne (« 40,00 » / « € (forfait) ») ; une espace insécable le
+      // garde avec le nombre, comme le plafond de l'acte de cautionnement (lot 51, W13). eur() n'est pas touché.
+      const montantInsecable = (n: number | null) => f.montant(n).replace(/ €</, "\u00a0€<");
       contenu = `${section("Situation locative")}
-        <p>Le bailleur atteste que le locataire désigné est titulaire du contrat relatif aux locaux désignés, prenant effet le ${f.date(ctx.bail.date_debut)}.
+        <p>${caf ? "Le" : "Le bailleur atteste que le"} locataire désigné est titulaire du contrat relatif aux locaux désignés, prenant effet le ${f.date(ctx.bail.date_debut)}.
         ${/* Phase 3 (C60, C61) : un bail en préavis a une fin connue ; l'attestation la dit (elle ne disait que la date d'effet). */
           ctx.bail.etat === "preavis" ? `Un congé est enregistré : le contrat prend fin le ${f.date(ctx.bail.date_fin, "date de fin du contrat (congé enregistré)")}.` : ""}
-        Loyer mensuel hors charges : ${f.montant(ctx.bail.loyer_hc)} ; charges mensuelles : ${f.montant(ctx.bail.charges)} (${ctx.bail.charges_mode === "forfait" ? "forfait" : "provisions"}).
+        Loyer mensuel hors charges : ${montantInsecable(ctx.bail.loyer_hc)} ; charges mensuelles : ${montantInsecable(ctx.bail.charges)} (${ctx.bail.charges_mode === "forfait" ? "forfait" : "provisions"}).
         ${ctx.chambre ? "Les montants concernent exclusivement la chambre et le droit d’usage des espaces partagés de ce contrat individuel." : ""}</p>
-        <p>Destinataire : ${opt("destinataire","organisme ou destinataire")}${pointFinal(options.destinataire)}</p>
-        <p>Cette attestation décrit les conditions du bail ; les paiements effectifs sont justifiés par les quittances ou reçus.</p>`;
+        <p>${caf ? "Caisse concernée" : "Destinataire"} : ${opt("destinataire","organisme ou destinataire")}${pointFinal(options.destinataire)}</p>
+        <p>${caf ? "Ce récapitulatif reprend" : "Cette attestation décrit"} les conditions du bail ; les paiements effectifs sont justifiés par les quittances ou reçus.</p>`;
       if (code === "attestation_caf") contenu += `${section("Informations pour l’attestation officielle")}
-        <p>Numéro allocataire : ${opt("allocataire","numéro allocataire CAF ou MSA")} ; nombre d’occupants du contrat : ${ctx.locataires.length}.
+        <p>Numéro allocataire : ${opt("allocataire","numéro allocataire CAF ou MSA")} ; ${/* Phase 3, lot 52 (W32) : le nombre compté est celui des
+        locataires titulaires du bail (principal et colocataires) ; Gerimmo ne connaît pas les autres personnes du foyer, que
+        « occupants » laissait entendre. */ ""}nombre de locataires titulaires du contrat : ${ctx.locataires.length}.
         Logement ${ctx.lot.meuble ? "meublé" : "nu"} ; surface du logement : ${f.champ(ctx.lot.surface_m2 == null ? null : nombreFr(ctx.lot.surface_m2),"surface du logement")} m².
         ${ctx.chambre ? `Surface privative : ${f.champ(ctx.chambre.surface_m2 == null ? null : nombreFr(ctx.chambre.surface_m2),"surface privative")} m².` : ""}</p>
         <p>Le formulaire officiel Cerfa 10842*07 reste à compléter et signer par le bailleur. Ce récapitulatif prépare la saisie ; il ne vaut pas formulaire CAF/MSA homologué.</p>`;
@@ -214,7 +223,7 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
       }
       if (code === "mise_en_demeure") contenu += `<p>Par le présent courrier, nous vous mettons en demeure de régler les sommes échues détaillées ci-dessus dans un délai de ${opt("delai","délai de règlement à compter de la réception")} jours à compter de sa réception, sous réserve des règlements intervenus depuis son établissement.</p><p>Ce courrier est à notifier avec preuve de réception. Il ne constitue ni un commandement de payer ni une décision de résiliation du bail.</p>`;
       // C72 : un règlement demandé par virement donne le compte où verser, comme l'avis d'échéance (même source, même règle).
-      if (code !== "situation_dette") contenu += `<p>Modalités de règlement : ${f.champ(ctx.bail.lieu_paiement,"modalités de règlement")}${demandeVirement(ctx.bail.lieu_paiement) ? ` ; coordonnées bancaires : ${coordonneesBancaires(f, ctx.bail.lieu_paiement, ctx.organisation.iban)}` : ""} ; référence à rappeler : ${referenceCourte("BAIL",bailId)}.</p>`;
+      if (code !== "situation_dette") contenu += `<p>Modalités de règlement : ${f.champ(ctx.bail.lieu_paiement,"modalités de règlement")}${demandeVirement(ctx.bail.lieu_paiement) ? ` ; coordonnées bancaires : ${coordonneesBancaires(f, ctx.bail.lieu_paiement, ibanLisible(ctx.organisation.iban))}` : ""} ; référence à rappeler : ${referenceCourte("BAIL",bailId)}.</p>`;
       if (code === "protocole_apurement") {
         if (!plan) {
           contenu += `${section("Échéancier convenu")}<p>Échéancier : ${f.champ(null, LIBELLE_PLAN_A_ENREGISTRER)}.</p>`;
@@ -344,7 +353,12 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
     // de début non saisie (dossier en préparation) n'est pas exigée ici : la case garde alors la référence seule.
     const contratDesigne = `Réf. ${referenceCourte("BAIL",bailId)}${ctx.bail.date_debut ? ` — prise d’effet le ${f.date(ctx.bail.date_debut)}` : ""}`;
     const caseLocataires = plusieurs ? "Locataires" : "Locataire";
-    const corps = `${enTete(f,exp,avenant ? {libelle:"Avenant",reference:avenant.reference,etabliLe:aujourdhui} : {libelle:"Dossier",reference:referenceCourte("BAIL",bailId),etabliLe:aujourdhui})}${titre(meta.nom,avenant ? "Modification du contrat commun de location" : "Dossier de location",[])}
+    // Phase 3, lot 52 (W30, reste de C24) : la référence BAIL-… de l'en-tête est celle du contrat, nommée « Contrat » comme dans
+    // la case du même nom (« Dossier n° » d'un côté, « Contrat » de l'autre). L'attestation de loyer et le dossier CAF ne sont pas
+    // un « dossier de location » (le dossier d'un candidat) : sans sous-titre (le CAF lisait « Dossier de préparation CAF / MSA »
+    // puis « Dossier de location »). Les autres documents du dossier gardent le leur.
+    const sousTitre = code === "attestation_loyer" || code === "attestation_caf" ? "" : "Dossier de location";
+    const corps = `${enTete(f,exp,avenant ? {libelle:"Avenant",reference:avenant.reference,etabliLe:aujourdhui} : {libelle:"Contrat",reference:referenceCourte("BAIL",bailId),etabliLe:aujourdhui})}${titre(meta.nom,avenant ? "Modification du contrat commun de location" : sousTitre,[])}
       ${cartouches([["Bailleur",nomsBailleurs(f,ctx.bailleurs)],adresseDestinataire === undefined ? [caseLocataires,nomsLocataires(f,ctx.locataires)] : [`${caseLocataires} (${plusieurs ? "destinataires" : "destinataire"})`,`${nomsLocataires(f,ctx.locataires)}${adresseDestinataire.map(ligne => `<div>${facultatif(ligne)}</div>`).join("")}`],["Locaux concernés",f.champ(adresseLogement(ctx.lot,ctx.bien),"adresse du logement")],["Contrat",avenant?.contrat ?? contratDesigne]])}
       ${contenu}${avenant ? `${faitALaSignature(f,exp.ville)}${avenant.signatures}` : `${dateALaSignature ? faitALaSignature(f,exp.ville) : faitA(f,exp.ville,aujourdhui)}${signatureEmetteur ?? (signatures ? `<div class="signatures">${cadreSignature(libelleSignataireBailleur(ctx.organisation.type),nomsBailleurs(f,ctx.bailleurs))}${cadreSignature(plusieurs ? "Les locataires" : "Le locataire",nomsLocataires(f,ctx.locataires))}</div>` : "")}`}`;
     return { document:assemblerPage({f,titreDocument:meta.nom,nomPied:meta.nom,reference,corps:`<style>.bloc-titre{padding:10pt 0;margin-bottom:8pt}h1{font-size:19pt;letter-spacing:.2em}h2{margin:14pt 0 8pt}.cartouches{margin:10pt 0}p{margin:4pt 0}</style>${corps}`}),titreGed:meta.nom,nomFichier:`${code}-${bailId.slice(0,8)}`,liens:[{entite:"bail",entiteId:bailId},{entite:"lot",entiteId:ctx.lot.id},...liensLocataires(ctx)] };

@@ -125,8 +125,9 @@ describe("C54 — révision : à partir de quel terme le loyer révisé est appe
     expect(texte).toContain("Le terme d’octobre 2026, appelé avant l'enregistrement de cette révision, reste au loyer de 700,00 € : aucun complément n'est appelé pour la période du 15/10/2026 au 31/10/2026.");
     expect(texte).toContain("Loyer hors charges révisé, appelé à compter du terme de novembre 2026 710,50 €");
     expect(texte).not.toContain("révisé, à compter du 15/10/2026");
-    // La date d'effet reste dite.
-    expect(texte).toContain("La révision prend effet à la date anniversaire du bail, le 15/10/2026.");
+    // La date d'effet reste dite. Lot 52 (W25) : précédée de la date de la demande enregistrée (« La révision a été demandée le
+    // 15/10/2026. Elle prend effet… ») ; la phrase seule ne disait pas quand la révision avait été demandée.
+    expect(texte).toContain("La révision a été demandée le 15/10/2026. Elle prend effet à la date anniversaire du bail, le 15/10/2026.");
   });
   it("règle de lecture des appels (applicationRevision)", () => {
     const appel = (periode: string, base: number) => ({ periode, loyer_hc: base, base_loyer_hc: base });

@@ -15,6 +15,7 @@ import {
   section,
   tableau,
   titre,
+  echapper,
 } from "../gabarit";
 import { deElide } from "@/lib/elision";
 import {
@@ -45,6 +46,8 @@ export type DonneesRevisionIrl = {
   nouveauLoyer: number;
   irlReference: number | null;
   irlNouveau: number | null;
+  /** D'où vient l'indice de référence (W29) : la révision précédente du bail ou l'indice figé au bail ; absent ou null : non établi. */
+  origineReference?: OrigineReference | null;
   trimestre: string | null;
   charges: number | null;
   /** 'provision' | 'forfait' — le libellé des charges suit le bail. */
@@ -179,6 +182,50 @@ export function chargesInchangees(mode: string | null | undefined): string {
   return "montant inchangé";
 }
 
+// Phase 3, lot 52 (W29) : l'origine de l'indice de référence, telle que reviser_loyer l'a choisie (indice de la dernière
+// révision appliquée, sinon celui figé au bail). Le document la dit au lieu d'énoncer la règle.
+export type OrigineReference = { revisionDu: string; trimestre: string | null } | { bail: true; trimestre: string | null };
+export type RevisionPrecedente = { date_effet: string; irl_nouveau: number | string | null; irl_trimestre: string | null };
+
+/**
+ * Retrouve l'indice de référence d'une révision comme reviser_loyer l'a pris : l'indice nouveau de la révision précédente du
+ * bail (la plus récente avant la date d'effet), sinon l'indice figé au bail. Rien n'est affirmé si la valeur ainsi retrouvée
+ * n'est pas celle enregistrée sur la révision (données antérieures à cette règle) : `null`, et le libellé reste la règle.
+ */
+export function origineReference(
+  dateEffet: string,
+  irlReference: number | null,
+  precedentes: RevisionPrecedente[],
+  bail: { irl_valeur: number | string | null; irl_trimestre: string | null }
+): OrigineReference | null {
+  if (irlReference === null) return null;
+  const memeValeur = (v: number | string | null | undefined) => v !== null && v !== undefined && Number(v) === irlReference;
+  const precedente = precedentes
+    .filter((r) => r.date_effet.slice(0, 10) < dateEffet.slice(0, 10))
+    .sort((a, b) => b.date_effet.localeCompare(a.date_effet))[0];
+  if (precedente && Number(precedente.irl_nouveau ?? 0) !== 0) {
+    return memeValeur(precedente.irl_nouveau) ? { revisionDu: precedente.date_effet.slice(0, 10), trimestre: precedente.irl_trimestre } : null;
+  }
+  return memeValeur(bail.irl_valeur) ? { bail: true, trimestre: bail.irl_trimestre } : null;
+}
+
+function libelleIndiceReference(o: OrigineReference | null | undefined): string {
+  if (!o) return "Indice de référence (dernière révision, à défaut indice figé au bail)";
+  const trimestre = o.trimestre ? `, ${o.trimestre}` : "";
+  return "bail" in o
+    ? `Indice de référence (indice figé au bail${trimestre})`
+    : `Indice de référence (indice de la révision du ${formaterDateFr(o.revisionDu)}${trimestre})`;
+}
+
+// Phase 3, lot 52 (W27) : un indice s'écrit avec ses deux décimales, comme il est saisi et publié (100,00 et 101,50) ;
+// toLocaleString sans option effaçait les zéros de fin (« 100 », « 101,5 »). Une saisie plus fine n'est pas arrondie.
+function indice(n: number | null | undefined): string | null {
+  return n === null || n === undefined ? null : n.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+}
+
+// Phase 3, lot 52 (W26) : la référence d'article ne se coupe pas en fin de ligne (« article 17- » / « 1 I de la loi »).
+const ARTICLE_17_1_I = '<span style="white-space:nowrap">article 17-1&nbsp;I</span>';
+
 export function construireRevisionIrl(d: DonneesRevisionIrl) {
   const f = d.f;
   const variation =
@@ -189,23 +236,32 @@ export function construireRevisionIrl(d: DonneesRevisionIrl) {
       : null;
   const rapport =
     d.irlReference && d.irlNouveau
-      ? `${eur(d.ancienLoyer)} × ${d.irlNouveau.toLocaleString("fr-FR")} / ${d.irlReference.toLocaleString("fr-FR")}`
+      ? `${eur(d.ancienLoyer)} × ${indice(d.irlNouveau)} / ${indice(d.irlReference)}`
       : null;
 
   // Audit 29/09 (art. 17-1 I, rédaction ALUR) : demandée après la date
   // anniversaire, la révision prend effet à la date de la demande — la lettre
   // ne l'annonce jamais « à compter » d'un anniversaire passé.
   const echeance = d.dateEcheance ?? d.dateEffet;
+  const etabliLe = new Date().toISOString();
   const tardive = Boolean(d.dateDemande && d.dateEcheance && d.dateDemande > d.dateEcheance);
   const phraseEffet = tardive
     ? `<p>La révision se rattache à l'échéance annuelle du ${f.date(echeance)}. Demandée le
        ${f.date(d.dateDemande)}, après cette date anniversaire, elle prend effet à la date de la
-       demande, soit le <b>${f.date(d.dateEffet)}</b>, sans effet rétroactif (article 17-1 I de la
+       demande, soit le <b>${f.date(d.dateEffet)}</b>, sans effet rétroactif (${ARTICLE_17_1_I} de la
        loi du 6 juillet 1989).</p>`
-    : `<p>La révision prend effet à la date anniversaire du bail, le <b>${f.date(d.dateEffet)}</b>.</p>`;
+    : // Phase 3, lot 52 (W25) : la date de la demande enregistrée est dite aussi quand la révision est demandée à l'échéance
+      // (ou avant) : un courrier établi après la date d'effet ne la disait pas, et le seul acte daté semblait être ce courrier,
+      // à rebours des mentions (« demandée après, elle prend effet à la date de la demande »). Sans date de demande enregistrée
+      // (révision antérieure au 29/09), le document le dit quand la date d'effet précède sa propre date, sans rien supposer.
+      `<p>${d.dateDemande ? `La révision a été demandée le ${f.date(d.dateDemande)}. Elle` : "La révision"} prend effet à la date anniversaire du bail, le <b>${f.date(d.dateEffet)}</b>.${
+        !d.dateDemande && d.dateEffet.slice(0, 10) < etabliLe.slice(0, 10) ? " La date de la demande de révision n'est pas enregistrée dans le dossier." : ""
+      }${
+        d.dateEffet.slice(0, 10) < etabliLe.slice(0, 10) ? ` Le présent courrier est établi le ${f.date(etabliLe)}, après cette date d'effet.` : ""
+      }</p>`;
 
   const corps = `
-    ${enTete(f, d.exp, { libelle: "Contrat", reference: d.referenceBail, etabliLe: new Date().toISOString() })}
+    ${enTete(f, d.exp, { libelle: "Contrat", reference: d.referenceBail, etabliLe })}
     ${titre("Révision du loyer", `Échéance annuelle du ${f.date(echeance)}`, [
       "Article 17-1 de la loi n° 89-462 du 6 juillet 1989 — indice de référence des loyers (IRL)",
     ])}
@@ -228,20 +284,23 @@ export function construireRevisionIrl(d: DonneesRevisionIrl) {
         [`${libelleCharges(d.chargesMode)} (${chargesInchangees(d.chargesMode)})`, f.montant(d.charges, "montant inchangé")],
       ]
     )}
+    ${/* Phase 3, lot 52 (W28) : le titre et ce tableau de cinq lignes restent ensemble (comme les compteurs d'un état des lieux,
+         lot 51) : coupé, il séparait les deux indices du calcul entre deux pages. */ ""}<div style="break-inside:avoid-page;page-break-inside:avoid">
     ${section("Indices retenus")}
     ${tableau(
       [{ libelle: "Référence" }, { libelle: "Valeur", droite: true }],
       [
         ["Trimestre de référence du bail", f.champ(d.trimestre, "ex. 2e trimestre")],
         ["Trimestre du nouvel indice (même trimestre que la référence)", f.champ(d.trimestreNouveau, "ex. T2 2026")],
-        ["Nouvel indice retenu", f.champ(d.irlNouveau?.toLocaleString("fr-FR"), "indice du trimestre de révision")],
+        ["Nouvel indice retenu", f.champ(indice(d.irlNouveau), "indice du trimestre de révision")],
         [
-          "Indice de référence (dernière révision, à défaut indice figé au bail)",
-          f.champ(d.irlReference?.toLocaleString("fr-FR"), "indice de référence"),
+          echapper(libelleIndiceReference(d.origineReference)),
+          f.champ(indice(d.irlReference), "indice de référence"),
         ],
         ["Variation", f.champ(variation, "en pourcentage")],
       ]
     )}
+    </div>
     ${section("Note de calcul")}
     <p>${f.champ(rapport, "rapport des indices")} = ${f.montant(d.nouveauLoyer, "montant avant arrondi")}
     (arrondi au centime le plus proche).</p>
@@ -251,10 +310,10 @@ export function construireRevisionIrl(d: DonneesRevisionIrl) {
       l'indice de référence. Elle prend effet à la date convenue au bail si elle est demandée à
       cette date ; demandée après, elle prend effet à la date de la demande, sans rétroactivité.
       Le bailleur dispose d'un an à compter de la date anniversaire pour en faire la demande —
-      passé ce délai, il est réputé y avoir renoncé pour l'année écoulée (article 17-1 I de la loi
+      passé ce délai, il est réputé y avoir renoncé pour l'année écoulée (${ARTICLE_17_1_I} de la loi
       du 6 juillet 1989, rédaction issue de la loi n° 2014-366 du 24 mars 2014).</p>
     </div>
-    ${faitA(f, d.exp.ville, new Date().toISOString())}
+    ${faitA(f, d.exp.ville, etabliLe)}
     ${blocSignatureEmetteur(d.exp.nom, d.signatureImg ?? null)}
   `;
   return assemblerPage({
@@ -293,6 +352,17 @@ export async function assemblerRevisionIrl(
     .limit(36);
   if (erreurAppels) return { erreur: "Les appels de loyer du bail n’ont pas pu être lus. Réessayez avant de générer ce document." };
 
+  // Lot 52 (W29) : les révisions du bail, pour dire d'où vient l'indice de référence. Lecture ratée : le libellé reste la règle.
+  const { data: precedentes, error: erreurPrecedentes } = await supabase
+    .from("revisions_loyer")
+    .select("date_effet, irl_nouveau, irl_trimestre")
+    .eq("bail_id", r.bail_id)
+    .eq("organization_id", orgId)
+    .lt("date_effet", r.date_effet)
+    .order("date_effet", { ascending: false })
+    .limit(12);
+  const irlReference = r.irl_reference === null ? null : Number(r.irl_reference);
+
   const f = new Fusion();
   const document = construireRevisionIrl({
     reference: referenceCourte("IRL", r.id),
@@ -304,7 +374,8 @@ export async function assemblerRevisionIrl(
     application: applicationRevision(r.date_effet, Number(r.ancien_loyer), Number(r.nouveau_loyer), (appels ?? []) as AppelRevision[], ctx.bail.date_fin),
     ancienLoyer: Number(r.ancien_loyer),
     nouveauLoyer: Number(r.nouveau_loyer),
-    irlReference: r.irl_reference === null ? null : Number(r.irl_reference),
+    irlReference,
+    origineReference: erreurPrecedentes ? null : origineReference(r.date_effet, irlReference, (precedentes ?? []) as RevisionPrecedente[], ctx.bail),
     irlNouveau: r.irl_nouveau === null ? null : Number(r.irl_nouveau),
     trimestre: ctx.bail.irl_trimestre,
     charges: ctx.bail.charges === null ? null : Number(ctx.bail.charges),

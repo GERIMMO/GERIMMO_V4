@@ -117,7 +117,12 @@ export function construireProrata(d: DonneesProrata) {
     titreDocument: "Décompte de prorata",
     nomPied: "Décompte de prorata",
     reference: d.reference,
-    corps,
+    // Phase 3, lot 52 (W23, suite de C53) : à la taille commune, le décompte dépassait d'environ 3 cm ; la mention, « Fait à » et
+    // la signature (gardés ensemble, règle .fait-a) partaient seuls en page 2, loin du calcul qu'ils valident. La mise en page
+    // compacte des documents du catalogue et du reçu de dépôt (lot 51, W14 : titre à 19 pt, marges réduites) le garde sur une
+    // page, avec des lignes de tableau resserrées (ses deux tableaux comptent sept lignes et le total). Les règles de coupure
+    // communes ne changent pas.
+    corps: `<style>.bloc-titre{padding:10pt 0;margin-bottom:8pt}h1{font-size:19pt;letter-spacing:.2em}h2{margin:14pt 0 8pt}.cartouches{margin:10pt 0}p{margin:4pt 0}.base-legale{margin:2pt 0 8pt}td{padding-top:3pt;padding-bottom:3pt}</style>${corps}`,
   });
 }
 

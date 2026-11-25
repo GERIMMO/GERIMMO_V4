@@ -173,7 +173,7 @@ Voir [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] pou
 
 ## Version préparée, à publier : factures dix ans (lot T4, non publié)
 
-Fait dans la branche `claude/palier-1-fusion` (`89cb87ff`, complétée par `ee28d874`, poussée le 25/11 sur la branche de préproduction `claude/palier-1-preproduction`), vérifié sur le banc local, **pas en production**. Le
+Fait dans la branche `claude/palier-1-fusion` (`89cb87ff`, complétée jusqu'à `062296e2`, poussée le 25/11 sur la branche de préproduction `claude/palier-1-preproduction`), vérifié sur le banc local, **pas en production**. Le
 déroulé de la fermeture (déclencheurs, étapes, gardes, remboursement, annulation, gel) ne change pas. Ce qui change
 tient aux durées gardées après la fermeture ([[Durées de conservation]]) :
 

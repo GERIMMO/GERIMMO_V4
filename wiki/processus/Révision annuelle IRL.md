@@ -148,7 +148,7 @@ imprimées que pour les révisions enregistrées avant la migration `20261124100
 
 > [!info] Ce qui est en production et ce qui ne l'est pas
 > Rien de cette section n'est en production : la production sert la version du 21/11/2026 (`81740dec`), gelée depuis
-> le 22/11. Ce qui suit est lu dans le code de la branche fusionnée `claude/palier-1-fusion` (`89cb87ff`, complétée par `ee28d874`, vérifiée en entier sur le banc et poussée le 25/11 sur la branche de préproduction,
+> le 22/11. Ce qui suit est lu dans le code de la branche fusionnée `claude/palier-1-fusion` (`89cb87ff`, complétée jusqu'à `062296e2`, vérifiée en entier sur le banc et poussée le 25/11 sur la branche de préproduction,
 > non publiée en production ; `JOURNAL.md`, entrée du 25/11) et dans `JOURNAL.md` (lots 14 et D2),
 > `QUESTIONS.md` (Q23, Q34, Q43, Q70 à Q72) et `JURISTE.md` (partie 7). Aucun point de droit n'est donné pour acquis.
 

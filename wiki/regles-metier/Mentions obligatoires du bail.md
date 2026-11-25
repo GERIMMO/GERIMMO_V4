@@ -92,7 +92,7 @@ En préproduction, **non publié** ([[Mission palier 1 — audit du 22 novembre 
   l'adresse du bénéficiaire et les raisons de la reprise ; Gerimmo ne la prépare pas tant que le nom du bénéficiaire,
   son lien avec le bailleur, son adresse et les raisons ne sont pas saisis (choix de prudence de l'agent, pas une règle
   citée). Le motif « légitime et sérieux » n'a pas ce rappel.
-- *Version préparée (lot T1, `89cb87ff`, complétée par `ee28d874`, non publiée) :* le congé pour vendre d'un logement nu reproduit mot pour
+- *Version préparée (lot T1, `89cb87ff`, complétée jusqu'à `062296e2`, non publiée) :* le congé pour vendre d'un logement nu reproduit mot pour
   mot les cinq alinéas de l'article 15 II du texte fourni (« Les termes des cinq alinéas précédents sont reproduits à
   peine de nullité dans chaque notification ») et exige les conditions de la vente ; la lettre annonce la notice de
   l'arrêté du 13 décembre 2017, que le bailleur joint lui-même (Q102) ; le rappel « à faire relire » est gardé. Détail :
@@ -140,7 +140,7 @@ et Q53 ; `JURISTE.md`, partie 5, points 9 à 12).
 
 **En production aujourd'hui** (version du 21/11, `81740dec`) : rien de ce qui suit. **Version préparée** : lot D3, en
 préproduction depuis le 24/11 (`fde4cbb4`) ; lots T1 et T2 et case « mariés ou pacsés », réunis avec lui dans la branche
-`claude/palier-1-fusion` (`89cb87ff`, complétée par `ee28d874`), vérifiée en entier sur le banc et poussée le 25/11 sur la branche de
+`claude/palier-1-fusion` (`89cb87ff`, complétée jusqu'à `062296e2`), vérifiée en entier sur le banc et poussée le 25/11 sur la branche de
 préproduction `claude/palier-1-preproduction` (`JOURNAL.md`, entrée du 25/11) ; non publiée en production. Référence :
 le [[Recueil des textes officiels (v6)]], **fourni par le dirigeant, non recontrôlé sur Légifrance** — « suit le texte
 fourni » n'équivaut pas à « conforme ».

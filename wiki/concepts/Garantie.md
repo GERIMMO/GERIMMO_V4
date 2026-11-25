@@ -168,7 +168,7 @@ Voir [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] pou
 
 **En production aujourd'hui** (version du 21/11, `81740dec`) : l'acte se prépare comme décrit plus haut (case « aucune
 autre garantie », mobile confirmé par la caution), sans les refus ci-dessous. **Version préparée** : lots T2 et T3, case
-« mariés ou pacsés », réunis dans la branche `claude/palier-1-fusion` (`89cb87ff`, complétée par `ee28d874`), vérifiée en entier sur le banc et
+« mariés ou pacsés », réunis dans la branche `claude/palier-1-fusion` (`89cb87ff`, complétée jusqu'à `062296e2`), vérifiée en entier sur le banc et
 poussée le 25/11 sur la branche de préproduction `claude/palier-1-preproduction` (`JOURNAL.md`, entrée du 25/11) ; non
 publiée en production. Référence : le [[Recueil des textes officiels (v6)]], **fourni par le dirigeant, non
 recontrôlé sur Légifrance**.

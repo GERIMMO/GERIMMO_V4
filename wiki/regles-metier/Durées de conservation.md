@@ -245,7 +245,7 @@ jour. Dans la version préparée, le réglage des factures ne peut plus descendr
 
 ## Version préparée, à publier : factures conservées dix ans (lot T4, non publié)
 
-Fait dans la branche `claude/palier-1-fusion` (`89cb87ff`, complétée par `ee28d874`, poussée le 25/11 sur la branche de préproduction `claude/palier-1-preproduction`), vérifié sur le banc local, **pas en production**. On
+Fait dans la branche `claude/palier-1-fusion` (`89cb87ff`, complétée jusqu'à `062296e2`, poussée le 25/11 sur la branche de préproduction `claude/palier-1-preproduction`), vérifié sur le banc local, **pas en production**. On
 allonge, on ne raccourcit rien, on ne supprime rien.
 
 - **Texte** (recueil fourni par le dirigeant, **non recontrôlé sur Légifrance** ;

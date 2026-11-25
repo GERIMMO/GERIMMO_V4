@@ -211,7 +211,7 @@ et 7). Rien n'est publié en production ; aucun courrier n'est présenté comme 
 > **En production aujourd'hui** (version du 21/11/2026, `81740dec`, gelée depuis le 22/11) : relances automatiques
 > codées, mais leurs e-mails sont retenus par la liste fermée du pilote ; l'envoi immédiat d'une relance par e-mail, à
 > la main, est suspendu (Q6, Q24). Ce qui suit est lu dans le code de la branche fusionnée `claude/palier-1-fusion`
-> (`89cb87ff`, complétée par `ee28d874`, vérifiée en entier sur le banc et poussée le 25/11 sur la branche de préproduction,
+> (`89cb87ff`, complétée jusqu'à `062296e2`, vérifiée en entier sur le banc et poussée le 25/11 sur la branche de préproduction,
 > non publiée en production ; `JOURNAL.md`, entrée du 25/11) et dans les notes des lots D4,
 > T3 et « mariés ou pacsés » (`livrables/notes-banc/`). Aucun point de droit n'est donné pour acquis.
 

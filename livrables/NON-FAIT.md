@@ -1,6 +1,6 @@
 # Ce qui n'a pas été fait, et pourquoi
 
-- **Rédigé le** 25/11/2026, pour la version préparée `ee28d874` (branche `claude/palier-1-preproduction` ; `89cb87ff` plus les corrections RET-01 et L-01 et trois tests). **Rien n'est publié.**
+- **Rédigé le** 25/11/2026, pour la version préparée `062296e2` (branche `claude/palier-1-preproduction` ; `89cb87ff` plus les corrections RET-01, L-01, l'écran du bail sur iPhone, l'avertissement d'annulation de l'artisan, et des tests rendus indépendants de la machine). **Rien n'est publié.**
 - **Pour chaque ligne** : quoi, pourquoi, le risque, ce qu'il faudrait pour le faire.
 - **VÉRIFIÉ** veut dire lu ou rejoué, avec la source citée. **SUPPOSÉ** veut dire déduit, pas constaté.
 - **Aucun point de droit n'est présenté ici comme conforme.** Les renvois « JURISTE » visent `JURISTE.md` (partie · point).
@@ -73,7 +73,7 @@ Seconde passe complète de vérification (IA activée, puis coupée), sur `89cb8
 
 | Quoi | Pourquoi | Risque | Ce qu'il faudrait |
 |---|---|---|---|
-| **La CI de GitHub sur `ee28d874`** | Premier essai sur `89cb87ff` (exécution n° 45547334372) : échec sur 4 tests, tous dus aux tests eux-mêmes (ordre de tri selon la langue de la machine ; données d'épreuve incomplètes), corrigés dans `ee28d874`. Nouvel essai sur `ee28d874` : **résultat en attente**. | Un écart entre le banc et GitHub, vu le jour J. | Lire le résultat de l'essai en cours. Il ne remplace pas la CI de la PR ni celle de `main`, exigées par le plan (É2, É4). |
+| **La CI de GitHub sur la version préparée** | verte sur `062296e2` sans aucune reprise (exécution n° 45591695035 : 16 620 tests, 355 parcours au premier essai, 75 parcours WebKit mobile, envois, vrai PostgREST et invitation artisan). | Un écart entre le banc et GitHub, vu le jour J. | La CI de la PR et celle de `main`, exigées par le plan (É2, É4). |
 | **Les 52 migrations d'un seul bloc** | Joué au banc le 25/11 (essai « bloc ») : réussi, même schéma qu'une base migrée une par une. Jamais sur la vraie instance Supabase. | Un arrêt au milieu (la simulation du jour J l'attraperait). | Rien de plus avant le jour J (plan, P6 a). |
 | **L'ancien code `81740dec` sur la base migrée** | Essayé au banc le 25/11 (essai « ancien ») : 282 parcours réussis. Un risque trouvé : la lettre de révision de loyer (A-01). Restent supposés : objets créés par le nouveau code puis lus par l'ancien, IA, e-mails, tâches planifiées (A-05). | Entre les migrations et la mise en ligne, ou après un retour du site seul, l'ancien code tourne sur la nouvelle base. | La consigne A-01 du plan (É8, § 5.3), et votre accord écrit sur les points supposés, ou l'essai ciblé (plan, P6 b). |
 | **La chaîne complète des 52 retours arrière, et les retours à plusieurs instructions** | Jouée au banc le 25/11 (essai « retours ») : les 52 passent ; 11 laissaient leur version au registre, corrigé (RET-01, `140f4216`) et rejoué. La relecture de la fusion compte une trentaine de retours à plusieurs instructions, du 12/11 au 25/11 ; parmi les 52 du lot, 7 ont plusieurs instructions de fond (plan, § 5.4). Ils n'ont pas été relus un par un (seuls les deux de la chaîne T3 ont été corrigés) ; leur effet en cas d'erreur au milieu n'est pas essayé. Jamais joués en production. | Un retour qui s'applique à moitié. | La relecture de ces retours (plan, § 5.4). |

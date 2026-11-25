@@ -8292,3 +8292,20 @@ cahier V3 et le wiki (sans autre document). La décision la plus récente l'empo
 ## [2026-11-25] lint | Pages du wiki : version préparée complétée par ee28d874
 
 - Les mentions de la branche réunie `89cb87ff` dans 17 pages disent qu’elle est complétée par `ee28d874` (retours arrière RET-01, texte L-01 du locataire, trois tests rendus indépendants de la machine). Plan de publication : Q64 notée tranchée.
+
+## [2026-11-25] lint | Version préparée 062296e2 : livrables, wiki et index
+
+- **Objet** : reporter dans les livrables la nouvelle version préparée `062296e2` (branche `claude/palier-1-preproduction`),
+  qui ajoute à `ee28d874` trois commits nés de la vérification automatique de GitHub (CI) : `becd15c0` (rubrique d'un bail
+  qui ramenait l'écran à son ancre sur iPhone ; deux parcours rendus indépendants), `e821bb49` (un parcours d'accessibilité
+  attend le titre de la page), `062296e2` (avertissement d'annulation de l'artisan : un paragraphe qui portait un
+  formulaire faisait redessiner toute la fiche de mission ; il devient un bloc). Sources : `git log`, `git diff`, journaux
+  des CI n° 45547334372, 45561874554, 45582618122, 45587450943 et 45591695035 (lecture seule), vérifications au banc.
+- **État décrit** : en production, toujours `81740dec` (gelée). `062296e2` : vérification complète au banc (16 578 tests,
+  seuls 2 fichiers en échec attendus ; 355 parcours au premier essai) ; CI GitHub verte sans aucune reprise. Les 52
+  migrations ne changent pas depuis `89cb87ff`. **Non publiée en production.**
+- **Fichiers modifiés** : `livrables/PLAN-DE-PUBLICATION.md` (§ 1, P5, É1 à É3, § 7, sources, fin), `livrables/RESUME-UNE-PAGE.md`,
+  `livrables/PARCOURS-15-MINUTES.md`, `livrables/NON-FAIT.md`, `JOURNAL.md` (entrée du 25/11 sur la CI, avec la
+  correction de ma lecture de la CI de `ee28d874`), `QUESTIONS.md` (note de mise à jour), 17 pages du wiki et `index.md`
+  (« complétée jusqu'à `062296e2` »).
+- **Reste** : votre message « je valide la publication » ; les décisions P1 à P3 et l'accord écrit sur P6 b du plan.

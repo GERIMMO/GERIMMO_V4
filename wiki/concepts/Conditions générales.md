@@ -18,7 +18,7 @@ conditions (`/conditions/artisans`).
 > [!info] Deux états à ne pas confondre
 > - **En production aujourd'hui** : code `81740dec`, servi depuis le 21/11/2026 ; la production est gelée depuis le
 >   22/11 (`QUESTIONS.md`, Q3 et Q4).
-> - **Version préparée, à publier** : branche fusionnée `89cb87ff`, complétée par `ee28d874`, relue deux fois, vérifiée en entier sur le banc et
+> - **Version préparée, à publier** : branche fusionnée `89cb87ff`, complétée jusqu'à `062296e2`, relue deux fois, vérifiée en entier sur le banc et
 >   poussée le 25/11 sur la branche de préproduction `claude/palier-1-preproduction` (`JOURNAL.md`, entrée du 25/11),
 >   **non publiée en production** ; rien ne part sans le message « je valide la publication » du dirigeant
 >   (`DECISIONS-2026-11-24.md`).

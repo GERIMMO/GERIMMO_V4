@@ -10,7 +10,7 @@ Rien ici ne bloque le travail : je continue avec l'option indiquée.
 
 **Mise à jour du 25/11/2026 (fusion).** Les questions Q116 à Q123 viennent de la réunion des deux branches de travail, de ses deux relectures et de leurs corrections (`livrables/notes-banc/fusion/`), plus une question sur les outils publics. **Correction de la note ci-dessus :** depuis, ces lots sont réunis dans la version préparée `89cb87ff`, vérifiée en entier sur le banc et poussée sur la branche de préproduction le 25/11 ; rien n'est publié en production.
 
-**Mise à jour du 25/11/2026 (seconde passe).** La seconde passe complète (IA activée puis coupée, sur `89cb87ff`) a fait naître deux points : un complément à Q123 (outil public de quittance) et Q124 (quittance avec une part payée par la CAF). La version préparée est maintenant `ee28d874` ; rien n'est publié en production.
+**Mise à jour du 25/11/2026 (seconde passe).** La seconde passe complète (IA activée puis coupée, sur `89cb87ff`) a fait naître deux points : un complément à Q123 (outil public de quittance) et Q124 (quittance avec une part payée par la CAF). La version préparée est maintenant `062296e2` (25/11 : deux défauts d'écran trouvés par la vérification automatique de GitHub, corrigés ; aucune question nouvelle) ; rien n'est publié en production.
 
 | # | Date | Question | Option prise en attendant | Ce que votre réponse changerait | Décision du 24/11/2026 |
 |---|---|---|---|---|---|

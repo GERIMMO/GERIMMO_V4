@@ -1,7 +1,7 @@
 # Parcours de vérification après la publication
 
 **Pour :** le dirigeant, qui le fait lui-même, en production, juste après la publication.
-**Rédigé le :** 25/11/2026, à partir du code de `89cb87ff` (lu en lecture seule, rien exécuté). La version préparée est maintenant `ee28d874` : ses changements ne touchent aucun écran de ce parcours (seules la carte « Mon logement » et l'aide du locataire changent, `git diff 89cb87ff ee28d874`).
+**Rédigé le :** 25/11/2026, à partir du code de `89cb87ff` (lu en lecture seule, rien exécuté). La version préparée est maintenant `062296e2` : ses changements ne touchent aucun écran de ce parcours (seules changent la carte « Mon logement » et l'aide du locataire, la façon dont une rubrique d'un dossier suit son ancre, et la balise de l'avertissement de l'artisan, sans changer aucun libellé ; `git diff 89cb87ff 062296e2 -- app/src`).
 **Rien de ce parcours n'a été essayé en production.** Les libellés viennent du code. Un libellé que je n'ai pas pu lire est écrit entre crochets, « à vérifier ».
 
 ---
@@ -69,7 +69,7 @@ Une étape par ligne. Dans la dernière colonne, « Arrêtez et prévenez » veu
 
 **Fin de la partie A.** Si tout est bon, vous pouvez passer à l'étape R5 du plan (ouverture des envois), ou faire d'abord la partie B.
 
-Au banc, la seconde passe complète (IA activée puis coupée) sur `89cb87ff` : 355 puis 354 parcours réussis au premier essai (3 ignorés) ; un seul défaut majeur confirmé (L-01, carte « Mon logement » du locataire), corrigé dans `ee28d874`.
+Au banc, la seconde passe complète (IA activée puis coupée) sur `89cb87ff` : 355 puis 354 parcours réussis au premier essai (3 ignorés) ; un seul défaut majeur confirmé (L-01, carte « Mon logement » du locataire), corrigé dans `f78e3a3f` (contenu dans `062296e2`).
 
 ---
 
@@ -130,8 +130,8 @@ L'application n'efface pas un compte au clic. La fermeture se programme. L'effac
 
 ### Vérifié (et comment)
 
-- **Les libellés cités sans crochets** : lus dans le code de `89cb87ff`, `git show 89cb87ff:<fichier>`, le 25/11 ; aucun de ces fichiers ne change dans `ee28d874`. Principaux fichiers : `app/src/app/inscription/`, `app/src/app/nouveau-mot-de-passe/`, `app/src/lib/conditions-acceptation.ts`, `app/src/lib/lien-mot-de-passe.ts`, `app/src/app/mentions-legales/page.tsx`, `app/src/lib/editeur.ts`, `app/src/app/outils/calcul-irl/calculateur-irl.tsx`, `app/src/app/agence/[orgId]/baux/[bailId]/` (personnes, finalisation, congé, dépôt), `app/src/lib/solidarite-colocation.ts`, `app/src/lib/documents/modeles/` (bail vide, reçu de dépôt), `app/src/app/admin/sante/`, `app/src/app/admin/parametres/`, `app/src/app/admin/marketing/page.tsx`, `app/src/lib/diffusion-facebook.ts`, `app/src/components/assistant-prive.tsx`, `app/src/app/compte/donnees/`, `app/src/app/admin/donnees/`.
-- **La version préparée** : `f78e3a3f` vérifié en entier sur un banc local isolé : 16 574 tests réussis, seuls les 2 fichiers en échec attendus du banc ; 355 parcours navigateur réussis au premier essai, 3 ignorés. `ee28d874` ne change ensuite que trois tests, passés au banc (`JOURNAL.md`, entrée du 25/11 « Seconde passe complète, essais de publication, vérification CI »).
+- **Les libellés cités sans crochets** : lus dans le code de `89cb87ff`, `git show 89cb87ff:<fichier>`, le 25/11 ; aucun de ces fichiers ne change dans `062296e2`. Principaux fichiers : `app/src/app/inscription/`, `app/src/app/nouveau-mot-de-passe/`, `app/src/lib/conditions-acceptation.ts`, `app/src/lib/lien-mot-de-passe.ts`, `app/src/app/mentions-legales/page.tsx`, `app/src/lib/editeur.ts`, `app/src/app/outils/calcul-irl/calculateur-irl.tsx`, `app/src/app/agence/[orgId]/baux/[bailId]/` (personnes, finalisation, congé, dépôt), `app/src/lib/solidarite-colocation.ts`, `app/src/lib/documents/modeles/` (bail vide, reçu de dépôt), `app/src/app/admin/sante/`, `app/src/app/admin/parametres/`, `app/src/app/admin/marketing/page.tsx`, `app/src/lib/diffusion-facebook.ts`, `app/src/components/assistant-prive.tsx`, `app/src/app/compte/donnees/`, `app/src/app/admin/donnees/`.
+- **La version préparée** : `062296e2` vérifié en entier sur un banc local isolé : 16 578 tests réussis, seuls les 2 fichiers en échec attendus du banc ; 355 parcours navigateur réussis au premier essai, 3 ignorés (`JOURNAL.md`, entrée du 25/11 « CI GitHub : deux défauts d'écran qu'elle seule voyait (WebKit mobile, fiche de mission de l'artisan) »).
 - **Les parcours navigateur qui couvrent ce parcours au banc** : inscription avec la case des conditions (`compte-securite`), case « mariés ou pacsés » (`bail-epoux-pacses`), dépôt d'un bail signé sur papier (`depot-bail-signe-papier`), envois automatiques (`envois-automatiques`). Source : `livrables/notes-banc/fusion/corrections-fusion-notes.md`, § 2 et § 9.2.
 - **Le « + » dans une adresse e-mail est accepté par Gerimmo** : lu dans `app/src/lib/marque-organisation.ts` (`emailValide`).
 - **L'ancienne carte « Documents à signer »** n'apparaissait que s'il restait une ancienne demande : lu dans `81740dec:app/src/app/locataire/[orgId]/documents/page.tsx`.
@@ -140,7 +140,7 @@ L'application n'efface pas un compte au clic. La fermeture se programme. L'effac
 ### Supposé ou non vérifié
 
 - **Rien n'a été fait en production.** La production n'a pas été lue pour ce document.
-- **Le commit servi après publication** : le plan fusionne en « squash ». Le commit publié sera donc celui de `main` après fusion, pas forcément `ee28d874`. Supposé d'après `GUIDE-DE-REPRISE.md`, section 5.
+- **Le commit servi après publication** : le plan fusionne en « squash ». Le commit publié sera donc celui de `main` après fusion, pas forcément `062296e2`. Supposé d'après `GUIDE-DE-REPRISE.md`, section 5.
 - **L'état réel de Stripe, de la Page Facebook et du mode commercial en production** : inconnu. Les étapes A7, A8 et A9 décrivent les deux cas.
 - **Ce qui est déjà saisi dans la console de production** (identité, coordonnées des prestataires) : non lu. L'encadré des mentions légales (A2) en dépend.
 - **Les libellés entre crochets** : non lus. Je ne les ai pas trouvés dans le code avec certitude.
@@ -150,7 +150,7 @@ L'application n'efface pas un compte au clic. La fermeture se programme. L'effac
 - **Le code postal fictif `75000`** : peut-être refusé par le formulaire. Non essayé.
 - **La réception des adresses « + » dans votre boîte** : comportement habituel de Gmail, non essayé sur votre boîte.
 - **Les durées** : estimées, non chronométrées.
-- **La CI de GitHub sur `ee28d874`** : résultat en attente au moment d'écrire. La seconde passe complète porte sur `89cb87ff` (rapports : `livrables/notes-banc/passe2/`).
+- **La CI de GitHub sur la version préparée** : verte sur `062296e2` sans aucune reprise (exécution n° 45591695035 : 16 620 tests, 355 parcours au premier essai, 75 parcours WebKit mobile, envois, vrai PostgREST et invitation artisan). La seconde passe complète porte sur `89cb87ff` (rapports : `livrables/notes-banc/passe2/`).
 - **Aucun point de droit n'est présenté comme conforme.** Les textes affichés (mentions légales, clause de solidarité, date limite du congé, plafond du dépôt) suivent le recueil fourni, non recontrôlé sur Légifrance. Les questions ouvertes sont dans `JURISTE.md`, partie 9 (points 39 à 43 pour la case « mariés ou pacsés » et les conditions).
 
 ## Sources lues

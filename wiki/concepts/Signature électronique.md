@@ -13,7 +13,7 @@ sources: ["[[2026-07-24-gerimmo-v3-module-13-signature-electronique]]", "app/doc
 > Les sections datées d'octobre décrivent ce qui a été publié et reste **en production aujourd'hui** (code en ligne
 > `81740dec`, publié le 21/11/2026). Les sections « préproduction, non publié » et la section
 > **« Version préparée, à publier »** en fin de page décrivent la branche fusionnée de la mission palier 1
-> (`claude/palier-1-fusion`, `89cb87ff`, complétée par `ee28d874`) : **rien n'y est en ligne** tant que le dirigeant n'a pas écrit « je valide
+> (`claude/palier-1-fusion`, `89cb87ff`, complétée jusqu'à `062296e2`) : **rien n'y est en ligne** tant que le dirigeant n'a pas écrit « je valide
 > la publication ».
 
 ## Conformité V1 du 24 octobre 2026 — en production (PR #246)
@@ -196,7 +196,7 @@ Q40 et Q46 ; `JURISTE.md`, partie 5, point 9).
 
 ## Version préparée, à publier (branche fusionnée du 25/11/2026, non publiée)
 
-Ce qui suit est fait dans la branche `claude/palier-1-fusion` (`89cb87ff`, complétée par `ee28d874`, poussée le 25/11 sur la branche de préproduction `claude/palier-1-preproduction`), vérifié sur le banc local avec des données
+Ce qui suit est fait dans la branche `claude/palier-1-fusion` (`89cb87ff`, complétée jusqu'à `062296e2`, poussée le 25/11 sur la branche de préproduction `claude/palier-1-preproduction`), vérifié sur le banc local avec des données
 fictives, **pas en production**. La signature de bout en bout chez Zoho n'a pas été jouée (service payant). Sources :
 `DECISIONS-2026-11-24.md`, `JOURNAL.md`, `QUESTIONS.md`, notes du banc (`livrables/notes-banc/`).
 

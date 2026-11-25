@@ -4,7 +4,7 @@
 *Mots utiles : un **commit** est une version enregistrée du code ; une **migration** change la base de données ; le **banc** est une copie d'essai chez l'agent, avec des données fictives ; un **parcours navigateur** est un robot qui clique dans l'application comme un utilisateur.*
 
 ## 1. La version préparée
-- C'est le commit `ee28d874`, sur la branche `claude/palier-1-preproduction`. Il réunit le travail du 22 au 25/11, plus trois commits du 25/11 au-dessus de `89cb87ff` : retours arrière corrigés (RET-01), défaut L-01 de la seconde passe, trois tests rendus indépendants de la machine.
+- C'est le commit `062296e2`, sur la branche `claude/palier-1-preproduction`. Il réunit le travail du 22 au 25/11, plus six commits du 25/11 au-dessus de `89cb87ff` : retours arrière corrigés (RET-01), défaut L-01 de la seconde passe, deux défauts d'écran trouvés par la vérification de GitHub (l'écran d'un bail remontait sous le doigt sur iPhone ; la fiche de mission de l'artisan se redessinait à l'ouverture quand le locataire avait annulé), et des tests rendus indépendants de la machine.
 - Il contient `main` (`e1e442dc`, jamais publié) et la version en ligne (`81740dec`). **VÉRIFIÉ** avec git.
 - 52 migrations à appliquer, chacune avec son retour arrière (le fichier qui la défait). **VÉRIFIÉ** avec git.
 - Pas de lien d'aperçu : sans copie de la base (Q1 annulée), un aperçu se brancherait sur la production. Le premier vrai passage sera donc la production, avec un retour arrière prêt.
@@ -17,7 +17,7 @@
 - **Visiteur** : nouvelles conditions du 24/11 ; mentions légales du vendeur ; factures gardées dix ans ; outil de calcul de l'IRL sans valeur préremplie ; mention « Rédigé avec l'aide de l'IA » sur les articles.
 
 ## 3. Ce qui est VÉRIFIÉ, et comment
-- Vérification complète au banc sur `f78e3a3f` : **16 574 tests réussis**. Seuls 2 fichiers échouent, comme attendu : ils exigent des services que seule la vérification automatique de GitHub installe. `ee28d874` ne change ensuite que trois tests, qui passent au banc.
+- Vérification complète au banc sur `062296e2` : **16 578 tests réussis**. Seuls 2 fichiers échouent, comme attendu : ils exigent des services que seule la vérification automatique de GitHub installe.
 - **355 parcours navigateur réussis au premier essai**, 3 ignorés. Types, style et construction du site : sans erreur.
 - La réunion des deux branches de travail a été relue deux fois : 8 puis 4 défauts trouvés, tous corrigés. Chacun a un test qui échoue avant et passe après.
 - Production lue en lecture seule le 24/11 : 10 comptes (tous de test d'après vous, 22/11 et Q64) ; aucun appel de charges ; un seul circuit de signature, terminé.
@@ -26,7 +26,6 @@
 ## 4. Ce qui reste SUPPOSÉ (non constaté)
 - La production sert `81740dec` : dernier relevé les 21 et 22/11, non relu depuis.
 - Aucun abonné payant et aucune version des conditions archivée : jamais lus pendant cette mission (dernier relevé des abonnements : audit du 19/11, aucun). Le plan les fait lire le jour J (C2, C6).
-- La vérification automatique de GitHub (la « CI ») : premier essai sur `89cb87ff` en échec sur 4 tests, dus aux tests eux-mêmes, corrigés dans `ee28d874` ; nouvel essai sur `ee28d874` : **résultat en attente**.
 - Essayés au banc seulement, jamais en production : les 52 migrations d'un seul bloc (réussi) ; l'ancien code sur la nouvelle base (282 parcours réussis, un risque sur la lettre de révision de loyer, tenu par une consigne du plan) ; la chaîne des 52 retours arrière (réussie après correction).
 - Aucun service réel essayé : paiement Stripe, vrais e-mails, signature Zoho, Facebook, Insee, appel réel à l'IA.
 - **Aucun point de droit n'est présenté comme conforme.** Les textes suivent le recueil que vous avez fourni, non recontrôlé sur Légifrance.
@@ -37,7 +36,7 @@
 3. **Stripe (Q80)** : régler l'en-tête des factures dans votre compte Stripe. Le paiement réel n'a jamais été essayé. Conseil (audit du 19/11) : n'ouvrir les souscriptions qu'après un premier paiement réel, remboursé.
 4. **Retour arrière** : dire qui pourrait jouer les retours de la base, et comment l'accès serait donné (jamais par écrit). C'est bloquant (plan, P3). Relire vous-même les réglages chez Vercel et GitHub (liste au plan, P4).
 5. **Ancien code sur la nouvelle base** : essayé au banc ; des points restent supposés (plan, P6 b). Votre accord écrit est demandé pour cocher « base compatible », avec la consigne sur les révisions de loyer.
-6. **CI GitHub sur `ee28d874`** : résultat en attente. Rien ne se publie tant qu'elle n'est pas verte (plan, É2).
+6. **CI GitHub** : verte sur `062296e2` sans aucune reprise (exécution n° 45591695035 : 16 620 tests, 355 parcours au premier essai, 75 parcours WebKit mobile, envois, vrai PostgREST et invitation artisan). Elle sera refaite sur la PR et sur `main` le jour J ; rien ne se publie si elle n'est pas verte (plan, É2, É4).
 7. **Questions prioritaires** : Q62 (lire Légifrance : compte PISTE) ; Q66 (activité déclarée et TVA, avec l'expert-comptable) ; Q117 et Q118 (relance à la main partie à une partie des locataires, ou non confirmée) ; Q116, Q121 et Q122 (bail de deux époux ou partenaires) ; Q93 (annonce des nouvelles conditions par e-mail, à écrire avant le premier abonné).
 8. **Réserver une demi-journée**, puis écrire « je valide la publication ». Rien ne commence sans ce message.
 

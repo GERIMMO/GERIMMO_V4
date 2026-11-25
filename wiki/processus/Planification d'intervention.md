@@ -211,7 +211,7 @@ En préproduction, **non publié** ([[Mission palier 1 — audit du 22 novembre 
 
 ## Version préparée, à publier (branche fusionnée du 25/11/2026, non publiée)
 
-Fait dans la branche `claude/palier-1-fusion` (`89cb87ff`, poussée le 25/11 sur la branche de préproduction `claude/palier-1-preproduction`), vérifié sur le banc local (service d'envoi simulé, aucun
+Fait dans la branche `claude/palier-1-fusion` (`89cb87ff`, complétée par `ee28d874`, poussée le 25/11 sur la branche de préproduction `claude/palier-1-preproduction`), vérifié sur le banc local (service d'envoi simulé, aucun
 e-mail réel envoyé), **pas en production**. Sources : `DECISIONS-2026-11-24.md`, `JOURNAL.md` (lot D4),
 `livrables/notes-banc/notes-D4.md`, relecture des envois de la fusion.
 

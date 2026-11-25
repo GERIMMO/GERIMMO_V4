@@ -18,7 +18,7 @@ rétractation.
 > - **En production aujourd'hui** (code `81740dec`, servi depuis le 21/11, production gelée depuis le 22/11) : les
 >   **ventes sont fermées** (réglage « Ouvrir les souscriptions » non ouvert, Q7). Le parcours ci-dessous existe depuis
 >   le 24/10 (PR #246 et #247).
-> - **Version préparée, à publier** (branche fusionnée `89cb87ff`, vérifiée en entier sur le banc et poussée le 25/11
+> - **Version préparée, à publier** (branche fusionnée `89cb87ff`, complétée par `ee28d874`, vérifiée en entier sur le banc et poussée le 25/11
 >   sur la branche de préproduction, non publiée en production ; `JOURNAL.md`, entrée du 25/11) : vendeur
 >   complet exigé, médiateur traité à part, accord exprès aux nouvelles conditions (lots D7, T4, D4).
 
@@ -28,7 +28,7 @@ Le titulaire de l'espace, pendant ou après l'essai, ouvre « Mon abonnement » 
 
 ## Ce qui doit être vrai avant d'ouvrir le paiement
 
-| Condition | En production (`81740dec`) | Version préparée (`89cb87ff`) |
+| Condition | En production (`81740dec`) | Version préparée (`89cb87ff`, complétée par `ee28d874`) |
 |---|---|---|
 | Ventes ouvertes | Réglage de la console, fermé | Inchangé ; à ouvrir le jour de la publication, après « je valide la publication » |
 | Identité du vendeur | Complète, sauf si le super admin a « levé le blocage » | **Complète pour toute première souscription, agence comprise, blocage levé ou non**, avec un « type de vendeur » choisi et, pour un entrepreneur individuel, le nom suivi de « EI » ; « Lever le blocage » ne vaut plus que pour les hausses de capacité (Q78) |

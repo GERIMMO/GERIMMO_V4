@@ -12,7 +12,7 @@ sources: ["[[2026-09-28-decision-tarification]]", "[[Dépôt Gerimmo-V3]]", "[[2
 > [!info] Deux états à ne pas confondre
 > - **En production aujourd'hui** : code `81740dec` (servi depuis le 21/11/2026). Les **ventes y sont fermées**
 >   ([[Souscription de l'abonnement]]).
-> - **Version préparée, à publier** : branche `89cb87ff` (vérifiée en entier sur le banc, poussée le 25/11 sur la
+> - **Version préparée, à publier** : branche `89cb87ff`, complétée par `ee28d874` (vérifiée en entier sur le banc, poussée le 25/11 sur la
 >   branche de préproduction, non publiée en production). **La grille ne change pas** ; seules changent la mention de
 >   franchise (« article » en toutes lettres) et l'identité du vendeur qui la porte.
 

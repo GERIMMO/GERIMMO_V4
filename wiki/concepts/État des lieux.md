@@ -253,7 +253,7 @@ Relu dans le code après les lots 36, 37, 40, 41 et 45 ([[Mission palier 1 — a
 
 ## Version préparée, à publier (branche fusionnée du 25/11/2026, non publiée)
 
-Fait dans la branche `claude/palier-1-fusion` (`89cb87ff`, poussée le 25/11 sur la branche de préproduction `claude/palier-1-preproduction`), vérifié sur le banc local avec des données fictives, **pas
+Fait dans la branche `claude/palier-1-fusion` (`89cb87ff`, complétée par `ee28d874`, poussée le 25/11 sur la branche de préproduction `claude/palier-1-preproduction`), vérifié sur le banc local avec des données fictives, **pas
 en production**. Les textes cités viennent du recueil fourni par le dirigeant, **non recontrôlé sur Légifrance**
 ([[Recueil des textes officiels (v6)]]) ; aucun point n'est tenu pour acquis au regard de la loi.
 

@@ -8288,3 +8288,7 @@ cahier V3 et le wiki (sans autre document). La décision la plus récente l'empo
   depuis `89cb87ff`, chantiers GitHub et réglages inchangés, `main` et la version en ligne contenues).
 - **Reste** : le résultat de la CI sur `ee28d874` ; les 19 pages du wiki et `index.md` qui citent encore `89cb87ff`
   comme version préparée, à reprendre dans un prochain lint ; les décisions P1 à P3 et l'accord écrit sur P6 b du plan.
+
+## [2026-11-25] lint | Pages du wiki : version préparée complétée par ee28d874
+
+- Les mentions de la branche réunie `89cb87ff` dans 17 pages disent qu’elle est complétée par `ee28d874` (retours arrière RET-01, texte L-01 du locataire, trois tests rendus indépendants de la machine). Plan de publication : Q64 notée tranchée.

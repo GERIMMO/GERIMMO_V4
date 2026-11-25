@@ -128,7 +128,7 @@ phase 3 (lot 41).
 
 > [!info] Ce qui est en production et ce qui ne l'est pas
 > Rien de cette section n'est en production : la production sert la version du 21/11/2026 (`81740dec`), gelée depuis
-> le 22/11. Ce qui suit est lu dans le code de la branche fusionnée `claude/palier-1-fusion` (`89cb87ff`, vérifiée en entier sur le banc et poussée le 25/11 sur la branche de préproduction,
+> le 22/11. Ce qui suit est lu dans le code de la branche fusionnée `claude/palier-1-fusion` (`89cb87ff`, complétée par `ee28d874`, vérifiée en entier sur le banc et poussée le 25/11 sur la branche de préproduction,
 > non publiée en production ; `JOURNAL.md`, entrée du 25/11) et dans les notes des lots T2, T3 et D3
 > (`livrables/notes-banc/`, `JOURNAL.md`). Aucun point de droit n'est donné pour acquis.
 

@@ -130,7 +130,7 @@ En préproduction, **non publié** ([[Mission palier 1 — audit du 22 novembre 
 ## Version préparée, à publier — pièces du décret n° 2015-1437 (lot T3 et sa reprise, au 25/11/2026)
 
 **En production aujourd'hui** (version du 21/11, `81740dec`) : rien de ce qui suit, ni le rappel du lot 33. **Version
-préparée** : lot T3 et sa reprise, dans la branche réunie `claude/palier-1-fusion` (`89cb87ff`), vérifiée en entier sur
+préparée** : lot T3 et sa reprise, dans la branche réunie `claude/palier-1-fusion` (`89cb87ff`, complétée par `ee28d874`), vérifiée en entier sur
 le banc et poussée le 25/11 sur la branche de préproduction `claude/palier-1-preproduction` (`JOURNAL.md`, entrée du
 25/11) ; non publiée en production. Référence : le [[Recueil des textes officiels (v6)]], **fourni par le dirigeant, non
 recontrôlé sur Légifrance**.

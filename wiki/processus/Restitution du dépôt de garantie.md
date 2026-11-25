@@ -172,7 +172,7 @@ Q49 ; `JURISTE.md`, partie 5, points 1 et 14).
 
 > [!info] Ce qui est en production et ce qui ne l'est pas
 > Rien de cette section n'est en production : la production sert la version du 21/11/2026 (`81740dec`), gelée depuis
-> le 22/11. Ce qui suit est lu dans le code de la branche fusionnée `claude/palier-1-fusion` (`89cb87ff`, vérifiée en entier sur le banc et poussée le 25/11 sur la branche de préproduction,
+> le 22/11. Ce qui suit est lu dans le code de la branche fusionnée `claude/palier-1-fusion` (`89cb87ff`, complétée par `ee28d874`, vérifiée en entier sur le banc et poussée le 25/11 sur la branche de préproduction,
 > non publiée en production ; `JOURNAL.md`, entrée du 25/11) et dans `JOURNAL.md` (lot D3), `QUESTIONS.md` (Q40,
 > Q49), `JURISTE.md` (parties 8 et 9) et les notes du lot T3. Aucun point de droit n'est donné pour acquis.
 

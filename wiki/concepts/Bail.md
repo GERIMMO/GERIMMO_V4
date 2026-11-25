@@ -404,7 +404,7 @@ Relu dans le code après les lots 35, 38, 40, 45 et 46 ([[Mission palier 1 — a
 ## Version préparée, à publier — congés, contrat, solidarité, signature (au 25/11/2026)
 
 **En production aujourd'hui** : la version du 21/11/2026 (`81740dec`) ; rien de ce qui suit n'y est encore. **Version
-préparée** : la branche réunie `claude/palier-1-fusion` (`89cb87ff`), vérifiée en entier sur le banc et poussée le
+préparée** : la branche réunie `claude/palier-1-fusion` (`89cb87ff`, complétée par `ee28d874`), vérifiée en entier sur le banc et poussée le
 25/11 (03:16 UTC) sur la branche de préproduction `claude/palier-1-preproduction` (`JOURNAL.md`, entrée du 25/11
 « Fusion des deux arbres et corrections »). Elle réunit (a) les décisions D1 à D3 (signature proposée en premier,
 révision du loyer, notice déposée), déjà en préproduction le 24/11 (`fde4cbb4`, vérifiée ce jour-là) ; (b) les lots T1
@@ -481,11 +481,11 @@ le dirigeant, non recontrôlé sur Légifrance** : elles ne sont pas présentée
   reste la voie présentée. L'ouverture du service est un réglage du jour de la publication.
 - **Q46, préproduction** : le bailleur dépose la notice d'information (PDF) à l'étape Documents du bail ; sans elle, la
   préparation et l'envoi en signature électronique sont bloqués ; déposée, elle est jointe comme annexe. Le papier n'est
-  pas bloqué (rappel à l'écran). Depuis le lot T2 (version préparée `89cb87ff`), l'écran dit la version à déposer : annexe de l'arrêté
+  pas bloqué (rappel à l'écran). Depuis le lot T2 (version préparée `89cb87ff`, complétée par `ee28d874`), l'écran dit la version à déposer : annexe de l'arrêté
   du 29 mai 2015 dans sa rédaction issue de l'arrêté du 9 octobre 2026, pour un contrat conclu ou renouvelé depuis le
   18 octobre 2026. Gerimmo ne vérifie
   ni le fichier ni sa version ; il n'imprime pas la notice du recueil (site miroir, adresses coupées, tableaux : Q77).
-- **D5, version préparée `89cb87ff`** : l'ancien parcours « télécharger, signer, redéposer » est retiré de l'espace du locataire
+- **D5, version préparée `89cb87ff`, complétée par `ee28d874`** : l'ancien parcours « télécharger, signer, redéposer » est retiré de l'espace du locataire
   (carte, action, e-mail « Document à signer ») ; la signature électronique et le dépôt du bail signé sur papier restent.
   En base rien n'est supprimé (trois droits retirés). Contrôle de production du 24/11 : aucune ancienne demande ; à refaire
   en lecture seule le jour de la publication, avant la migration.
@@ -510,7 +510,7 @@ d'un an lu sur la fiche de service-public le 24/11, pas sur l'article de loi ; l
 > - **État des lots dans le journal** : les dernières entrées de `JOURNAL.md` disent la case « mariés ou pacsés » et la
 >   reprise du lot T3 « en cours » ; les notes du banc et la branche réunie les montrent faites (commits `d9380013`,
 >   `7180794e`), non vérifiées en entier. → *Tranché le 25/11 : la nouvelle entrée du journal (« Fusion des deux arbres
->   et corrections ») précise que ces entrées datent d'avant la fusion ; `89cb87ff`, qui contient les deux commits, est
+>   et corrections ») précise que ces entrées datent d'avant la fusion ; `89cb87ff`, complétée par `ee28d874`, qui contient les deux commits, est
 >   vérifiée en entier sur le banc (16 506 tests réussis, seuls 2 fichiers en échec attendus ; 355 parcours réussis,
 >   3 ignorés) et poussée sur la branche de préproduction. Non publiée en production.*
 > - **Révision** : la fiche officielle lue le 24/11 applique le loyer révisé « à partir de la date de la demande » ;

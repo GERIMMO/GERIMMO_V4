@@ -19,7 +19,7 @@ volet 2), selon la qualification posée dans [[RGPD]] (A2, 24/07/2026).
 > - ce que fait le code **en production** : les lots du 24/10 (PR #246, migrations `20261024090000` à
 >   `20261024140000`), la publication de la V1 des conditions, de la page confidentialité et de la règle d'inactivité
 >   le 24/10 (PR #248, migration `20261024150000`), puis le code servi depuis le 21/11 (`81740dec`) ;
-> - les changements de la **version préparée** (`89cb87ff`, vérifiée en entier sur le banc et poussée le 25/11 sur la
+> - les changements de la **version préparée** (`89cb87ff`, complétée par `ee28d874`, vérifiée en entier sur le banc et poussée le 25/11 sur la
 >   branche de préproduction, non publiée en production), marqués
 >   « **préparée** ».
 > Aucune source juridique n'a pu être ouverte sur Légifrance. Les textes cités depuis le
@@ -170,7 +170,7 @@ du RGPD absents du recueil). Resend : domaine d'envoi en Irlande, société amé
 >   partie 9, point 30).
 > - **Pièces demandées à une caution après la signature** : toujours limitées à la liste du décret (Q113 ; juriste,
 >   partie 9, point 23). ~~Reprise du lot T3 en cours (libellé libre à rendre au locataire sorti et au propriétaire
->   mandant).~~ → *25/11 : reprise faite (T3R-2, commit `7180794e`, contenu dans `89cb87ff`) ; reste ouvert le cas de
+>   mandant).~~ → *25/11 : reprise faite (T3R-2, commit `7180794e`, contenu dans `89cb87ff`, complétée par `ee28d874`) ; reste ouvert le cas de
 >   l'ancien propriétaire ou de l'ancienne caution sans autre lien, qui retombent sur la liste des candidats
 >   (`livrables/notes-banc/notes-T3.md`, reprise, question 3).*
 > - **Case « mariés ou pacsés »** : nouvelle donnée de situation familiale au bail (version préparée) ; minimisation et

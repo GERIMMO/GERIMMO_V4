@@ -90,12 +90,14 @@ Les retours de la base se jouent « à la main », avec `psql` et le mot de pass
 
 Si la seconde passe amène des corrections, le commit change. Il faut alors refaire la vérification complète et mettre ce plan à jour (commit, liste des migrations, liste des retours).
 
-**P6 — Essais recommandés au banc local (aucune production). Non faits.**
+**P6 — Essais recommandés au banc local (aucune production). Faits le 25/11 (essais « bloc », « ancien » et « retours »), puis repris par les corrections du 25/11 (fin du plan, « Corrections du 25/11 après les essais de publication »).** Le texte ci-dessous garde la raison de chaque essai ; leur résultat est donné en fin de point.
 
 - a. **Jouer les 52 migrations en une seule transaction**, comme le fait le chantier, sur une base arrêtée à `20261120200000`. Raison : le banc les applique une par une (`app/e2e/local/preparer-ci.mjs`). Le lot d'un seul bloc n'a jamais été joué. La simulation de production (É6) le jouera aussi, sans risque.
 - b. **Faire tourner l'ancien code `81740dec` sur la base migrée**, sur les parcours principaux. Raison : entre l'application des migrations (É8) et la publication (É10), et en cas de retour de niveau 1, l'ancien code tourne sur la nouvelle base. C'est aussi ce que vous déclarez en cochant `base_compatible` (É10). Aujourd'hui, ce n'est prouvé que pour `20261125150000` (sonde SQL, `fusion/PLAN-PUBLICATION-NOTES.md`, « Preuves »). Trois autres migrations l'écrivent dans leurs commentaires (`20261122220000`, `20261125140000`, `20261125153000`/`154000`). Rien n'a été essayé pour le lot entier. **À DÉCIDER par vous :** faire cet essai avant le jour J, ou accepter par écrit de cocher `base_compatible` sans preuve. Le contrôleur refuse de publier si la case n'est pas cochée (sauf mode « correction en avant », lu dans `controle.mjs`).
+  **Résultat (essai « ancien », VÉRIFIÉ au banc) :** la suite de parcours navigateur de `81740dec` passe sur la base migrée (282 réussis, 0 échec). **Un risque de donnée fausse a été trouvé hors de la suite (A-01) : la lettre de révision de loyer** (voir É8 et § 5.3, consigne). **Restent SUPPOSÉS (A-05)** : les objets créés par le nouveau code puis lus par l'ancien (avenants, factures refusées, absences d'artisan, rendez-vous manqués), l'IA réelle, les e-mails réels, les tâches planifiées, le vrai PostgREST/Supabase (le banc utilise un émulateur) et l'affichage à l'écran des refus de la base. Ce que la lecture du code de `81740dec` en dit est au § 5.3. **À DÉCIDER par vous :** cocher `base_compatible` en acceptant par écrit ces points supposés et les consignes de É8 et du § 5.3, ou demander d'abord l'essai ciblé (objets créés avec la nouvelle version, écrans parcourus avec `81740dec`).
 - c. **Jouer la chaîne complète des 52 retours** sur une base migrée, puis réappliquer les migrations.
-- d. **Essayer les 7 retours à plusieurs instructions** dans une seule transaction (voir § 5.4).
+  **Résultat (essai « retours », puis correction RET-01, VÉRIFIÉ au banc) :** les 52 retours passent. L'essai a trouvé que 11 d'entre eux laissaient leur version au registre : la réapplication par `migrations.yml` était refusée. Corrigé dans le code (commit `140f4216`, § 5.4) et rejoué : après la chaîne, aucune des 52 versions ne reste ; le bloc « Appliquer » de `migrations.yml` réapplique le lot (simulation, puis application : code 0) ; le schéma obtenu est identique au schéma migré d'origine (6 212 entrées, 0 écart).
+- d. **Essayer les 7 retours à plusieurs instructions** dans une seule transaction (voir § 5.4). **Résultat (essai « retours ») :** `begin; \i ×52; rollback;` et `--single-transaction` passent.
 
 **P7 — Le jour J : une demi-journée de votre disponibilité** (approbations GitHub, console, Stripe). Conseil, pas une règle du dépôt : éviter le 1er du mois (tâche `cycle-mensuel` à 05:00 UTC, appels de loyer) et le matin entre 03:00 et 09:00 UTC (tâches de la base ; tâches de Vercel de 03:00 à 09:00 UTC dans `app/vercel.json` ; sauvegarde planifiée, qui part en réalité entre 06 h et 08 h UTC d'après `sauvegarde.yml`).
 
@@ -221,7 +223,8 @@ Actions → « Sauvegarde quotidienne » → Run workflow, branche `main`, **apr
 - Le chantier refuse tout seul l'application si : la CI n'est pas verte sur le commit exact ; aucune sauvegarde n'a réussi depuis 90 minutes ; une version est déjà en base ; un même contenu est déjà appliqué sous un autre numéro ; un nom n'est pas un simple fichier `.sql` (`migrations.yml`, lu). Il n'y a pas de contournement : suivre le message (par exemple, relancer la sauvegarde puis l'application).
 - Tout le lot est joué d'un bloc : tout passe, ou rien.
 - Si l'application échoue sur un verrou (« lock timeout ») : rien n'est appliqué. Attendre quelques minutes, puis relancer. Si plus de 90 minutes ont passé depuis É7, refaire d'abord la sauvegarde.
-- **À partir d'ici, l'ancien code `81740dec` tourne sur la nouvelle base jusqu'à É10.** Garder ce moment court (quelques minutes). Compatibilité SUPPOSÉE (voir P6 b).
+- **À partir d'ici, l'ancien code `81740dec` tourne sur la nouvelle base jusqu'à É10.** Garder ce moment court (quelques minutes). Compatibilité essayée au banc, avec un risque connu et des points supposés (voir P6 b).
+- **Consigne A-01, de É8 jusqu'au succès de É10 : n'enregistrer aucune révision de loyer et ne produire aucune lettre « Révision du loyer ».** Pourquoi (VÉRIFIÉ au banc, sonde en transaction annulée) : la nouvelle base fait partir le loyer révisé du premier terme qui suit la demande (colonne `revisions_loyer.premier_terme`). La lettre de `81740dec` imprime « Loyer hors charges révisé, à compter du » suivi de la date d'effet (`revision-irl.ts`, ligne 101). Pour une demande du 01/11/2026 enregistrée le 25/11, la lettre annonce 616,89 € « à compter du 01/11/2026 » alors que novembre est appelé à 600,00 € (premier terme révisé : 01/12/2026). La base ne peut pas l'empêcher : l'ancien et le nouveau code appellent la même fonction, avec les mêmes quatre arguments (`actions/loyers.ts` des deux versions). En production, les comptes sont des comptes de test (Q64) : la consigne vous concerne, vous et l'agent. Contrôle en É9.
 
 **É9 — Contrôles en lecture après l'application.** Agent.
 
@@ -240,12 +243,24 @@ select * from public.acceptations_sans_version_archivee();
 ```
 
 Les trois dernières requêtes viennent de `fusion/PLAN-PUBLICATION-NOTES.md`, étape 8.
+
+```sql
+-- Consigne A-01 : révisions dont la lettre de 81740dec annoncerait une autre date que le premier terme appelé au
+-- loyer révisé (requête jouée au banc : elle liste la révision de la sonde A-01). Attendu en É9 : aucune ligne.
+select r.id, r.bail_id, r.date_demande, r.date_effet, r.premier_terme, r.created_at
+  from public.revisions_loyer r
+ where r.premier_terme is not null
+   and r.premier_terme <> r.date_effet
+ order by r.created_at;
+```
+
+S'il y a une ligne en É9 : une révision a été enregistrée depuis É8. Ne produire sa lettre qu'après le succès de É10, avec le nouveau code, qui imprime le premier terme (lu dans `revision-irl.ts` de la version préparée ; PDF non rendu pour ce contrôle).
 **À vérifier :** `acceptations_sans_version_archivee()` n'accepte que la clé de service ou un super admin connecté avec la double vérification (lu dans la migration `20261024090000` et dans `is_super_admin`). Depuis l'éditeur SQL, elle répondra sans doute « Accès refusé » (déduit, non essayé). Ce n'est pas un défaut. La même liste se lit dans la console : `/admin/sante`, « Versions des conditions ».
 **Ne jamais appeler `accepter_cgu` en production pour un contrôle, même avec un compte de test.** Une ligne écrite dans `acceptations_cgu` ne se supprime plus : la table est en ajout seul (relecture Y-02).
 
 **É10 — Publication contrôlée, pour de bon.** Agent lance, vous approuvez.
 - Même chantier qu'en É5, mêmes `revision`, `deploiement` et `tests`.
-- `publier` **coché** ; `base_compatible` **coché** (c'est l'hypothèse de P6 b) ; `correction_en_avant` **décoché**.
+- `publier` **coché** ; `base_compatible` **coché** (c'est l'hypothèse de P6 b : essayée au banc, avec la consigne A-01 et les points supposés A-05, à accepter par écrit avant le jour J) ; `correction_en_avant` **décoché**.
 - Le contrôleur (`app/scripts/deploiement/publier.mjs` et `controle.mjs`) : vérifie tout, bascule le site vers `dpl_…`, puis fait trois contrôles de santé de suite sur `www.gerimmo.app`. Après trois échecs, il revérifie l'ancienne version et demande à Vercel d'y revenir.
 - Attendu : état `publiee_verifiee`.
 - Si l'état est `retour_verifie` : l'ancien code est revenu, la base reste migrée. Décider de la suite (§ 5).
@@ -391,6 +406,16 @@ La base reste migrée. L'ancien code tourne alors sur la nouvelle base (compatib
 - `main` garde le nouveau code. Son annulation (`git revert` du commit de fusion) se décide ensuite. Le site ne change pas tout seul à chaque envoi sur `main` (SUPPOSÉ, P4).
 - **Ce niveau ne restaure jamais la base.**
 
+**Tant que `81740dec` tourne sur la base migrée (après ce niveau, et jusqu'à une nouvelle publication ou au niveau 2) :**
+
+- **Consigne A-01 : aucune révision de loyer enregistrée, aucune lettre « Révision du loyer » produite.** La lettre de `81740dec` se fabrique à partir de la révision enregistrée, à tout moment : elle annonce le loyer révisé « à compter du » la date d'effet, alors que la base n'appelle ce loyer qu'à partir de `premier_terme` (VÉRIFIÉ au banc, voir É8). C'est vrai aussi pour une révision enregistrée par le nouveau code avant le retour. Juste après le retour, jouer la requête « Consigne A-01 » de É9 et noter les révisions listées : leur lettre ne se produit qu'après une nouvelle publication du nouveau code. Les lettres déjà rangées, produites par le nouveau code, gardent le premier terme (lu dans le code, non rendu). Sinon, accepter ce risque par écrit.
+- **Ce que la lecture du code de `81740dec` dit des objets créés par le nouveau code (A-05 ; lu, jamais vu à l'écran, donc SUPPOSÉ) :**
+  - **Facture d'artisan refusée** : l'écran de l'incident liste toutes les factures de la mission (`incidents/factures-incident.tsx`). Une facture refusée y apparaît « à vérifier », avec le bouton de validation. La base refuse de la valider (garde de `20261122170000` ; test `facture-artisan-refus-base`, « refus et validation s'excluent », réussi au banc). Ne pas traiter ces factures depuis l'ancien code.
+  - **Rendez-vous manqué, facture refusée ou relancée** : le fil de l'incident affiche le nom technique de l'événement (`rdv_manque`, `facture_refusee`, `facture_relancee`) : `81740dec` ne connaît pas ces types et affiche le type brut (`pane-incident.tsx`, ligne 404). Pas de panne, du jargon à l'écran.
+  - **Avenant** : `81740dec` ne lit pas la table `avenants_bail`. Un avenant en attente s'applique quand même au premier loyer appelé du mois d'effet : c'est un déclencheur de la base (lu dans `20261122190000`).
+  - **Absence d'artisan** : `81740dec` ne lit pas les absences. La base refuse de solliciter un artisan absent (lu dans `20261122235500`) ; l'ancien écran affiche ce refus.
+  - Non essayés : l'IA réelle, les e-mails réels, les tâches planifiées, le vrai PostgREST/Supabase.
+
 ### 5.4 Niveau 2 — Jouer les retours de la base
 
 **Seulement après le niveau 1.** La plupart des retours le disent : « à jouer après le retour du code ». Il faut aussi l'accès de P3.
@@ -404,7 +429,9 @@ La base reste migrée. L'ancien code tourne alors sur la nouvelle base (compatib
    `$URL` : le « pooler » de Supabase en mode session, port 5432, comme `migrations.yml`. Le mot de passe passe par la variable `PGPASSWORD`, jamais dans la ligne de commande ni dans un journal.
    **Toujours `-v ON_ERROR_STOP=1`.** Sans lui, `psql` continue après une erreur et sort avec le code 0 (relecture X-02).
 4. **À la première erreur : s'arrêter.** Ne sauter aucun fichier. Beaucoup de retours s'arrêtent d'eux-mêmes, sans rien changer, quand l'ordre n'est pas le bon : lire leur message.
-5. **Vérifier** l'état, puis **consigner** (décision, heure, opérateur, résultat).
+5. **Vérifier** l'état, puis **consigner** (décision, heure, opérateur, résultat). Après la chaîne complète, le registre ne doit plus porter aucune version du lot :
+   `select version from supabase_migrations.schema_migrations where version > '20261120200000' order by version;` → aucune ligne (même requête que C4).
+   Une ligne restante désigne un retour qui ne s'est pas joué jusqu'au bout : la lire avant toute suppression à la main.
 
 **L'ordre exact des 52 retours** : l'inverse exact du manifeste. On s'arrête à `20261122090000`. `20261120200000` et les plus anciennes restent : elles sont en production depuis le 21/11.
 
@@ -478,9 +505,9 @@ La base reste migrée. L'ancien code tourne alors sur la nouvelle base (compatib
 - `20261125152000` : les départs enregistrés sous la case « mariés ou pacsés » gardent une fin de solidarité vide. Ils sont à revoir un par un.
 - `20261122110000` : vérifier d'abord qu'aucune restitution du dépôt n'est en préparation sur un bail dont l'échéancier de charges est entamé.
 - `20261124180000` : la valeur `notice_information` reste dans le type `document_type`. PostgreSQL ne sait pas la retirer.
-- **11 retours ne retirent pas leur version du registre des migrations** (VÉRIFIÉ en lisant les 52 fichiers) : `20261125101500`, `103000`, `104000`, `105000`, `106000`, `111000`, `140000`, `151000`, `152000`, `153000`, `154000`. Les 41 autres le font. Conséquence : pour réappliquer plus tard l'une de ces 11 migrations, le chantier refuserait (« version déjà enregistrée ») tant que sa ligne reste dans `supabase_migrations.schema_migrations`. La retirer serait un geste à décider à part.
+- **Chacun des 52 retours retire sa propre version du registre des migrations** (corrigé le 25/11, constat RET-01, commit `140f4216`). Avant, 11 retours la laissaient (`20261125101500`, `103000`, `104000`, `105000`, `106000`, `111000`, `140000`, `151000`, `152000`, `153000`, `154000`) : l'essai « retours » a montré que le chantier refusait alors de réappliquer le lot (« la version 20261125101500 est déjà enregistrée en base »). Désormais, un retour à plusieurs instructions retire sa version en dernier (arrêté par une erreur, il la laisse) ; un retour d'un seul bloc la retire dans ce bloc. VÉRIFIÉ au banc : chaîne des 52 retours (`psql -v ON_ERROR_STOP=1 -f`, ordre ci-dessus), aucune version restante, puis réapplication par le bloc « Appliquer » de `migrations.yml` (simulation puis application, code 0) et schéma identique au schéma migré d'origine (6 212 entrées, 0 écart). Test : `tests/retours-lot-publication-registre.test.ts`. Le LISEZ-MOI (« Procédure », étape 4) le dit.
 - **7 retours contiennent plusieurs instructions** (VÉRIFIÉ par un comptage des instructions) : `20261122100000`, `20261124140000`, `20261125101500`, `20261125103000`, `20261125105000`, `20261125106000`, `20261125110000`. Joués avec `psql -f`, chaque instruction est validée seule. Une erreur au milieu laisserait donc appliquées les instructions d'avant. Proposition non essayée : les jouer avec l'option `--single-transaction` de `psql`. Aucun d'eux ne contient `begin`, `commit` ou une instruction interdite dans une transaction (recherche faite).
-- **Aucun retour n'a jamais été joué en production** (`AUDIT.md`). D'après les notes lues, la chaîne entière des 52 retours n'a jamais été jouée d'un bout à l'autre sur une seule base.
+- **Aucun retour n'a jamais été joué en production** (`AUDIT.md`). Au banc, la chaîne entière des 52 retours a été jouée d'un bout à l'autre le 25/11 (essai « retours », puis rejeu après la correction RET-01).
 - **Un retour ne défait pas les données déjà écrites** (journaux, notifications parties, états changés entre-temps).
 
 ### 5.5 Niveau 3 — Restaurer la sauvegarde (dernier recours)
@@ -545,10 +572,10 @@ Ce que l'agent ne peut pas faire : voir un secret, se connecter comme super admi
 6. **`main` toujours à `e1e442dc` sur GitHub** : lu seulement sur la copie locale.
 7. **La CI GitHub sur cette version** : jamais lancée. Seul le banc local « fidèle à la CI » l'a vérifiée.
 8. **Le lot des 52 migrations joué d'un seul bloc** : jamais fait. Le banc les applique une par une.
-9. **L'ancien code `81740dec` sur la base migrée** : jamais exécuté. Seule la migration `20261125150000` est couverte, par une sonde SQL. La case `base_compatible` repose sur cette hypothèse.
-10. **La chaîne des 52 retours, d'un bout à l'autre** : jamais jouée. Aucun retour n'a jamais été joué en production.
+9. **L'ancien code `81740dec` sur la base migrée** : essayé au banc le 25/11 (282 parcours réussis). Un risque trouvé, la lettre de révision de loyer (A-01), tenu par une consigne (É8, § 5.3). Restent SUPPOSÉS (A-05) : objets créés par le nouveau code puis lus par l'ancien (lus dans le code au § 5.3, jamais vus à l'écran), IA réelle, e-mails réels, tâches planifiées, vrai PostgREST/Supabase, affichage des refus de la base. La case `base_compatible` repose sur cet essai et sur ces points acceptés.
+10. **La chaîne des 52 retours, d'un bout à l'autre** : jouée au banc le 25/11 (essai « retours », rejeu RET-01). Aucun retour n'a jamais été joué en production.
 11. **Les 7 retours à plusieurs instructions** : leur effet en cas d'erreur au milieu n'a pas été essayé, ni l'option `--single-transaction`.
-12. **Les 11 retours qui laissent leur version au registre** : l'effet sur une réapplication plus tard est déduit de `migrations.yml`, pas essayé.
+12. **Les 11 retours qui laissaient leur version au registre** : effet constaté au banc (réapplication refusée), corrigé dans le code (commit `140f4216`), puis rejoué au banc : réapplication acceptée, schéma identique. Non essayé sur le pooler de Supabase.
 13. **Qui détient le mot de passe de la base** pour jouer les retours : non établi (P3).
 14. **La perte des anciennes copies de sauvegarde** quand la clé est remplacée : déduite, non constatée. La conservation de 90 jours chez Scaleway n'est pas vérifiée.
 15. **La restauration complète vers un projet de secours** : jamais éprouvée.
@@ -587,3 +614,13 @@ Chaque fait du plan a été comparé aux notes, au journal et au code de `89cb87
 - **Corrigé** : le plus long lot passé comptait sept fichiers (14/10), pas quatre ; l'état de la production est daté fait par fait (abonnés et versions archivées jamais lus) ; la mention de TVA suit le recueil (report au 01/01/2027) ; les heures à éviter vont jusqu'à 09:00 UTC.
 - **Ajouté** : le geste irréversible du remplacement de la clé et la fenêtre sans sauvegarde lisible (P1) ; P3 et P6 b deviennent des décisions à prendre avant le jour J ; la règle d'approbation lue dans `controle.mjs` et la protection de `main` (P4) ; l'écart avec `QUESTIONS.md` (Q16) ; l'arrêt de `20261125150000` si `accepter_cgu` est inattendue (C5) ; la CI « push » exigée par le contrôleur (É4) ; l'échec sur un verrou (É8) ; le refus probable d'une requête depuis l'éditeur SQL (É9) ; l'encadré de la page Confidentialité (R1) ; l'étape R4 bis (parcours de vérification) ; le conseil COM-2 (R8) ; l'effet du retour de `20261125110000` sur les e-mails en file (§ 5.4).
 - **Reste à faire par le rédacteur ou l'agent** : `QUESTIONS.md` indique encore Q64 « En attente de votre réponse », alors que `DECISIONS-2026-11-24.md` note « Q64 c'est des tests ».
+
+## Corrections du 25/11 après les essais de publication (A-01, A-05, RET-01)
+
+Trois défauts relevés par les essais au banc (« ancien » et « retours ») ont été vérifiés, puis corrigés. Rien n'a été fait en production.
+
+- **A-01 (bloquant) — lettre de révision de loyer sous l'ancien code.** Défaut VÉRIFIÉ au banc (sonde en transaction annulée : lettre « à compter du 01/11/2026 », novembre appelé à 600,00 €, premier terme révisé le 01/12/2026). Il ne se corrige pas dans la base : l'ancien et le nouveau code appellent la même fonction avec les mêmes arguments, et la lettre de `81740dec` lit la révision enregistrée. **Corrigé dans ce plan** : consigne en É8 et au § 5.3, requête de contrôle en É9 (jouée au banc : elle liste la révision de la sonde). À défaut, accepter ce risque par écrit.
+- **A-05 (important) — points non couverts par l'essai « ancien ».** Constat exact : ces cas ne sont pas dans la suite de parcours de `81740dec`. **Corrigé dans ce plan** : P6 b, É10, § 5.3 et § 7 (point 9) les nomment comme SUPPOSÉS, avec ce que la lecture du code de `81740dec` en dit. L'essai ciblé à l'écran n'a pas été fait : c'est à vous de l'accepter par écrit ou de le demander avant le jour J.
+- **RET-01 (important) — 11 retours gardaient leur version au registre.** **Corrigé dans le code**, commit local `140f4216` (branche locale `claude/palier-1-fusion`, non envoyé) : les 11 retours retirent leur version, le LISEZ-MOI (« Procédure », étape 4) le dit, et un test le garde. Rejoué au banc (§ 5.4, P6 c). Aucune des 52 migrations ne change (`git diff 89cb87ff 140f4216 -- app/supabase/migrations app/e2e/local/ordre-migrations.txt .github` : vide). La liste du champ `fichiers` (É6) et l'ordre des retours (§ 5.4) sont donc inchangés.
+
+**À faire avant le jour J :** la version préparée devient le commit qui portera ces corrections (`140f4216` ou son successeur). Selon P5, refaire la vérification complète sur ce commit, puis remplacer `89cb87ff` par lui dans ce plan (§ 1, É1, É3, P5).

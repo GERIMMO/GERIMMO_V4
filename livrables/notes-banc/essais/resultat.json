@@ -1,0 +1,182 @@
+{
+ "bloc": {
+  "verdict": "réussi avec réserves",
+  "resume": "Les 52 migrations jouées d'un seul bloc, comme le fait migrations.yml, donnent le même schéma que le rejeu une par une avec 89cb87ff. Base de départ : les 524 migrations de 81740dec, avec preparer-ci.mjs de 81740dec ; une copie sans jeu d'essai et une avec seed.sql. Liste appliquée : lignes 525 à 576 du manifeste, identique à celle du plan, en ordre alphabétique ; 81740dec vers 89cb87ff ne contient que 52 ajouts.\n\nMéthode : les étapes « Garde — sauvegarde » et « Appliquer » sont extraites de migrations.yml et rejouées avec bash -eo pipefail. Seules l'adresse de la base et le dossier /tmp changent. Lot de 6 864 lignes et 581 instructions, entre begin + set local lock_timeout='5s' et rollback ou commit.\n\nVérifié :\n- Simulation réussie sur les deux copies. Les dumps de schéma et de données avant et après sont identiques à l'octet près, jetons restrict mis à part.\n- Application réelle : COMMIT, code 0. Une ligne tech_log imitant la sauvegarde avait été écrite pour passer la garde. Les 52 versions sont sur 14 chiffres ; statements contient le texte brut de chaque fichier (md5 égaux).\n- Un second lancement est refusé : version déjà enregistrée, code 1.\n- Bloc contre rejeu une par une : 6 211 entrées de pg_dump --schema-only identiques, une fois masqués 138 noms d'index fk_/idx_fk_ dont le suffixe vient de md5(oid). Catalogue identique : fonctions, droits, politiques, RLS, colonnes, déclencheurs, contraintes, index, enums, droits par défaut.\n- Seul écart du catalogue : le réglage authenticator de pgrst.db_pre_request, perdu par la copie CREATE DATABASE TEMPLATE. C'est un artefact de mon banc ; aucune des 52 n'y touche.\n- Données identiques, hors écarts attendus : schema_migrations, e2e_local.migrations, ma ligne tech_log, jetons tirés au hasard.\n- Ordre implicite mesuré : le délai d'attente de 5 s ne vaut que pour les migrations 1 à 28. La 28e fait set local lock_timeout='10s', qui reste actif jusqu'au commit pour les 24 suivantes. Avant le commit, la transaction verrouille en exclusif 57 relations, dont 12 tables existantes (baux, incidents, publications…), pendant 0,46 s en local.\n\nNon reproduit ou supposé : la garde « CI verte », le pooler et la vraie instance Supabase, les données réelles. La durée réelle des verrous en production n'est pas mesurée. Bases et arbres de travail supprimés, aucun serveur lancé. Compte rendu de 25 lignes : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/essais/bloc.md ; preuves dans /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/essais/bloc/.",
+  "constats": [
+   {
+    "id": "B-01",
+    "gravite": "mineur",
+    "constat": "Dans le bloc unique, le délai d'attente de verrou de 5 s fixé par le chantier ne vaut que pour les migrations 1 à 28. La 28e (20261124110000_publications_origine) fait set local lock_timeout='10s' hors fonction. Dans une seule transaction, ce réglage reste actif jusqu'au commit pour les 24 suivantes. D'autres migrations fixent aussi 10 s : 20261124120000 et 20261124140000 de la même façon, 20261125106000, 20261125140000 et 20261125150000 par set_config(..., true). Au rejeu une par une du banc, ce réglage ne valait que pour son propre fichier.",
+    "preuve": "Copie instrumentée du lot de simulation (show lock_timeout avant chaque fichier), lancée sur une copie de la base : 28 fichiers démarrent à 5s, 24 à 10s. grep -n 'set local lock_timeout' : ligne 18 de 20261124110000. Position 28 dans plan-liste.txt.",
+    "correction": "Plan É8 : écrire qu'un verrou peut attendre 10 s par instruction à partir de la 28e migration, et non 5 s. Sinon, décider s'il faut garder ce comportement. Rien d'autre ne change dans le chantier."
+   },
+   {
+    "id": "B-02",
+    "gravite": "mineur",
+    "constat": "Pendant tout le bloc, la transaction garde un verrou exclusif sur 57 relations jusqu'au commit. Parmi elles, 12 tables existantes très utilisées : baux, bail_personnes, incidents, incident_evenements, incident_devis, intervention_factures, publications, revisions_loyer, supervision_identite, archives_comptes, artisan_validations, ia_plafond_reglage. En local, le bloc dure 0,46 s. En production, chacune des 581 instructions fait un aller-retour entre le runner GitHub et le pooler : la durée réelle n'est pas mesurée (SUPPOSÉ plus longue). Pendant ce temps, l'ancien site attend sur ces tables.",
+    "preuve": "Requête sur pg_locks (pid courant, mode AccessExclusiveLock) ajoutée avant le rollback dans une copie instrumentée : 57 relations listées. Les 581 instructions sont comptées dans sortie-sim_api.log.",
+    "correction": "Dans le plan (É8 et P7), annoncer une courte coupure possible sur ces écrans pendant l'application. Garder la fenêtre hors des heures chargées, comme déjà conseillé. Le temps d'exécution réel de la simulation É6 servira de mesure."
+   },
+   {
+    "id": "B-03",
+    "gravite": "mineur",
+    "constat": "Un commentaire de migrations.yml est faux. Il dit que les versions passées par le chantier « portent le texte appliquée par le chantier GitHub, jamais celui du fichier ». Le code enregistre en réalité dans statements le texte brut du fichier, décodé du base64. La garde par empreinte concernera donc aussi, à l'avenir, les fichiers déjà passés par le chantier.",
+    "preuve": "Après l'application, la base a été comparée aux fichiers : md5(array_to_string(statements, E'\\n')) est égal au md5sum du fichier pour les 52 versions. diff de base-md5.txt et fichiers-md5.txt : vide.",
+    "correction": "Corriger le commentaire en tête de la garde par contenu, dans la prochaine PR (hors publication). Ce n'est pas bloquant."
+   },
+   {
+    "id": "B-04",
+    "gravite": "mineur",
+    "constat": "Deux bases construites séparément ont toujours des noms d'index différents. 138 index fk_<table>_<10 hex> et idx_fk_…_<10 hex> tirent leur suffixe de md5(oid de la contrainte) (migrations 20260921110000 et 20260922120000). Un pg_dump brut entre deux bases différentes donne donc 1 104 lignes d'écart, qui ne sont pas des différences de structure. Les noms en production diffèrent donc aussi de ceux du banc.",
+    "preuve": "diff brut des dumps de schéma : 1 104 lignes, uniquement des noms d'index fk_/idx_fk_. Après masquage de ces suffixes et tri des entrées : 0 ligne d'écart (lot contre ref, lot_api contre ref_api). Une recherche de doublons après masquage ne trouve rien.",
+    "correction": "Dans toute comparaison de schéma entre bases (banc et production), masquer ces suffixes. Ne jamais nommer ces index en dur dans un retour arrière : les retrouver par leur contrainte."
+   },
+   {
+    "id": "B-05",
+    "gravite": "mineur",
+    "constat": "Points non reproduits ou SUPPOSÉS : la garde « CI verte » (API GitHub, non appelée) ; le pooler Supabase ; la vraie instance (version de PostgreSQL, rôles, vrai pg_cron, statement_timeout) ; les données réelles et l'historique de versions renommées de la production. Le banc tourne en PostgreSQL 16 avec une amorce factice et seulement le jeu d'essai fictif. Les notify pgrst ne partent qu'au commit (règle de PostgreSQL, non observée).",
+    "preuve": "pg_lsclusters : 16/main, local. Aucune requête vers la production ni vers GitHub. L'étape de garde CI n'a pas été extraite.",
+    "correction": "La simulation É6 en production reste nécessaire : elle couvre ces écarts sans rien conserver. Lire son compte rendu (dix dernières versions, puis « SIMULATION : tout a été joué puis annulé »)."
+   },
+   {
+    "id": "B-06",
+    "gravite": "mineur",
+    "constat": "Le seul écart du catalogue entre le bloc et le rejeu une par une vient de mon banc. Le réglage authenticator de pgrst.db_pre_request (migration 20261113022742) manque sur mes copies, parce que CREATE DATABASE … TEMPLATE ne recopie pas pg_db_role_setting. Aucune des 52 migrations n'y touche. Ce n'est pas un défaut du lot ; je le signale pour ne pas le prendre pour un écart réel dans un futur essai.",
+    "preuve": "pg_db_role_setting : présent sur …_prod et …_ref, absent sur les copies …_lot, …_lot_api, …_prod_api et …_ref_api. grep -il 'alter role|alter database|pg_db_role_setting' sur les 52 : aucun. Catalogue identique hors cette ligne.",
+    "correction": "Dans un futur essai, recopier ce réglage après une copie par TEMPLATE, ou construire les bases sans copie. Rien à changer dans le dépôt."
+   }
+  ]
+ },
+ "ancien": {
+  "verdict": "réussi avec réserves",
+  "constats": [
+   {
+    "id": "A-01",
+    "gravite": "bloquant",
+    "constat": "Avec l'ancien code sur la base migrée, la lettre de révision de loyer (IRL) peut devenir fausse. Le modèle de 81740dec écrit « Loyer hors charges révisé, à compter du <date_effet> ». Or la nouvelle base fait partir le nouveau loyer du premier terme qui suit la demande (colonne premier_terme). Pour une demande au 01/11, la lettre annonce donc le nouveau loyer au 01/11 alors que novembre est appelé à l'ancien loyer. Le cas ne se produit que si une révision est enregistrée pendant que 81740dec tourne sur la base migrée (entre É8 et É10, ou pendant un retour de niveau 1).",
+    "preuve": "Sonde SQL en transaction annulée, $S/essais/ancien/journaux/sonde-revision.sql. Elle appelle reviser_loyer à 4 paramètres, comme l'ancien code. Nouvelle base : date_effet = 2026-11-01, premier_terme = 2026-12-01, appel de novembre à 600,00 € (sonde-revision-nouvelle.out). Base témoin à 81740dec : appel de novembre à 616,89 € (sonde-revision-temoin.out). Ligne 101 de 81740dec:app/src/lib/documents/modeles/revision-irl.ts : « à compter du ${f.date(d.dateEffet)} ». Le PDF n'a pas été rendu : le texte de la lettre est lu dans le modèle.",
+    "correction": "Écrire une consigne dans le plan (É8→É10 et § 5.3) : aucune révision de loyer enregistrée tant que 81740dec tourne sur la base migrée. Sinon, accepter le risque par écrit."
+   },
+   {
+    "id": "A-02",
+    "gravite": "mineur",
+    "constat": "Sur les 285 tests de la suite e2e de 81740dec, joués sur une base portant les 576 migrations de 89cb87ff et le jeu d'essai de 89cb87ff : 282 réussis, 3 ignorés, 0 échec au premier essai. Aucune panne visible. Aucun refus n'est déclenché par la suite.",
+    "preuve": "Résultat : « 282 passed (17.1m), 3 skipped », E2E_EXIT=0 ($S/essais/ancien/journaux/e2e-ancien.log et .status). Mêmes exclusions que la CI. Base témoin à 81740dec : 279 réussis et 3 échecs (abonnement:58, alias-espace:218, outils:171). Ces 3 échecs passent au second lancement (« 4 passed », e2e-temoin-reprise3.log) : c'est une instabilité du banc. Le journal Postgres montre le même profil d'erreurs sur les deux bases (erreurs-base-nouvelle.txt et erreurs-base-temoin.txt). Aucune erreur « does not exist » ni de droit retiré. Seul écart non expliqué : un « Bail introuvable » de plus (terme_bail, une lecture), sur un parcours resté vert.",
+    "correction": "Aucune pour la suite e2e. P6 b du plan peut citer cet essai comme preuve partielle de base_compatible."
+   },
+   {
+    "id": "A-03",
+    "gravite": "mineur",
+    "constat": "Le harnais e2e de 81740dec n'accepte que des noms de base fixes (garde dans e2e/local/base-api-fictive.ts). Il refuse donc les bases nommées gerimmo_ci_essai_<mot>. J'ai élargi la garde dans l'arbre jetable, sans toucher aucune assertion. Le premier passage avait été arrêté sur ces refus.",
+    "preuve": "Premier passage : « Error: Base API fictive locale obligatoire » (e2e-ancien-essai1-garde-nom.log). Le diff est conservé dans $S/essais/ancien/journaux/garde-base-api-fictive.diff. Les bases ont été refaites à neuf avant le passage retenu.",
+    "correction": "Pour les futurs essais, ajouter essai_[a-z_]+ à la garde dans le dépôt, ou nommer la base selon la liste admise."
+   },
+   {
+    "id": "A-04",
+    "gravite": "mineur",
+    "constat": "Comparaison du catalogue des deux bases. Ce que les migrations retirent ou changent n'est pas atteint par l'ancien code, ou ne l'est que de façon sûre.",
+    "preuve": "Relevés dans $S/essais/ancien/journaux/catalogue/, recoupés avec le code de 81740dec :\n- declarer_incident_bien_simple passe de 7 à 9 arguments ; les 2 nouveaux ont une valeur par défaut ('autre', 'normale').\n- Exécution retirée à authenticated : envoyer_pour_signature et retirer_evaluation (jamais appelées par l'ancien code) ; annuler_demande_signature et retourner_document_signe (appelées seulement sur une demande manuelle existante, aucune selon C1).\n- artisan_evaluations.retrait_motif n'est plus lisible ; l'ancien code lit des colonnes nommées, sans elle.\n- 21 tables perdent des droits d'écriture. Pour chaque commande retirée, aucune politique permissive n'existait : les seules politiques ALL sont RESTRICTIVE. Les écritures directes de l'ancien code gardent leur droit.\n- Nouvelles signatures de reviser_loyer, regulariser_charges et emettre_regularisation_fourniture : leur paramètre ajouté n'a pas de valeur par défaut, l'ancien appel n'est donc jamais ambigu.",
+    "correction": "Aucune."
+   },
+   {
+    "id": "A-05",
+    "gravite": "important",
+    "constat": "Points non couverts, donc SUPPOSÉS :\n- les données créées par le nouveau code puis lues par l'ancien lors d'un retour (avenants, factures refusées, absences d'artisan, rendez-vous manqués) : seule la contestation du jeu d'essai était présente ;\n- l'IA réelle, les e-mails réels et les tâches planifiées ;\n- le vrai PostgREST/Supabase (le banc utilise un émulateur) ;\n- les refus propres repérés dans le code (ventilation à confirmer, révision au-delà d'un an, 3e locataire sur un bail époux ou partenaires de PACS, IA coupée) : leur affichage n'a pas été vu à l'écran.\nLa base a été construite migration par migration, et non d'un seul bloc ; l'essai « bloc » avait montré un schéma identique.",
+    "preuve": "La suite e2e de 81740dec ne contient pas ces cas. Les refus ont été lus dans 81740dec:src (messages filtrés par sansJargon), pas déclenchés.",
+    "correction": "Si besoin, faire un essai ciblé : créer ces objets avec 89cb87ff, puis parcourir les écrans correspondants avec 81740dec."
+   }
+  ],
+  "resume": "J'ai joué la suite e2e complète de 81740dec sur une base portant les 576 migrations de 89cb87ff et le jeu d'essai de 89cb87ff. Résultat au premier essai, avec --retries=0 --workers=1 : 282 réussis, 3 ignorés, 0 échec.\n\nSur une base témoin à 81740dec, le même code donne 279 réussis et 3 échecs. Ces 3 échecs passent au second lancement : c'est une instabilité du banc, sans lien avec les migrations.\n\nLe journal Postgres montre le même profil d'erreurs SQL sur les deux bases. La comparaison du catalogue ne révèle aucune rupture atteinte par l'ancien code.\n\nUne sonde en transaction annulée montre en revanche un risque de donnée fausse :\n- une révision IRL enregistrée par l'ancien code sur la nouvelle base fait partir le nouveau loyer de décembre (novembre reste à 600 €) ;\n- la lettre de 81740dec annonce pourtant le nouveau loyer « à compter du 01/11 ».\n\n« Base compatible avec l'ancien code » est donc vrai pour tous les parcours exercés. C'est faux pour la lettre de révision : ce cas est bloquant pour le niveau 1, sauf consigne écrite (aucune révision de loyer tant que 81740dec tourne sur la base migrée).\n\nPour construire 81740dec, j'ai copié node_modules par liens physiques : Turbopack refuse le lien symbolique, et les fichiers de dépendances sont identiques dans les deux commits. Dans l'arbre jetable, j'ai aussi élargi la garde de nom de base du harnais, sans toucher aucun test.\n\nNettoyage fait : les 4 bases gerimmo_ci_essai_ancien* sont supprimées, ainsi que l'arbre jetable et le stockage. Aucun serveur ne reste, et integ et fusion sont inchangés.\n\nCompte rendu : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/essais/ancien.md\nJournaux : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/essais/ancien/journaux/"
+ },
+ "retours": {
+  "verdict": "réussi avec réserves",
+  "constats": [
+   {
+    "id": "RET-01",
+    "gravite": "important",
+    "constat": "Après les retours, 11 versions restent dans le registre supabase_migrations.schema_migrations : 20261125101500, 103000, 104000, 105000, 106000, 111000, 140000, 151000, 152000, 153000 et 154000. Les 41 autres retours retirent leur version. Résultat : on ne peut pas réappliquer le lot avec migrations.yml tant que ces 11 lignes n'ont pas été supprimées à la main. Le plan (§ 5.4) le signale. Le LISEZ-MOI ne le dit pour aucune de ces 11 migrations, alors que sa « Procédure » (étape 4) affirme que les scripts retirent eux-mêmes leurs versions.",
+    "preuve": "Vérifié sur une base d'essai portant les 52 migrations, puis les 52 retours. Commande : select version from supabase_migrations.schema_migrations → 11 lignes. On lance alors le lot des 52 avec la copie mot pour mot du bloc « Appliquer » de migrations.yml : code 1, avec « ✗ 20261125101500_conge_textes_officiels_t1.sql : la version 20261125101500 est déjà enregistrée en base. » On supprime ensuite les 11 lignes à la main (delete) : la simulation puis l'application passent (code 0). Le schéma obtenu est identique au schéma migré d'origine (6 212 objets, 0 écart) et les données sont inchangées. Journaux : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/essais/retours/rejeu-1/sortie.log, rejeu-2/, rejeu-3/.",
+    "correction": "Deux solutions. Soit ajouter aux 11 retours le même bloc que les 41 autres (« delete from supabase_migrations.schema_migrations where version = '…' »). Soit écrire dans le LISEZ-MOI, sur la ligne de chacun de ces 11 retours, que sa version reste au registre, avec la requête de suppression exacte, à jouer avant tout rejeu. Il faut aussi corriger l'étape 4 de la « Procédure »."
+   },
+   {
+    "id": "RET-02",
+    "gravite": "mineur",
+    "constat": "Le retour 20261122190000 (avenants) laisse en place la fonction public.verifier_gerant_avenant_bail(uuid,uuid), avec son droit d'exécution pour authenticated, et la règle avenants_bail_lecture. Le LISEZ-MOI dit « Retire … les quatre fonctions de l'avenant », alors que la migration en crée cinq. Ce reste ne figure nulle part.",
+    "preuve": "Comparaison de pg_dump -s (base revenue contre base 81740dec, objet par objet). Seulement dans la base revenue : FUNCTION verifier_gerant_avenant_bail(uuid, uuid), ACL de cette fonction, POLICY avenants_bail_lecture. Le fichier de retour ne la cite pas (grep vide). La migration la crée à la ligne 77 et la donne à authenticated à la ligne 86.",
+    "correction": "Écrire dans la ligne du LISEZ-MOI que cette fonction et la règle de lecture restent avec la table gardée (la règle en a besoin). Ou bien les retirer en même temps que la règle, si la table doit rester fermée."
+   },
+   {
+    "id": "RET-03",
+    "gravite": "mineur",
+    "constat": "Le retour 20261122234000 laisse le commentaire posé par la migration sur la colonne edl_lignes.photo_document_id. La colonne existait déjà en 81740dec, sans commentaire. Le LISEZ-MOI ne parle que de la clé étrangère et de l'index retirés.",
+    "preuve": "Comparaison de schéma : « SEULEMENT DANS B | COMMENT | public | COLUMN edl_lignes.photo_document_id », avec le texte « P2-01 (22/11/2026) : photo de l'élément… ».",
+    "correction": "Retirer ce commentaire dans le retour (comment on column … is null), ou écrire dans le LISEZ-MOI qu'il reste."
+   },
+   {
+    "id": "RET-04",
+    "gravite": "mineur",
+    "constat": "Joué avec la commande prescrite (psql -v ON_ERROR_STOP=1 -f, sans transaction), le retour 20261122100000 affiche un avertissement : son « set local lock_timeout = '10s' » est sans effet. Le fichier dit pourtant « Transaction externe obligatoire ». Avec --single-transaction, l'avertissement disparaît.",
+    "preuve": "Journal journal-retours/51-20261122100000.log : « WARNING: SET LOCAL can only be used in transaction blocks ». Essai de contrôle : les 52 retours joués avec psql --single-transaction -v ON_ERROR_STOP=1 -f ; 52/52 passent, aucun WARNING, schéma identique.",
+    "correction": "Prescrire « psql --single-transaction -v ON_ERROR_STOP=1 -f » pour ce retour, ou pour tous (52/52 essayés au banc). Ou bien remplacer le « set local » du fichier par un set_config dans un bloc DO."
+   },
+   {
+    "id": "RET-05",
+    "gravite": "mineur",
+    "constat": "La chaîne « Ordre complet » du LISEZ-MOI (lignes 647 à 680) ne nomme que 23 des 52 retours du lot. L'ordre des 29 autres ne vient que du plan (inverse du manifeste). Au banc, les deux ordres réussissent et donnent le même schéma : celui du plan (52/52), et la chaîne littérale d'abord puis les 29 autres (52/52).",
+    "preuve": "Extraction par script : 33 versions dans la chaîne, dont 23 parmi les 52. Leur ordre relatif dans la liste du plan est identique à celui de la chaîne (diff vide). Les deux exécutions donnent code 0 pour chaque retour. La comparaison des schémas donne 0 écart (5 978 objets).",
+    "correction": "Ajouter au LISEZ-MOI, dans la section du lot du 22 au 25/11, la liste complète des 52 retours dans l'ordre du plan."
+   },
+   {
+    "id": "RET-06",
+    "gravite": "mineur",
+    "constat": "Différences de schéma restantes VOULUES et ÉCRITES dans le LISEZ-MOI (vérifié ligne par ligne) : 5 tables gardées, 14 colonnes gardées sur 8 tables, et la valeur notice_information de document_type. Le reste n'est que de la forme : l'ordre des droits de 4 fonctions (droits identiques) et des noms d'index fk_<md5(oid)> (un artefact du banc). Ce constat ne demande aucune correction ; il est là pour la traçabilité.",
+    "preuve": "Tables gardées : artisan_absences, artisan_semaine_type, artisan_lignes_devis, avenants_bail, intervention_rdv_manques. Colonnes : artisan_validations.notifie_le, bail_personnes.entree_apres_signature, baux.locataires_epoux_pacses, incident_devis.garantie_annoncee, incidents.disponibilites_locataire(_le), intervention_factures.refusee_le, refusee_par, refus_motif, relancee_le et relances, publications.origine, revisions_loyer.premier_terme et irl_reference_trimestre. Chacune est retrouvée par grep dans la ligne de son retour (« restent », « Garde la colonne », « colonnes et contraintes conservées »). Droits : proacl identiques, vus comme des ensembles. Index : le nom vient de l'OID (20260922120000_autonomie_v3.sql:648) ; une fois les noms retirés, seuls diffèrent les index des tables et colonnes gardées.",
+    "correction": "Aucune."
+   },
+   {
+    "id": "RET-07",
+    "gravite": "mineur",
+    "constat": "Aucune donnée des tables existant avant le lot n'est perdue par les retours. Trois contenus changent, chacun comme le LISEZ-MOI l'annonce : un e-mail de relance à la main encore en file passe à « a_verifier » (110000) ; typeVendeur est effacé de l'identité (106000) ; le plancher archive:facture passe de 120 à 72 mois, la durée restant à 120 (103000). Les données des nouveautés qui vivent dans des colonnes gardées restent.",
+    "preuve": "Comparé : 233 tables du schéma 81740dec, nombre de lignes et md5 du contenu sur les colonnes de 81740dec, avant et après les retours. Aucun nombre de lignes ne change : baux 18, appels_loyer 108, encaissements 102, quittances 101, documents 42, auth.users et accounts 18. Seules courriels_durables, supervision_identite et retention_rules changent. Bail coché toujours présent ; départ avec fin de solidarité vide ; régularisation 2021 à −1 450 ; deux accords (avec et sans empreinte). Les données d'avant le lot (S0) ne perdent aucune ligne.",
+    "correction": "Aucune."
+   },
+   {
+    "id": "RET-08",
+    "gravite": "mineur",
+    "constat": "Points du plan jamais essayés jusqu'ici, maintenant vérifiés au banc avec des données : le lot des 52 en une transaction façon migrations.yml (P6 a) ; la simulation de la chaîne des retours (begin, \\i ×52, rollback) ; le cycle complet migrations → retours → rejeu → retours. Non vérifiés : la production (pooler, rôle non superutilisateur, verrous sous charge, registre réel) et l'ancien code 81740dec sur la base revenue.",
+    "preuve": "Lot des 52 : simulation « tout a été joué puis annulé » puis application, code 0, 52 versions. Simulation des retours : code 0, 0 WARNING ou ERROR, 52 versions encore présentes ensuite. Second passage des retours (--single-transaction) après le rejeu : schéma identique au premier passage.",
+    "correction": "Aucune pour le banc. Reporter ces résultats dans le plan, P6 a, c et d."
+   }
+  ],
+  "resume": "J'ai joué au banc local le niveau 2 du retour arrière, sur une base construite comme la production le serait. Base : 524 migrations de 81740dec, seed.sql et cinq jeux de dossiers fictifs de la phase 3. Puis les 52 nouvelles migrations en un seul lot, avec une copie mot pour mot du bloc « Appliquer » de migrations.yml, en simulation puis pour de bon. J'ai ajouté des données qui exercent les nouveautés :\n- un bail « mariés ou pacsés » avec un départ ;\n- une régularisation 2021 confirmée ;\n- des accords aux conditions avec et sans empreinte ;\n- une relance à la main consignée ;\n- un type de vendeur.\n\nLes 52 retours, joués avec « psql -v ON_ERROR_STOP=1 -f » dans l'ordre du plan, réussissent tous. Cet ordre respecte la chaîne « Ordre complet », qui ne couvre que 23 des 52 retours. Jouer d'abord la chaîne telle qu'écrite donne le même résultat.\n\nComparé à 81740dec, le schéma ne diffère plus que par des restes voulus et écrits au LISEZ-MOI (5 tables, 14 colonnes, une valeur d'énumération), plus deux restes non écrits : la fonction verifier_gerant_avenant_bail avec sa règle de lecture, et un commentaire de colonne. Aucune ligne des 233 tables d'avant le lot n'est perdue ; trois contenus changent, comme le LISEZ-MOI l'annonce.\n\nRéserve principale : 11 versions restent au registre, donc migrations.yml refuse de réappliquer le lot (« version déjà enregistrée »). Une fois ces lignes supprimées à la main, le rejeu passe et redonne exactement le schéma migré. Les 52 retours passent aussi avec --single-transaction et en simulation (begin, \\i, rollback).\n\nLes bases gerimmo_ci_essai_retours, _ref, _chaine et _rejeu sont supprimées, ainsi que les deux arbres de travail. Aucun serveur n'a été lancé, rien n'a été envoyé, et l'arbre fusion est inchangé (89cb87ff, propre).\n\nCompte rendu : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/essais/retours.md. Preuves et outils : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/essais/retours/."
+ },
+ "correction": {
+  "commit": "140f4216 (local commit on claude/palier-1-fusion in /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/fusion, child of 89cb87ff, not pushed). The plan /home/user/GERIMMO_V4/livrables/PLAN-DE-PUBLICATION.md was written in place and not committed. Report: /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/essais/corrections.md (19 lines). Evidence: /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/essais/corrections/ (journaux/, a01/, retours/, outils/).",
+  "tableau": [
+   {
+    "id": "RET-01",
+    "verdict": "Réel. Corrigé dans le code, rejoué au banc.",
+    "preuve": "Avant : le nouveau test tests/retours-lot-publication-registre.test.ts échoue sur 89cb87ff (24 échecs ; la chaîne des 52 retours sur base laisse 11 versions). Correction : les 11 retours retirent leur propre version, en dernier bloc s'ils ont plusieurs instructions, dans le bloc unique sinon. Le LISEZ-MOI est complété (Procédure étape 4, plus la ligne de chacun des 11). 7 tests qui interdisaient tout delete n'admettent que la suppression de LEUR version, via tests/fixtures/registre-retour.ts. Après : 75 tests réussis. Rejeu au banc sur un arbre jetable à 140f4216 : 524 migrations + seed, puis les 52 par une copie mécanique du bloc Appliquer de migrations.yml (simulation et application : code 0). Les 52 retours joués avec psql -v ON_ERROR_STOP=1 -f dans l'ordre du plan passent tous, et aucune des 52 versions ne reste au registre. Le même bloc réapplique ensuite (simulation et application : code 0) et le schéma est identique au schéma migré (6212 entrées, 0 écart). Tests liés : 86 fichiers, 1503 réussis. Le seul échec, jour-de-paris-suite-migrations-rejeu, échoue de la même façon sur 89cb87ff (vérifié par git stash) : ce test cible GERIMMO_HISTORIQUE_DB, absente de mon environnement. tsc code 0, eslint code 0 sur les 10 fichiers touchés. git diff 89cb87ff 140f4216 -- app/supabase/migrations app/e2e/local/ordre-migrations.txt .github : vide."
+   },
+   {
+    "id": "A-01",
+    "verdict": "Réel. Non corrigeable dans la base : corrigé dans le plan (procédure).",
+    "preuve": "Sonde essais/corrections/a01/sonde-a01.sql, en transaction annulée sur la base migrée : reviser_loyer à 4 arguments, demande du 01/11/2026. Résultat : date_effet 2026-11-01, premier_terme 2026-12-01, novembre appelé à 600,00. La lettre de 81740dec imprimerait « à compter du 01/11/2026 : 616.89 € ». La base ne peut pas distinguer les deux codes : le nouveau code appelle aussi la signature à 4 arguments (89cb87ff:app/src/app/actions/loyers.ts l.602-608), et la lettre de 81740dec lit revisions_loyer.date_effet à tout moment. Plan corrigé : consigne en É8 (aucune révision ni lettre IRL de É8 jusqu'au succès de É10) et au § 5.3 (même consigne pendant un retour de niveau 1) ; requête de contrôle en É9, jouée au banc, qui liste la révision de la sonde. Sinon, accepter le risque par écrit."
+   },
+   {
+    "id": "A-05",
+    "verdict": "Réel (ces points ne sont pas couverts). Corrigé dans le plan : points supposés nommés et lecture du code ; essai ciblé à l'écran non fait.",
+    "preuve": "git grep dans 81740dec : aucun parcours e2e sur les factures refusées ni sur les rendez-vous manqués. 81740dec ne cite ni avenants_bail, ni artisan_absences, ni intervention_rdv_manques, ni les types facture_refusee, facture_relancee et rdv_manque. Le fil de l'incident affiche le type brut (pane-incident.tsx l.404). factures-incident.tsx montre une facture refusée « à vérifier » avec le bouton Valider ; la base refuse cette validation (test « refus et validation s'excluent » réussi). Plan mis à jour : P6 b, É10, § 5.3 (comportement de l'ancien code avec chaque objet, consigne de ne pas traiter les factures refusées) et § 7 point 9."
+   }
+  ],
+  "plan_modifie": true,
+  "non_verifie": [
+   "A-05 : aucun écran de 81740dec n'a été parcouru avec des objets (avenants, factures refusées, absences, rendez-vous manqués) créés par la nouvelle version. Ce qui est dit vient de la lecture du code, pas de l'écran.",
+   "IA réelle, e-mails réels, tâches planifiées et vrai PostgREST/Supabase : non essayés.",
+   "Lettre A-01 : texte lu dans le modèle revision-irl.ts, PDF non rendu (ni l'ancienne lettre ni la nouvelle).",
+   "Retours et rejeu joués sur PostgreSQL 16 local, pas sur le pooler Supabase ni avec le rôle de production.",
+   "Vitest complet et suite e2e non relancés sur 140f4216 : seuls les 86 fichiers de tests liés l'ont été. La vérification complète (P5) et le remplacement de 89cb87ff par le nouveau commit dans le plan restent à faire.",
+   "jour-de-paris-suite-migrations-rejeu : non rejoué sur une base historique (GERIMMO_HISTORIQUE_DB). Il échoue de la même façon avant et après la correction sur une base complète neuve."
+  ]
+ }
+}

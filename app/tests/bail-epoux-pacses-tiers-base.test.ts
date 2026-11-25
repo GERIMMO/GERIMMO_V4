@@ -115,7 +115,7 @@ describe.skipIf(!url)("case « mariés ou pacsés », personnes à la signature 
     return r;
   }
   const lignes = async (bail: string) => (await db.query(
-    "select p.nom, bp.role, bp.entree_apres_signature apres, bp.date_depart::text depart, bp.date_solidarite_fin::text fin from public.bail_personnes bp join public.persons p on p.id = bp.person_id where bp.bail_id=$1 order by p.nom", [bail])).rows;
+    "select p.nom, bp.role, bp.entree_apres_signature apres, bp.date_depart::text depart, bp.date_solidarite_fin::text fin from public.bail_personnes bp join public.persons p on p.id = bp.person_id where bp.bail_id=$1 order by p.nom collate \"C\", bp.role", [bail])).rows;
   /** Un bail coché, signé avec ses deux époux (Époux A principal, Époux B colocataire, garant de B), au dépôt du bail papier. */
   async function couple() {
     const a = await personne("Époux A"), b = await personne("Époux B"), gb = await personne("Garant de B");

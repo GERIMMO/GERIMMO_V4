@@ -127,7 +127,7 @@ describe.skipIf(!url)("case « mariés ou pacsés », marque à la nouvelle sign
     return r;
   }
   const lignes = async (bail: string) => (await db.query(
-    "select p.nom, bp.role, bp.entree_apres_signature apres, bp.date_depart::text depart, bp.date_solidarite_fin::text fin from public.bail_personnes bp join public.persons p on p.id = bp.person_id where bp.bail_id=$1 order by p.nom", [bail])).rows;
+    "select p.nom, bp.role, bp.entree_apres_signature apres, bp.date_depart::text depart, bp.date_solidarite_fin::text fin from public.bail_personnes bp join public.persons p on p.id = bp.person_id where bp.bail_id=$1 order by p.nom collate \"C\", bp.role", [bail])).rows;
   const marque = async (ligne: string) => (await un("select entree_apres_signature v from public.bail_personnes where id=$1", [ligne])).v;
   const etatBail = async (bail: string) => String((await un("select etat::text e from public.baux where id=$1", [bail])).e);
   /**

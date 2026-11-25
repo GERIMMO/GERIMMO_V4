@@ -262,12 +262,23 @@ it.skipIf(!process.env.GERIMMO_CATALOGUE_PDF_DIR || !process.env.GERIMMO_CHROME)
     if(code==="avenant_remplacement") ctx.bail.type="colocation";
     const t=fixtureCourrier(code);
     if(code==="accuse_conge"){ctx.bail.etat="preavis";t.etats_des_lieux=[];}
+    // Vérification CI du 25/11 : depuis le lot 39 (fe5819f8), un protocole d'apurement reprend le plan ENREGISTRÉ sur la fiche
+    // du bail et refuse d'imprimer sans lui ; l'épreuve lui fournit le même plan que le test du protocole ci-dessus.
+    if(code==="protocole_apurement"){
+      t.plans_apurement=[{id:"plan",bail_id:"bail",etat:"propose",date_arrete:"2026-01-10",dette_initiale:100.01,acompte:0,tolerance_jours:5,seuil_caducite:2,conditions:null}];
+      t.plan_apurement_tranches=[{rang:1,echeance:"2026-01-31",montant:33.34},{rang:2,echeance:"2026-02-28",montant:33.34},{rang:3,echeance:"2026-03-31",montant:33.33}];
+    }
     const r=succes(await assemblerComplementBail(code,mockDb(t).db,"org","bail",options));
+    expect(r.document.manquants,code).toEqual([]);
     const pdf=await rendrePdf(r.document);expect(pdf.length).toBeGreaterThan(10000);writeFileSync(join(dir,`${code}.pdf`),pdf);
   }
   for(const code of CODES_COMPLEMENTS_GESTION){
     const t=fixture();if(code==="recap_fiscal_meuble") t.lots[0].meuble=true;
+    // Vérification CI du 25/11 : depuis le lot 42 (a056bbb0), le récapitulatif d'incident imprime la date du signalement et
+    // refuse sans elle ; l'incident de la fixture commune n'en porte pas : l'épreuve la fournit.
+    if(code==="recap_incident") t.incidents[0].date_signalement="2025-12-20";
     const r=succes(await assemblerComplementGestion(code,mockDb(t).db,"org",code==="cloture_mensuelle"?"org":code==="recap_fiscal_nu"?"lot":"cible",options));
+    expect(r.document.manquants,code).toEqual([]);
     const pdf=await rendrePdf(r.document);expect(pdf.length).toBeGreaterThan(10000);writeFileSync(join(dir,`${code}.pdf`),pdf);
   }
 });

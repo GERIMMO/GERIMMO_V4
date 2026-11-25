@@ -1,10 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { premier } from "@/lib/postgrest";
-import { aujourdhuiParis } from "@/lib/ged";
-import { classerPiecesBail, echeanceReglementaire, type DiagnosticBail, type PieceBail } from "@/lib/documents-bail";
+import { aujourdhuiParis, formaterDateHeure } from "@/lib/ged";
+import { estBienHabitation } from "@/lib/parc";
+import { anciennesNoticesDeposees, carteNoticeDeposee, carteResumeNotice, classerPiecesBail, echeanceReglementaire, noticeDeposeeRetenue, resumeNoticeAActualiser, resumeNoticeRetenu, TYPE_GED_NOTICE_DEPOSEE, type DiagnosticBail, type PieceBail } from "@/lib/documents-bail";
 import { FileCheck2, BookOpen, Building2, Paperclip, ShieldCheck, KeyRound } from "lucide-react";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
-import { FormulaireReglementCopropriete } from "./formulaires-bail";
+import { FormulaireNoticeBail, FormulaireReglementCopropriete } from "./formulaires-bail";
 import { ChoisirReglementBail } from "./choisir-reglement-bail";
 import { FormulaireAnnexeBail } from "./formulaire-annexe-bail";
 import { DiagnosticsBail } from "./diagnostics-bail";
@@ -16,6 +17,8 @@ import { lienLotDepuisBail } from "@/lib/parcours-lot";
 import { verifierAccesEspace } from "@/lib/espace";
 import type { QualificationDiagnostic } from "@/lib/qualification-diagnostics";
 import { statutAttestationBail } from "@/lib/statut-attestation-bail";
+import { lireEcartDpe } from "@/lib/avertissement-dpe";
+import { AvertissementDpe } from "@/components/avertissement-dpe";
 
 type DocumentConnu = FichierPieceBail & PieceBail & { created_at: string; versions?: { id: string; purged_at: string | null }[] };
 const remplace = (document: DocumentConnu) => Boolean(document.versions?.length);
@@ -40,6 +43,7 @@ export async function DocumentsParcoursBail({ orgId, bailId, lotId, bienId, anne
     reglementId ? db.from("documents").select(champsDocument).eq("organization_id", orgId).eq("id", reglementId).maybeSingle() : Promise.resolve({ data: null, error: null }),
     db.from("documents").select(champsDocument).eq("organization_id", orgId).is("purged_at", null).in("type", ["attestation_assurance", "autre", "justificatif"]).order("created_at", { ascending: false }),
   ]);
+  const ecartDpe = await lireEcartDpe(db, orgId, lotId);
   const diagnostics: DiagnosticBail[] = [...(lot.data ?? []).map(d => ({ ...d, niveau: "lot" as const })), ...(bien.data ?? []).map(d => ({ ...d, niveau: "bien" as const }))].map(d => {
     const document = premier(d.document);
     // DOC-01 : l'échéance d'un DPE d'avant le 01/07/2021 est plafonnée (décret n° 2020-1610).
@@ -51,9 +55,23 @@ export async function DocumentsParcoursBail({ orgId, bailId, lotId, bienId, anne
   const tous = [...documentsBail, ...(docsLot.data ?? []).map(d => premier(d.document)), ...identifiees.map(d => premier(d.document))] as (DocumentConnu | null)[];
   const documents = [...new Map(tous.filter((d): d is DocumentConnu => Boolean(d && !d.purged_at)).map(d => [d.id, d])).values()].sort((a, b) => b.created_at.localeCompare(a.created_at));
   const { notices } = classerPiecesBail(documentsBail, [], reglementId);
-  const notice = notices[0];
+  // Lot 45 (T14) : les liens du bail sont lus sans ordre ; le résumé retenu est le plus récent, comme au récapitulatif et à la
+  // signature (un résumé actualisé ne laisse pas la carte sur l'ancien).
+  const notice = resumeNoticeRetenu(documentsBail);
+  // Reprise du lot 40 (C01) : un résumé rangé avec l'ancien texte n'est pas « disponible » : il est à actualiser.
+  const noticeAActualiser = resumeNoticeAActualiser(notice);
+  // Décision du 24/11/2026 (Q46) : la notice d'information que le bailleur a déposée pour ce bail (la plus récente).
+  const noticeDeposee = noticeDeposeeRetenue(documentsBail);
+  // Reprise du lot D3 (M4) : exigée pour les seuls biens d'habitation (bien illisible : on garde l'exigence).
+  const carteNotice = carteNoticeDeposee(!batiment.data || estBienHabitation(batiment.data.type), Boolean(noticeDeposee));
+  // Seconde reprise du lot D3 (point 5) : hors habitation, le résumé n'est pas demandé non plus (même distinction).
+  const carteResume = carteResumeNotice(!batiment.data || estBienHabitation(batiment.data.type), Boolean(notice), noticeAActualiser);
+  const tonNotice = docsBail.error ? undefined : carteResume.ton;
+  const tonNoticeDeposee = docsBail.error ? undefined : carteNotice.ton;
+  // Reprise du lot D3 (M7) : les versions déposées avant celle qui est retenue.
+  const anciennesNotices = anciennesNoticesDeposees(documentsBail);
   const dejaAffiches = new Set([...notices.map(d => d.id), ...diagnostics.map(d => d.document_id), ...identifiees.map(d => d.document_id), reglementId]);
-  const autres = documents.filter(d => !dejaAffiches.has(d.id));
+  const autres = documents.filter(d => !dejaAffiches.has(d.id) && d.type !== TYPE_GED_NOTICE_DEPOSEE);
   const luReglement = reglement.data as unknown as DocumentConnu | null;
   const fichierReglement = luReglement && !luReglement.purged_at ? luReglement : null;
   const erreurReglement = Boolean(reglement.error || (reglementId && !luReglement) || (!reglementId && (docsBail.error || docsLot.error)));
@@ -67,6 +85,8 @@ export async function DocumentsParcoursBail({ orgId, bailId, lotId, bienId, anne
     <p className={styles.introduction}>Les pièces attendues sont listées ci-dessous. Les documents du logement sont repris automatiquement ; seuls les éléments manquants restent à compléter.</p>
     <section id="completer-dpe" className={styles.section}>
       <header className={styles.entete}><FileCheck2 size={20} aria-hidden="true"/><h3>Diagnostics du logement et du bâtiment</h3></header>
+      {/* Décision du 24/11/2026 (Q28) : plusieurs DPE pour ce logement → avertissement, sans changer celui qui est retenu. */}
+      <AvertissementDpe ecart={ecartDpe} usage="Sa classe est celle que le contrat imprime." />
       {lot.error || bien.error ? <p role="alert">Les diagnostics n’ont pas pu être chargés. Rechargez la page avant d’effectuer un dépôt.</p> : <DiagnosticsBail orgId={orgId} bailId={bailId} lotId={lotId} bienId={bienId} diagnostics={diagnostics} aujourdhui={aujourd}
         contexte={batiment.data ? { typeBien: batiment.data.type, anneeConstruction: batiment.data.annee_construction, qualifications: (qualifications.data ?? []) as QualificationDiagnostic[], referenceDate } : undefined}
         erreurContexte={Boolean(batiment.error || !batiment.data || qualifications.error)}/>}
@@ -99,10 +119,30 @@ export async function DocumentsParcoursBail({ orgId, bailId, lotId, bienId, anne
     <section className={styles.section} aria-labelledby="annexes-attendues">
       <header className={styles.entete}><BookOpen size={20} aria-hidden="true"/><h3 id="annexes-attendues">À remettre avec le bail</h3></header>
       <div className={styles.annexes}>
-        <article className={styles.carte} data-ton={docsBail.error ? undefined : notice ? "ok" : "attention"}>
-          <div className={styles.carteEntete}><h4>Notice d’information</h4><span className={styles.etat} data-ton={docsBail.error ? undefined : notice ? "ok" : "attention"}>{docsBail.error ? "Indisponible" : notice ? "Disponible" : "À générer"}</span></div>
-          <p className={styles.obligation}>Obligatoire · Avec le bail</p><p>Les droits et obligations du propriétaire et du locataire. Gerimmo prépare le document.</p>
-          {!docsBail.error && <div className={styles.actions}>{notice && <ApercuPieceBail fichier={fichier(notice.id)} titre="Notice d’information" mime="application/pdf"/>}<BoutonGenererDocument orgId={orgId} code="notice" cibleId={bailId} cheminRetour={`${base}/baux/${bailId}`} libelle={notice ? "Actualiser la notice" : "Générer la notice"}/></div>}
+        {/* Décision du 24/11/2026 (Q46) : le bailleur dépose lui-même la notice officielle. Gerimmo ne fournit pas ce texte.
+            Textes officiels, lot T2 (R06-A1) : l'écran dit quelle version déposer, d'après le recueil fourni par le dirigeant
+            (annexe de l'arrêté du 29 mai 2015 remplacée par l'arrêté du 9 octobre 2026, en vigueur depuis le 18 octobre 2026,
+            applicable aux contrats conclus ou renouvelés depuis cette date). Gerimmo ne l'imprime pas : la copie du recueil
+            vient d'un site miroir (adresses coupées, tableaux à reconstruire). */}
+        <article id="notice-deposee" className={styles.carte} data-ton={tonNoticeDeposee}>
+          <div className={styles.carteEntete}><h4>Notice d’information officielle</h4><span className={styles.etat} data-ton={tonNoticeDeposee}>{docsBail.error ? "Indisponible" : carteNotice.etat}</span></div>
+          <p className={styles.obligation}>{carteNotice.obligation}</p>
+          <p data-notice-officielle>Déposez ici le texte complet de la notice d’information, en PDF. Vous le trouverez sur le site officiel de l’administration (service-public.fr). Gerimmo ne fournit pas ce texte et ne vérifie pas le fichier déposé : assurez-vous qu’il s’agit bien de la version applicable à la date de signature.</p>
+          <p data-notice-version>Version à déposer pour un contrat conclu ou renouvelé depuis le 18 octobre 2026 : l’annexe de l’arrêté du 29 mai 2015 dans sa rédaction issue de l’arrêté du 9 octobre 2026. Une notice plus ancienne ne convient pas.</p>
+          <p data-notice-effet>{carteNotice.effet}</p>
+          {!docsBail.error && <div className={styles.actions}>{noticeDeposee && <ApercuPieceBail fichier={fichier(noticeDeposee.id)} titre="Notice d’information déposée" mime="application/pdf"/>}<FormulaireNoticeBail orgId={orgId} bailId={bailId} dejaDeposee={Boolean(noticeDeposee)}/></div>}
+          {/* Reprise du lot D3 (M7) : « Déposer une autre version » ne fait pas disparaître les précédentes de la fiche. */}
+          {!docsBail.error && anciennesNotices.length > 0 && <details className={styles.details} data-anciennes-notices>
+            <summary>Anciennes versions ({anciennesNotices.length})</summary>
+            <p>Ces versions restent rangées dans Documents. Seule la plus récente, ci-dessus, est jointe à la signature électronique.</p>
+            <ul>{anciennesNotices.map(d => <li key={d.id}><a className={styles.lien} href={fichier(d.id)} target="_blank" rel="noreferrer">Notice déposée le {formaterDateHeure(d.created_at)}</a></li>)}</ul>
+          </details>}
+        </article>
+        <article className={styles.carte} data-ton={tonNotice}>
+          <div className={styles.carteEntete}><h4>Résumé de la notice (document d’information)</h4><span className={styles.etat} data-ton={tonNotice}>{docsBail.error ? "Indisponible" : carteResume.etat}</span></div>
+          <p className={styles.obligation}>Préparé par Gerimmo · Joint pour information</p><p>Les droits et obligations du propriétaire et du locataire, résumés.</p><p data-notice-resume><strong>Gerimmo en prépare un résumé, pas le texte officiel.</strong> {carteResume.texte}</p>
+          {noticeAActualiser && <p data-notice-a-actualiser>Le résumé rangé a été établi avec un ancien texte, qui se disait à tort annexé au contrat et reçu par le locataire : actualisez-le avant de préparer la signature.</p>}
+          {!docsBail.error && <div className={styles.actions}>{notice && <ApercuPieceBail fichier={fichier(notice.id)} titre="Résumé de la notice d’information" mime="application/pdf"/>}<BoutonGenererDocument orgId={orgId} code="notice" cibleId={bailId} cheminRetour={`${base}/baux/${bailId}`} libelle={notice ? "Actualiser le résumé" : "Générer le résumé"}/></div>}
         </article>
         <article id="reglement-copro" className={styles.carte} data-ton={erreurReglement ? undefined : fichierReglement ? "ok" : copropriete !== false ? "attention" : undefined}>
           <div className={styles.carteEntete}><h4>Extraits du règlement de copropriété</h4><span className={styles.etat} data-ton={erreurReglement ? undefined : fichierReglement ? "ok" : copropriete !== false ? "attention" : undefined}>{erreurReglement ? "Indisponible" : fichierReglement ? "Déposé" : copropriete === false ? "Non concerné" : copropriete === true ? reglementsDisponibles.length ? "À rattacher" : "À joindre" : "À préciser"}</span></div>

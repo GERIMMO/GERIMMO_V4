@@ -21,6 +21,8 @@ import {
 import { lireCleEnvoi } from "@/lib/cle-envoi";
 import { aujourdhuiParis } from "@/lib/ged";
 import { motifRdv, PRECISION_MAX, type MotifRdv } from "@/lib/rendez-vous-locataire";
+import { lireInterlocuteurLocataire } from "@/lib/interlocuteur-locataire-serveur";
+import { messageDeLaBasePourLocataire } from "@/lib/interlocuteur-locataire";
 
 // ════════════════════════════════════════════════════════════════════════════
 // LES TROIS SEULS GESTES DU LOCATAIRE SUR UNE INTERVENTION
@@ -148,9 +150,9 @@ export async function proposerMesCreneaux(
   }
 
   revaliderSuivi(orgId);
+  // Lot 47 : « votre gestionnaire » seulement dans un espace d'agence ; chez un propriétaire, « votre bailleur ».
   return {
-    succes:
-      "Vos disponibilités sont transmises à l'artisan. Il confirme l'une d'elles, ou votre gestionnaire vous appelle.",
+    succes: `Vos disponibilités sont transmises à l'artisan. Il confirme l'une d'elles, ou votre ${await lireInterlocuteurLocataire(supabase, orgId)} vous appelle.`,
   };
 }
 
@@ -265,7 +267,8 @@ export async function demanderReportRdv(
     p_creneaux: creneaux,
     p_cle: cle.cle,
   });
-  if (error) return { erreur: sansJargon(error.message), valeurs };
+  // Lot 47 : les refus de la base renvoient à « votre gestionnaire » ; hors agence, c'est le bailleur.
+  if (error) return { erreur: messageDeLaBasePourLocataire(sansJargon(error.message), await lireInterlocuteurLocataire(supabase, orgId)), valeurs };
 
   if (typeof demandeId === "string") {
     await notifierEnCoulisses(supabase, { evenement: "rdv_report_demande", objet: demandeId, org: orgId }, (service) =>
@@ -307,7 +310,8 @@ export async function annulerRdvLocataire(
     p_motif_texte: saisie.precision,
     p_cle: cle.cle,
   });
-  if (error) return { erreur: sansJargon(error.message), valeurs };
+  // Lot 47 : les refus de la base renvoient à « votre gestionnaire » ; hors agence, c'est le bailleur.
+  if (error) return { erreur: messageDeLaBasePourLocataire(sansJargon(error.message), await lireInterlocuteurLocataire(supabase, orgId)), valeurs };
 
   if (typeof demandeId === "string") {
     await notifierEnCoulisses(supabase, { evenement: "rdv_annule_par_locataire", objet: demandeId, org: orgId }, (service) =>
@@ -317,8 +321,7 @@ export async function annulerRdvLocataire(
 
   revaliderSuivi(orgId);
   return {
-    succes:
-      "Le rendez-vous est annulé. L'artisan et votre gestionnaire sont prévenus ; l'artisan va vous proposer d'autres créneaux.",
+    succes: `Le rendez-vous est annulé. L'artisan et votre ${await lireInterlocuteurLocataire(supabase, orgId)} sont prévenus ; l'artisan va vous proposer d'autres créneaux.`,
   };
 }
 

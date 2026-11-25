@@ -20,6 +20,8 @@ const sim = vi.hoisted(() => ({
   etat: {} as Record<string, unknown>,
   agenda: [] as Record<string, unknown>[],
   reglementsArtisan: { lignes: [] as Record<string, unknown>[], erreur: false },
+  // Audit P1-03 : les factures que le client a refusées, telles que l'artisan les lit.
+  refusees: { lignes: [] as Record<string, unknown>[], erreur: false },
 }));
 // La synthèse utilise la lecture privée existante ; ces cas portent sur le détail déclaré par le client.
 vi.mock("next/navigation", async () => ({
@@ -33,11 +35,14 @@ vi.mock("@/lib/artisan-prive", async () => ({
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => sim.supabase }));
 vi.mock("@/lib/use-action-state-protegee", () => ({ useActionStateProtegee: () => [sim.etat, () => {}] }));
 vi.mock("@/app/actions/reglement-facture", () => ({ declarerReglementFacture: () => ({}), retirerReglementFacture: () => ({}) }));
-vi.mock("../src/app/agence/[orgId]/incidents/validation-facture", () => ({ ValidationFacture: () => null }));
+// Audit P1-03 : le formulaire de refus est, comme celui de validation, un composant client que le test remplace.
+vi.mock("../src/app/agence/[orgId]/incidents/validation-facture", () => ({ ValidationFacture: () => null, RefusFacture: () => null }));
 vi.mock("../src/app/artisan/acces", () => ({
   verifierAccesArtisan: async () => ({}),
   chargerAgenda: async () => ({ lignes: sim.agenda, erreur: false }),
   chargerReglementsFactures: async () => sim.reglementsArtisan,
+  // Audit P1-03 : les factures refusées par le client.
+  chargerFacturesRefusees: async () => sim.refusees,
 }));
 vi.mock("../src/app/artisan/clients/resumes", () => ({ ReglementsDansFacturation: () => null }));
 
@@ -199,6 +204,7 @@ describe("la facturation de l'artisan : le règlement que son client déclare", 
   const afficher = async () => texte(renderToStaticMarkup((await PageFacturation({ searchParams: Promise.resolve({}) } as never)) as never));
 
   beforeEach(() => {
+    sim.refusees = { erreur: false, lignes: [] };
     sim.agenda = [mission("m1", "INC-1"), mission("m2", "INC-2"), mission("m3", "INC-3")];
     sim.reglementsArtisan = {
       erreur: false,
@@ -220,6 +226,32 @@ describe("la facturation de l'artisan : le règlement que son client déclare", 
     expect(t).toContain("Validée, règlement à venir");
     expect(t).toContain("facture n° F-1");
     expect(t).toContain("pas un virement de Gerimmo");
+  });
+
+  // Audit palier 1 (P1-03).
+  const REFUS = { id: "f-m4", intervention_id: "m4", numero: "F-4", montant_ttc_cents: 23968, refusee_le: "2026-11-22T10:00:00Z", refus_motif: "Le montant dépasse le devis accepté." };
+
+  it("facture refusée par le client : la mission revient « à facturer », dite à corriger, avec le motif", async () => {
+    sim.agenda = [{ ...mission("m4", "INC-4"), facture_deposee: false }];
+    sim.reglementsArtisan = { erreur: false, lignes: [etatArtisan("m4", "F-4", "refusee", [])] };
+    sim.refusees = { erreur: false, lignes: [REFUS] };
+    const t = await afficher();
+    expect(t).toContain("Facture refusée : à corriger");
+    expect(t).toContain("Facture n° F-4 refusée par votre client : « Le montant dépasse le devis accepté. »");
+    expect(t).toContain("Déposer une facture corrigée");
+    expect(t).not.toContain("Prête à facturer");
+    expect(t).not.toContain("Déposer ma facture");
+  });
+
+  it("facture refusée puis remplacée : la ligne parle de la facture en vigueur, plus du refus", async () => {
+    sim.agenda = [mission("m4", "INC-4")];
+    sim.reglementsArtisan = { erreur: false, lignes: [etatArtisan("m4", "F-4", "refusee", []), { ...etatArtisan("m4", "F-5", "validee", []), facture_id: "f-m4-bis" }] };
+    sim.refusees = { erreur: false, lignes: [REFUS] };
+    const t = await afficher();
+    expect(t).toContain("Validée, règlement à venir");
+    expect(t).toContain("facture n° F-5");
+    expect(t).not.toContain("refusée par votre client");
+    expect(t).not.toContain("Déposer une facture corrigée");
   });
 
   it("une lecture en échec se dit : elle ne passe pas pour « aucun règlement »", async () => {

@@ -482,30 +482,33 @@ export const DUREES_CONSERVATION: readonly DureeConservation[] = [
     duree_affichee: "10 ans",
     actif_au_deploiement: "oui",
   }),
-  // Décision du dirigeant du 23/10/2026 (« je ne suis pas commerçant ») : au moins six ans (livre des procédures
-  // fiscales, art. L. 102 B, à recomparer sur Légifrance), et non dix (C. com. L. 123-22, propre aux commerçants).
-  // Les factures sont émises et tenues par le prestataire de paiement, selon sa propre politique (le client n'y est
-  // jamais supprimé, plan lot 1E) ; la copie jointe à l'archive d'un compte fermé est retirée six ans après
-  // l'émission (archives_comptes.factures_conservees_jusqu_au, purger_archives_comptes : migration du socle
-  // 20261024090000, à brancher sur une tâche par le lot de conservation).
+  // Décision du dirigeant du 23/10/2026 (« je ne suis pas commerçant ») : six ans à l'époque (livre des procédures
+  // fiscales, art. L. 102 B), et non dix (C. com. L. 123-22, propre aux commerçants).
+  // Lot T4 du 24/11/2026 (écart R31-A1) : DIX ans. Le recueil fourni par le dirigeant contient l'article 36 de la loi
+  // n° 2026-534 du 25 juin 2026, qui porte à dix ans le délai de l'article L. 102 B pour les pièces dont la
+  // conservation expire après le 1er janvier 2027 — toutes les factures de Gerimmo (migration 20261125103000).
+  // Les factures sont émises et tenues par le prestataire de paiement, selon sa propre politique ; la copie jointe à
+  // l'archive d'un compte fermé est retirée dix ans après la fin de l'exercice de la facture
+  // (archives_comptes.factures_conservees_jusqu_au, purger_archives_comptes).
   ligne({
     donnees: "Factures d’abonnement émises par Gerimmo",
     data_type: null,
-    duree_mois: 72,
+    duree_mois: 120,
     declencheur: "Émission",
-    duree_affichee: "6 ans",
+    duree_affichee: "10 ans",
     actif_au_deploiement: null,
     tenue_par: "Stripe (prestataire de paiement), selon sa propre politique ; le client Stripe est supprimé au terme des factures de l'archive (clients_stripe_au_terme)",
   }),
   // Intégration des textes du 24/10 : la copie des factures jointe à l'archive d'un compte fermé suit la règle
-  // `archive:facture` livrée par 20261024140000 (échéance de echeance_facture_archivee : six ans après la plus tardive
-  // de l'émission et de la fin de l'exercice, à défaut de la fin du dernier abonnement payé).
+  // `archive:facture` livrée par 20261024140000 (échéance de echeance_facture_archivee : après la plus tardive de
+  // l'émission et de la fin de l'exercice, à défaut de la fin du dernier abonnement payé) — six ans alors, dix ans
+  // depuis 20261125103000 (lot T4).
   ligne({
     donnees: "Factures d’abonnement émises par Gerimmo",
     data_type: "archive:facture",
-    duree_mois: 72,
+    duree_mois: 120,
     declencheur: "Fin de l'exercice de la facture, à défaut fin du dernier abonnement payé",
-    duree_affichee: "6 ans",
+    duree_affichee: "10 ans",
     actif_au_deploiement: "oui",
   }),
   ligne({

@@ -1,4 +1,5 @@
 "use server";
+import { REFUS_RETRAIT_BAIL_SIGNE, REFUS_RETRAIT_BAIL_SIGNE_EPOUX_PACS, SUCCES_AJOUT_EPOUX_PACS, SUCCES_DEPART_EPOUX_PACS, refusCaseEpouxPacsNombre } from "@/lib/solidarite-colocation";
 import { resoudreDepotsFormulaire, limiteFichierDepose } from "@/lib/depot-direct";
 
 
@@ -957,6 +958,9 @@ export async function ajouterBailPersonne(
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  // Relecture de la fusion (A-01) : sur un bail signé coché « mariés ou pacsés », la personne ajoutée n'était pas au bail
+  // à sa signature ; la base lui appliquera la règle de la colocation, le message le dit.
+  if (role === "colocataire" && bail?.etat !== "brouillon" && (await bailEpouxPacs(supabase, orgId, bailId))) return { succes: SUCCES_AJOUT_EPOUX_PACS };
   return { succes: role === "garant" ? "Garant ajouté." : "Colocataire ajouté." };
 }
 
@@ -978,10 +982,10 @@ export async function supprimerBailPersonne(
     .maybeSingle();
   if (!bail) return { erreur: "Bail introuvable." };
   if (bail.etat !== "brouillon") {
-    return {
-      erreur:
-        "Le bail est signé : la personne ne se retire plus. Enregistrez le départ du colocataire — sa solidarité et celle de son garant courent encore six mois (art. 8-1 de la loi du 6 juillet 1989).",
-    };
+    // Case « mariés ou pacsés » (décision du 24/11/2026) : la règle de la colocation n'est pas dite pour ce bail.
+    if (await bailEpouxPacs(supabase, orgId, bailId)) return { erreur: REFUS_RETRAIT_BAIL_SIGNE_EPOUX_PACS };
+    // Reprises du lot T2 (T2R-1) : le message affirmait les six mois sans condition (lib/solidarite-colocation.ts).
+    return { erreur: REFUS_RETRAIT_BAIL_SIGNE };
   }
   const { data, error } = await supabase
     .from("bail_personnes")
@@ -1024,6 +1028,52 @@ export async function enregistrerDepartColocataire(
   return {
     succes: fin
       ? `Départ enregistré — solidarité (et garant lié) jusqu'au ${fin}.`
+      // Case « mariés ou pacsés » : la base n'enregistre aucune date de fin ; le message dit pourquoi.
+      : (await bailEpouxPacs(supabase, orgId, bailId)) ? SUCCES_DEPART_EPOUX_PACS
       : "Départ enregistré.",
   };
+}
+
+// Case « mariés ou pacsés » (décision du 24/11/2026, migration 20261125152000) : lue à part, une lecture en échec vaut
+// « non cochée » (les textes d'avant, qui disent la règle de la colocation sous condition).
+async function bailEpouxPacs(supabase: Awaited<ReturnType<typeof verifierGerant>>["supabase"], orgId: string, bailId: string): Promise<boolean> {
+  const { data, error } = await supabase.from("baux").select("locataires_epoux_pacses").eq("id", bailId).eq("organization_id", orgId).maybeSingle();
+  return !error && (data as { locataires_epoux_pacses?: boolean | null } | null)?.locataires_epoux_pacses === true;
+}
+
+// Case « mariés ou pacsés » (décision du dirigeant du 24/11/2026), à la préparation d'un bail commun à deux locataires :
+// article 8-1, I, de la loi du 6 juillet 1989 (recueil) — une location consentie exclusivement à des époux ou à des
+// partenaires de PACS au moment de la conclusion initiale du contrat n'est pas une colocation. Seul un brouillon se
+// corrige (la base fige ensuite le bail). Cochée, la case exige exactement deux locataires : un couple marié ou pacsé est
+// deux personnes ; avec un troisième, la location n'est pas « exclusivement » à des époux (refus plutôt qu'une clause fausse).
+export async function enregistrerLocatairesEpouxPacs(
+  orgId: string,
+  bailId: string,
+  _etat: EtatBail,
+  formData: FormData
+): Promise<EtatBail> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+  const coche = formData.get("locataires_epoux_pacses") === "on";
+  const { data: bail, error: erreurBail } = await supabase.from("baux").select("etat, type, chambre_id, locataire_principal")
+    .eq("id", bailId).eq("organization_id", orgId).maybeSingle();
+  if (erreurBail) return { erreur: "Le bail n’a pas pu être vérifié. Réessayez." };
+  if (!bail) return { erreur: "Bail introuvable." };
+  if (bail.etat !== "brouillon") return { erreur: "Seul un bail en préparation se corrige : le bail est signé, la case ne change plus." };
+  if (coche) {
+    if (bail.type !== "colocation" || bail.chambre_id)
+      return { erreur: "La case « mariés ou pacsés » vaut pour un bail commun à deux locataires (contrat de colocation, sans chambre)." };
+    const { data: lignes, error: erreurLignes } = await supabase.from("bail_personnes").select("person_id")
+      .eq("organization_id", orgId).eq("bail_id", bailId).eq("role", "colocataire");
+    if (erreurLignes) return { erreur: "Les locataires du bail n’ont pas pu être vérifiés. Réessayez." };
+    const nombre = new Set([bail.locataire_principal, ...((lignes ?? []) as { person_id: string }[]).map((l) => l.person_id)].filter(Boolean)).size;
+    if (nombre !== 2) return { erreur: refusCaseEpouxPacsNombre(nombre) };
+  }
+  const { data: modifies, error } = await supabase.from("baux").update({ locataires_epoux_pacses: coche })
+    .eq("id", bailId).eq("organization_id", orgId).eq("etat", "brouillon").select("id");
+  if (error) return { erreur: sansJargon(error.message) };
+  if (!modifies?.length) return { erreur: "Seul un bail en préparation se corrige — celui-ci a déjà avancé." };
+  revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  revalidatePath(`/espace/${orgId}/baux/${bailId}`);
+  return { succes: coche ? "Enregistré : bail consenti à deux époux ou partenaires de PACS." : "Enregistré : règle de la colocation." };
 }

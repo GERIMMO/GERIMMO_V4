@@ -58,8 +58,11 @@ export function LienAssistance({
   title,
   destination,
   onClick,
+  nomVisible = false,
   children,
 }: {
+  /** Le lien se nomme par son texte (entrée de menu « Aide en cas de problème ») au lieu de « Aide et retours ». */
+  nomVisible?: boolean;
   className?: string;
   title?: string;
   destination?: string;
@@ -79,7 +82,7 @@ export function LienAssistance({
     <Link
       data-assistance
       href={`${destination ?? "/assistance"}?ecran=${encodeURIComponent(ecranSansDonnees(chemin))}&action=${action}&retour=${encodeURIComponent(chemin)}${destination ? "#nouvelle" : ""}`}
-      aria-label="Aide et retours"
+      aria-label={nomVisible ? undefined : "Aide et retours"}
       title={title}
       className={className}
       onClick={onClick}

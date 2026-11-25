@@ -23,7 +23,8 @@ describe("inventaire Stripe dans Santé",()=>{
   });
   it("le chargement du bilan global ne masque pas les contrôles déjà connus",()=>{
     m.rpc.mockImplementation(()=>new Promise(()=>{}));
-    const html=renderToStaticMarkup(createElement(SuiviStripe,{controle:{en_attente:0,a_reprendre:0,a_controler:0,ecarts:0,dossiers:[]}}));
+    // E199 : SuiviStripe reçoit désormais l'état de la connexion à Stripe (ton et statut en dépendent).
+    const html=renderToStaticMarkup(createElement(SuiviStripe,{controle:{en_attente:0,a_reprendre:0,a_controler:0,ecarts:0,dossiers:[]},stripeRelie:true}));
     expect(html).toContain("Chargement de l’inventaire Stripe");
     expect(html).toContain("Stripe");
   });

@@ -12,6 +12,8 @@ async function assembler() {
     input: resolve(racine, "tests/fixtures/navigateur/banc-personnes-bail.tsx"), platform: "browser",
     plugins: [{ name: "serveur-isole", resolveId(id) {
       if (id === "@/app/actions/personnes-bail") return "\0actions";
+      // Case « mariés ou pacsés » (décision du 24/11/2026) : l'étape importe aussi l'action de la case, isolée de même.
+      if (id === "@/app/actions/baux") return "\0actions-baux";
       if (id === "next/navigation") return "\0navigation";
       if (id.endsWith("depot-direct-client")) return "\0depot";
       if (id.endsWith(".module.css")) return "\0css";
@@ -19,6 +21,7 @@ async function assembler() {
       if (id === "\0actions") return `async function enregistrer(...args) { window.__personnesBailEnvois.push(Object.fromEntries(args.at(-1))); return {succes: "Enregistré", personneCreee: {id:"nouvelle"}}; }
         export async function creerPersonneBail(...args) { const resultat=await enregistrer(...args); if(window.__personnesBailEchecCreation-- > 0) return {erreur:"Réponse interrompue. Votre saisie reste disponible."}; return resultat; }
         export const modifierPersonneBail = enregistrer, choisirPersonneBail = enregistrer, retirerPersonneBail = enregistrer;`;
+      if (id === "\0actions-baux") return `export async function enregistrerLocatairesEpouxPacs(...args) { window.__personnesBailEnvois.push(Object.fromEntries(args.at(-1))); return {succes: "Enregistré"}; }`;
       if (id === "\0navigation") return 'export function useRouter(){return {refresh(){}}} export function unstable_rethrow(){}';
       if (id === "\0depot") return 'export async function preparerDepotsDirects(){} export class ErreurDepotDirect extends Error{}';
       if (id === "\0css") return 'export default {}';
@@ -117,6 +120,24 @@ describe.skipIf(!chrome)("Personnes du bail : parcours sans détour", () => {
     await page.goto(`http://localhost/banc?scenario=${scenario}`);
     await page.getByRole("button",{name:"Ajouter un garant",exact:true}).click();
     expect(await page.getByLabel("Ce garant couvre",{exact:true}).inputValue()).toBe(attendu);
+  });
+  // Décision du dirigeant du 24/11/2026 : la case « mariés ou pacsés » est proposée dès deux locataires d'un bail commun, avec
+  // un libellé qui dit à qui elle s'applique ; elle part au serveur telle que cochée. Avec un seul locataire, pas de case.
+  it("case « mariés ou pacsés » : proposée à deux locataires, absente avec un seul ; cochée, elle part au serveur", async () => {
+    await page.goto("http://localhost/banc?scenario=colocation");
+    expect(await page.locator("[data-case-epoux-pacs]").count()).toBe(0);
+    await page.goto("http://localhost/banc?scenario=colocation_plusieurs");
+    await page.setViewportSize({ width: 390, height: 900 });
+    const caseEpoux = page.getByLabel("Les deux locataires sont mariés l’un à l’autre, ou liés l’un à l’autre par un PACS, à la signature du bail (location consentie à eux seuls)", { exact: true });
+    expect(await caseEpoux.isChecked()).toBe(false);
+    await expect.poll(() => page.locator("[data-case-epoux-pacs]").textContent()).toContain("Article 8-1 de la loi du 6 juillet 1989");
+    await caseEpoux.check();
+    await page.getByRole("button", { name: "Enregistrer ce choix", exact: true }).click();
+    await page.waitForFunction(() => window.__personnesBailEnvois.length === 1);
+    expect(await page.evaluate(() => window.__personnesBailEnvois)).toEqual([{ locataires_epoux_pacses: "on" }]);
+    // À 390 px, la case et son texte tiennent dans la largeur de l'écran.
+    const boite = await page.locator("[data-case-epoux-pacs]").boundingBox();
+    expect(boite && boite.x >= 0 && boite.x + boite.width <= 390).toBe(true);
   });
   // Décision du dirigeant du 20/11/2026 : la naissance d'un locataire est facultative sur sa fiche (locataire déjà en place).
   it("un locataire se crée sans date ni commune de naissance, et le formulaire dit pour qui la fiche est créée", async () => {

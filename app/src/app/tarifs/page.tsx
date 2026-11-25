@@ -15,7 +15,7 @@ export const revalidate = 3600;
 export function generateMetadata() {
   return metadonneesPubliques({
     titre: "Tarifs — Gerimmo",
-    description: `Un abonnement Gerimmo pour les particuliers et SCI, dès 5,99 €${avec(TTC)}/mois.${REGIME_TVA?.nature === "franchise" ? " TVA non applicable, art. 293 B du CGI." : ""} Essai gratuit de ${dureeEssai()}.`,
+    description: `Un abonnement Gerimmo pour les particuliers et SCI, dès 5,99 €${avec(TTC)}/mois.${REGIME_TVA?.nature === "franchise" ? " TVA non applicable, article 293 B du CGI." : ""} Essai gratuit de ${dureeEssai()}.`,
     chemin: "/tarifs",
   });
 }
@@ -75,7 +75,8 @@ export default function PageTarifs() {
           <ul className="list-disc space-y-1 pl-5">
             <li>Le suivi des baux, des loyers, des dépenses et des interventions, avec un espace pour vos locataires. Le tableau de bord signale les échéances. Vous pouvez préparer les relances de loyer en PDF.</li>
             <li>La révision IRL se prépare à votre initiative. Pour la location nue au réel, vous pouvez vérifier les montants du récapitulatif 2044. Le simulateur LMNP propose une estimation distincte pour le meublé.</li>
-            <li>Vous pouvez déposer votre bail signé sur papier. Si le service est ouvert pour votre dossier, vous pouvez demander la signature électronique du bail et de ses avenants, des accords d&apos;échelonnement et de travaux, de l&apos;acceptation des devis, de l&apos;acte de cautionnement et de l&apos;état des lieux, avec un code envoyé par SMS à chaque signataire. Elle est comprise dans l&apos;abonnement et dans l&apos;essai, sans supplément pour vous ni pour les signataires. Elle n&apos;est pas illimitée : elle dépend d&apos;un volume mensuel commun et peut être momentanément suspendue.</li>
+            {/* Décision du 24/11/2026 (Q11) : même contenu qu'avant, la signature électronique citée en premier, le papier toujours possible. */}
+            <li>Si le service est ouvert pour votre dossier, vous pouvez demander la signature électronique du bail et de ses avenants, des accords d&apos;échelonnement et de travaux, de l&apos;acceptation des devis, de l&apos;acte de cautionnement et de l&apos;état des lieux, avec un code envoyé par SMS à chaque signataire. Elle est comprise dans l&apos;abonnement et dans l&apos;essai, sans supplément pour vous ni pour les signataires. Elle n&apos;est pas illimitée : elle dépend d&apos;un volume mensuel commun et peut être momentanément suspendue. Vous pouvez toujours déposer votre bail signé sur papier.</li>
           </ul>
         </Article>
 

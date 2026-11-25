@@ -2,6 +2,7 @@ import "server-only";
 import type { createClient } from "@/lib/supabase/server";
 import { CONDITIONS_VERSION, type FaitEditeur } from "@/lib/editeur";
 import { empreinteIdentite } from "@/lib/conditions-versions";
+import { identiteDesConditions } from "@/lib/editeur";
 import { lireEditeur } from "@/lib/editeur-serveur";
 import { motifIdentiteEditeur, type ContexteGarde } from "@/lib/garde-souscription";
 import { lireReglageSouscription } from "@/lib/reglage-souscription-serveur";
@@ -27,6 +28,8 @@ export type GardeSouscription = {
   /** Vrai si le compte a une acceptation enregistrée pour la version en vigueur des conditions. */
   conditionsAcceptees: boolean;
   blocageIdentiteActif: boolean;
+  /** Vrai si le superadmin a décidé (décision datée, lue en base) de vendre aux particuliers sans médiateur. */
+  venteSansMediateurDecidee: boolean;
   ventesOuvertes: boolean;
 };
 
@@ -36,20 +39,35 @@ export type GardeSouscription = {
  * l'identité du code — vide à ce jour — donc le motif : fermeture par défaut,
  * et rien n'est prélevé entre-temps. `enEssai` : voir ContexteGarde.
  */
-export async function lireMotifIdentiteEditeur(supabase: Client, enEssai: boolean, nouvelleSouscriptionParticulier = false): Promise<string | null> {
-  const [{ editeur }, { blocageIdentiteActif }] = await Promise.all([lireEditeur(), lireReglageSouscription()]);
-  const contexte: ContexteGarde = { enEssai, blocageIdentiteActif, nouvelleSouscriptionParticulier };
-  return motifIdentiteEditeur(editeur, contexte) ?? (nouvelleSouscriptionParticulier ? await motifArchiveCommande(supabase, editeur) : null);
+export async function lireMotifIdentiteEditeur(
+  supabase: Client,
+  enEssai: boolean,
+  nouvelleSouscriptionParticulier = false,
+  premiereSouscription = nouvelleSouscriptionParticulier
+): Promise<string | null> {
+  const [{ editeur }, { blocageIdentiteActif, venteSansMediateurLe }] = await Promise.all([lireEditeur(), lireReglageSouscription()]);
+  const contexte: ContexteGarde = { enEssai, blocageIdentiteActif, venteSansMediateurDecidee: Boolean(venteSansMediateurLe), premiereSouscription, nouvelleSouscriptionParticulier };
+  // Relecture de la fusion du 25/11/2026 (E-01) : la comparaison avec l'identité archivée vaut pour TOUTE première
+  // souscription, agence comprise (elle ne valait que pour un particulier, reste du temps où elle portait sur le
+  // médiateur). L'agence accepte le même texte archivé, dont l'empreinte est la preuve de son accord.
+  return motifIdentiteEditeur(editeur, contexte) ?? (premiereSouscription ? await motifArchiveCommande(supabase, editeur) : null);
 }
 
-/** L’identité publiée dans les conditions peut changer depuis leur archivage (par exemple lors de
- * l’adhésion au médiateur). Une nouvelle commande attend alors la publication d’une version concordante. */
+/**
+ * L'identité imprimée dans les conditions peut changer depuis leur archivage (nouvelle adresse, par exemple). Une
+ * nouvelle commande attend alors la publication d'une version concordante.
+ *
+ * Reprise du 24/11/2026 (relecture D7R-02) : la comparaison portait sur TOUTE l'identité saisie, médiateur, téléphone
+ * et prestataires compris. Saisir le médiateur après l'ouverture refermait donc les ventes sans un mot, jusqu'à une
+ * livraison de code. Elle ne porte plus que sur ce que le texte des conditions imprime (`identiteDesConditions`) :
+ * depuis la version du 24/11/2026, l'article 17 renvoie aux mentions légales pour le médiateur, désigné ou non.
+ */
 export async function motifArchiveCommande(supabase: Client, editeur: Record<string, FaitEditeur>): Promise<string | null> {
   const { data, error } = await supabase.from("versions_conditions").select("identite_editeur")
     .eq("document", "conditions_clients").eq("version", CONDITIONS_VERSION).maybeSingle();
   const archive = data?.identite_editeur;
   if (!error && archive && typeof archive === "object" && !Array.isArray(archive) &&
-    empreinteIdentite(archive) === empreinteIdentite(editeur)) return null;
+    empreinteIdentite(identiteDesConditions(archive)) === empreinteIdentite(identiteDesConditions(editeur))) return null;
   return "Les souscriptions sont en attente de la vérification de la version archivée des conditions générales.";
 }
 
@@ -59,13 +77,19 @@ export async function motifArchiveCommande(supabase: Client, editeur: Record<str
  * verrait toutes les lignes) et à la version exacte — une version antérieure
  * ne compte pas. Une lecture en échec vaut « non acceptée » : la case est
  * redemandée, et une ligne de plus est sans conséquence (ajout seul).
+ *
+ * Reprise du lot D4 (relecture D4R-01) : seule compte une ligne qui porte l'EMPREINTE du texte archivé (recopiée par la
+ * base). Une ligne sans empreinte — version non archivée au moment de l'accord (premier mot de passe, appel direct de
+ * `accepter_cgu`, qui l'enregistre : relecture de la fusion, R-01), ouverture d'un espace propriétaire, inscription — ne
+ * prouve pas quel texte a été accepté : la case est redemandée.
  */
 export async function preuveConditionsEnVigueur(supabase: Client, accountId: string): Promise<string | null> {
   const lire = (parDocument: boolean) => {
     let requete = supabase.from("acceptations_cgu").select("id").eq("account_id", accountId);
     // 24/10 : une acceptation porte sur un document (conditions clients, conditions de l'espace artisan, règles des
-    // espaces invités) ; seules les conditions clients ouvrent la souscription.
-    if (parDocument) requete = requete.eq("document", "conditions_clients");
+    // espaces invités) ; seules les conditions clients ouvrent la souscription. La colonne de l'empreinte vient de la
+    // même migration que celle du document : dans le repli ci-dessous (colonne absente), aucune ligne n'en a.
+    if (parDocument) requete = requete.eq("document", "conditions_clients").not("empreinte_sha256", "is", null);
     return requete.eq("version", CONDITIONS_VERSION).limit(1).maybeSingle();
   };
   let { data, error } = await lire(true);
@@ -82,10 +106,10 @@ export async function conditionsEnVigueurAccepteesPar(supabase: Client, accountI
 
 /** Les deux lectures en parallèle, pour l'écran « Mon abonnement ». */
 export async function lireGardeSouscription(supabase: Client, accountId: string): Promise<GardeSouscription> {
-  const [{ editeur }, conditionsAcceptees, { blocageIdentiteActif, ventesOuvertes }] = await Promise.all([
+  const [{ editeur }, conditionsAcceptees, { blocageIdentiteActif, ventesOuvertes, venteSansMediateurLe }] = await Promise.all([
     lireEditeur(),
     conditionsEnVigueurAccepteesPar(supabase, accountId),
     lireReglageSouscription(),
   ]);
-  return { editeur, conditionsAcceptees, blocageIdentiteActif, ventesOuvertes };
+  return { editeur, conditionsAcceptees, blocageIdentiteActif, venteSansMediateurDecidee: Boolean(venteSansMediateurLe), ventesOuvertes };
 }

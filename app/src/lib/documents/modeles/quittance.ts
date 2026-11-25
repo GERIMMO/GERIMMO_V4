@@ -15,6 +15,7 @@ import {
   section,
   tableau,
   titre,
+  ligneTotal,
 } from "../gabarit";
 import {
   chargerContexteBail,
@@ -108,6 +109,24 @@ export function signataireQuittance(bailleurs: BailleurQuittance[] | null | unde
     return r ? `${nomPrenom(b)}, représentée par ${prenomNom(r)}` : nomPrenom(b);
   });
   return { soussigne: soussigne.join(", et "), signature: signature.join(" ; ") };
+}
+
+// Les codes enregistrés par « Payé par » (fiche du bail), en toutes lettres
+// sur le document : « par virement », pas « par virement » brut ni « par caf ».
+// Une seule table pour les deux quittances : celle du catalogue (ce modèle) et
+// celle délivrée au locataire (quittance-conforme.ts) — phase 3, lot 36, C48.
+const MODES: Record<string, string> = {
+  virement: "virement",
+  cheque: "chèque",
+  prelevement: "prélèvement",
+  especes: "espèces",
+  caf: "versement CAF / APL",
+  autre: "autre moyen",
+};
+
+export function libelleMode(mode: string | null | undefined): string | null {
+  if (!mode) return null;
+  return MODES[mode] ?? mode;
 }
 
 type AppelImpute = { id: string; periode: string; montant_du: number };
@@ -209,7 +228,7 @@ export function construireQuittance(d: DonneesQuittance) {
     )}
     ${
       d.estQuittance
-        ? `<table><tbody><tr class="total"><td><b>Total du terme</b></td><td class="d"><b>${f.montant(d.montantDu, "total du terme")}</b></td></tr></tbody></table>`
+        ? ligneTotal("Total du terme", f.montant(d.montantDu, "total du terme"))
         : ""
     }
     <p>${reglements}.</p>
@@ -307,7 +326,7 @@ export async function assemblerQuittance(
         created_at: e.created_at,
       })),
       q.appel_id
-    ),
+    ).map((e) => ({ ...e, mode: libelleMode(e.mode) })),
     bailleurNom: nomsBailleurs(f, ctx.bailleurs),
     soussigne: signataire?.soussigne,
     signataire: signataire?.signature,

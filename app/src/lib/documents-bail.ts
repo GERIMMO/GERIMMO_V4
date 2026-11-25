@@ -83,11 +83,119 @@ export function statutPieceDiagnostic(d: DiagnosticBail, aujourd: string) {
   return { libelle: "Disponible", ton: "ok" };
 }
 
+// Phase 3 (C01) : le PDF de la notice est un RÉSUMÉ établi par Gerimmo ; son titre de classement le dit. Les résumés déjà
+// rangés sous l'ancien titre (« … (annexe au bail) ») restent reconnus : fiche du bail, récapitulatif, signature électronique.
+export const TITRE_GED_RESUME_NOTICE = "Résumé de la notice d'information";
+export const TITRES_GED_RESUME_NOTICE = [TITRE_GED_RESUME_NOTICE, "Notice d'information (annexe au bail)"];
+// Reprise du lot 40 (C01) : un résumé rangé sous l'ancien titre a l'ancien texte (« annexée au contrat », « partie intégrante »,
+// « le locataire reconnaît avoir reçu ») : il est reconnu, mais à actualiser avant toute nouvelle préparation de signature.
+export const resumeNoticeAActualiser = (piece: { titre: string | null } | null | undefined) => Boolean(piece && piece.titre !== TITRE_GED_RESUME_NOTICE);
+// Phase 3, reprise du lot 45 (T15) : parmi les pièces d'un dossier de signature, le résumé rangé sous son titre actuel n'est pas
+// une annexe du contrat. La page de garde le liste à part, « Document d'information joint » (ajouterPagesSignature) ; l'envoi
+// au prestataire le nomme pour ce qu'il est (nomsFichiersPiecesJointes) ; l'écran de signature le sépare des annexes. Un résumé
+// rangé sous l'ancien titre (texte qui se disait annexé au contrat) reste parmi les annexes, comme sur sa page de garde.
+export const estResumeNoticeJoint = (piece: { titre: string | null }) => piece.titre === TITRE_GED_RESUME_NOTICE;
+
+// Décision du 24/11/2026 (Q46) : en attendant que Gerimmo joigne lui-même le texte officiel, le BAILLEUR dépose la notice
+// d'information (un PDF qu'il s'est procuré). Elle est rangée sous un type à elle et sous ce titre fixe, liée au bail ; la
+// signature électronique du bail est bloquée sans elle et la joint comme annexe (annexesSignatureBail). Le titre dit d'où
+// vient le fichier : Gerimmo ne vérifie ni son contenu, ni qu'il s'agit de la version en vigueur.
+export const TYPE_GED_NOTICE_DEPOSEE = "notice_information";
+export const TITRE_GED_NOTICE_DEPOSEE = "Notice d'information (déposée par le bailleur)";
+// Dans un dossier de signature, une pièce ne porte que son titre : la notice déposée s'y reconnaît à ce titre, que seul le
+// dépôt dédié pose (deposerNoticeBail).
+export const estNoticeDeposeeJointe = (piece: { titre: string | null }) => piece.titre === TITRE_GED_NOTICE_DEPOSEE;
+
 export type PieceBail = { id: string; titre: string | null; type: string; purged_at: string | null };
-export function classerPiecesBail(pieces: PieceBail[], diagnosticIds: string[], reglementId: string | null) {
+export function classerPiecesBail<T extends PieceBail>(pieces: T[], diagnosticIds: string[], reglementId: string | null) {
   const uniques = [...new Map(pieces.filter(p => !p.purged_at).map(p => [p.id, p])).values()];
-  const notices = uniques.filter(p => p.type === "courrier" && p.titre === "Notice d'information (annexe au bail)");
+  const notices = uniques.filter(p => p.type === "courrier" && TITRES_GED_RESUME_NOTICE.includes(p.titre ?? ""));
   const exclus = new Set([...diagnosticIds, ...notices.map(p => p.id), reglementId]);
-  const autres = uniques.filter(p => !exclus.has(p.id) && !["bail", "etat_des_lieux", "diagnostic", "reglement_copropriete"].includes(p.type));
+  const autres = uniques.filter(p => !exclus.has(p.id) && !["bail", "etat_des_lieux", "diagnostic", "reglement_copropriete", TYPE_GED_NOTICE_DEPOSEE].includes(p.type));
   return { notices, autres };
+}
+
+// Phase 3, lot 45 (T14) : actualiser le résumé range un NOUVEAU document lié au bail ; l'ancien y reste lié. Le résumé retenu
+// est le plus récent (date de création décroissante, puis identifiant décroissant) sur la fiche du bail comme au récapitulatif
+// des pièces ; la signature électronique lit le même en base (annexesSignatureBail, même tri). Sans ce tri, la fiche prenait le
+// premier lien lu, souvent l'ancien résumé : « Résumé à actualiser » et l'ancien PDF, quand les deux autres écrans retenaient
+// le nouveau.
+// Reprise du lot 45 (T14) : la base trie created_at par instant, à la microseconde, et omet une fraction nulle
+// (« 2026-11-20T10:00:00+00:00 »). localeCompare (classement ICU) range « . » avant « + » : il prenait cet instant pour plus
+// récent que « 2026-11-20T10:00:00.5+00:00 », et la fiche et le récapitulatif retenaient alors un autre résumé que la signature.
+// Les dates se comparent donc par instant ; l'identifiant (uuid en minuscules) dans l'ordre des octets, comme `order("id")`.
+const INSTANT_BASE = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})(?:\.(\d{1,9}))?(Z|[+-]\d{2}(?::?\d{2})?)$/;
+function microsecondesBase(instant: string): number | null {
+  const m = INSTANT_BASE.exec(instant);
+  if (!m) return null;
+  const decalage = m[4] === "Z" ? "Z" : `${m[4].slice(0, 3)}:${m[4].slice(3).replace(":", "") || "00"}`;
+  const secondes = Date.parse(`${m[1]}T${m[2]}${decalage}`);
+  return Number.isNaN(secondes) ? null : secondes * 1000 + Number((m[3] ?? "").padEnd(6, "0").slice(0, 6));
+}
+const ordreOctets = (x: string, y: string) => (x < y ? -1 : x > y ? 1 : 0);
+export const plusRecentDAbord = (a: { id: string; created_at: string }, b: { id: string; created_at: string }) => {
+  const ia = microsecondesBase(a.created_at), ib = microsecondesBase(b.created_at);
+  return (ia !== null && ib !== null ? Math.sign(ib - ia) : ordreOctets(b.created_at, a.created_at)) || ordreOctets(b.id, a.id);
+};
+export function resumeNoticeRetenu<T extends PieceBail & { created_at: string }>(pieces: T[]): T | undefined {
+  return classerPiecesBail([...pieces].sort(plusRecentDAbord), [], null).notices[0];
+}
+
+// Q46 : la notice déposée retenue pour un bail est la plus récente de celles qui lui sont liées (même tri que le résumé) :
+// la même sur la fiche du bail, au récapitulatif des pièces et dans le dossier de signature.
+export function noticeDeposeeRetenue<T extends PieceBail & { created_at: string }>(pieces: T[]): T | undefined {
+  return pieces.filter(p => p.type === TYPE_GED_NOTICE_DEPOSEE && !p.purged_at).sort(plusRecentDAbord)[0];
+}
+
+// Reprise du lot D3 (M7) : « Déposer une autre version » range une NOUVELLE notice liée au bail ; les précédentes y restent
+// liées. La fiche du bail les liste comme anciennes versions (de la plus récente à la plus ancienne) : avant, elles ne se
+// voyaient plus que dans Documents.
+export function anciennesNoticesDeposees<T extends PieceBail & { created_at: string }>(pieces: T[]): T[] {
+  return pieces.filter(p => p.type === TYPE_GED_NOTICE_DEPOSEE && !p.purged_at).sort(plusRecentDAbord).slice(1);
+}
+
+// Reprise du lot D3 (M4) : Gerimmo n'exige la notice que pour un bien d'habitation (estBienHabitation, lib/parc.ts : la même
+// distinction que le contrôle de mise en location). Pour un local, un parking, un terrain : ni blocage de la signature
+// électronique, ni mention « obligatoire ». Le dépôt reste possible ; déposée, la notice est jointe au dossier.
+// Les textes de la carte « Notice d'information officielle » de l'étape Documents, selon les deux cas.
+export function carteNoticeDeposee(habitation: boolean, deposee: boolean): { etat: string; ton: "ok" | "attention" | undefined; obligation: string; effet: string } {
+  if (habitation) return {
+    etat: deposee ? "Déposée" : "À déposer",
+    ton: deposee ? "ok" : "attention",
+    obligation: "Obligatoire · Annexée au bail",
+    effet: deposee
+      ? "Elle sera jointe au dossier de signature électronique, comme annexe du contrat. Pour une signature sur papier, annexez-la vous-même au contrat."
+      : "Sans elle, l’envoi du bail en signature électronique est bloqué. Pour une signature sur papier, annexez-la vous-même au contrat.",
+  };
+  return {
+    etat: deposee ? "Déposée" : "Non demandée",
+    ton: deposee ? "ok" : undefined,
+    obligation: "Bien déclaré hors habitation · Non demandée par Gerimmo",
+    effet: deposee
+      ? "Elle sera jointe au dossier de signature électronique, comme annexe du contrat."
+      : "Ce bien n’est pas déclaré comme un logement (appartement, maison, immeuble) : Gerimmo ne bloque pas la signature électronique sans la notice. Si vous la déposez, elle sera jointe au dossier.",
+  };
+}
+
+// Seconde reprise du lot D3 (point 5) : même distinction pour la carte « Résumé de la notice ». Hors habitation, la carte
+// de la notice dit « non demandée » : le résumé n'est pas demandé non plus, et la carte ne renvoie plus à une notice à
+// déposer. Le résumé peut toujours être généré ; un résumé rangé avec l'ancien texte reste à actualiser (il serait joint).
+export function carteResumeNotice(habitation: boolean, range: boolean, aActualiser: boolean): { etat: string; ton: "ok" | "attention" | undefined; texte: string } {
+  if (range) return {
+    etat: aActualiser ? "Résumé à actualiser" : "Résumé disponible",
+    ton: aActualiser ? "attention" : "ok",
+    texte: habitation
+      ? "Ce résumé ne remplace pas la notice d’information officielle, à déposer dans la carte « Notice d’information officielle » : il accompagne le dossier comme document d’information."
+      : "Il accompagne le dossier comme document d’information.",
+  };
+  if (habitation) return {
+    etat: "Résumé à générer",
+    ton: "attention",
+    texte: "Ce résumé ne remplace pas la notice d’information officielle, à déposer dans la carte « Notice d’information officielle » : il accompagne le dossier comme document d’information.",
+  };
+  return {
+    etat: "Non demandé",
+    ton: undefined,
+    texte: "Ce bien n’est pas déclaré comme un logement (appartement, maison, immeuble) : Gerimmo ne demande pas ce résumé pour la signature électronique. Si vous le générez, il accompagnera le dossier comme document d’information.",
+  };
 }

@@ -17,9 +17,12 @@ import {
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { ConsultationDocument } from "../consultation-document";
 import { FormulaireAttestation } from "../formulaire-attestation";
-import { DepotSignature } from "./depot-signature";
+import { SignaturesElectroniques, type SignatureLocataire } from "./signatures-electroniques";
 import { DepotPiece, type DemandePiece } from "./depot-piece";
 import { aEchoue, LectureImpossible, PanneLecture } from "../panne-lecture";
+import { lireIdentiteContact } from "../identite-contact";
+import { interlocuteurDeLIdentite } from "@/lib/identite-contact-locataire";
+import { recommandeElectroniqueConfigure } from "@/lib/recommande-disponible";
 
 export const metadata = { title: "Mes documents" };
 
@@ -77,6 +80,8 @@ export default async function PageDocumentsLocataire(
 ) {
   const { orgId } = await props.params;
   const { supabase, adhesionActive, personne } = await verifierAccesEspaceLocataire(orgId);
+  // Lot 47 : « votre gestionnaire » seulement dans un espace d'agence ; chez un propriétaire, « votre bailleur ».
+  const qui = interlocuteurDeLIdentite(await lireIdentiteContact(orgId));
   const accord = personne
     ? await supabase.from("consentements_documents_locataire").select("quittances_electroniques,recommandes_electroniques,adresse_email").eq("organization_id", orgId).eq("person_id", personne.id).maybeSingle()
     : null;
@@ -88,21 +93,17 @@ export default async function PageDocumentsLocataire(
     { data: piecesBrutes, error: ePieces },
     { data: echeancier, error: eEcheancier },
     { data: demandesBrutes, error: eDemandes },
-    { data: signaturesBrutes, error: eSignatures },
     rectifications,
+    { data: circuitsBruts, error: eCircuits },
   ] = await Promise.all([
     supabase.rpc("mes_pieces_locataire", { p_org: orgId }),
     supabase.rpc("mon_echeancier_locataire", { p_org: orgId }),
     supabase.rpc("mes_pieces_demandees", { p_org: orgId }),
-    supabase.rpc("mes_demandes_signature", { p_org: orgId }),
     supabase.rpc("mes_rectifications_quittances", { p_org: orgId }),
+    // Audit palier 1 (P1-06) : l'état des signatures électroniques où le locataire est signataire.
+    supabase.rpc("mes_signatures_electroniques", { p_org: orgId }),
   ]);
-  const aSigner = ((signaturesBrutes ?? []) as {
-    id: string;
-    document_id: string;
-    titre: string | null;
-    demandee_le: string;
-  }[]);
+  const signaturesElectroniques = (circuitsBruts ?? []) as SignatureLocataire[];
   const demandes = (demandesBrutes ?? []) as DemandePiece[];
   const pieces = [...new Map(((piecesBrutes ?? []) as Piece[]).map(p => [p.document_id, p])).values()];
   const quittances = ((echeancier ?? []) as LigneEcheancier[]).filter((l) => l.quittance_id);
@@ -150,36 +151,22 @@ export default async function PageDocumentsLocataire(
         )}
       </div>
 
-      {aEchoue(ePieces, eEcheancier, eDemandes, eSignatures) && (
-        <PanneLecture quoi="vos documents" />
+      {aEchoue(ePieces, eEcheancier, eDemandes, eCircuits) && (
+        <PanneLecture quoi="vos documents" interlocuteur={qui} />
       )}
 
       {enPreparation > 0 && <p className="rounded-[var(--rayon-carte)] border border-[var(--filet)] bg-[var(--warning-soft)] px-4 py-3 text-sm" role="status">
-        {enPreparation} justificatif{enPreparation > 1 ? "s" : ""} de loyer en préparation ou à vérifier. Ces justificatifs deviendront consultables dès que les informations nécessaires seront complètes. <Link href={`/locataire/${orgId}/contact`} className="font-medium underline underline-offset-2">Contacter mon gestionnaire</Link>
+        {enPreparation} justificatif{enPreparation > 1 ? "s" : ""} de loyer en préparation ou à vérifier. Ces justificatifs deviendront consultables dès que les informations nécessaires seront complètes. <Link href={`/locataire/${orgId}/contact`} className="font-medium underline underline-offset-2">Contacter mon {qui}</Link>
       </p>}
 
-      {(aSigner.length > 0 || demandes.length > 0 || (adhesionActive && !lecturePiecesKO && !etatAssurance.nonExpiree)) && <p className="flex flex-wrap items-center gap-x-2 rounded-[var(--rayon-carte)] border border-[var(--filet)] bg-[var(--carte)] px-4 py-2 text-sm shadow-[var(--ombre-1)]"><span><b>À faire :</b> vérifiez les pièces ou signatures attendues.</span> <a className="inline-flex min-h-11 items-center font-medium text-[var(--bleu)] underline underline-offset-2" href="#documents-a-transmettre">Voir les éléments à transmettre →</a></p>}
+      <SignaturesElectroniques signatures={signaturesElectroniques} />
+
+      {(demandes.length > 0 || (adhesionActive && !lecturePiecesKO && !etatAssurance.nonExpiree)) && <p className="flex flex-wrap items-center gap-x-2 rounded-[var(--rayon-carte)] border border-[var(--filet)] bg-[var(--carte)] px-4 py-2 text-sm shadow-[var(--ombre-1)]"><span><b>À faire :</b> vérifiez les pièces attendues.</span> <a className="inline-flex min-h-11 items-center font-medium text-[var(--bleu)] underline underline-offset-2" href="#documents-a-transmettre">Voir les éléments à transmettre →</a></p>}
       <OngletsDossier libelle="Rubriques de mes documents"
         initiale="documents-disponibles"
         rubriques={[
           { id: "documents-a-transmettre", titre: "À transmettre", contenu: <>
       {/* Les pièces que votre gestionnaire attend (RM-0b.2.5) */}
-      {aSigner.length > 0 && adhesionActive && (
-        <div className="loc-carte">
-          <div className="entete-carte !mb-1">
-            <h2 className="titre-carte text-base font-medium">
-              {aSigner.length > 1 ? "Documents à signer" : "Un document à signer"}
-            </h2>
-            <span className="loc-tag ambre">à signer</span>
-          </div>
-          <div className="divide-y divide-border">
-            {aSigner.map((d) => (
-              <DepotSignature key={d.id} orgId={orgId} demande={d} />
-            ))}
-          </div>
-        </div>
-      )}
-
       {demandes.length > 0 && (
         <div className="loc-carte">
           <div className="entete-carte !mb-0">
@@ -190,7 +177,7 @@ export default async function PageDocumentsLocataire(
           </div>
           <div className="divide-y divide-border">
             {demandes.map((d) => (
-              <DepotPiece key={d.id} orgId={orgId} demande={d} />
+              <DepotPiece key={d.id} orgId={orgId} demande={d} interlocuteur={qui} />
             ))}
           </div>
         </div>
@@ -198,8 +185,8 @@ export default async function PageDocumentsLocataire(
 
       {/* L'obligation annuelle d'abord : l'assurance, avec le dépôt sur place.
           id="assurance" : les lignes d'assurance de l'accueil pointent sur
-          /documents#assurance — sur 390 px cette carte est le 3ᵉ bloc, sous
-          « Documents à signer » et « Des pièces vous sont demandées », c'est-
+          /documents#assurance — sur 390 px cette carte est le 2ᵉ bloc, sous
+          « Des pièces vous sont demandées », c'est-
           à-dire précisément quand il y a le plus à faire (relevé 11/09).
           scroll-mt : l'en-tête .loc-haut est collant (globals.css:627). */}
       <div
@@ -224,7 +211,7 @@ export default async function PageDocumentsLocataire(
         ) : assurance ? (
           <p className="text-sm text-muted-foreground">
             {assurance.titre || "Attestation déposée"} —{" "}
-            <span className={statut?.classe}>{statut?.texte ?? "date d’expiration à vérifier avec votre gestionnaire"}</span>.
+            <span className={statut?.classe}>{statut?.texte ?? `date d’expiration à vérifier avec votre ${qui}`}</span>.
             {deuxAttestations &&
               " Votre attestation validée reste en vigueur pendant la vérification de la nouvelle."}
           </p>
@@ -288,7 +275,7 @@ export default async function PageDocumentsLocataire(
               const titre = `${nature.charAt(0).toUpperCase()}${nature.slice(1)} — ${moisLong(q.periode)}`;
               if (disponibilites[q.quittance_id!] !== "disponible") return <li key={q.quittance_id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
                 <div><b className="font-medium">{titre}</b>
-                  <p className="text-xs text-muted-foreground">{disponibilites[q.quittance_id!] === "lecture_impossible" ? "Disponibilité à vérifier. Réessayez dans un instant." : "Des informations du document restent à compléter par votre gestionnaire."}</p></div>
+                  <p className="text-xs text-muted-foreground">{disponibilites[q.quittance_id!] === "lecture_impossible" ? "Disponibilité à vérifier. Réessayez dans un instant." : `Des informations du document restent à compléter par votre ${qui}.`}</p></div>
                 <span className="loc-tag ambre">{disponibilites[q.quittance_id!] === "lecture_impossible" ? "À vérifier" : "En préparation"}</span>
               </li>;
               return (
@@ -322,7 +309,7 @@ export default async function PageDocumentsLocataire(
         </p>
       </div></> },
         ].sort((a, b) => Number(b.id === "documents-disponibles") - Number(a.id === "documents-disponibles"))} />
-      {personne && ((accord?.error || destinataire?.error) ? <p role="alert" className="err">Vos préférences de réception ne peuvent pas être chargées. Réessayez avant de les modifier.</p> : <ConsentementsDocuments key={adresseReception || "sans-email"} orgId={orgId} retraitSeulement={!adhesionActive} email={adresseReception} quittances={adresseAccordValide && accord?.data?.quittances_electroniques === true} recommandes={adresseAccordValide && accord?.data?.recommandes_electroniques === true} />)}
+      {personne && ((accord?.error || destinataire?.error) ? <p role="alert" className="err">Vos préférences de réception ne peuvent pas être chargées. Réessayez avant de les modifier.</p> : <ConsentementsDocuments key={adresseReception || "sans-email"} orgId={orgId} interlocuteur={qui} retraitSeulement={!adhesionActive} recommandesProposes={recommandeElectroniqueConfigure()} email={adresseReception} quittances={adresseAccordValide && accord?.data?.quittances_electroniques === true} recommandes={adresseAccordValide && accord?.data?.recommandes_electroniques === true} />)}
 
     </div>
   );

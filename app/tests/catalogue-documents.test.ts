@@ -24,10 +24,12 @@ function fixture():Record<string,Row[]> {return {
   regularisations_charges:[{id:"reg",bail_id:"bail",annee:2025,provisions:1000,charges_reelles:1200,ecart:200,note:"Eau : relevé individuel",justificatif_document:"doc",date_emission:"2026-01-01"}],
   etats_des_lieux:[{id:"edl",bail_id:"bail",type:"sortie",etat:"signe",date_edl:"2026-04-01"}],edl_cles:[{libelle:"Porte",nombre:2,reference:"A1"}],
   incidents:[{id:"incident",numero:42,lot_id:"lot",description:"Fuite du robinet",piece:"Cuisine",categorie:"plomberie",etat:"clos",clos_le:"2026-01-03",cloture_commentaire:"Réparé"}],
-  incident_interventions:[{id:"intervention",incident_id:"incident",artisan_id:"artisan",nature_travaux:"Changer le robinet",statut:"terminee",confiee_le:"2026-01-01",debut_prevu:"2026-01-02",fin_prevue:"2026-01-02"}],
+  // Reprise du lot 42 (C80) : la mission porte son devis, comme toute mission créée par l'application (retenir_devis) ; l'ordre
+  // d'une mission sans devis est désormais refusé (il ne commandait rien).
+  incident_interventions:[{id:"intervention",incident_id:"incident",artisan_id:"artisan",devis_id:"devis",nature_travaux:"Changer le robinet",statut:"terminee",confiee_le:"2026-01-01",debut_prevu:"2026-01-02",fin_prevue:"2026-01-02"}],
   artisans:[{id:"artisan",raison_sociale:"Atelier Plomberie",siret:"12345678901234",telephone:"0600000000"}],
   intervention_comptes_rendus:[{travaux_realises:"Robinet remplacé",cause_reelle:"Usure",montant_final_cents:12345,nouvelle_intervention_necessaire:false,created_at:"2026-01-03"}],
-  incident_devis:[{artisan_id:"artisan",description:"Changer le robinet",montant_ttc_cents:12345,valide_jusqu_au:"2026-01-31",statut:"retenu"}],
+  incident_devis:[{id:"devis",artisan_id:"artisan",description:"Changer le robinet",montant_ttc_cents:12345,depose_le:"2025-12-30",valide_jusqu_au:"2026-01-31",statut:"retenu"}],
   ecritures:[{id:"ecriture",lot_id:"lot",bail_id:"bail",contre_ecriture_de:"origine",categorie:"travaux",sens:"recette",montant:100,date_piece:"2026-01-01",date_imputation:"2026-01-01",libelle:"Annulation réparation",motif:"Doublon"}],clotures_comptables:[{mois:"2026-01-01",cloture_at:"2026-02-01"}],
   mandats:[{id:"mandat",person_id:"p",etat:"actif",preavis_mois:3}],mandat_lignes:[{lot_id:"lot",date_debut:"2025-01-01",date_fin:null,taux_honoraires:7}],
   rapports_gestion:[{id:"rapport",mandat_id:"mandat",mois:"2026-01-01",statut:"envoye",net:100,versement_montant:100,versement_date:"2026-02-01"}],
@@ -59,7 +61,9 @@ function mockDb(tables=fixture(),failure?:string) {
   };
   return {db:{from:query,rpc:(nom:string,args:unknown)=>{const q=query(nom);calls[calls.length-1].ops.push(["rpc",args]);return q;}} as unknown as SupabaseClient,calls};
 }
-const options={annee:"2026",interets_emprunt:"0",mois:"2026-01",delai:"15",mensualites:"3",premiere_echeance:"2026-01-31",date_effet:"2026-04-01",date_constat:"2026-04-01",conditions:"Accord signé",destinataire:"Organisme test",allocataire:"123456",sortant:"Sortant",entrant:"Entrant",depot:"Accord entre colocataires",constat:"Mobilier conforme",travaux:"Peinture",intervenant:"Entreprise",periode:"Octobre",prise_en_charge:"Bailleur",consultation:"Sur rendez-vous au bureau",acces:"Contact gestionnaire",visiteur:"Visiteur test",contact:"Email test",rendez_vous:"14 septembre 2026 à 10 h",representant:"Gestionnaire",motif:"Accord mutuel",remise:"Remise sous 30 jours",modifications:"Ajout du lot Jardin"};
+// Phase 3 (C22) : le colocataire sortant est l'identifiant d'un titulaire du bail (« p1 », locataire de la fixture), plus un nom
+// saisi librement : l'avenant de remplacement refuse désormais une personne étrangère au contrat.
+const options={annee:"2026",interets_emprunt:"0",mois:"2026-01",delai:"15",mensualites:"3",premiere_echeance:"2026-01-31",date_effet:"2026-04-01",date_constat:"2026-04-01",conditions:"Accord signé",destinataire:"Organisme test",allocataire:"123456",sortant:"p1",entrant:"Entrant",depot:"Accord entre colocataires",constat:"Mobilier conforme",travaux:"Peinture",intervenant:"Entreprise",periode:"Octobre",prise_en_charge:"Bailleur",consultation:"Sur rendez-vous au bureau",acces:"Contact gestionnaire",visiteur:"Visiteur test",contact:"Email test",rendez_vous:"14 septembre 2026 à 10 h",representant:"Gestionnaire",motif:"Accord mutuel",remise:"Remise sous 30 jours",modifications:"Ajout du lot Jardin"};
 function succes(r:Assemblage) {expect(r).not.toHaveProperty("erreur");if("erreur" in r) throw new Error(r.erreur);return r;}
 beforeEach(()=>{ctx=contexte();ctx.bail.etat="actif";vi.mocked(chargerContexteBail).mockImplementation(async()=>ctx);vi.mocked(signatureOrganisation).mockReset().mockResolvedValue(null);});
 describe("Catalogue — documents issus des dossiers",()=>{
@@ -89,10 +93,15 @@ describe("Catalogue — documents issus des dossiers",()=>{
   });
   it.each(CODES_COMPLEMENTS_BAIL)("assemble %s avec sa source métier",async code=>{
     if(code.startsWith("inventaire")) ctx.lot.meuble=true;
-    if(code==="inventaire_sortie") ctx.bail.etat="preavis";
+    // Phase 3, reprise du lot 40 (S08) : la date du constat commune à ce test (01/04/2026) précède la prise d'effet du bail de la
+    // fixture (01/09/2026) ; un inventaire de sortie antérieur à l'entrée est désormais refusé : le bail commence ici avant.
+    if(code==="inventaire_sortie"){ctx.bail.etat="preavis";ctx.bail.date_debut="2025-09-01";}
     if(code==="attestation_fin_bail") ctx.bail.etat="termine";
     if(code==="avenant_remplacement") ctx.bail.type="colocation";
-    const {db,calls}=mockDb(fixtureCourrier(code));const r=succes(await assemblerComplementBail(code,db,"org","bail",options));
+    // Phase 3 (C40) : l'accusé de réception se prépare pendant le préavis, avant l'état des lieux de sortie.
+    const t=fixtureCourrier(code);
+    if(code==="accuse_conge"){ctx.bail.etat="preavis";t.etats_des_lieux=[];}
+    const {db,calls}=mockDb(t);const r=succes(await assemblerComplementBail(code,db,"org","bail",options));
     expect(r.document.html).toContain(CATALOGUE_DOCUMENTS.find(m=>m.id===code)!.nom);
     expect(r.liens).toContainEqual({entite:"bail",entiteId:"bail"});
     for(const c of calls.filter(c=>c.table!=="etat_loyers_bail")) expect(c.ops).toContainEqual(["eq",c.table==="organizations"?"id":"organization_id","org"]);
@@ -110,10 +119,37 @@ describe("Catalogue — documents issus des dossiers",()=>{
     const {db}=mockDb(fixture(),"diagnostics");expect(await assemblerComplementBail("bordereau_ddt",db,"org","bail")).toHaveProperty("erreur");
     await expect(lireLignes(Promise.resolve({data:Array(1000).fill({}),error:null}))).rejects.toThrow("trop de lignes");
   });
-  it("exclut les termes futurs de la dette et répartit les centimes sans perte",async()=>{
-    const r=succes(await assemblerComplementBail("protocole_apurement",mockDb(fixtureCourrier("protocole_apurement")).db,"org","bail",options));
+  // Phase 3 (C65, C66, C74) : le protocole ne calcule plus son échéancier à partir d'un nombre de mensualités saisi à l'écran ;
+  // il reprend les tranches du plan d'apurement ENREGISTRÉ (réparties au centime par la base, proposer_plan_apurement). Le
+  // test garde son objet : les termes futurs restent hors de la dette, et les centimes du plan s'impriment sans perte.
+  it("exclut les termes futurs de la dette et imprime les tranches du plan au centime",async()=>{
+    const t=fixtureCourrier("protocole_apurement");
+    t.plans_apurement=[{id:"plan",bail_id:"bail",etat:"propose",date_arrete:"2026-01-10",dette_initiale:100.01,acompte:0,tolerance_jours:5,seuil_caducite:2,conditions:null}];
+    t.plan_apurement_tranches=[{rang:1,echeance:"2026-01-31",montant:33.34},{rang:2,echeance:"2026-02-28",montant:33.34},{rang:3,echeance:"2026-03-31",montant:33.33}];
+    const r=succes(await assemblerComplementBail("protocole_apurement",mockDb(t).db,"org","bail",options));
+    expect(r.document.manquants).toEqual([]);
     expect(r.document.html).toContain("100,01");expect(r.document.html).toContain("33,33");expect(r.document.html.match(/33,34/g)).toHaveLength(2);
     expect(r.document.html).toContain("28/02/2026");expect(r.document.html).toContain("31/03/2026");expect(r.document.html).not.toContain("2099");
+  });
+  // Phase 3 (C85, C62) : le modèle n'ajoute plus son point à un texte saisi qui finit déjà par un point ; la surface
+  // s'imprime au format français.
+  it.each(["ordre_intervention","compte_rendu_intervention","recap_incident"] as const)("%s : un seul point après les textes saisis",async code=>{
+    const t=fixture();
+    t.incidents[0].description="Fuite sous l’évier, le meuble bas est humide.";t.incidents[0].imputation_justification="Réparation à la charge de la propriétaire.";
+    t.incident_interventions[0].nature_travaux="Remplacer le joint.";
+    t.intervention_comptes_rendus[0].travaux_realises="Joint remplacé, essai d’écoulement sans fuite.";t.intervention_comptes_rendus[0].cause_reelle="Usure.";
+    const r=succes(await assemblerComplementGestion(code,mockDb(t).db,"org",code==="recap_incident"?"incident":"intervention",{...options,acces:"Clé chez la gardienne."}));
+    const texte=r.document.html.replace(/<style>[\s\S]*?<\/style>/g,"").replace(/<[^>]+>/g,"");
+    expect(texte).not.toMatch(/\.\s*\./);
+    expect(texte).toContain("le meuble bas est humide.");
+  });
+  it("autorisation de travaux et attestation CAF : un seul point, surface au format français",async()=>{
+    vi.mocked(chargerContexteBail).mockResolvedValue({...ctx,lot:{...ctx.lot,surface_m2:45.5}});
+    const accord=succes(await assemblerComplementBail("autorisation_travaux",mockDb().db,"org","bail",{...options,travaux:"Peinture du séjour.",periode:"Octobre.",prise_en_charge:"Bailleur.",conditions:"Remise en état."}));
+    expect(accord.document.html.replace(/<style>[\s\S]*?<\/style>/g,"").replace(/<[^>]+>/g,"")).not.toMatch(/\.\s*\./);
+    const caf=succes(await assemblerComplementBail("attestation_caf",mockDb().db,"org","bail",options));
+    expect(caf.document.html).toContain("45,5</span> m²");
+    expect(caf.document.html).not.toContain("45.5");
   });
   it.each(["relance_simple","seconde_relance","mise_en_demeure","situation_dette","protocole_apurement"] as const)("refuse %s lorsque la dette figure au décompte final",async code=>{
     expect(await assemblerComplementBail(code,mockDb().db,"org","bail",options)).toHaveProperty("erreur",expect.stringContaining("décompte de départ"));
@@ -219,15 +255,30 @@ it.skipIf(!process.env.GERIMMO_CATALOGUE_PDF_DIR || !process.env.GERIMMO_CHROME)
   for(const code of CODES_COMPLEMENTS_BAIL){
     ctx=contexte();ctx.bail.etat="actif";
     if(code.startsWith("inventaire")) ctx.lot.meuble=true;
-    if(code==="inventaire_sortie") ctx.bail.etat="preavis";
+    // Phase 3, reprise du lot 40 (S08) : la date du constat commune à ce test (01/04/2026) précède la prise d'effet du bail de la
+    // fixture (01/09/2026) ; un inventaire de sortie antérieur à l'entrée est désormais refusé : le bail commence ici avant.
+    if(code==="inventaire_sortie"){ctx.bail.etat="preavis";ctx.bail.date_debut="2025-09-01";}
     if(code==="attestation_fin_bail") ctx.bail.etat="termine";
     if(code==="avenant_remplacement") ctx.bail.type="colocation";
-    const r=succes(await assemblerComplementBail(code,mockDb(fixtureCourrier(code)).db,"org","bail",options));
+    const t=fixtureCourrier(code);
+    if(code==="accuse_conge"){ctx.bail.etat="preavis";t.etats_des_lieux=[];}
+    // Vérification CI du 25/11 : depuis le lot 39 (fe5819f8), un protocole d'apurement reprend le plan ENREGISTRÉ sur la fiche
+    // du bail et refuse d'imprimer sans lui ; l'épreuve lui fournit le même plan que le test du protocole ci-dessus.
+    if(code==="protocole_apurement"){
+      t.plans_apurement=[{id:"plan",bail_id:"bail",etat:"propose",date_arrete:"2026-01-10",dette_initiale:100.01,acompte:0,tolerance_jours:5,seuil_caducite:2,conditions:null}];
+      t.plan_apurement_tranches=[{rang:1,echeance:"2026-01-31",montant:33.34},{rang:2,echeance:"2026-02-28",montant:33.34},{rang:3,echeance:"2026-03-31",montant:33.33}];
+    }
+    const r=succes(await assemblerComplementBail(code,mockDb(t).db,"org","bail",options));
+    expect(r.document.manquants,code).toEqual([]);
     const pdf=await rendrePdf(r.document);expect(pdf.length).toBeGreaterThan(10000);writeFileSync(join(dir,`${code}.pdf`),pdf);
   }
   for(const code of CODES_COMPLEMENTS_GESTION){
     const t=fixture();if(code==="recap_fiscal_meuble") t.lots[0].meuble=true;
+    // Vérification CI du 25/11 : depuis le lot 42 (a056bbb0), le récapitulatif d'incident imprime la date du signalement et
+    // refuse sans elle ; l'incident de la fixture commune n'en porte pas : l'épreuve la fournit.
+    if(code==="recap_incident") t.incidents[0].date_signalement="2025-12-20";
     const r=succes(await assemblerComplementGestion(code,mockDb(t).db,"org",code==="cloture_mensuelle"?"org":code==="recap_fiscal_nu"?"lot":"cible",options));
+    expect(r.document.manquants,code).toEqual([]);
     const pdf=await rendrePdf(r.document);expect(pdf.length).toBeGreaterThan(10000);writeFileSync(join(dir,`${code}.pdf`),pdf);
   }
 });

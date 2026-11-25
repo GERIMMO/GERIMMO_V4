@@ -32,6 +32,9 @@ const ACTIONS: Record<string, string> = {
   adhesion_creee: "Accès à une organisation accordé (le rôle est indiqué)",
   adhesion_retiree: "Accès à une organisation retiré",
   decision_retour: "Décision sur un retour d’utilisateur",
+  // Audit palier 1 (P1-07, migration 20261122150000) : contestation d'une évaluation par un artisan (RM-11.4.6).
+  consultation_evaluations_contestation: "Consultation des évaluations d’un artisan (contestation)",
+  support_evaluation_retiree: "Retrait d’une évaluation d’artisan après contestation",
   bien_retabli: "Bien rétabli après son retrait",
   bien_retire: "Bien retiré du parc",
   invitation_locataire: "Invitation d’un locataire envoyée",
@@ -55,6 +58,11 @@ const ACTIONS: Record<string, string> = {
   contre_ecriture: "Écriture comptable annulée par une contre-écriture",
   // D23 (14/10, PRO2-21 et CHN-02) : la validation d'une facture d'artisan et son règlement déclaré laissent une trace.
   facture_validee: "Facture d’artisan contrôlée et validée",
+  facture_refusee: "Facture d’artisan refusée, à corriger",
+  // Audit palier 1, P1-14 (migration 20261122190000) : l'avenant signé, son application au bail, son annulation.
+  avenant_bail_enregistre: "Avenant signé enregistré sur un bail",
+  avenant_bail_applique: "Avenant appliqué : loyer et charges du bail mis à jour",
+  avenant_bail_annule: "Avenant annulé avant son application",
   reglement_facture_enregistre: "Règlement d’une facture d’artisan déclaré (écriture de dépense liée)",
   reglement_facture_retire: "Règlement d’une facture d’artisan retiré (contre-écriture passée)",
   mois_abonnement_offerts: "Mois d’abonnement offerts",

@@ -121,7 +121,7 @@ function stripeFictif(s: Stripe.Subscription, factures: string[] = []) {
   const annulees: string[] = [];
   const stripe = {
     subscriptions: { retrieve: async () => s },
-    customers: { retrieve: async () => ({ id: "cus_1", invoice_settings: { footer: "TVA non applicable, art. 293 B du CGI." } }), update: async () => ({}) },
+    customers: { retrieve: async () => ({ id: "cus_1", invoice_settings: { footer: "TVA non applicable, article 293 B du CGI." } }), update: async () => ({}) },
     invoices: {
       retrieve:async(id:string)=>({id,parent:{subscription_details:{subscription:s.id}},customer:s.customer,currency:"eur",amount_remaining:599,status:"open"}),
       list: async () => ({ data: factures.map((id) => ({ id })) }),
@@ -156,7 +156,9 @@ describe("R03 — la confirmation de la souscription", () => {
     expect(appels.find((a) => a.nom === "abonnement_souscription_datee")?.args).toEqual({ p_customer: "cus_1", p_subscription: "sub_1", p_souscrit_le: "2026-10-26T09:00:00.000Z" });
     expect(m.envois).toHaveLength(1);
     expect(m.envois[0]).toMatchObject({ to: "titulaire@example.invalid", subject: "Confirmation de votre abonnement Gerimmo", cleIdempotence: "souscription-sub_1" });
-    expect(m.envois[0].html).toContain("adhésion en cours");
+    // Lot D7 (décision du 24/11/2026, Q7) : la phrase ne dit plus « adhésion en cours », que rien n'établit.
+    expect(m.envois[0].html).not.toContain("adhésion en cours");
+    expect(m.envois[0].html.replace(/&#39;|&#x27;|&apos;/g, "'")).toContain("aucun n'est désigné à ce jour");
     expect(m.envois[0]).toMatchObject({organisation:{id:"org-1"},contexteMetier:{type:"confirmation_abonnement",id:"sub_1",montant:599}});
     expect((r.reponse as { courriers?: Record<string, unknown> }).courriers).toEqual({ confirmation: "envoye" });
   });

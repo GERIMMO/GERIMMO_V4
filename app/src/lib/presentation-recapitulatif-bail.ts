@@ -5,6 +5,8 @@ import { informationsLogementBail } from "@/lib/logement-bail-complements";
 import { champsManquantsBail } from "@/lib/reperes-bail";
 import { cibleChampBail } from "@/lib/documents/champs-bail-parcours";
 import { dureeBailNuAnnees } from "@/lib/qualite-bailleur";
+import { jourDuMois } from "@/lib/jour-du-mois";
+import { travauxSelonContrat } from "@/lib/travaux-dernier-contrat";
 
 export type LigneRecapBail = { champ: string; libelle: string; valeur: string | null; href: string; facultatif?: boolean; aCorriger?: boolean };
 export type RubriqueRecapBail = { id: string; titre: string; href: string; lignes: LigneRecapBail[]; erreur?: string };
@@ -41,6 +43,7 @@ export function rubriquesRecapBail({ bail, lot, bien, personnes, liens, erreurLo
   const informations = (nature: "logement" | "batiment", prefixe: "lot" | "bien") => logement[nature]
     .filter(l => l.etat !== "facultatif" || l.valeur !== null)
     .map(l => ({ champ: `${prefixe}.${l.champ}`, libelle: l.libelle, valeur: l.valeur, href: liens[prefixe], facultatif: l.etat === "facultatif", aCorriger: l.etat === "a_corriger" }));
+  const premiereLocation = bail.precedente_location === "premiere";
   const clauses = [
     ligne("encadrement_loyer", "Loyers de référence applicables", ouiNon(bail.encadrement_loyer)),
     // Sans montant, le contrat imprime « Complément de loyer : néant » (mentions-location.ts) : rien à vérifier (CB-07).
@@ -49,8 +52,13 @@ export function rubriquesRecapBail({ bail, lot, bien, personnes, liens, erreurLo
     ligne("clause_resolutoire_assurance", "Résiliation pour défaut d’assurance", ouiNon(bail.clause_resolutoire_assurance)),
     ligne("clause_resolutoire_troubles", "Résiliation pour troubles jugés", ouiNon(bail.clause_resolutoire_troubles)),
     ...(bail.servitude_residence_principale === true ? [ligne("clause_resolutoire_servitude", "Résiliation pour non-respect de la servitude", ouiNon(bail.clause_resolutoire_servitude))] : []),
-    ...([ ["duree_reduite_evenement", "Motif de durée réduite"], ["travaux_recents", "Travaux récents"], ["travaux_locataire", "Travaux du locataire"], ["clauses_particulieres", "Clauses particulières"] ] as const).filter(([cle]) => !absent(bail[cle])).map(([cle, libelle]) => texte(cle, libelle)),
-    ...(!absent(bail.travaux_recents_montant) ? [montant("travaux_recents_montant", "Montant des travaux")] : []),
+    // Phase 3, reprise du lot 40 (C08) : pour une première location, le contrat imprime « Sans objet — première location » à
+    // la rubrique des travaux faits depuis le dernier contrat (travauxDepuisDernierContrat) ; le récapitulatif dit de même,
+    // sans le texte ni le montant saisis, que le contrat n'imprime pas.
+    ...([ ["duree_reduite_evenement", "Motif de durée réduite"], ["travaux_recents", "Travaux récents"], ["travaux_locataire", "Travaux du locataire"], ["clauses_particulieres", "Clauses particulières"] ] as const).filter(([cle]) => !absent(bail[cle]))
+      .map(([cle, libelle]) => cle === "travaux_recents" && premiereLocation ? ligne(cle, libelle, travauxSelonContrat(bail).travaux, true) : texte(cle, libelle)),
+    // Lot 45 (T16) : un montant saisi sans travaux ne s'affiche pas : le contrat imprime « Néant. » seul.
+    ...(travauxSelonContrat(bail).avecMontant && !absent(bail.travaux_recents_montant) ? [montant("travaux_recents_montant", "Montant des travaux")] : []),
   ];
   return [
     { id: "bail", titre: "Le contrat", href: "#etape-bail-1", lignes: [
@@ -72,7 +80,7 @@ export function rubriquesRecapBail({ bail, lot, bien, personnes, liens, erreurLo
       montant("loyer_hc", "Loyer hors charges"), montant("charges", "Charges"),
       { ...ligne("loyer_hc", "Total mensuel", montantRecapBail(bail.loyer_hc) !== null && montantRecapBail(bail.charges) !== null ? eur(Number(bail.loyer_hc) + Number(bail.charges)) : null), champ: "total_calcule", facultatif: true },
       montant("depot_garantie", "Dépôt de garantie"), choix("charges_mode", "Mode de charges", { forfait: "Forfait", provision: "Provision avec régularisation" }),
-      ligne("jour_echeance", "Échéance mensuelle", absent(bail.jour_echeance) ? null : `Le ${bail.jour_echeance} de chaque mois`),
+      ligne("jour_echeance", "Échéance mensuelle", absent(bail.jour_echeance) ? null : `Le ${jourDuMois(String(bail.jour_echeance))} de chaque mois`),
       choix("paiement_echeance", "Paiement", { echoir: "À échoir", echu: "À terme échu" }), texte("lieu_paiement", "Lieu de paiement"),
       ligne("revision_irl", "Révision annuelle", ouiNon(bail.revision_irl)),
       ...(bail.revision_irl === true ? [texte("irl_trimestre", "Trimestre IRL"), texte("irl_valeur", "Indice IRL")] : []),

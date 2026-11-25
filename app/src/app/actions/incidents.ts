@@ -5,10 +5,12 @@ import { createHash, randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { lireInterlocuteurLocataire } from "@/lib/interlocuteur-locataire-serveur";
+import { messageDeLaBasePourLocataire } from "@/lib/interlocuteur-locataire";
 import { sansJargon } from "@/lib/erreurs";
 import { verifierGerant, verifierLocataire } from "@/lib/ged-acces";
 import { detecterMimeReel, EXTENSIONS } from "@/lib/file-type";
-import { categorieIncident, MOTIF_DECISION_DEVIS, MOTIFS_CLOTURE, PIECES_INCIDENT } from "@/lib/incidents";
+import { categorieIncident, MOTIF_CORRECTION_URGENCE, MOTIF_DECISION_DEVIS, MOTIFS_CLOTURE, PIECES_INCIDENT, DISPONIBILITES_LOCATAIRE_MAX } from "@/lib/incidents";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { joindrePhotosAvecReprise } from "@/lib/photos-incident-reprise";
 // 25/09 : les e-mails qui préviennent l'artisan et l'agence. Aucun ne fait
@@ -25,6 +27,7 @@ import {
 import { lireCleEnvoi } from "@/lib/cle-envoi";
 import { baseEspace } from "@/lib/racine-espace";
 import { estUuid } from "@/lib/identifiants";
+import { MOTIF_REFUS_FACTURE } from "@/lib/reglement-facture";
 
 export type EtatIncidentAction = {
   erreur?: string;
@@ -237,6 +240,10 @@ export async function declarerMonIncident(
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(commande)) {
     return { erreur: "La tentative n’a pas pu être identifiée. Rechargez le formulaire avant l’envoi.", valeurs };
   }
+  const disponibilites = String(formData.get("disponibilites") ?? "").trim();
+  if (disponibilites.length > DISPONIBILITES_LOCATAIRE_MAX) {
+    return { erreur: `Indiquez vos disponibilités en ${DISPONIBILITES_LOCATAIRE_MAX} caractères au plus.`, valeurs };
+  }
   const { data: declaration, error } = await supabase.rpc("declarer_mon_incident_reprise", {
     p_commande: commande,
     p_org: orgId,
@@ -246,11 +253,26 @@ export async function declarerMonIncident(
     p_anciennete: champs.anciennete || null,
     p_urgence: champs.urgence,
   });
-  if (error) return { erreur: sansJargon(error.message), valeurs };
+  // Lot 47 (reprise) : le refus de la base (« … dans cette agence ») est rendu dans les mots de l'espace.
+  if (error) return { erreur: messageDeLaBasePourLocataire(sansJargon(error.message), await lireInterlocuteurLocataire(supabase, orgId)), valeurs };
 
   if (!declaration?.incident_id) return { erreur: "Résultat de l’envoi indisponible. Réessayez cette même tentative.", valeurs };
   const incidentId = String(declaration.incident_id);
-  const avertissement = await joindrePhotosAvecReprise(supabase, orgId, incidentId, fichiersDistincts);
+  const avertissementPhotos = await joindrePhotosAvecReprise(supabase, orgId, incidentId, fichiersDistincts);
+  // Audit palier 1 du 22/11/2026, P2-02 : les disponibilités du locataire suivent le signalement. Elles ne le
+  // conditionnent pas : si leur enregistrement échoue, le signalement reste envoyé et l'écran le dit.
+  let avertissementDisponibilites: string | undefined;
+  if (disponibilites) {
+    const { error: erreurDisponibilites } = await supabase.rpc("indiquer_mes_disponibilites_incident", {
+      p_incident: incidentId,
+      p_disponibilites: disponibilites,
+    });
+    if (erreurDisponibilites) {
+      console.error("[incidents] Les disponibilités du locataire n’ont pas pu être enregistrées.");
+      avertissementDisponibilites = `Vos disponibilités n’ont pas pu être enregistrées : indiquez-les à votre ${await lireInterlocuteurLocataire(supabase, orgId)} par message.`;
+    }
+  }
+  const avertissement = [avertissementPhotos, avertissementDisponibilites].filter(Boolean).join(" ") || undefined;
 
   // 25/09 : « votre gérant est prévenu immédiatement » n'était vrai qu'à sa
   // prochaine connexion. Pour une urgence, l'agence reçoit l'e-mail maintenant.
@@ -304,12 +326,14 @@ export async function declarerMonIncident(
       : doublonsEcartes === 1
         ? " Une photo identique à une autre n’a été jointe qu’une fois."
         : ` ${doublonsEcartes} photos identiques à une autre n’ont été jointes qu’une fois.`;
+  // Lot 47 : « votre gestionnaire » seulement dans un espace d'agence ; chez un propriétaire, « votre bailleur ».
+  const qui = await lireInterlocuteurLocataire(supabase, orgId);
   return {
     incidentId,
     succes:
       (emailUrgenceParti
-        ? "Signalement envoyé — urgence : votre gestionnaire est prévenu par e-mail. Suivez-le depuis votre espace."
-        : "Signalement envoyé — votre gestionnaire le verra dans son espace à sa prochaine connexion. Suivez-le depuis votre espace.") +
+        ? `Signalement envoyé — urgence : votre ${qui} est prévenu par e-mail. Suivez-le depuis votre espace.`
+        : `Signalement envoyé — votre ${qui} le verra dans son espace à sa prochaine connexion. Suivez-le depuis votre espace.`) +
       noteDoublons,
     avertissement,
   };
@@ -329,7 +353,7 @@ export async function contesterImputation(
   const message = String(formData.get("message") ?? "").trim();
   if (!message) {
     return {
-      erreur: "Expliquez pourquoi vous contestez — votre message est transmis à votre gestionnaire.",
+      erreur: `Expliquez pourquoi vous contestez — votre message est transmis à votre ${await lireInterlocuteurLocataire(supabase, orgId)}.`,
       valeurs,
     };
   }
@@ -343,7 +367,7 @@ export async function contesterImputation(
 
   revalidatePath(`/locataire/${orgId}`);
   revalidatePath(`/locataire/${orgId}/demandes`);
-  return { succes: "Contestation transmise à votre gestionnaire. Elle ne suspend pas la réparation." };
+  return { succes: `Contestation transmise à votre ${await lireInterlocuteurLocataire(supabase, orgId)}. Elle ne suspend pas la réparation.` };
 }
 
 // Le problème persiste : le locataire déclarant rouvre son incident clos
@@ -370,7 +394,7 @@ export async function signalerProblemePersiste(
 
   revalidatePath(`/locataire/${orgId}`);
   revalidatePath(`/locataire/${orgId}/demandes`);
-  return { succes: "Signalement rouvert — votre gestionnaire le verra dans son espace." };
+  return { succes: `Signalement rouvert — votre ${await lireInterlocuteurLocataire(supabase, orgId)} le verra dans son espace.` };
 }
 
 // ============================================================
@@ -483,6 +507,46 @@ export async function qualifierIncident(
   revalidatePath(`/espace/${orgId}/alertes`);
   revalidatePath(`/espace/${orgId}`);
   return { succes: "Incident qualifié — le locataire voit l'imputation dès maintenant." };
+}
+
+/**
+ * Audit palier 1 du 22/11/2026, P1-04 : le gestionnaire corrige l'urgence d'un incident non clos (un locataire a pu
+ * déclarer « urgent » à tort, ou « normal » une fuite active). La base refait tous les contrôles et trace le motif au
+ * fil du dossier ; aucun e-mail ne part.
+ */
+export async function corrigerUrgenceIncident(
+  orgId: string,
+  incidentId: string,
+  _etat: EtatIncidentAction,
+  formData: FormData
+): Promise<EtatIncidentAction> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const valeurs = valeursDuFormulaire(formData);
+  const urgence = String(formData.get("urgence") ?? "");
+  const motif = String(formData.get("motif") ?? "").trim();
+  if (!["normale", "urgente"].includes(urgence)) {
+    return { erreur: "Rechargez la page avant de corriger l’urgence.", valeurs };
+  }
+  if (motif.length < MOTIF_CORRECTION_URGENCE.min || motif.length > MOTIF_CORRECTION_URGENCE.max) {
+    return { erreur: `Indiquez le motif de la correction, en ${MOTIF_CORRECTION_URGENCE.min} à ${MOTIF_CORRECTION_URGENCE.max} caractères : il reste dans l’historique du dossier.`, valeurs };
+  }
+
+  const { error } = await supabase.rpc("corriger_urgence_incident", {
+    p_org: orgId,
+    p_incident: incidentId,
+    p_urgence: urgence,
+    p_motif: motif,
+  });
+  if (error) return { erreur: sansJargon(error.message), valeurs };
+
+  // Le dossier est rendu dans la liste (?sel=) ; l'urgence trie aussi le tableau de bord et les alertes.
+  revalidatePath(`/agence/${orgId}/incidents`);
+  revalidatePath(`/agence/${orgId}`);
+  revalidatePath(`/espace/${orgId}/incidents`);
+  revalidatePath(`/espace/${orgId}`);
+  return { succes: urgence === "urgente" ? "Dossier marqué urgent. La correction est inscrite à l’historique." : "Dossier repassé en urgence normale. La correction est inscrite à l’historique." };
 }
 
 export async function cloturerIncident(
@@ -922,6 +986,39 @@ export async function fixerRendezVous(
   };
 }
 
+// P2-04 (audit palier 1, 22/11/2026 ; référentiel RM-10.5.3) : un rendez-vous confirmé n'a pas eu lieu. Le
+// gestionnaire consigne QUI était absent ; le rendez-vous tombe et un nouveau est à convenir. La base tient les
+// règles (rendez-vous confirmé, heure passée) et répond par une phrase affichable.
+export async function consignerRendezVousManque(
+  orgId: string,
+  interventionId: string,
+  _etat: EtatIncidentAction,
+  formData: FormData
+): Promise<EtatIncidentAction> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+  const valeurs = valeursDuFormulaire(formData);
+  const absent = String(formData.get("absent") ?? "");
+  const note = String(formData.get("note") ?? "").trim();
+  if (absent !== "locataire" && absent !== "artisan") {
+    return { erreur: "Indiquez qui était absent : le locataire ou l’artisan.", valeurs };
+  }
+  if (note.length > 500) return { erreur: "Raccourcissez votre précision (500 caractères au plus).", valeurs };
+  const { error } = await supabase.rpc("consigner_rdv_manque", {
+    p_org: orgId,
+    p_intervention: interventionId,
+    p_absent: absent,
+    p_note: note || null,
+  });
+  if (error) return { erreur: sansJargon(error.message), valeurs };
+  revaliderIncident(orgId);
+  return {
+    succes: absent === "artisan"
+      ? "Rendez-vous manqué consigné : l’artisan est dit absent, il le lit dans sa mission. Un nouveau rendez-vous est à convenir."
+      : "Rendez-vous manqué consigné : le locataire est dit absent, il le lit dans sa demande. Un nouveau rendez-vous est à convenir.",
+  };
+}
+
 // RM-7.5.3 — l'artisan a signalé une cause différente, l'agent révise AVANT
 // facturation. La base refuse le geste s'il n'existe aucun signalement, et
 // hors des états « en cours » et « terminé » : c'est ce qui distingue cette
@@ -1068,4 +1165,21 @@ export async function validerFactureArtisan(orgId: string, factureId: string, _e
   if (error) return { erreur: sansJargon(error.message) };
   revaliderIncident(orgId);
   return { succes: "Facture validée. Aucun paiement bancaire n’a été effectué." };
+}
+
+/**
+ * Audit palier 1 (P1-03) : le gestionnaire refuse une facture d'artisan non validée, avec un motif (référentiel,
+ * module 9, variante V5). La facture reste au dossier ; l'artisan lit le motif et peut en déposer une autre.
+ */
+export async function refuserFactureArtisan(orgId: string, factureId: string, _etat: EtatIncidentAction, formData: FormData): Promise<EtatIncidentAction> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+  const motif = String(formData.get("motif_refus") ?? "").trim();
+  if (motif.length < MOTIF_REFUS_FACTURE.min || motif.length > MOTIF_REFUS_FACTURE.max) {
+    return { erreur: `Indiquez à l’artisan ce qui est à corriger (${MOTIF_REFUS_FACTURE.min} à ${MOTIF_REFUS_FACTURE.max.toLocaleString("fr-FR")} caractères).` };
+  }
+  const { error } = await supabase.rpc("refuser_facture_artisan", { p_org: orgId, p_facture: factureId, p_motif: motif });
+  if (error) return { erreur: sansJargon(error.message) };
+  revaliderIncident(orgId);
+  return { succes: "Facture refusée. L’artisan lit votre motif dans son espace et peut déposer une facture corrigée." };
 }

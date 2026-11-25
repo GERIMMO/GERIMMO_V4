@@ -19,6 +19,32 @@ function contenuReponse(payload: unknown): string | null {
   return null;
 }
 
+/**
+ * Interrupteur IA (22/11/2026) : l'équivalent manuel de la rédaction assistée. Un brouillon vide, sans aucun appel à
+ * l'IA, que la supervision écrit ensuite dans l'éditeur ; la base refuse toujours sa parution tant qu'il est incomplet.
+ */
+export async function creerArticleVierge(
+  _etat: EtatNouvelArticle,
+  formData: FormData
+): Promise<EtatNouvelArticle> {
+  const supabase = await createClient();
+  const { data: estSuperAdmin } = await supabase.rpc("is_super_admin");
+  if (!estSuperAdmin) return { erreur: "Accès réservé à la supervision." };
+  const titre = String(formData.get("titre") ?? "").trim();
+  const valeurs = { titre };
+  if (titre.length < 5 || titre.length > 180) return { erreur: "Donnez un titre de 5 à 180 caractères. Il reste modifiable.", valeurs };
+  const { data, error } = await supabase.from("publications").insert({
+    periode: aujourdhuiParis(), statut: "brouillon", titre, chapo: "", corps: "",
+    // Reprise du 24/11/2026 (M4) : un brouillon vierge est écrit à la main, il ne portera pas la mention « Rédigé avec
+    // l’aide de l’IA ». Partout ailleurs la base pose « ia » par défaut. Si une aide de l'IA est un jour proposée sur un
+    // article existant (réécriture, génération), elle devra poser origine « ia » ; la base refuse le sens inverse.
+    origine: "manuel",
+  }).select("id").single();
+  if (error || !data) return { erreur: "Le brouillon n’a pas pu être enregistré.", valeurs };
+  await journaliserSupervision(supabase, "publication_brouillon_cree", { publication: data.id });
+  redirect(`/admin/publications/${data.id}`);
+}
+
 export async function creerArticleIA(
   _etat: EtatNouvelArticle,
   formData: FormData

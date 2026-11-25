@@ -11,7 +11,7 @@ import {
   phraseEtatReglement,
   type MoyenReglement,
 } from "@/lib/reglement-facture";
-import { ValidationFacture } from "./validation-facture";
+import { RefusFacture, ValidationFacture } from "./validation-facture";
 import { FormulaireReglement, RetraitReglement } from "./reglement-facture";
 import { EchecLecture } from "../documents/echec-lecture";
 import { baseEspace } from "@/lib/racine-espace";
@@ -43,6 +43,7 @@ const COULEUR_ETAT: Record<string, string> = {
   validee: "puce puce-prep",
   partiellement_reglee: "puce puce-encre",
   reglee: "puce puce-loue",
+  refusee: "puce puce-grise",
 };
 
 // `base` : « /espace/<id> » chez le propriétaire direct, « /agence/<id> » chez une agence (décision D27) ; la fiche
@@ -55,21 +56,23 @@ export async function FacturesIncident({orgId,incidentId,imputation,base=baseEsp
   if(em) return <FacturesIndisponibles quoi="les factures de cette intervention"/>;
   if(!missions?.length) return null;
   const missionDe = new Map((missions as MissionFacturee[]).map(m=>[m.id,m]));
-  const {data: factures,error} = await supabase.from("intervention_factures").select("id,intervention_id,numero,montant_ttc_cents,montant_reference_cents,ecart_justification,document_id,validee_le,decision_motif,imputation_validee,reglee_le").eq("organization_id",orgId).in("intervention_id",missions.map(m=>m.id));
+  const {data: factures,error} = await supabase.from("intervention_factures").select("id,intervention_id,numero,montant_ttc_cents,montant_reference_cents,ecart_justification,document_id,validee_le,decision_motif,imputation_validee,reglee_le,refusee_le,refus_motif,deposee_le,relancee_le,relances").eq("organization_id",orgId).in("intervention_id",missions.map(m=>m.id)).order("deposee_le",{ascending:false});
   if(error) return <FacturesIndisponibles quoi="les factures de cette intervention"/>;
   if(!factures?.length) return null;
   // D23 : les règlements déclarés (lus par la politique de l'organisation ; l'écriture ne passe que par fonction).
   const {data: reglements,error:er} = await supabase.from("intervention_facture_reglements").select("id,facture_id,montant_cents,date_reglement,moyen,reference,created_at,retire_le,retrait_motif").eq("organization_id",orgId).in("facture_id",factures.map(f=>f.id)).order("date_reglement",{ascending:true}).order("created_at",{ascending:true});
   if(er) return <FacturesIndisponibles quoi="les factures de cette intervention et leurs règlements"/>;
   const reglementsDe = (factureId:string) => ((reglements ?? []) as Reglement[]).filter(r=>r.facture_id===factureId);
-  return <>{factures.map(f=>{
+  // Audit palier 1 (P1-03) : la facture en vigueur d'abord ; une facture refusée reste lisible en dessous, sans geste.
+  const ordonnees = [...factures.filter(f=>!f.refusee_le), ...factures.filter(f=>f.refusee_le)];
+  return <>{ordonnees.map(f=>{
     const mission = missionDe.get(f.intervention_id);
     const termineLe = mission?.terminee_le ?? null;
     const termineAvant = termineLe !== null && avantRendezVous(mission?.debut_prevu, new Date(termineLe));
     const lignes = reglementsDe(f.id);
     const { etat, resteCents } = etatReglementFacture(f, lignes);
-    return <section id={`facture-${f.id}`} key={f.id} className="incident-facture rounded-xl border border-[var(--filet)] bg-[var(--carte)] p-4 space-y-3">
-    {etat !== "reglee" && <PrioriteIncident id={`facture-${f.id}`} action={{ titre: etat === "deposee" ? "Vérifier la facture avant règlement" : "Déclarer un règlement déjà effectué", cible: `facture-${f.id}`, responsable: "Vous", priorite: etat === "deposee" ? 80 : 70, etat: "Facture à traiter" }}/>}
+    return <section id={`facture-${f.id}`} key={f.id} className={`incident-facture${f.refusee_le ? " incident-facture-refusee" : ""} rounded-xl border border-[var(--filet)] bg-[var(--carte)] p-4 space-y-3`}>
+    {etat !== "reglee" && etat !== "refusee" && <PrioriteIncident id={`facture-${f.id}`} action={{ titre: etat === "deposee" ? "Vérifier la facture avant règlement" : "Déclarer un règlement déjà effectué", cible: `facture-${f.id}`, responsable: "Vous", priorite: etat === "deposee" ? 80 : 70, etat: "Facture à traiter" }}/>}
     <div className="flex flex-wrap items-center justify-between gap-2">
       <h3 className="font-semibold">Facture {f.numero} — {eur(f.montant_ttc_cents / 100)} TTC</h3>
       <span className={COULEUR_ETAT[etat] ?? "puce puce-grise"}>{LIBELLES_ETAT_REGLEMENT[etat]}</span>
@@ -82,9 +85,15 @@ export async function FacturesIncident({orgId,incidentId,imputation,base=baseEsp
     {termineAvant && <p role="note" className="rounded-lg border-l-4 border-[var(--warning)] bg-[var(--warning-soft)] px-3.5 py-3 text-sm text-[var(--warning-soft-foreground)]">
       L’artisan a déclaré l’intervention terminée avant le rendez-vous confirmé avec le locataire : contrôlez le travail avant de valider.
     </p>}
-    <Link className="text-[var(--marque-sombre)] underline" href={`${base}/documents/${f.document_id}/fichier`}>Consulter la facture avant de décider</Link>
+    {/* P2-04 : l'artisan a relancé pour cette facture (la relance vit tant que la facture n'est ni réglée ni refusée). */}
+    {f.relancee_le && etat !== "reglee" && etat !== "refusee" && <p role="note" data-facture-relancee className="rounded-lg border-l-4 border-[var(--warning)] bg-[var(--warning-soft)] px-3.5 py-3 text-sm text-[var(--warning-soft-foreground)]">
+      L’artisan vous a relancé le {formaterDate(f.relancee_le)} pour cette facture{Number(f.relances) > 1 ? ` (${f.relances} relances)` : ""}, déposée le {formaterDate(f.deposee_le)}.
+    </p>}
+    <Link className="text-[var(--marque-sombre)] underline" href={`${base}/documents/${f.document_id}/fichier`}>{f.refusee_le ? "Consulter la facture refusée" : "Consulter la facture avant de décider"}</Link>
     {f.montant_reference_cents != null && f.montant_ttc_cents !== f.montant_reference_cents && <p>Écart avec le montant autorisé de {eur(f.montant_reference_cents / 100)} : {f.ecart_justification}</p>}
-    {f.validee_le ? <>
+    {f.refusee_le ? <p data-facture-refusee>
+      Refusée le {formaterDateHeure(f.refusee_le)} : « {f.refus_motif} » Elle reste au dossier, sans être modifiée ; l’artisan peut déposer une autre facture.
+    </p> : f.validee_le ? <>
       <p>Validée le {formaterDateHeure(f.validee_le)}. {f.decision_motif}</p>
       {/* D23 : le règlement se déclare ici, sur la facture validée ; il n'est jamais exécuté par Gerimmo. */}
       <div className="space-y-3" aria-label={`Règlement de la facture ${f.numero}`}>
@@ -102,6 +111,6 @@ export async function FacturesIncident({orgId,incidentId,imputation,base=baseEsp
         {/* Toujours monté, soldée ou non : sur un règlement total, le message de succès ne disparaît pas avec le formulaire. */}
         <FormulaireReglement orgId={orgId} factureId={f.id} resteCents={resteCents} imputationLocataire={imputationAuLocataire(imputation ?? f.imputation_validee)}/>
       </div>
-    </> : <ValidationFacture orgId={orgId} factureId={f.id}/>}
+    </> : <><ValidationFacture orgId={orgId} factureId={f.id}/><RefusFacture orgId={orgId} factureId={f.id}/></>}
   </section>;})}</>;
 }

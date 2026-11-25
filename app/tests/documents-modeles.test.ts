@@ -65,7 +65,8 @@ describe("Modèle 01 — bail nu", () => {
     expect(doc.html).toContain("Individuel — électricité"); // chauffage
     expect(doc.html).toContain("Hall, ascenseur, local vélos"); // parties communes
     expect(doc.html).toContain("Fibre optique"); // accès TIC
-    expect(doc.html).toContain("Sans objet — le contrat est conclu pour la durée de droit commun.");
+    // Phase 3 (C12) : la mention « sans objet » dit à quelle rubrique elle se rapporte (elle était seule sur sa ligne).
+    expect(doc.html).toContain("Durée réduite pour un événement précis justifiant la reprise du logement : sans objet — le contrat est conclu pour la durée de droit commun.");
     expect(doc.html).toContain("à échoir");
     expect(doc.html).toContain("Virement bancaire");
     expect(doc.html).toContain("FR76 3000 4000 0500 0012 3456 789"); // IBAN facultatif imprimé
@@ -119,11 +120,11 @@ describe("Modèle 01 — bail nu", () => {
           ...base.organisation,
           type: "agence",
           carte_pro: "CPI 6901 2018 000 025 — CCI de Lyon",
+          garantie_financiere: "Caisse de garantie FICTIVE, 1 rue des Essais, 69003 Lyon",
         },
         bail: {
           ...base.bail,
           date_debut: "2026-09-15",
-          duree_reduite_evenement: "Reprise du logement pour retraite du bailleur en 2028",
           complement_loyer: 50,
           complement_justification: "Terrasse de 20 m² avec vue dégagée",
         },
@@ -132,15 +133,23 @@ describe("Modèle 01 — bail nu", () => {
     );
     // 15 → 30 septembre : 16 jours sur 30 → (650 + 90) × 16/30 = 394,67 €
     expect(doc.html).toMatch(/394,67\s€/);
-    expect(doc.html).toContain("(premier mois au prorata)");
+    // Textes officiels, lot T2 (R08-A3) : ce test affirmait « (premier mois au prorata) » à la place du montant d'une période
+    // complète, que demande le contrat type. Le bail donne maintenant la période complète, puis le premier terme au prorata.
+    const texte = doc.html.replace(/<[^>]+>/g, "").replace(/\s+/g, " ");
+    expect(texte).toContain("pour une période complète de location : 740,00 € (loyer 650,00 € + charges 90,00 €).");
+    expect(texte).toContain("(16 jours sur 30) : 394,67 € (loyer 346,67 € + charges 48,00 €).");
     // Agence : mandataire avec carte pro, honoraires chiffrés, plafond zone tendue calculé
     expect(doc.html).toContain("CPI 6901 2018 000 025 — CCI de Lyon");
     expect(doc.html).toMatch(/300,00\s€/);
     expect(doc.html).toMatch(/10,09\s€/);
-    // Durée réduite justifiée, complément de loyer motivé : plus aucun « Sans objet »
-    expect(doc.html).toContain("Reprise du logement pour retraite du bailleur en 2028");
+    // Complément de loyer motivé. (Lot T2, R17-A2 : la durée réduite, que ce test remplissait, n'est plus préparée par Gerimmo :
+    // voir textes-officiels-t2.test.ts.)
     expect(doc.html).toContain("Terrasse de 20 m² avec vue dégagée");
     expect(doc.html).not.toContain("Sans objet");
+    // Lot T2 (R08-A1) : le garant du mandataire est exigé par le contrat type. Reprises du lot T2 (T2R-6) : le lot T2 avait
+    // laissé ce contexte sans garant et accepté un manquant ; le contexte « agence complète » porte sa garantie financière,
+    // et l'exigence d'origine est rétablie : aucun manquant. (L'absence de garant reste couverte par textes-officiels-t2.)
+    expect(doc.html).toContain("Caisse de garantie FICTIVE, 1 rue des Essais, 69003 Lyon");
     expect(doc.manquants).toEqual([]);
   });
 });
@@ -167,12 +176,12 @@ describe("Modèles 14/15 — états des lieux", () => {
       compteurs: [{ type: "Électricité", numero: "E-778", releve: "45210" }],
       cles: [{ libelle: "Clé porte d'entrée", nombre: 2, reference: null }],
       comparatif: [],
-      retenues: [],
       bailleurNom: f.champ("Claire Moreau", "nom et prénom(s), ou dénomination"),
       locatairesNoms: f.champ("Julie Leblanc", "nom et prénom(s) du ou des locataires"),
       logementAdresse: "12 rue des Lilas, 69003 Lyon",
       referenceBail: "BAIL-0F3A21BC",
       exp: { nom: "Parc de Claire Moreau", adresse: "8 avenue des Tilleuls, 69006 Lyon", email: "c@x.fr", telephone: null, ville: "Lyon" },
+      typeOrganisation: "proprietaire_direct",
       f,
       ...sur,
     };
@@ -192,11 +201,19 @@ describe("Modèles 14/15 — états des lieux", () => {
     expect(doc.manquants).toEqual([expect.stringMatching(/^État de Réfrigérateur — /)]);
   });
 
-  it.each([311.02, 8412, 0, "311.020"])("imprime l'index %s reçu de la base sans perdre le zéro", (releve) => {
+  // Phase 3 (C39) : l'index s'imprimait tel que la base le rend, avec un point décimal (« 311.02 ») au milieu de montants
+  // écrits à la française. Il s'imprime désormais au format français, sans zéro inutile ; un index nul reste « 0 ».
+  it.each([
+    [311.02, "311,02"],
+    [8412, "8\u202f412"],
+    [0, "0"],
+    ["311.020", "311,02"],
+    [4521.3, "4\u202f521,3"],
+  ])("imprime l'index %s reçu de la base au format français, sans perdre le zéro", (releve, attendu) => {
     const doc = construireEdl(donnees({
       compteurs: [{ type: "Eau froide", numero: "RCT-0317", releve }],
     }));
-    expect(doc.html).toContain(`>${String(releve)}<`);
+    expect(doc.html).toContain(`>${attendu}<`);
     expect(doc.manquants).not.toContain("index");
   });
 
@@ -244,24 +261,36 @@ describe("Modèles 14/15 — états des lieux", () => {
     expect(doc.manquants).not.toContain("nombre rendu");
   });
 
-  it("la sortie affiche le comparatif, les retenues avec vétusté et leur total", () => {
+  // Phase 3 (C33) : la synthèse des écarts nomme la pièce de chaque élément (six lignes « Murs » ne se distinguaient pas).
+  // Phase 3 (C34) : les retenues chiffrées ne s'impriment plus dans l'état des lieux — acte contradictoire signé le jour du constat,
+  // alors que les retenues sont arrêtées plus tard, à la restitution. L'ancienne version de ce test exigeait ce « comparatif chiffré »
+  // au-dessus des signatures : il est désormais porté par le décompte de restitution et le décompte des retenues.
+  it("la sortie affiche la synthèse des écarts pièce par pièce, sans retenues chiffrées", () => {
     const doc = construireEdl(
       donnees({
         type: "sortie",
         comparatif: [
-          { libelle: "Murs — Séjour", etat_entree: "neuf", etat_sortie: "mauvais", ecart: true },
-          { libelle: "Sols — Séjour", etat_entree: "bon", etat_sortie: "bon", ecart: false },
+          { piece: "Chambre", categorie: "piece", libelle: "Murs", etat_entree: "neuf", etat_sortie: "usage", ecart: true },
+          { piece: "Séjour", categorie: "piece", libelle: "Murs", etat_entree: "neuf", etat_sortie: "mauvais", ecart: true },
+          { piece: "Séjour", categorie: "piece", libelle: "Sols", etat_entree: "bon", etat_sortie: "bon", ecart: false },
+          { piece: null, categorie: "equipement", libelle: "Réfrigérateur", etat_entree: "bon", etat_sortie: null, ecart: true },
         ],
-        retenues: [{ libelle: "Peinture séjour", cout: 400, duree_vie_ans: 10, age_ans: 4, montant_retenu: 240 }],
       })
     );
     expect(doc.html).toContain("État des lieux de sortie");
-    expect(doc.html).toContain("Synthèse");
-    expect(doc.html).toContain("Murs — Séjour");
-    expect(doc.html).not.toContain("Sols — Séjour</td>"); // pas d'écart → pas listé
-    expect(doc.html).toContain("Comparatif chiffré et vétusté");
-    expect(doc.html).toMatch(/240,00\s€/);
-    expect(doc.html).toContain("Total des retenues après vétusté");
+    const synthese = doc.html.slice(doc.html.indexOf("Synthèse"), doc.html.indexOf("Adresse du nouveau domicile"));
+    const lignes = [...synthese.matchAll(/<tr>([\s\S]*?)<\/tr>/g)].map((m) => m[1].replace(/<[^>]+>/g, "|").replace(/\|+/g, "|").replace(/^\||\|$/g, ""));
+    // Phase 3, reprise du lot 36 : l'état « usage » s'imprime « Usagé », comme l'écran de la grille et l'inventaire du même
+    // dossier ; ce test affirmait « Usage », le code avec une capitale, que la table locale de l'état des lieux imprimait.
+    expect(lignes).toEqual([
+      "Pièce|Élément|État à l'entrée|État à la sortie",
+      "Chambre|Murs|Neuf|Usagé",
+      "Séjour|Murs|Neuf|Mauvais",
+      "Équipements|Réfrigérateur|Bon|—",
+    ]);
+    // Pas d'écart → pas listé
+    expect(synthese).not.toContain("Sols");
+    for (const absent of ["Comparatif chiffré", "vétusté", "Montant retenu", "Total des retenues"]) expect(doc.html).not.toContain(absent);
   });
 });
 
@@ -300,13 +329,13 @@ describe.skipIf(!CHROME_LOCAL)("Rendu PDF des modèles (Chrome local)", () => {
       ],
       compteurs: [{ type: "Électricité", numero: "E-778", releve: "48114" }],
       cles: [{ libelle: "Clé porte d'entrée", nombre: 2, reference: null }],
-      comparatif: [{ libelle: "Murs — Séjour", etat_entree: "neuf", etat_sortie: "mauvais", ecart: true }],
-      retenues: [{ libelle: "Peinture séjour", cout: 400, duree_vie_ans: 10, age_ans: 4, montant_retenu: 240 }],
+      comparatif: [{ piece: "Séjour", categorie: "piece", libelle: "Murs", etat_entree: "neuf", etat_sortie: "mauvais", ecart: true }],
       bailleurNom: "Claire Moreau",
       locatairesNoms: "Julie Leblanc",
       logementAdresse: "12 rue des Lilas, 69003 Lyon",
       referenceBail: "BAIL-0F3A21BC",
       exp: { nom: "Parc de Claire Moreau", adresse: "8 avenue des Tilleuls, 69006 Lyon", email: "c@x.fr", telephone: null, ville: "Lyon" },
+      typeOrganisation: "proprietaire_direct",
       f: new Fusion(),
     });
     const pdfEdl = await rendrePdf(edl);

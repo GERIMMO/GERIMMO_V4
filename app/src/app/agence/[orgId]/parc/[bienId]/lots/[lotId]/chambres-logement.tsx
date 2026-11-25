@@ -29,14 +29,15 @@ export function ChambresLogement({ orgId, lotId, bienId, chambres, plafond, mode
   const { etat, soumettre, enCours } = useActionFormulaire<EtatChambre>(enregistrerPlafondColocation.bind(null, orgId, lotId, bienId));
   const cible = { orgId, lotId, bienId };
   if (lectureSeule) return <div className="space-y-3 text-sm">
-    <p>Loyer de référence du logement : {plafond == null ? "Non renseigné" : `${plafond} € / mois hors charges`}</p>
+    <p>Loyer maximal applicable au logement entier : {plafond == null ? "Non renseigné" : `${plafond} € / mois hors charges`}</p>
     {chambres.map(c => <details key={c.id} className="rounded-lg border p-3"><summary>{c.nom} · {c.surface_m2} m² · {c.volume_m3} m³</summary><dl className="mt-3 space-y-2"><div><dt>Description</dt><dd>{c.description}</dd></div><div><dt>Équipements privatifs</dt><dd>{c.equipements || "Non renseignés"}</dd></div><div><dt>Espaces partagés</dt><dd>{c.espaces_partages}</dd></div></dl></details>)}
     {!chambres.length && <p>Aucune chambre préparée.</p>}
   </div>;
   return <div className="space-y-5">
     <p className="text-sm text-muted-foreground">Préparez une chambre par contrat. Le logement, ses propriétaires et ses diagnostics restent communs. Chaque locataire conserve son propre échéancier, son dépôt et son congé.</p>
     {mode !== "chambres" && <form data-saisie-confirmee onSubmit={soumettre} className="space-y-2">
-      <label className="space-y-1 text-sm">Loyer de référence du logement entier, hors charges (€ / mois)<PastilleBail champ="chambre.plafond" renseigne={plafond != null}/><Input name="plafond" type="text" inputMode="decimal" required defaultValue={plafond ?? ""} /></label>
+      {/* Phase 3 (C30) : ce plafond n'est pas le « loyer de référence » de l'encadrement des loyers (même mot, autre notion). */}
+      <label className="space-y-1 text-sm">Loyer maximal applicable au logement entier, hors charges (€ / mois)<PastilleBail champ="chambre.plafond" renseigne={plafond != null}/><Input name="plafond" type="text" inputMode="decimal" required defaultValue={plafond ?? ""} /></label>
       <p className="text-xs text-muted-foreground">Retenez le montant applicable après vérification de l’encadrement local. La somme des loyers individuels ne pourra pas le dépasser.</p>
       {etat.erreur && <p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}
       {etat.succes && <p role="status" className="text-sm text-success-soft-foreground">{etat.succes}</p>}

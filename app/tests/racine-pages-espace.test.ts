@@ -590,6 +590,11 @@ describe("écrans : aucune adresse de gestion écrite en dur", () => {
       raison: "suivi de la relance du loyer présenté au seul propriétaire depuis son accueil",
       preuve: ["src/app/agence/[orgId]/accueil-proprietaire.tsx", "<RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} rappelsLus={rappels} />"],
     }, {
+      // Phase 3, lot 39 (reprise, C65) : sous un plan d'apurement en cours, ce lien remplace le suivi des relances suspendues.
+      fichier: "src/components/rappels-loyers-interactifs.tsx", fonction: "ReceptionLoyer", forme: '`/espace/${orgId}/baux/${ligne.bail_id}#plan-apurement`', nombre: 1,
+      raison: "plan d'apurement en cours du bail, à la place du suivi des relances, dans le rappel de réception du seul propriétaire",
+      preuve: ["src/app/agence/[orgId]/accueil-proprietaire.tsx", "<RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} rappelsLus={rappels} />"],
+    }, {
       fichier: "src/components/rappels-loyers-interactifs.tsx", fonction: "ReceptionLoyer", forme: '`/espace/${orgId}/baux/${ligne.bail_id}#loyers`', nombre: 1,
       raison: "loyers du bail ouverts depuis le nom du lot, dans le rappel de réception du seul propriétaire (audit du 27/10, LAT-07)",
       preuve: ["src/app/agence/[orgId]/accueil-proprietaire.tsx", "<RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} rappelsLus={rappels} />"],

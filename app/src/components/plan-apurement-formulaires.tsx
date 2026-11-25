@@ -10,6 +10,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { ApercuDocumentEspace } from "./apercu-document-espace";
 import { OuvrirSignatureDocument } from "./ouvrir-signature-document";
+import { PhraseVoiesSignature } from "./voies-signature";
 
 export type TranchePlan = { id: string; rang: number; echeance: string; montant: number | string; statut: "a_venir" | "honoree" | "manquee" | "annulee"; constatee_le: string | null; en_retard: boolean };
 export type PlanApurementLu = {
@@ -74,6 +75,8 @@ function PlanEnCours({ orgId, bailId, base, plan }: { orgId: string; bailId: str
   const e = ETATS[plan.etat];
   const tranches = plan.tranches ?? [];
   const honorees = tranches.filter((t) => t.statut === "honoree").length;
+  const signable = ["propose", "actif", "en_defaut"].includes(plan.etat);
+  const selectionSignature = { code: "protocole_apurement" as const, cibleId: bailId, options: { plan_id: plan.plan_id } };
   return <div className="space-y-3 rounded-lg border border-border p-3 text-sm">
     <div className="flex flex-wrap items-center gap-2">
       <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${e.classe}`}>{e.libelle}</span>
@@ -93,9 +96,13 @@ function PlanEnCours({ orgId, bailId, base, plan }: { orgId: string; bailId: str
     <div className="flex flex-wrap items-center gap-2">
       {plan.document_id && <ApercuDocumentEspace fichier={`${base}/documents/${plan.document_id}/fichier`} titre="Protocole d’apurement" />}
       {plan.document_signe_id && <ApercuDocumentEspace fichier={`${base}/documents/${plan.document_signe_id}/fichier`} titre="Protocole signé" />}
-      {["propose", "actif", "en_defaut"].includes(plan.etat) && <Protocole orgId={orgId} bailId={bailId} planId={plan.plan_id} base={base} dejaGenere={Boolean(plan.document_id)} />}
-      {["propose", "actif", "en_defaut"].includes(plan.etat) && <OuvrirSignatureDocument orgId={orgId} selection={{ code: "protocole_apurement", cibleId: bailId, options: { plan_id: plan.plan_id } }} />}
+      {/* Décision du 24/11/2026 (Q11) : voie électronique ouverte, elle est proposée avant le PDF à imprimer. Relecture
+          (B1, B2) : service fermé ou agence, après (un seul des deux boutons s'affiche, selon l'état de la voie). */}
+      {signable && <OuvrirSignatureDocument place="avant" orgId={orgId} selection={selectionSignature} />}
+      {signable && <Protocole orgId={orgId} bailId={bailId} planId={plan.plan_id} base={base} dejaGenere={Boolean(plan.document_id)} />}
+      {signable && <OuvrirSignatureDocument place="apres" orgId={orgId} selection={selectionSignature} />}
     </div>
+    {signable && <PhraseVoiesSignature code="protocole_apurement" papier="générez le protocole, imprimez-le et faites-le signer par les parties." className="text-xs text-muted-foreground" />}
     {plan.etat === "propose" && <Activation orgId={orgId} bailId={bailId} planId={plan.plan_id} />}
     {["propose", "actif", "en_defaut"].includes(plan.etat) && <Annulation orgId={orgId} bailId={bailId} planId={plan.plan_id} />}
     {plan.etat === "actif" && <p className="text-xs text-muted-foreground">Le plan est respecté tant que la dette échue reste au niveau prévu après chaque tranche (loyers courants compris). Les relances automatiques se taisent ; l’alerte d’impayé reste visible.</p>}

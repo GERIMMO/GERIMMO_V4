@@ -2,7 +2,7 @@ import { eur } from "@/lib/ged";
 import { presentationDocument } from "@/lib/presentation-document";
 import { titreAffiche } from "./titre-document";
 
-type Facture = { montant_ttc_cents: number; validee_le: string | null; decision_motif: string | null };
+type Facture = { montant_ttc_cents: number; validee_le: string | null; decision_motif: string | null; refusee_le?: string | null };
 export function titreDocumentProprietaire(titre: string | null | undefined, contexte?: { incident?: string | null; facture?: Facture | null }) {
   const original = titreAffiche(titre);
   if (!original) return "Document sans titre";
@@ -21,6 +21,8 @@ export function titreDocumentProprietaire(titre: string | null | undefined, cont
 export function presentationDocumentProprietaire(doc: Parameters<typeof presentationDocument>[0], signature: Parameters<typeof presentationDocument>[1] = null, remplace = false, facture?: Facture | null) {
   const presentation = presentationDocument(doc, signature, remplace);
   if (presentation.libelle !== "À vérifier" || doc.expire_le) return presentation;
+  // Audit palier 1 (P1-03) : une facture refusée n'attend plus de décision ; sa pièce reste au dossier.
+  if (facture?.refusee_le) return { libelle: "Refusée", classe: "puce-grise", detail: "Cette facture a été refusée. Elle reste au dossier ; l’artisan peut en déposer une autre." };
   if (facture && !facture.validee_le && !facture.decision_motif) return { libelle: "À valider", classe: "puce-prep", detail: "Cette facture attend votre décision dans le dossier d’intervention." };
   return { libelle: "Disponible", classe: "puce-grise", detail: "Fichier disponible. Sa présence ne vaut pas validation de son contenu." };
 }

@@ -108,6 +108,12 @@
     "dynamic": ""
   },
   {
+    "path": "/admin/retours/CONTESTATION/evaluations",
+    "persona": "superadmin",
+    "label": "Évaluations contestées d’un artisan",
+    "dynamic": "retourId"
+  },
+  {
     "path": "/admin/sante",
     "persona": "superadmin",
     "label": "Santé et connexions",
@@ -350,7 +356,7 @@
   {
     "path": "/artisan/entreprise",
     "persona": "artisan",
-    "label": "Mon entreprise",
+    "label": "Ma fiche entreprise",
     "dynamic": ""
   },
   {
@@ -404,7 +410,7 @@
   {
     "path": "/artisan/panne",
     "persona": "artisan",
-    "label": "Aide en cas de panne",
+    "label": "Lecture de la fiche impossible (page d’échec, renvoie à l’espace si la fiche se lit)",
     "dynamic": ""
   },
   {
@@ -885,6 +891,12 @@
     "path": "/espace/ORG/loyers",
     "persona": "proprietaire",
     "label": "Loyers du bailleur",
+    "dynamic": ""
+  },
+  {
+    "path": "/espace/ORG/loyers/pointage",
+    "persona": "proprietaire",
+    "label": "Pointer mes loyers avec un relevé de banque",
     "dynamic": ""
   },
   {

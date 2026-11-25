@@ -103,7 +103,9 @@ test("le registre privé se télécharge seulement au clic, depuis la facturatio
     telechargements.length = 0;
     await page.goto(chemin);
     if (chemin === "/artisan/facturation") await page.getByRole("tab", { name: "Mon registre", exact: true }).click();
-    const lien = page.getByRole("link", { name: /Exporter mon registre/ });
+    // Phase 3, lot 60 (E128) : le lien s'appelait « Exporter mon registre » ; il dit maintenant ce qu'il donne.
+    // Reprise du lot 60 (R1) : et il ne promet plus « toutes mes données » (ni discussions, ni pièces jointes dans le fichier).
+    const lien = page.getByRole("link", { name: "Exporter mon activité (fichier JSON, sans les discussions ni les pièces jointes)", exact: true });
     await expect(lien).toBeVisible();
     await lien.hover();
     await page.waitForLoadState("networkidle");

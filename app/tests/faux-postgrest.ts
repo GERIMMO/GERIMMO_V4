@@ -218,6 +218,11 @@ export const SCHEMA_CONNU = {
     colonnes: [
       "id", "organization_id", "intervention_id", "numero", "montant_ttc_cents", "montant_reference_cents",
       "ecart_justification", "document_id", "validee_le", "decision_motif", "imputation_validee", "reglee_le",
+      // Audit palier 1, P1-03 : le refus motivé d'une facture, et la date de dépôt qui range la facture en vigueur
+      // avant celles qu'elle remplace.
+      "refusee_le", "refus_motif", "deposee_le",
+      // Audit palier 1, P2-04 : la dernière relance de l'artisan et leur nombre.
+      "relancee_le", "relances",
     ],
     integrees: [],
   },
@@ -227,6 +232,28 @@ export const SCHEMA_CONNU = {
       "id", "organization_id", "facture_id", "montant_cents", "date_reglement", "moyen", "reference", "created_at",
       "retire_le", "retrait_motif",
     ],
+    integrees: [],
+  },
+  // Audit palier 1, P1-14 : la rubrique « Avenant au bail » lit les avenants du bail et son dernier loyer appelé.
+  avenants_bail: {
+    colonnes: [
+      "id", "organization_id", "bail_id", "objet", "signe_le", "date_effet", "ancien_loyer_hc", "nouveau_loyer_hc",
+      "anciennes_charges", "nouvelles_charges", "document_id", "enregistre_le", "applique_le", "annule_le", "annulation_motif",
+    ],
+    integrees: [],
+  },
+  appels_loyer: {
+    colonnes: ["id", "organization_id", "bail_id", "periode"],
+    integrees: [],
+  },
+  // Audit palier 1, P1-13 : la recherche de l'indice de révision relit le bail et ses révisions passées.
+  // Troisième reprise du lot D2 (24/11) : elle lit aussi le début du bail, qui dit de quelle date de révision on cherche l'indice.
+  baux: {
+    colonnes: ["id", "organization_id", "revision_irl", "irl_trimestre", "irl_valeur", "date_debut"],
+    integrees: [],
+  },
+  revisions_loyer: {
+    colonnes: ["id", "organization_id", "bail_id", "date_effet", "irl_trimestre", "irl_nouveau"],
     integrees: [],
   },
 } as const satisfies Record<string, { colonnes: readonly string[]; integrees: readonly string[] }>;

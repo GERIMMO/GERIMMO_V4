@@ -5,9 +5,11 @@
 //  · R01, R37 — l'accusé de la rétractation d'un abonnement (quatre variantes) ou d'un passage à l'annuel ;
 //  · R05 — la phrase du médiateur, à la confirmation et à la clôture d'une réclamation.
 //
-// Décision du dirigeant du 23/10 (médiateur non bloquant) : rien n'attend le médiateur. Ses coordonnées s'affichent si
-// elles sont saisies ; sinon la phrase dit exactement « Médiateur de la consommation : adhésion en cours ; ses
-// coordonnées figureront dans les mentions légales dès qu'elle sera effective. »
+// Le médiateur : ses coordonnées s'affichent si elles sont saisies ; sinon (décision du 24/11/2026, Q7 : aucun médiateur
+// n'est désigné, et rien n'établit une adhésion « en cours ») la phrase dit exactement « Médiateur de la consommation :
+// aucun n'est désigné à ce jour ; ses coordonnées figureront dans les mentions légales dès sa désignation. »
+// Sans médiateur, la première souscription d'un particulier est fermée par défaut (lib/garde-souscription.ts) : cette
+// phrase ne part dans une confirmation d'abonnement que si le super admin a levé le blocage.
 //
 // Numéros d'articles : seuls ceux qui existent avec ce sens dans la version en vigueur des conditions sont cités
 // (relecture adverse du 24/10, M3) — l'article 8.10 (« Rétractation », avec son formulaire) et, depuis la V1 du
@@ -25,9 +27,12 @@ import { euros, formuleParCode, type Periodicite, type RegimeTva } from "@/lib/t
 export type Courrier = { sujet: string; html: string };
 type Faits = Record<string, string | null | undefined>;
 
-/** La phrase exacte du médiateur tant que l'adhésion n'est pas saisie (décision du dirigeant du 23/10). */
-export const PHRASE_MEDIATEUR_EN_COURS =
-  "Médiateur de la consommation : adhésion en cours ; ses coordonnées figureront dans les mentions légales dès qu'elle sera effective.";
+/**
+ * La phrase exacte du médiateur tant qu'il n'est pas saisi. Décision du dirigeant du 24/11/2026 (Q7) : aucun médiateur
+ * n'est désigné ; l'ancienne phrase (« adhésion en cours », décision du 23/10) affirmait une démarche que rien n'établit.
+ */
+export const PHRASE_MEDIATEUR_NON_DESIGNE =
+  "Médiateur de la consommation : aucun n'est désigné à ce jour ; ses coordonnées figureront dans les mentions légales dès sa désignation.";
 
 /** « Nom, adresse, site » du médiateur, s'il est saisi (le nom désigne l'organisme, comme sur les pages légales). */
 export function coordonneesMediateur(editeur: Faits): string | null {
@@ -41,7 +46,7 @@ export function phraseMediationConfirmation(editeur: Faits): string {
   const c = coordonneesMediateur(editeur);
   return c
     ? `Médiation : en cas de litige non résolu après une réclamation écrite, vous pouvez saisir gratuitement le médiateur de la consommation : ${c}.`
-    : PHRASE_MEDIATEUR_EN_COURS;
+    : PHRASE_MEDIATEUR_NON_DESIGNE;
 }
 
 /** R05 : la phrase ajoutée à la réponse qui clôt une réclamation. */
@@ -49,7 +54,7 @@ export function phraseMediateurReclamation(editeur: Faits): string {
   const c = coordonneesMediateur(editeur);
   return c
     ? `Si cette réponse ne vous satisfait pas, vous pouvez saisir gratuitement le médiateur de la consommation : ${c}.`
-    : PHRASE_MEDIATEUR_EN_COURS;
+    : PHRASE_MEDIATEUR_NON_DESIGNE;
 }
 
 /** « Prénom Nom EI — adresse — contact — téléphone », sans les faits non saisis. */
@@ -65,7 +70,7 @@ export function formulaireRetractation(editeur: Faits): string[] {
   const fait = (v: string | null | undefined, quoi: string) => v?.trim() || `[${quoi} à compléter]`;
   return [
     "(Veuillez compléter et renvoyer le présent formulaire uniquement si vous souhaitez vous rétracter du contrat.)",
-    `À l'attention de ${fait(editeur.denomination, "dénomination de l'éditeur")}, ${fait(editeur.siege, "adresse du siège")}, ${fait(editeur.email, "adresse de contact")} :`,
+    `À l'attention de ${fait(editeur.denomination, "dénomination de l'éditeur")}, ${fait(editeur.siege, "adresse de l'éditeur")}, ${fait(editeur.email, "adresse de contact")} :`,
     "Je/nous (*) vous notifie/notifions (*) par la présente ma/notre (*) rétractation du contrat portant sur la vente du bien (*)/pour la prestation de services (*) ci-dessous :",
     "Commandé le (*)/reçu le (*) :",
     "Nom du (des) consommateur(s) :",
@@ -134,7 +139,7 @@ export type Confirmation = {
 
 function mentionTaxes(regime: RegimeTva | null, estAgence: boolean): string {
   if (!regime) return "";
-  if (regime.nature === "franchise") return ", TVA non applicable, art. 293 B du CGI";
+  if (regime.nature === "franchise") return ", TVA non applicable, article 293 B du CGI";
   return estAgence ? `, hors taxes, TVA de ${regime.tauxPourcent} % en sus` : `, TVA de ${regime.tauxPourcent} % incluse`;
 }
 

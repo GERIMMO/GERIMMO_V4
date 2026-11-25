@@ -18,7 +18,8 @@ const PERIMETRE = [
   "src/app/agence/[orgId]/documents/page.tsx",
 ];
 // Sous-titres légitimes : ils suivent le <h2> de leur carte (« Votre signalement », « Les colonnes… » sous « 1. Le gabarit »).
-const SOUS_TITRES = [/Qui paiera la réparation/, /plat \? "text-sm font-medium"/, /Les colonnes du fichier/];
+// Phase 3, lot 61 (E023) : sur /compte/donnees, le titre de chaque demande suit le <h2> « Mes demandes sur mes données ».
+const SOUS_TITRES = [/Qui paiera la réparation/, /plat \? "text-sm font-medium"/, /Les colonnes du fichier/, /data-titre-demande-donnees/];
 
 describe("DES-A-03 : hiérarchie des titres", () => {
   it("aucun titre de carte n'est resté en <h3> dans le périmètre", () => {
@@ -33,7 +34,14 @@ describe("DES-A-03 : hiérarchie des titres", () => {
     // 39 depuis UX 6 : l'accueil locataire distingue le bail en préparation des actions d'un bail actif.
     // 42 depuis le 20/11/2026 : les trois titres de carte de /compte/donnees suivent la même règle (ils étaient des
     // <h2> en police d'affichage, sans la classe).
-    expect(avecClasse.length).toBe(42);
+    // 43 depuis le 22/11/2026 : la carte « Signature électronique » de « Mes documents » du locataire (audit P1-06).
+    // 44 depuis le 22/11/2026 : la carte « Nouveau message sur votre intervention » de « Mes demandes » (audit P1-05).
+    // 45 depuis le 22/11/2026 : la carte « Rendez-vous du … manqué » de « Mes demandes » (audit P2-04).
+    // 46 depuis le 24/11/2026 (lot 61, reprise M1) : la carte « Les données d'une location » de /compte/donnees, pour
+    // l'ancien locataire et les comptes sans adhésion active de locataire.
+    // 45 depuis le 24/11/2026 (lot D5, décision Q21) : la carte « Documents à signer » de « Mes documents » du
+    // locataire (ancien parcours « télécharger, signer, redéposer ») est retirée.
+    expect(avecClasse.length).toBe(45);
     const accueil = readFileSync("src/app/locataire/[orgId]/page.tsx", "utf8");
     for (const titre of ["Votre bail n’est pas encore actif", "Ce qui vous attend"])
       expect(accueil).toMatch(new RegExp(`<h2[^>]*titre-carte[^>]*>${titre}</h2>`));

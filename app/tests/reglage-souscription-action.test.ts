@@ -1,6 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ rpc: vi.fn(), update: vi.fn(), eq: vi.fn(), saved: vi.fn(), revalidate: vi.fn() }));
+const VENDEUR = {
+  denomination: "Personne fictive EI", forme: "Entrepreneur individuel", typeVendeur: "entrepreneur_individuel", siege: "1 rue Exemple, 75000 Paris",
+  rcs: "RNE 000 000 000", siret: "00000000000000", directeurPublication: "Personne fictive",
+  email: "contact@example.test", telephone: "01 00 00 00 00",
+};
+const mocks = vi.hoisted(() => ({
+  rpc: vi.fn(), update: vi.fn(), eq: vi.fn(), saved: vi.fn(), revalidate: vi.fn(),
+  identite: { editeur: {} as Record<string, string | null>, indisponible: false },
+}));
+vi.mock("@/lib/editeur-serveur", () => ({ lireEditeur: async () => mocks.identite }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => {
   const q = { update: mocks.update, eq: mocks.eq, select: () => q, maybeSingle: mocks.saved };
@@ -16,6 +25,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.rpc.mockResolvedValue({ data: true, error: null });
   mocks.saved.mockResolvedValue({ data: { revision: 5 }, error: null });
+  mocks.identite = { editeur: { ...VENDEUR }, indisponible: false };
 });
 
 describe("réglage du blocage des souscriptions", () => {
@@ -70,4 +80,35 @@ it("demande confirmation pour ouvrir, permet de refermer, sans changer la règle
   f.set("ventes", "fermer");
   expect((await reglerOuvertureVentes({}, f)).succes).toBeTruthy();
   expect(mocks.update).toHaveBeenCalledWith({ souscriptions_payantes_ouvertes: false, revision: 5 });
+});
+
+// Lot D7 — décision du dirigeant du 24/11/2026 (Q7) : les ventes s'ouvrent sans médiateur de la consommation, pas sans
+// vendeur. Le vendeur ci-dessus n'a aucun médiateur : le test précédent prouve déjà que l'ouverture passe sans lui.
+describe("ouverture des souscriptions payantes : le vendeur, pas le médiateur", () => {
+  function ouvrir() {
+    const f = form(); f.set("ventes", "ouvrir"); f.set("confirmation", "oui"); return f;
+  }
+  it("s'ouvre avec un vendeur complet et aucun médiateur saisi", async () => {
+    expect(Object.keys(mocks.identite.editeur).some((k) => k.startsWith("mediateur"))).toBe(false);
+    expect((await reglerOuvertureVentes({}, ouvrir())).succes).toBeTruthy();
+    expect(mocks.update).toHaveBeenCalledWith({ souscriptions_payantes_ouvertes: true, revision: 5 });
+  });
+  it.each(Object.keys(VENDEUR))("refuse d'ouvrir quand %s manque, médiateur saisi ou non", async (cle) => {
+    mocks.identite = { editeur: { ...VENDEUR, [cle]: null, mediateurNom: "Médiateur fictif", mediateurAdresse: "2 rue Exemple", mediateurSite: "https://example.test/m" }, indisponible: false };
+    const r = await reglerOuvertureVentes({}, ouvrir());
+    expect(r.succes).toBeUndefined();
+    expect(r.erreur).toContain("l’identité du vendeur est incomplète");
+    expect(mocks.update).not.toHaveBeenCalled();
+  });
+  it("refuse d'ouvrir quand l'identité n'a pas pu être lue", async () => {
+    mocks.identite = { editeur: { ...VENDEUR }, indisponible: true };
+    expect((await reglerOuvertureVentes({}, ouvrir())).erreur).toContain("lecture impossible");
+    expect(mocks.update).not.toHaveBeenCalled();
+  });
+  it("laisse toujours refermer, même sans vendeur", async () => {
+    mocks.identite = { editeur: {}, indisponible: false };
+    const f = form(); f.set("ventes", "fermer");
+    expect((await reglerOuvertureVentes({}, f)).succes).toBeTruthy();
+    expect(mocks.update).toHaveBeenCalledWith({ souscriptions_payantes_ouvertes: false, revision: 5 });
+  });
 });

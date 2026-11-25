@@ -1,10 +1,13 @@
 import { cache } from "react";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
-import { identiteContactLocataire } from "@/lib/identite-contact-locataire";
+import { lireIdentiteContactLocataire } from "@/lib/interlocuteur-locataire-serveur";
 
-/** Même identité que l’attestation de loyer, avec la session et les droits existants. */
+/**
+ * Même identité que l’attestation de loyer, avec la session et les droits existants. Lot 47 (reprise) : sans bail
+ * actif, en préavis ou terminé, le type de l'espace la complète (`lireIdentiteContactLocataire`) — le locataire d'une
+ * agence dont le bail est encore en brouillon lisait « Mon bailleur ».
+ */
 export const lireIdentiteContact = cache(async (orgId: string) => {
   const { supabase } = await verifierAccesEspaceLocataire(orgId);
-  const { data, error } = await supabase.rpc("attestation_emetteur_locataire", { p_org: orgId });
-  return identiteContactLocataire(error ? null : data);
+  return lireIdentiteContactLocataire(supabase, orgId);
 });

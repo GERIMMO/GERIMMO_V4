@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { titreIncident } from "@/lib/incidents";
+import { mentionEtage } from "@/lib/etage";
 import type { LigneAgenda } from "./acces";
 import { creneauTexte, STATUTS_MISSION, libelle } from "./libelles";
 import { Etiquette, MarqueAgence } from "./ui";
+import { etiquetteNouveauxMessages } from "@/lib/echanges-intervention";
 
 /**
  * Une intervention, telle qu'elle se lit d'un coup d'œil sur un chantier.
@@ -20,11 +22,20 @@ export function CarteMission({
   aFaire,
   origine,
   badgeRdv,
+  nouveauxMessages = 0,
+  datesAGarder = [],
+  plusDeDate = false,
 }: {
+  /** Reprise du lot 60 (R6) : plus aucune date proposée ne peut être retenue — c'est de nouveau à l'artisan d'agir. */
+  plusDeDate?: boolean;
   ligne: LigneAgenda;
   /** Ce que la mission attend de lui, en toutes lettres. Rien si elle n'attend rien. */
   aFaire?: string;
   badgeRdv?: string | null;
+  /** Lot 60 (E006, E116) : les dates proposées au locataire, en toutes lettres — l'agenda ne donnait que leur nombre. */
+  datesAGarder?: string[];
+  /** Audit palier 1 (P1-05) : messages de la discussion de cette mission qu'il n'a pas encore lus. */
+  nouveauxMessages?: number;
   /**
    * L'écran d'où la carte s'ouvre, quand ce n'est pas l'agenda : la fiche de
    * mission y renvoie par son lien retour au lieu de l'agenda (tour du 24/09).
@@ -32,11 +43,14 @@ export function CarteMission({
   origine?: "aujourdhui";
 }) {
   const planifiee = Boolean(ligne.debut_prevu);
+  // Phase 3, reprise du lot 49 : l'étage suit la règle commune (lib/etage.ts) : « 1er » s'affiche « 1er étage », et n'est pas
+  // redit après un nom de lot qui le nomme déjà (« Studio — 1er étage · 1er étage » à l'écran).
+  const etage = mentionEtage(ligne.etage, ligne.lot_nom);
   // Des dates sont chez le locataire : l'artisan n'a RIEN à faire. Lui dire
   // « à fixer » l'enverrait reproposer, ce qui annule les dates en cours
   // (RM-10.4.1). L'étiquette, la ligne de créneau et la consigne le disent
   // donc toutes trois, sans flèche ni couleur d'action (tour du 24/09).
-  const attendLocataire = ligne.statut === "acceptee" && ligne.creneaux_en_attente > 0;
+  const attendLocataire = ligne.statut === "acceptee" && ligne.creneaux_en_attente > 0 && !plusDeDate;
   // Audit 27/09 : le locataire a contre-proposé — c'est l'artisan qui répond.
   const repondre = ligne.statut === "acceptee" && ligne.dates_locataire_en_attente > 0;
   const ton = repondre
@@ -68,6 +82,7 @@ export function CarteMission({
       </div>
 
       {badgeRdv && <div className="mt-3"><Etiquette ton="attente">{badgeRdv}</Etiquette></div>}
+      {nouveauxMessages > 0 && <div className="mt-3" data-nouveaux-messages><Etiquette ton="alerte">{etiquetteNouveauxMessages(nouveauxMessages)}</Etiquette></div>}
 
       {/* 25/09 (A2) : quand les dates sont chez le locataire, l'étiquette le
           dit déjà — la carte ne le répète plus en titre, elle s'ouvre sur les
@@ -104,7 +119,7 @@ export function CarteMission({
           .filter(Boolean)
           .join(" — ") || "Adresse communiquée par votre interlocuteur"}
         {ligne.lot_nom ? ` · ${ligne.lot_nom}` : ""}
-        {ligne.etage ? ` · ${ligne.etage}` : ""}
+        {etage ? ` · ${etage}` : ""}
       </p>
 
       {/* 25/09 (A1) : la carte entière est le lien, mais une carte sans flèche
@@ -129,6 +144,17 @@ export function CarteMission({
             {aFaire}
           </p>
         ))}
+
+      {datesAGarder.length > 0 && (
+        <div data-dates-a-garder className="mt-1.5 text-[0.9375rem] text-[var(--corps)]">
+          <p className="text-[var(--texte-secondaire)]">À garder libre{datesAGarder.length > 1 ? "s" : ""} jusqu&apos;à sa réponse :</p>
+          <ul className="mt-0.5 space-y-0.5 font-medium">
+            {datesAGarder.map((d) => (
+              <li key={d}>{d}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </Link>
   );
 }

@@ -139,6 +139,7 @@ describe.each(INSTANTS)("documents de contrat produits à %s : « Établi le » 
       logementAdresse: "1 rue A",
       referenceBail: "BAIL-1",
       canalReponse: null,
+      espaceLocataire: false,
       exp,
       f: new Fusion(),
     });
@@ -161,12 +162,12 @@ describe.each(INSTANTS)("documents de contrat produits à %s : « Établi le » 
       compteurs: [],
       cles: [],
       comparatif: [],
-      retenues: [],
       bailleurNom: "Moreau Claire",
       locatairesNoms: "Leblanc Julie",
       logementAdresse: "1 rue A",
       referenceBail: "BAIL-1",
       exp,
+      typeOrganisation: "proprietaire_direct",
       f: new Fusion(),
     });
     expect(datesDuDocument(construireEdl(donnees(null)).html)).toEqual([attendu, attendu]);
@@ -185,9 +186,13 @@ describe.each(INSTANTS)("documents de contrat produits à %s : « Établi le » 
   });
 
   it("congé du bailleur : sans date de présentation, le terme est calculé au jour de Paris ; « Établi le » et « Fait le » au jour de Paris", async () => {
-    vi.mocked(chargerContexteBail).mockResolvedValue(contexte());
+    // Phase 3 (C31, C32) : le congé du bailleur se délivre sur un bail actif (le contexte d'essai par défaut est un brouillon).
+    const ctx = contexte();
+    ctx.bail.etat = "actif";
+    vi.mocked(chargerContexteBail).mockResolvedValue(ctx);
     const rpc = vi.fn(async () => ({ data: "2029-08-31", error: null }));
-    const doc = await assemblerCongeBailleur({ rpc } as unknown as SupabaseClient, "org", "b1", { motif: "vente", prix_vente: "245000" });
+    // Textes officiels, lot T1 : en location nue, un congé pour vendre ou pour reprise répond à la question « logement acheté déjà loué ? ».
+    const doc = await assemblerCongeBailleur({ rpc } as unknown as SupabaseClient, "org", "b1", { motif: "vente", prix_vente: "245000", achete_occupe: "non" });
     expect(rpc).toHaveBeenCalledWith("terme_bail", { p_bail: "b1", p_date: jourIso });
     expect("document" in doc && datesDuDocument(doc.document.html)).toEqual([attendu, attendu]);
   });
@@ -200,8 +205,9 @@ describe.each(INSTANTS)("documents de contrat produits à %s : « Établi le » 
       persons: personne({ id: "p1" }),
       baux: null,
     };
+    // Lot 46 (T18) : la recherche du bail d'un colocataire filtre aussi la date de départ (`or`), comme sa fiche.
     const from = (table: string) => {
-      const q = { select: () => q, eq: () => q, in: () => q, limit: () => q,
+      const q = { select: () => q, eq: () => q, in: () => q, limit: () => q, or: () => q,
         maybeSingle: async () => ({ data: donnees[table] }) };
       return q;
     };

@@ -25,6 +25,7 @@ import { Modale } from "@/components/ui/modale";
 import { ChampFichier } from "@/components/champ-fichier";
 import { useBaseEspace } from "@/components/racine-espace-contexte";
 import { REGLE_ECART_EDL } from "@/lib/regle-ecart-edl";
+import { piecePurgee, retenueJustifiee, type JustificatifRetenue } from "@/lib/justificatif-retenue";
 
 export type Restitution = {
   id: string;
@@ -57,6 +58,8 @@ export type Retenue = {
   montant_retenu: number;
   sans_justificatif: boolean;
   justificatif_document: string | null;
+  /** Seconde reprise du lot D3 : la fiche de la pièce, pour reconnaître une pièce purgée (lib/justificatif-retenue.ts). */
+  piece?: JustificatifRetenue["piece"];
 };
 
 // Durées de vie indicatives — aide à la saisie, recopiée de la grille par
@@ -254,7 +257,11 @@ export function FormulaireRestitution({
         <ul className="divide-y divide-border border border-border">
           {retenues.map((r) => (
             <li key={r.id} className="flex flex-wrap items-center gap-2 px-3 py-2 text-sm">
-              <span className="min-w-0 flex-1 truncate">{r.libelle}</span>
+              {/* Lot D3 (24/11/2026) : `w-0` — un libellé long, non coupé, imposait sa largeur à toute la rubrique sur
+                  téléphone (défilement horizontal à 390 px) ; il se tronque maintenant dans la place disponible. */}
+              {/* Reprise du lot D3 : sur téléphone, le libellé prend sa propre ligne (avec `w-0` seul, il se réduisait à une
+                  lettre : on ne savait plus à quelle retenue joindre la pièce). Il reste tronqué, sans défilement de côté. */}
+              <span className="w-full truncate sm:w-0 sm:min-w-0 sm:flex-1" title={r.libelle}>{r.libelle}</span>
               <span className="text-xs text-muted-foreground">
                 {eur(r.cout)}
                 {r.duree_vie_ans
@@ -263,12 +270,27 @@ export function FormulaireRestitution({
               </span>
               <span className="w-24 text-right font-medium">{eur(r.montant_retenu)}</span>
               {!finalise && <BoutonSupprimerRetenue orgId={orgId} bailId={bailId} retenueId={r.id} />}
-              {!r.justificatif_document && (
+              {!retenueJustifiee(r) && (
                 <FormJustifierRetenue orgId={orgId} bailId={bailId} retenue={r} />
               )}
             </li>
           ))}
         </ul>
+      )}
+      {/* Décision du 24/11/2026 (Q49) : chaque retenue a son justificatif ; sans lui, les deux décomptes sont bloqués. */}
+      {retenues.some(r => !retenueJustifiee(r)) && (
+        <p className="border-l-[3px] border-l-warning bg-warning-soft px-3 py-2 text-sm text-warning-soft-foreground" data-retenues-sans-justificatif>
+          Chaque retenue demande un justificatif : un devis suffit, comme une facture, un état des lieux ou des photos.
+          Tant qu&apos;une retenue n&apos;a pas le sien, ni le décompte de restitution ni le décompte des retenues ne
+          peuvent être générés.{" "}
+          {/* Reprise du lot D3 (B1) : un devis pour plusieurs réparations, ou l'état des lieux de sortie déjà rangé. */}
+          <span data-meme-piece>Une même pièce peut justifier plusieurs retenues : choisissez de nouveau le même fichier,
+          il est rattaché sans copie, même s&apos;il est déjà rangé dans vos documents.</span>{" "}
+          {/* Reprise du lot D3 (M1) : le blocage du PDF n'arrête pas le délai. Aucun article ni délai chiffré ajouté ici :
+              le délai de ce dossier est affiché plus haut (« Délai légal »). */}
+          <span data-delai-court-toujours>Ce blocage n&apos;arrête pas le délai de restitution du dépôt : il continue de
+          courir depuis la remise des clés.</span>
+        </p>
       )}
 
       {!finalise && (
@@ -289,6 +311,15 @@ export function FormulaireRestitution({
             Solde de tout compte :{" "}
             <span className="font-semibold">{eur(restitution.solde ?? 0)}</span>.
           </p>
+          {/* Reprise du lot D3 (M1) : un décompte finalisé avant que le justificatif soit exigé (il s'imprimait avec
+              « Non fourni ») ne se génère plus tant qu'une pièce manque. On le dit là où se trouve le bouton. */}
+          {retenues.some(r => !retenueJustifiee(r)) && (
+            <p className="text-sm text-warning-soft-foreground" data-decompte-finalise-sans-piece>
+              Ce décompte est finalisé, mais une retenue n&apos;a pas de justificatif : il ne peut plus être généré de
+              nouveau tant que la pièce manque. Joignez-la ci-dessus (c&apos;est encore possible après la finalisation).
+              Les décomptes déjà générés restent rangés dans vos documents.
+            </p>
+          )}
           {/* Le décompte PDF (art. 22 loi 89) : à générer puis envoyer au locataire */}
           <BoutonGenererDocument
             orgId={orgId}
@@ -340,7 +371,9 @@ export function FormulaireRestitution({
             impayes={Number(restitution.impayes)}
             arretesLe={restitution.montants_arretes_le}
             nbRetenues={retenues.length}
-            retenuesSansPiece={retenues.filter(r => Number(r.montant_retenu) > 0 && (r.sans_justificatif || !r.justificatif_document))}
+            // Reprise du lot D3 (M1) : toutes les retenues sans pièce, quel que soit leur montant — le blocage des
+            // décomptes vaut pour toutes (avant, celles de montant nul n'étaient pas listées).
+            retenuesSansPiece={retenues.filter(r => !retenueJustifiee(r))}
           />}
         </>
       )}
@@ -613,9 +646,20 @@ function ChampsRetenue({
           Ajouter la retenue
         </BoutonEnvoi>
       </div>
+      {/* Décision du 24/11/2026 (Q49) : le justificatif peut être joint plus tard, mais les décomptes l'attendent. */}
+      <p className="text-sm text-muted-foreground" data-justificatif-attendu>
+        Joignez le justificatif de la retenue : un devis suffit, comme une facture, un état des lieux ou des photos.
+        Sans lui, les décomptes ne peuvent pas être générés.
+      </p>
       <p className="text-sm text-muted-foreground">
         Retenue = coût × (durée de vie − âge) / durée de vie. Laisser durée de vie
         vide pour retenir le coût intégral (dégradation, non-vétusté).
+      </p>
+      {/* Audit palier 1 du 22/11/2026, P1-12 (relevé B2) : les durées proposées sont une aide à la saisie, pas une
+          grille de vétusté convenue avec le locataire — Gerimmo n'en annexe aucune au bail. */}
+      <p className="text-sm text-muted-foreground" data-bareme-indicatif>
+        Les durées de vie proposées dans la liste sont indicatives : c&apos;est vous qui les retenez. Elles ne viennent
+        d&apos;aucune grille de vétusté convenue avec le locataire.
       </p>
     </div>
   );
@@ -688,7 +732,10 @@ function FormJustifierRetenue({
   );
   return (
     <form data-saisie-confirmee action={action} className="flex w-full flex-wrap items-center gap-2 pl-1">
-      <span className="text-sm text-destructive">Sans justificatif</span>
+      {/* Seconde reprise du lot D3 : la pièce existait, une règle de conservation l'a supprimée ; elle se remplace ici. */}
+      <span className="text-sm text-destructive" data-piece-purgee={piecePurgee(retenue) || undefined}>
+        {piecePurgee(retenue) ? "Justificatif supprimé (règle de conservation) : joignez-en un autre" : "Sans justificatif"}
+      </span>
       <ChampFichier depotDirect id={`just-retenue-${retenue.id}`} name="justificatif" accept=".pdf,image/*" required aria-label={`Justificatif pour ${retenue.libelle}`} />
       <BoutonEnvoi size="sm" variant="outline">
         Joindre le devis / la facture
@@ -746,8 +793,8 @@ function FormDecompteEnvoye({
   );
 }
 
-// Finaliser FIGE le décompte : plus aucune retenue ne s'ajoute ni ne se retire,
-// et toute correction ultérieure passe par un décompte rectificatif (RM-2.7.3).
+// Finaliser FIGE le décompte : plus aucune retenue ne s'ajoute ni ne se retire.
+// Le cahier prévoit un décompte rectificatif (RM-2.7.3) ; il n'existe pas dans l'application, et la modale le dit.
 // Un geste irréversible se confirme — même patron que la signature d'un EDL de
 // sortie ou la suppression d'une détention : le bouton ouvre une modale qui
 // annonce ce qui va être figé, puis déclenche l'envoi réel.
@@ -832,12 +879,17 @@ function BoutonFinaliser({
               <strong>Retenues sans justificatif au dossier</strong>
               <ul>{retenuesSansPiece.map(r => <li key={r.id}>{r.libelle} · {eur(r.montant_retenu)}</li>)}</ul>
               <p>Choisissez « Annuler » pour joindre une pièce ou corriger les retenues avant de figer le solde.</p>
+              {/* Décision du 24/11/2026 (Q49) */}
+              <p>Sans justificatif pour chaque retenue (un devis suffit), le décompte ne pourra pas être généré ; vous pourrez encore joindre la pièce après la finalisation.</p>
             </div>
           )}
-          <p className="text-sm">
+          {/* Audit palier 1 du 22/11/2026, P1-09 : l'écran promettait « un décompte rectificatif envoyé au
+              locataire ». Aucun geste de Gerimmo n'en produit (une seule restitution par bail). On dit ce qui est. */}
+          <p className="text-sm" data-decompte-fige>
             Une fois finalisé, le décompte est figé : aucune retenue ne peut plus
-            être ajoutée ni retirée, et toute correction passera par un décompte
-            rectificatif envoyé au locataire.
+            être ajoutée ni retirée. Gerimmo ne produit pas de décompte rectificatif :
+            relisez les montants avant de finaliser. Une correction ultérieure se
+            ferait par un écrit au locataire, hors de Gerimmo.
           </p>
         </Modale>
       )}

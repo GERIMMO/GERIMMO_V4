@@ -1,3 +1,4 @@
+import { estTexteDecret } from "@/lib/pieces-decret-2015";
 import { palierRappelReleve } from "./rappels-releves";
 import { ArretSupervision } from "./controle-effets";
 // Les e-mails qui préviennent quelqu'un qu'un geste l'attend (25/09).
@@ -54,7 +55,9 @@ import { moyenEnToutesLettres } from "./reglement-facture";
 import { echapperMarque, emailValide, nomMarque } from "./marque-organisation";
 import { chargerMarque } from "./marque-organisation-serveur";
 import { creneauEnToutesLettres, heureDuRendezVous, jourDuRendezVous } from "./rappel-email";
-import { libelleMotifRdv } from "./rendez-vous-locataire";
+import { libelleMotifRdv, phraseRappel } from "./rendez-vous-locataire";
+import { interlocuteurLocataire, type InterlocuteurLocataire } from "./interlocuteur-locataire";
+import { lireEnvoisProposes } from "./envois-suspendus";
 import { adresseDuSite } from "./site";
 import { clientDeService } from "./supabase/service";
 import { baseDeLOrganisation } from "@/lib/racine-espace-serveur";
@@ -194,6 +197,8 @@ export function messageRendezVousFixe(p: {
   adresse: string | null;
   artisan: string;
   lien: string | null;
+  /** Lot 47 : qui le locataire prévient s'il ne peut pas être là (« gestionnaire » seulement en agence). */
+  interlocuteur: InterlocuteurLocataire;
 }): Message {
   const quand = `${jourDuRendezVous(p.debut)} ${creneauEnToutesLettres(p.debut, p.fin)}`;
   const cat = categorieLisible(p.categorie);
@@ -203,7 +208,7 @@ export function messageRendezVousFixe(p: {
   ];
   const pourLocataire = [
     `Le rendez-vous pour « ${cat} » est fixé au ${quand}. L'intervenant sera ${p.artisan}.`,
-    "Merci de permettre l'accès au logement sur ce créneau. Si vous ne pouvez pas être présent, prévenez votre gestionnaire au plus tôt.",
+    `Merci de permettre l'accès au logement sur ce créneau. Si vous ne pouvez pas être présent, prévenez votre ${p.interlocuteur} au plus tôt.`,
   ];
   return {
     sujet: `Rendez-vous fixé — ${quand}`,
@@ -432,6 +437,10 @@ export function messageReponseReportRdv(p: {
   rdvDebut: string;
   rdvFin: string | null;
   lien: string | null;
+  /** P1-08 : le rappel de la veille n'est promis que si le superviseur a ouvert cet envoi (fermé par défaut). */
+  rappelPromis?: boolean;
+  /** Lot 47 : qui appelle le locataire après un refus (« gestionnaire » seulement en agence). */
+  interlocuteur: InterlocuteurLocataire;
 }): Message {
   const cat = categorieLisible(p.categorie);
   if (p.reponse.type === "acceptee") {
@@ -444,7 +453,7 @@ export function messageReponseReportRdv(p: {
         emetteur: p.emetteur,
         lignes: [
           `L'artisan a retenu l'une de vos disponibilités : le rendez-vous pour « ${cat} » est maintenant le ${quand}.`,
-          "L'ancien rendez-vous est annulé. Nous vous rappellerons le nouveau la veille.",
+          `L'ancien rendez-vous est annulé. ${phraseRappel(p.rappelPromis === true, "report")}`,
         ],
         action: { libelle: "Voir le rendez-vous", lien: p.lien },
       }),
@@ -459,7 +468,7 @@ export function messageReponseReportRdv(p: {
       emetteur: p.emetteur,
       lignes: [
         `Aucune de vos disponibilités ne convient à l'artisan pour « ${cat} »${p.reponse.motif ? ` : « ${extrait(p.reponse.motif, 300)} »` : ""}.`,
-        `Votre rendez-vous du ${ancien} est maintenu en attendant. Votre gestionnaire va vous appeler pour trouver une solution.`,
+        `Votre rendez-vous du ${ancien} est maintenu en attendant. Votre ${p.interlocuteur} va vous appeler pour trouver une solution.`,
       ],
       action: { libelle: "Voir ma demande", lien: p.lien },
     }),
@@ -526,6 +535,8 @@ export function messageReponseGestionnaire(p: {
   emetteur: string;
   prenom?: string | null;
   lien: string | null;
+  /** Lot 47 : qui a répondu — le gestionnaire dans un espace d'agence, le bailleur ailleurs. */
+  interlocuteur: InterlocuteurLocataire;
 }): Message {
   return {
     sujet: `${p.emetteur} vous a répondu`,
@@ -535,7 +546,7 @@ export function messageReponseGestionnaire(p: {
       emetteur: p.emetteur,
       // Le texte de la réponse reste dans l'espace : un e-mail se transfère,
       // se lit sur un écran partagé, s'archive chez un tiers.
-      lignes: ["Votre gestionnaire a répondu à votre message. Lisez sa réponse dans votre espace, et poursuivez l'échange au même endroit si besoin."],
+      lignes: [`Votre ${p.interlocuteur} a répondu à votre message. Lisez sa réponse dans votre espace, et poursuivez l'échange au même endroit si besoin.`],
       action: { libelle: "Lire la réponse", lien: p.lien },
     }),
   };
@@ -552,7 +563,9 @@ export function messagePieceDemandee(p: {
   const lignes = p.relance
     ? [`${p.emetteur} attend toujours la pièce suivante : ${p.libelle}.`]
     : [`${p.emetteur} vous demande une pièce : ${p.libelle}.`];
-  if (p.note) lignes.push(`Précision : ${extrait(p.note, 300)}`);
+  // Reprise T3R-4 : le texte du décret n° 2015-1437 joint à une pièce de la liste s'imprime en entier (coupé à 300
+  // caractères, il taisait une partie des documents admis, ex. pour le domicile) ; une précision libre reste abrégée.
+  if (p.note) lignes.push(`Précision : ${estTexteDecret(p.note) ? p.note : extrait(p.note, 300)}`);
   lignes.push("Une photo lisible ou un PDF suffit. Le dépôt se fait depuis votre espace, en une minute.");
   return {
     sujet: p.relance ? `Rappel — pièce attendue : ${p.libelle}` : `Pièce demandée : ${p.libelle}`,
@@ -562,27 +575,6 @@ export function messagePieceDemandee(p: {
       emetteur: p.emetteur,
       lignes,
       action: { libelle: "Déposer la pièce", lien: p.lien },
-    }),
-  };
-}
-
-export function messageSignatureDemandee(p: {
-  emetteur: string;
-  prenom?: string | null;
-  titreDocument: string;
-  lien: string | null;
-}): Message {
-  return {
-    sujet: `Document à signer : ${p.titreDocument}`,
-    html: gabaritNotification({
-      titre: "Un document attend votre signature",
-      prenom: p.prenom,
-      emetteur: p.emetteur,
-      lignes: [
-        `${p.emetteur} vous soumet « ${p.titreDocument} » pour signature.`,
-        "Téléchargez-le depuis votre espace, signez-le, puis déposez le document signé au même endroit.",
-      ],
-      action: { libelle: "Voir le document", lien: p.lien },
     }),
   };
 }
@@ -725,6 +717,8 @@ export function messageRappelGeste(p: {
   categorie?: string | null;
   libelle?: string | null;
   lien: string | null;
+  /** Lot 47 (reprise) : à qui le locataire signale un index manquant (relevé attendu). Inconnu : « le propriétaire ». */
+  interlocuteur?: InterlocuteurLocataire;
 }): Message {
   const cat = p.categorie ? categorieLisible(p.categorie) : "votre dossier";
   const delai = DELAIS_RAPPEL[p.type];
@@ -766,9 +760,11 @@ export function messageRappelGeste(p: {
         lien: p.lien,
       });
     case "releve_attendu":
+      // Lot 47 (reprise) : « prévenez le propriétaire » partait aussi au locataire d'une agence, où c'est le gestionnaire
+      // qu'il prévient. Chez un propriétaire qui gère lui-même, le texte d'avant reste : il y est vrai.
       return { sujet: `Rappel — relevé de compteur attendu — ${p.emetteur}`, html: gabaritNotification({
         titre: "Votre relevé est attendu", emetteur: p.emetteur,
-        lignes: [`Le relevé « ${p.libelle ?? "Compteur"} » manque pour vérifier les charges.`, "Indiquez l’index et sa date réelle dans votre espace. Si vous n’avez pas l’index demandé, prévenez le propriétaire ; ne l’estimez pas."],
+        lignes: [`Le relevé « ${p.libelle ?? "Compteur"} » manque pour vérifier les charges.`, `Indiquez l’index et sa date réelle dans votre espace. Si vous n’avez pas l’index demandé, prévenez ${p.interlocuteur === "gestionnaire" ? "votre gestionnaire" : "le propriétaire"} ; ne l’estimez pas.`],
         action: {libelle:"Transmettre mon relevé",lien:p.lien},
       }) };
     case "devis_non_chiffre":
@@ -866,9 +862,45 @@ function lien(chemin: string): string | null {
   return site ? `${site}${chemin}` : null;
 }
 
-async function emetteur(db: SupabaseClient, orgId: string): Promise<string> {
+/** Le nom de marque de l'espace, ou `null` quand sa fiche ne se lit pas. */
+async function nomDeLEspace(db: SupabaseClient, orgId: string): Promise<string | null> {
   const marque = await chargerMarque(db, orgId);
-  return marque ? nomMarque(marque) : "Votre gestionnaire";
+  return marque ? nomMarque(marque) : null;
+}
+
+/** Qui signe un courrier à l'artisan : la marque de l'espace, à défaut « Votre gestionnaire » (hors du lot 47). */
+async function emetteur(db: SupabaseClient, orgId: string): Promise<string> {
+  return (await nomDeLEspace(db, orgId)) ?? "Votre gestionnaire";
+}
+
+/**
+ * Lot 47 (second tour) : qui signe un courrier au LOCATAIRE. Sans marque lisible, la signature de repli disait
+ * « Votre gestionnaire » à tous, y compris au locataire d'un propriétaire qui gère lui-même ; elle suit maintenant le
+ * type de l'espace, comme le corps du courrier : « Votre gestionnaire » dans un espace d'agence, « Votre bailleur »
+ * ailleurs, ou quand le type ne se lit pas non plus (règle `interlocuteurLocataire`).
+ */
+function signatureLocataire(nom: string | null, interlocuteur: InterlocuteurLocataire): string {
+  return nom ?? `Votre ${interlocuteur}`;
+}
+
+async function emetteurPourLocataire(db: SupabaseClient, orgId: string): Promise<string> {
+  const nom = await nomDeLEspace(db, orgId);
+  return nom ?? signatureLocataire(null, await interlocuteurDuLocataire(db, orgId));
+}
+
+/**
+ * Lot 47 : l'interlocuteur que le courrier nomme au locataire, selon le type de l'espace (« votre gestionnaire »
+ * seulement dans un espace d'agence, « votre bailleur » ailleurs). Lu avec le client fourni (gérant ou service), comme
+ * le nom de l'émetteur ; une lecture en échec donne « bailleur » (règle `interlocuteurLocataire`) — un courrier ne
+ * s'arrête pas pour cela, même quand la lecture lève.
+ */
+async function interlocuteurDuLocataire(db: SupabaseClient, orgId: string): Promise<InterlocuteurLocataire> {
+  try {
+    const { data, error } = await db.from("organizations").select("type").eq("id", orgId).maybeSingle();
+    return interlocuteurLocataire(error ? null : (data as { type?: string | null } | null)?.type);
+  } catch {
+    return interlocuteurLocataire(null);
+  }
 }
 
 /**
@@ -1172,18 +1204,18 @@ export async function notifierRendezVousFixe(db: SupabaseClient, orgId: string, 
   try {
     const iv = await lireIntervention(db, orgId, interventionId);
     if (!iv?.debut_prevu) return rien;
-    const [inc, artisan, nom] = await Promise.all([lireIncident(db, orgId, iv.incident_id), lireArtisan(db, iv.artisan_id), emetteur(db, orgId)]);
+    const [inc, artisan, nom] = await Promise.all([lireIncident(db, orgId, iv.incident_id), lireArtisan(db, iv.artisan_id), nomDeLEspace(db, orgId)]);
     if (!inc || !artisan) return rien;
-    const [lieu, locataire] = await Promise.all([lireLieu(db, inc.lot_id), lireLocataire(db, orgId, inc)]);
-    const base = { emetteur: nom, categorie: inc.categorie, debut: iv.debut_prevu, fin: iv.fin_prevue, adresse: lieu.adresse, artisan: artisan.raison_sociale };
+    const [lieu, locataire, interlocuteur] = await Promise.all([lireLieu(db, inc.lot_id), lireLocataire(db, orgId, inc), interlocuteurDuLocataire(db, orgId)]);
+    const base = { categorie: inc.categorie, debut: iv.debut_prevu, fin: iv.fin_prevue, adresse: lieu.adresse, artisan: artisan.raison_sociale, interlocuteur };
     const [a, l] = await Promise.all([
       expedier(db, {
         orgId, to: artisan.email, role: "artisan", evenement: "rendez_vous_fixe", objet: iv.id,
-        message: messageRendezVousFixe({ ...base, destinataire: "artisan", lien: lien(`/artisan/missions/${iv.id}`) }),
+        message: messageRendezVousFixe({ ...base, emetteur: nom ?? "Votre gestionnaire", destinataire: "artisan", lien: lien(`/artisan/missions/${iv.id}`) }),
       }),
       expedier(db, {
         orgId, to: locataire?.email, role: "locataire", evenement: "rendez_vous_fixe", objet: iv.id,
-        message: messageRendezVousFixe({ ...base, destinataire: "locataire", prenom: locataire?.prenom, lien: lien(`/locataire/${orgId}/demandes`) }),
+        message: messageRendezVousFixe({ ...base, emetteur: signatureLocataire(nom, interlocuteur), destinataire: "locataire", prenom: locataire?.prenom, lien: lien(`/locataire/${orgId}/demandes`) }),
       }),
     ]);
     return { artisan: a, locataire: l };
@@ -1222,7 +1254,7 @@ export async function notifierCreneauxAChoisir(db: SupabaseClient, orgId: string
     const [inc, artisan, nom, { count }] = await Promise.all([
       lireIncident(db, orgId, iv.incident_id),
       lireArtisan(db, iv.artisan_id),
-      emetteur(db, orgId),
+      emetteurPourLocataire(db, orgId),
       db.from("intervention_creneaux").select("id", { count: "exact", head: true }).eq("intervention_id", iv.id).eq("statut", "propose"),
     ]);
     if (!inc || !artisan) return { envoyee: false, motif: "introuvable" };
@@ -1240,13 +1272,14 @@ export async function notifierCreneauxAChoisir(db: SupabaseClient, orgId: string
 /** Réponse du gestionnaire (`repondre_message_personne`) → le locataire. */
 export async function notifierReponseGestionnaire(db: SupabaseClient, orgId: string, personId: string): Promise<ResultatNotification> {
   try {
-    const [personne, nom] = await Promise.all([lirePersonne(db, orgId, personId), emetteur(db, orgId)]);
+    const [personne, marque, interlocuteur] = await Promise.all([lirePersonne(db, orgId, personId), nomDeLEspace(db, orgId), interlocuteurDuLocataire(db, orgId)]);
     if (!personne) return { envoyee: false, motif: "introuvable" };
+    const nom = signatureLocataire(marque, interlocuteur);
     const {data: dernier} = await db.from("messages").select("id").eq("organization_id",orgId).eq("person_id",personId).eq("auteur","gerant").is("lu_le",null).order("created_at",{ascending:false}).limit(1).maybeSingle();
     if (!dernier) return {envoyee:false,motif:"introuvable"};
     return expedier(db, {
       orgId, to: personne.email, role: "locataire", evenement: "reponse_gestionnaire", objet: dernier.id,
-      message: messageReponseGestionnaire({ emetteur: nom, prenom: personne.prenom, lien: lien(`/locataire/${orgId}/contact`) }),
+      message: messageReponseGestionnaire({ emetteur: nom, prenom: personne.prenom, lien: lien(`/locataire/${orgId}/contact`), interlocuteur }),
     });
   } catch (e) {
     console.error("[notifications] reponse_gestionnaire :", e instanceof Error ? e.message : e);
@@ -1263,7 +1296,7 @@ export async function notifierPieceDemandee(
   relance: boolean
 ): Promise<ResultatNotification> {
   try {
-    const [personne, nom] = await Promise.all([lirePersonne(db, orgId, personId), emetteur(db, orgId)]);
+    const [personne, nom] = await Promise.all([lirePersonne(db, orgId, personId), emetteurPourLocataire(db, orgId)]);
     if (!personne) return { envoyee: false, motif: "introuvable" };
     return expedier(db, {
       orgId, to: personne.email, role: "locataire", evenement: relance ? "piece_relancee" : "piece_demandee", objet: piece.id,
@@ -1271,25 +1304,6 @@ export async function notifierPieceDemandee(
     });
   } catch (e) {
     console.error("[notifications] piece_demandee :", e instanceof Error ? e.message : e);
-    return NON;
-  }
-}
-
-/** Signature demandée (`envoyer_pour_signature`, parcours manuel) → le signataire. */
-export async function notifierSignatureDemandee(db: SupabaseClient, orgId: string, personId: string, documentId: string, demandeId: string): Promise<ResultatNotification> {
-  try {
-    const [personne, nom, { data: doc }] = await Promise.all([
-      lirePersonne(db, orgId, personId),
-      emetteur(db, orgId),
-      db.from("documents").select("titre").eq("id", documentId).eq("organization_id", orgId).maybeSingle(),
-    ]);
-    if (!personne) return { envoyee: false, motif: "introuvable" };
-    return expedier(db, {
-      orgId, to: personne.email, role: "locataire", evenement: "signature_demandee", objet: demandeId,
-      message: messageSignatureDemandee({ emetteur: nom, prenom: personne.prenom, titreDocument: doc?.titre ?? "Document", lien: lien(`/locataire/${orgId}/documents`) }),
-    });
-  } catch (e) {
-    console.error("[notifications] signature_demandee :", e instanceof Error ? e.message : e);
     return NON;
   }
 }
@@ -1590,8 +1604,9 @@ export async function notifierReponseReportRdv(db: SupabaseClient, orgId: string
     if (!d || d.type !== "report" || (d.statut !== "acceptee" && d.statut !== "refusee")) return { envoyee: false, motif: "introuvable" };
     const iv = await lireIntervention(db, orgId, d.intervention_id);
     if (!iv) return { envoyee: false, motif: "introuvable" };
-    const [inc, nom] = await Promise.all([lireIncident(db, orgId, iv.incident_id), emetteur(db, orgId)]);
+    const [inc, marque, interlocuteur] = await Promise.all([lireIncident(db, orgId, iv.incident_id), nomDeLEspace(db, orgId), interlocuteurDuLocataire(db, orgId)]);
     if (!inc) return { envoyee: false, motif: "introuvable" };
+    const nom = signatureLocataire(marque, interlocuteur);
     const locataire = await lireLocataire(db, orgId, inc);
     let reponse: { type: "acceptee"; debut: string; fin: string | null } | { type: "refusee"; motif: string | null };
     if (d.statut === "acceptee") {
@@ -1607,6 +1622,8 @@ export async function notifierReponseReportRdv(db: SupabaseClient, orgId: string
       message: messageReponseReportRdv({
         emetteur: nom, prenom: locataire?.prenom, categorie: inc.categorie, reponse, rdvDebut: d.rdv_debut, rdvFin: d.rdv_fin,
         lien: lien(`/locataire/${orgId}/demandes`),
+        rappelPromis: d.statut === "acceptee" ? (await lireEnvoisProposes(db)).rappel_rendez_vous : false,
+        interlocuteur,
       }),
     });
   } catch (e) {
@@ -1788,17 +1805,30 @@ export async function envoyerRappelsGestes(service: SupabaseClient, maintenant: 
 
   // 3. Envoi, organisation par organisation (écriture ouverte vérifiée une fois).
   const ecritureOuverte = new Map<string, boolean>();
-  const noms = new Map<string, string>();
+  const noms = new Map<string, string | null>();
+  // L'interlocuteur du locataire, lu une fois par espace et seulement quand un texte en dépend.
+  const interlocuteurs = new Map<string, InterlocuteurLocataire>();
+  const interlocuteurDe = async (orgId: string): Promise<InterlocuteurLocataire> => {
+    if (!interlocuteurs.has(orgId)) interlocuteurs.set(orgId, await interlocuteurDuLocataire(service, orgId));
+    return interlocuteurs.get(orgId)!;
+  };
   for (const [n, c] of dus.entries()) {
     if (horloge() >= echeanceMs) { bilan.restants = dus.length - n; break; }
     if (!ecritureOuverte.has(c.orgId)) {
       const { data } = await service.rpc("org_ecriture_ouverte", { p_org: c.orgId });
       ecritureOuverte.set(c.orgId, data === true);
-      noms.set(c.orgId, await emetteur(service, c.orgId));
+      noms.set(c.orgId, await nomDeLEspace(service, c.orgId));
     }
     if (!ecritureOuverte.get(c.orgId)) continue;
 
-    const resultat = await envoyerUnRappel(service, c, noms.get(c.orgId) ?? "Votre gestionnaire", avantEffet, { echeanceMs, horloge });
+    // Lot 47 : sans marque lisible, le rappel au locataire signe selon le type de l'espace ; celui de l'artisan garde
+    // son repli.
+    const nom = noms.get(c.orgId) ?? (ROLE_RAPPEL[c.type] === "locataire"
+      ? signatureLocataire(null, await interlocuteurDe(c.orgId))
+      : "Votre gestionnaire");
+    // Lot 47 (reprise) : le rappel de relevé nomme à qui signaler un index manquant, selon le type de l'espace.
+    const interlocuteur = c.type === "releve_attendu" ? await interlocuteurDe(c.orgId) : undefined;
+    const resultat = await envoyerUnRappel(service, c, nom, avantEffet, { echeanceMs, horloge }, interlocuteur);
     if (resultat.motif === "delai_depasse") { bilan.restants = dus.length - n; break; }
     if (!resultat.envoyee) {
       if (resultat.motif === "sans_adresse") bilan.sans_adresse += 1;
@@ -1818,7 +1848,7 @@ export async function envoyerRappelsGestes(service: SupabaseClient, maintenant: 
   return bilan;
 }
 
-async function envoyerUnRappel(service: SupabaseClient, c: Candidat, nom: string, avantEffet?: () => Promise<void>, budget: BudgetRappels = {}): Promise<ResultatNotification> {
+async function envoyerUnRappel(service: SupabaseClient, c: Candidat, nom: string, avantEffet?: () => Promise<void>, budget: BudgetRappels = {}, interlocuteur?: InterlocuteurLocataire): Promise<ResultatNotification> {
   const role = ROLE_RAPPEL[c.type];
   try {
     let to: string | null | undefined;
@@ -1861,7 +1891,7 @@ async function envoyerUnRappel(service: SupabaseClient, c: Candidat, nom: string
       ...budget,
       avantEffet, orgId: c.orgId, to, role, evenement: `rappel_${c.type}`, objet: c.objetId,
       cleIdempotence: cleRappelGeste(c.cle),
-      message: messageRappelGeste({ type: c.type, emetteur: nom, prenom, categorie, libelle: c.libelle, lien: lien(c.lienChemin) }),
+      message: messageRappelGeste({ type: c.type, emetteur: nom, prenom, categorie, libelle: c.libelle, lien: lien(c.lienChemin), interlocuteur }),
     });
   } catch (e) {
     if (e instanceof ArretSupervision) throw e;

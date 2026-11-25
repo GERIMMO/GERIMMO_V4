@@ -1,5 +1,6 @@
 "use client";
 
+import { phraseNoteRetiree } from "@/lib/evaluation-retiree";
 import { useEffect, useId, useRef, useState } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { useActionFormulaire } from "@/lib/use-action-formulaire";
@@ -14,7 +15,9 @@ import { buttonVariants } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { CRENEAUX_MINIMUM, DEMI_JOURNEES } from "./creneaux";
 import type { RendezVousLocataire } from "@/lib/rendez-vous-locataire";
+import { phraseRappel } from "@/lib/rendez-vous-locataire";
 import { GestesRendezVous } from "./gestes-rendez-vous";
+import type { InterlocuteurLocataire } from "@/lib/interlocuteur-locataire";
 
 // ════════════════════════════════════════════════════════════════════════════
 // LE SUIVI DE L'INTERVENTION, DANS LA CARTE DE LA DEMANDE
@@ -56,6 +59,8 @@ export type SuiviIntervention = {
   nouvelle_intervention_necessaire: boolean;
   photos_apres: string[];
   deja_notee: boolean;
+  /** Décision du 24/11/2026 (Q20, reprise M5) : sa note a été retirée par Gerimmo ; il en lit le motif. Posé par la page. */
+  retrait_de_ma_note?: { note_globale: number; retrait_motif: string | null } | null;
 };
 
 export type CreneauPropose = {
@@ -118,8 +123,11 @@ export function etapeCourte(etape: string): string | null {
   return rail === undefined ? null : RAILS[rail];
 }
 
-/** L'étape réelle, dans les mots du locataire — jamais le vocabulaire interne. */
-function enMots(s: SuiviIntervention, peutAgir: boolean): { titre: string; detail: string } {
+/**
+ * L'étape réelle, dans les mots du locataire — jamais le vocabulaire interne. Lot 47 : `qui` nomme son interlocuteur,
+ * « votre gestionnaire » dans un espace d'agence, « votre bailleur » chez un propriétaire.
+ */
+function enMots(s: SuiviIntervention, peutAgir: boolean, rappelPromis: boolean, qui: InterlocuteurLocataire): { titre: string; detail: string } {
   const artisan = s.artisan ?? "L'artisan";
   // RM-10.4.1 : passé six créneaux refusés, « le problème n'est plus
   // logistique mais relationnel » — le gérant règle par téléphone et l'artisan
@@ -127,7 +135,7 @@ function enMots(s: SuiviIntervention, peutAgir: boolean): { titre: string; detai
   // serait faux : c'est justement ce qui n'arrivera plus.
   if (s.arbitrage && (s.etape === "creneaux_attendus" || s.etape === "ma_proposition")) {
     return {
-      titre: "Votre gestionnaire va vous appeler",
+      titre: `Votre ${qui} va vous appeler`,
       detail:
         "Plusieurs créneaux n'ont pas convenu de part et d'autre : le rendez-vous se fixe désormais avec lui, par téléphone.",
     };
@@ -138,26 +146,26 @@ function enMots(s: SuiviIntervention, peutAgir: boolean): { titre: string; detai
         titre: "Nous cherchons un artisan",
         detail:
           s.nb_artisans_consultes > 0
-            ? `${s.nb_artisans_consultes} artisan${s.nb_artisans_consultes > 1 ? "s" : ""} consulté${s.nb_artisans_consultes > 1 ? "s" : ""} — votre gestionnaire attend ${s.nb_artisans_consultes > 1 ? "leurs devis" : "son devis"}.`
-            : "Votre gestionnaire consulte des artisans pour cette réparation.",
+            ? `${s.nb_artisans_consultes} artisan${s.nb_artisans_consultes > 1 ? "s" : ""} consulté${s.nb_artisans_consultes > 1 ? "s" : ""} — votre ${qui} attend ${s.nb_artisans_consultes > 1 ? "leurs devis" : "son devis"}.`
+            : `Votre ${qui} consulte des artisans pour cette réparation.`,
       };
     case "devis_recus":
       return {
         titre: `${s.nb_devis_recus} devis reçu${s.nb_devis_recus > 1 ? "s" : ""}`,
         detail:
-          "Votre gestionnaire les compare et choisit l'artisan. Vous n'avez rien à valider.",
+          `Votre ${qui} les compare et choisit l'artisan. Vous n'avez rien à valider.`,
       };
     case "reaffectation":
       return {
         titre: "L'artisan retenu s'est désisté",
         detail:
-          "Votre demande reste ouverte : votre gestionnaire en cherche un autre. Vous n'avez rien à faire.",
+          `Votre demande reste ouverte : votre ${qui} en cherche un autre. Vous n'avez rien à faire.`,
       };
     // L'AGENCE a retiré la mission (motif obligatoire). Le dire comme un
     // désistement d'artisan imputerait à un tiers un retard qu'elle a décidé.
     case "reaffectation_agence":
       return {
-        titre: "Votre gestionnaire a changé d'artisan",
+        titre: `Votre ${qui} a changé d'artisan`,
         detail:
           "La mission confiée a été retirée et une autre entreprise va être cherchée. Votre demande reste ouverte ; vous n'avez rien à faire.",
       };
@@ -183,7 +191,7 @@ function enMots(s: SuiviIntervention, peutAgir: boolean): { titre: string; detai
             }
           : {
               titre: "Aucun créneau proposé n’est encore disponible",
-              detail: "Voyez avec votre gestionnaire pour fixer le rendez-vous.",
+              detail: `Voyez avec votre ${qui} pour fixer le rendez-vous.`,
             };
       }
       return peutAgir
@@ -195,7 +203,7 @@ function enMots(s: SuiviIntervention, peutAgir: boolean): { titre: string; detai
             // Bail terminé : la lecture reste, les gestes non — ne pas lui
             // demander de choisir ce qu'il n'a plus le droit de choisir.
             titre: "Des créneaux ont été proposés",
-            detail: `${artisan} propose ${s.creneaux_a_choisir} créneau${s.creneaux_a_choisir > 1 ? "x" : ""} — voyez avec votre gestionnaire.`,
+            detail: `${artisan} propose ${s.creneaux_a_choisir} créneau${s.creneaux_a_choisir > 1 ? "x" : ""} — voyez avec votre ${qui}.`,
           };
     case "ma_proposition":
       return {
@@ -204,13 +212,14 @@ function enMots(s: SuiviIntervention, peutAgir: boolean): { titre: string; detai
       };
     case "planifiee":
       // La promesse de rappel est revenue le 18/09 : elle avait été retirée le
-      // 11/09 parce que rien ne l'honorait (RM-10.5 n'existait pas). La tâche
-      // `/api/cron/equipes?mission=rappels` l'envoie désormais la veille, et sept jours avant
-      // quand le rendez-vous est posé assez tôt. On peut la promettre parce
-      // qu'on la tient.
+      // 11/09 parce que rien ne l'honorait (RM-10.5 n'existait pas). Depuis la
+      // liste fermée des e-mails (10/11), le rappel ne part de nouveau plus ;
+      // c'est l'un des quatre envois que le superviseur ouvre un par un (P1-08).
+      // On ne le promet donc que s'il est ouvert (`rappelPromis`, lu par la page) ;
+      // fermé, on dit de noter la date — une promesse non tenue fait manquer le rendez-vous.
       return {
         titre: s.rdv_debut && s.rdv_fin ? `Rendez-vous ${plage(s.rdv_debut, s.rdv_fin)}` : "Rendez-vous fixé",
-        detail: `${artisan} intervient chez vous. Prévoyez d'être présent, ou de faire ouvrir — nous vous le rappellerons la veille.`,
+        detail: `${artisan} intervient chez vous. Prévoyez d'être présent, ou de faire ouvrir. ${phraseRappel(rappelPromis)}`,
       };
     case "en_cours":
       return {
@@ -223,7 +232,7 @@ function enMots(s: SuiviIntervention, peutAgir: boolean): { titre: string; detai
           ? `Intervention réalisée le ${jourLong(s.terminee_le)}`
           : "Intervention réalisée",
         detail: s.nouvelle_intervention_necessaire
-          ? "L'artisan signale qu'un second passage sera nécessaire — votre gestionnaire s'en occupe."
+          ? `L'artisan signale qu'un second passage sera nécessaire — votre ${qui} s'en occupe.`
           : "Voici ce que l'artisan a fait.",
       };
     default:
@@ -254,10 +263,12 @@ function ChoixDuCreneau({
   creneaux,
   interventionId,
   arbitrage,
+  interlocuteur,
 }: {
   orgId: string;
   creneaux: CreneauPropose[];
   interventionId: string | null;
+  interlocuteur: InterlocuteurLocataire;
   // RM-10.4.1 : passé six refus, c'est le gérant qui fixe le rendez-vous par
   // téléphone. On cesse alors de réclamer une septième contre-proposition.
   arbitrage: boolean;
@@ -367,8 +378,8 @@ function ChoixDuCreneau({
 
       {arbitrage ? (
         <p className="mt-2 text-sm text-muted-foreground">
-          Plusieurs créneaux n&apos;ont pas convenu&nbsp;: c&apos;est maintenant votre
-          gestionnaire qui fixe le rendez-vous avec vous, par téléphone.
+          Plusieurs créneaux n&apos;ont pas convenu&nbsp;: c&apos;est maintenant votre{" "}
+          {interlocuteur} qui fixe le rendez-vous avec vous, par téléphone.
         </p>
       ) : !contre ? (
         <button
@@ -511,8 +522,10 @@ function TravailFait({
       {etat.succes ? (
         <p className="text-sm text-success-soft-foreground">{etat.succes}</p>
       ) : suivi.deja_notee ? (
-        <p className="text-xs text-muted-foreground">
-          Merci, votre avis sur cette intervention est enregistré.
+        <p className="text-xs text-muted-foreground" data-ma-note={suivi.retrait_de_ma_note ? "retiree" : "enregistree"}>
+          {suivi.retrait_de_ma_note
+            ? phraseNoteRetiree(suivi.retrait_de_ma_note)
+            : "Merci, votre avis sur cette intervention est enregistré."}
         </p>
       ) : peutAgir && suivi.intervention_id ? (
         <form data-saisie-confirmee onSubmit={action}>
@@ -579,6 +592,8 @@ export function SuiviInterventionLocataire({
   creneaux,
   peutAgir,
   rendezVous,
+  rappelPromis = false,
+  interlocuteur,
 }: {
   orgId: string;
   suivi: SuiviIntervention;
@@ -588,9 +603,13 @@ export function SuiviInterventionLocataire({
   peutAgir: boolean;
   /** Décision D22 : le rendez-vous de CETTE intervention et la dernière demande du locataire (report, annulation). */
   rendezVous?: RendezVousLocataire;
+  /** P1-08 : vrai seulement si le superviseur a ouvert le rappel de rendez-vous ; sinon l'écran ne le promet pas. */
+  rappelPromis?: boolean;
+  /** Lot 47 : « gestionnaire » dans un espace d'agence, « bailleur » chez un propriétaire. */
+  interlocuteur: InterlocuteurLocataire;
 }) {
   const rail = RAIL_DE_L_ETAPE[suivi.etape] ?? 0;
-  const { titre, detail } = enMots({ ...suivi, creneaux_a_choisir: creneaux.length }, peutAgir);
+  const { titre, detail } = enMots({ ...suivi, creneaux_a_choisir: creneaux.length }, peutAgir, rappelPromis, interlocuteur);
 
   return (
     <div className="mt-1 border-t border-[var(--filet-leger)] pt-2.5">
@@ -607,6 +626,8 @@ export function SuiviInterventionLocataire({
           rendezVous={rendezVous}
           rdvTexte={suivi.etape === "planifiee" && suivi.rdv_debut && suivi.rdv_fin ? plage(suivi.rdv_debut, suivi.rdv_fin) : null}
           peutAgir={peutAgir}
+          rappelPromis={rappelPromis}
+          interlocuteur={interlocuteur}
         />
       )}
 
@@ -616,6 +637,7 @@ export function SuiviInterventionLocataire({
           creneaux={creneaux}
           interventionId={suivi.intervention_id}
           arbitrage={suivi.arbitrage}
+          interlocuteur={interlocuteur}
         />
       )}
 

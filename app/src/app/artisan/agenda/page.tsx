@@ -1,9 +1,11 @@
 import { badgeDemandeRdv } from "@/lib/rendez-vous-locataire";
 import { ChantiersDansAgenda } from "../clients/resumes";
 import Link from "next/link";
-import { chargerAgenda, chargerDemandesRdv, verifierAccesArtisan, type LigneAgenda } from "../acces";
+import { chargerAgenda, chargerCreneauxMission, chargerDemandesRdv, chargerEchangesNonLus, verifierAccesArtisan, type CreneauMission, type LigneAgenda } from "../acces";
+import { consigneDatesProposees, datesAGarder, joursAGarder } from "./dates-a-garder";
+import { nonLusPar } from "@/lib/echanges-intervention";
 import { CarteMission } from "../carte-mission";
-import { jourCivil, jourLong } from "../libelles";
+import { creneauTexte, jourCivil, jourLong } from "../libelles";
 import { Carte, EnteteSousPage, Erreur, TitreSection, Vide } from "../ui";
 
 export const metadata = { title: "Mon agenda" };
@@ -30,7 +32,9 @@ export const metadata = { title: "Mon agenda" };
  * sur la semaine qui vient — sept cases, une par jour, le chiffre dit combien
  * de rendez-vous y commencent — puis les rendez-vous fixés, jour par jour.
  * Les missions sans date passent en second : elles n'ont pas de « quand ».
- * Aucune lecture nouvelle : tout vient de `mon_agenda_artisan`.
+ * Tout vient de `mon_agenda_artisan`, sauf les dates proposées au locataire
+ * (lot 60, voir `dates-a-garder.ts`) : l'agenda n'en reçoit que le nombre,
+ * elles sont lues comme sur la fiche de mission (`mes_creneaux_artisan`).
  */
 /**
  * Ce qui reste à faire sur une mission sans date — et par qui.
@@ -72,7 +76,9 @@ function semaineAVenir(aujourdhui: string): Date[] {
 
 export default async function PageAgendaArtisan() {
   const { fiche } = await verifierAccesArtisan();
-  const [agenda, demandesRdv] = await Promise.all([chargerAgenda(), chargerDemandesRdv()]);
+  const [agenda, demandesRdv, echanges] = await Promise.all([chargerAgenda(), chargerDemandesRdv(), chargerEchangesNonLus()]);
+  // Audit palier 1 (P1-05) : la mission dont la discussion porte un message à lire le dit sur sa carte.
+  const aLire = nonLusPar(echanges.lignes, "intervention_id");
   const badge = (l: LigneAgenda) => badgeDemandeRdv(demandesRdv.lignes.find(d => d.intervention_id === l.intervention_id), l.statut);
 
   const sansDate = agenda.lignes.filter(
@@ -93,6 +99,15 @@ export default async function PageAgendaArtisan() {
     if (liste) liste.push(ligne);
     else calendrier.set(cle, [ligne]);
   }
+
+  // Lot 60 (E006, E116) : les dates proposées au locataire, à garder libres. Une lecture par mission en attente de sa
+  // réponse (il y en a peu) ; une lecture en échec ne se rend pas comme « aucune date » : la carte le dit.
+  const enAttenteDuLocataire = sansDate.filter((l) => l.statut === "acceptee" && l.creneaux_en_attente > 0);
+  const lectures = await Promise.all(enAttenteDuLocataire.map((l) => chargerCreneauxMission(l.intervention_id)));
+  const proposees = new Map<string, CreneauMission[] | null>(
+    enAttenteDuLocataire.map((l, i) => [l.intervention_id, lectures[i].erreur ? null : datesAGarder(lectures[i].lignes)])
+  );
+  const aGarder = joursAGarder([...proposees.values()].filter((c) => c !== null));
 
   const joursAVenir = [...jours];
   const joursPasses = [...historique];
@@ -120,6 +135,7 @@ export default async function PageAgendaArtisan() {
             {semaine.map((d) => {
               const cle = jourCivil(d);
               const nombre = jours.get(cle)?.length ?? 0;
+              const gardees = aGarder.get(cle) ?? 0;
               const estAujourdhui = cle === aujourdhui;
               const contenu = (
                 <>
@@ -129,18 +145,29 @@ export default async function PageAgendaArtisan() {
                   <span className="text-[1.0625rem] font-medium tabular-nums text-[var(--encre)]">
                     {d.getUTCDate()}
                   </span>
-                  <span
-                    className={`text-[0.8125rem] tabular-nums ${
-                      nombre > 0 ? "font-semibold text-[var(--encre)]" : "text-[var(--texte-secondaire)]"
-                    }`}
-                    aria-label={
-                      nombre > 0
-                        ? `${nombre} rendez-vous`
-                        : "aucun rendez-vous"
-                    }
-                  >
-                    {nombre > 0 ? `${nombre} rdv` : "—"}
-                  </span>
+                  {(nombre > 0 || gardees === 0) && (
+                    <span
+                      className={`text-[0.8125rem] tabular-nums ${
+                        nombre > 0 ? "font-semibold text-[var(--encre)]" : "text-[var(--texte-secondaire)]"
+                      }`}
+                      aria-label={
+                        nombre > 0
+                          ? `${nombre} rendez-vous`
+                          : "aucun rendez-vous fixé"
+                      }
+                    >
+                      {nombre > 0 ? `${nombre} rdv` : "—"}
+                    </span>
+                  )}
+                  {/* Un point, pas un chiffre : ce n'est pas un rendez-vous fixé. La légende sous la bande dit ce qu'il signifie. */}
+                  {gardees > 0 && (
+                    <span data-jour-a-garder={cle} className="flex h-5 items-center">
+                      <span aria-hidden className="size-2.5 rounded-full bg-[var(--warning)]" />
+                      <span className="sr-only">
+                        {gardees > 1 ? `${gardees} dates proposées à un locataire, à garder libres` : "une date proposée à un locataire, à garder libre"}
+                      </span>
+                    </span>
+                  )}
                 </>
               );
               const cadre = `flex min-h-[4.5rem] flex-col items-center justify-center gap-0.5 rounded-[var(--rayon-champ)] border-2 px-1 py-2 ${
@@ -164,6 +191,12 @@ export default async function PageAgendaArtisan() {
               );
             })}
           </ol>
+          {semaine.some((d) => aGarder.has(jourCivil(d))) && (
+            <p data-legende-a-garder className="mt-3 flex items-center gap-2 text-[0.9375rem] text-[var(--texte-secondaire)]">
+              <span aria-hidden className="size-2.5 shrink-0 rounded-full bg-[var(--warning)]" />
+              Date proposée à un locataire : à garder libre jusqu&apos;à sa réponse.
+            </p>
+          )}
         </Carte>
       )}
 
@@ -176,7 +209,7 @@ export default async function PageAgendaArtisan() {
             </TitreSection>
             <div className="artisan-liste">
               {lignes.map((l) => (
-                <CarteMission key={l.intervention_id} ligne={l} badgeRdv={badge(l)} />
+                <CarteMission key={l.intervention_id} ligne={l} badgeRdv={badge(l)} nouveauxMessages={aLire.get(l.intervention_id)} />
               ))}
             </div>
           </section>
@@ -208,7 +241,11 @@ export default async function PageAgendaArtisan() {
                 key={l.intervention_id}
                 ligne={l}
                 badgeRdv={badge(l)}
-                aFaire={consigne(l)}
+                nouveauxMessages={aLire.get(l.intervention_id)}
+                // Reprise du lot 60 (R6) : le nombre écrit est celui des dates listées dessous, pas le compteur brut.
+                aFaire={proposees.has(l.intervention_id) && l.dates_locataire_en_attente === 0 ? consigneDatesProposees(l.creneaux_en_attente, proposees.get(l.intervention_id) ?? null) : consigne(l)}
+                plusDeDate={proposees.get(l.intervention_id)?.length === 0}
+                datesAGarder={(proposees.get(l.intervention_id) ?? []).map((c) => creneauTexte(c.debut, c.fin))}
               />
             ))}
           </div>
@@ -229,7 +266,7 @@ export default async function PageAgendaArtisan() {
                 </p>
                 <div className="artisan-liste">
                   {lignes.map((l) => (
-                    <CarteMission key={l.intervention_id} ligne={l} badgeRdv={badge(l)} />
+                    <CarteMission key={l.intervention_id} ligne={l} badgeRdv={badge(l)} nouveauxMessages={aLire.get(l.intervention_id)} />
                   ))}
                 </div>
               </div>

@@ -114,10 +114,13 @@ describe("pages légales (mineurs)", () => {
 });
 
 describe("portail artisan (mineurs et détails)", () => {
-  it("« Les règles » et la page de panne allument l'onglet Mon entreprise", () => {
+  // Phase 3, lot 60 (E001) : ce test exigeait la page de panne dans le menu, sous le nom « Aide en cas de problème ».
+  // C'était le défaut : l'artisan qui cherchait de l'aide y lisait une panne qui n'avait pas eu lieu. « Les règles »
+  // reste dans le menu ; l'aide mène à /assistance (tests/lot60-espace-artisan.test.ts le vérifie sur les entrées).
+  it("« Les règles » est dans le menu ; la page de panne n'y est plus", () => {
     const nav = lire("components/nav-artisan.tsx");
     expect(nav).toContain('"/artisan/regles"');
-    expect(nav).toContain('"/artisan/panne"');
+    expect(nav).not.toContain('"/artisan/panne"');
   });
 
   it("« Mes espaces » n'est affiché que s'il mène ailleurs", () => {
@@ -136,7 +139,9 @@ describe("portail artisan (mineurs et détails)", () => {
 
   it("/compte parle à l'artisan de sa situation et lui rend son portail", () => {
     const compte = lire("app/compte/page.tsx");
-    expect(compte).toContain('href="/artisan"');
+    // Phase 3, lot 61 : le lien de retour au portail est dans le bandeau partagé avec /compte/donnees.
+    expect(lire("app/compte/bandeau-compte.tsx")).toContain('href="/artisan"');
+    expect(compte).toContain("<BandeauCompte compteId={user.id} marque={marque} estArtisan={estArtisan} espaceLocataire={espaceLocataire} />");
     expect(compte).toMatch(/estArtisan\s*\?/);
   });
 

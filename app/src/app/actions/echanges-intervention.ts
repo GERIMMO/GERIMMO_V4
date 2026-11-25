@@ -17,3 +17,18 @@ export async function agirEchangeIntervention(intervention:string,_:EtatEchangeI
  revalidatePath("/espace","layout");revalidatePath("/agence","layout");revalidatePath("/locataire","layout");revalidatePath("/artisan","layout");
  return{succes:action==="envoyer"?"Message ajouté à la discussion.":action==="fermer"?"Discussion fermée. L’historique est conservé.":"Discussion rouverte."};
 }
+
+/**
+ * Audit palier 1 (P1-05) : la discussion vient de passer sous les yeux de l'appelant, jusqu'à ce message (le dernier
+ * affiché, désigné par son identifiant — jamais par une heure, qu'un intermédiaire pourrait arrondir). La base
+ * n'avance que SON marqueur, et seulement s'il a le droit de lire cette discussion. Quand le marqueur a avancé, les
+ * pastilles et les étiquettes « nouveau message » se recalculent ; sinon rien n'est rafraîchi.
+ * Aucun retour : c'est un geste silencieux, qui ne doit jamais gêner la lecture.
+ */
+export async function marquerEchangeLu(intervention:string,dernierMessage:string):Promise<void>{
+ if(!estUuid(intervention)||!estUuid(dernierMessage))return;
+ const db=await createClient();
+ const {data,error}=await db.rpc("marquer_echange_intervention_lu",{p_intervention:intervention,p_message:dernierMessage});
+ if(error||data!==true)return;
+ revalidatePath("/espace","layout");revalidatePath("/agence","layout");revalidatePath("/locataire","layout");revalidatePath("/artisan","layout");
+}

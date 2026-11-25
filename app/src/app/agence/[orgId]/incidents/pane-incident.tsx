@@ -23,6 +23,7 @@ import {
   MOTIFS_CLOTURE,
   MOTIFS_CLOTURE_PAR_ETAT,
   TYPES_EVENEMENT_INCIDENT,
+  URGENCES_INCIDENT,
   type EtatIncident,
   categorieIncident,
   titreIncident,
@@ -49,6 +50,7 @@ import {
   FormulairePhotoIncident,
   FormulaireQualification,
   FormulaireReouverture,
+  FormulaireUrgence,
 } from "./[incidentId]/actions-incident";
 import { baseEspace } from "@/lib/racine-espace";
 
@@ -294,6 +296,12 @@ export async function PaneIncident({
             : null,
           mentionEcartChronologie(d, formaterDateHeure),
         ].filter(Boolean).join(" · ") || null;
+      // Audit palier 1 (P1-03) : la facture refusée, avec ce que l'artisan doit corriger.
+      case "facture_refusee":
+        return [
+          d.numero ? `n° ${d.numero}` : null,
+          d.motif ? `« ${d.motif} »` : null,
+        ].filter(Boolean).join(" — ") || null;
       // D23 : le règlement déclaré (jamais exécuté par Gerimmo) et son retrait, dans les mots du gérant.
       case "facture_reglee":
         return [
@@ -324,6 +332,9 @@ export async function PaneIncident({
         ].filter(Boolean).join(" · ") || null;
       case "revision_imputation":
         return `${IMPUTATIONS_INCIDENT[String(d.imputation)] ?? d.imputation} — « ${d.justification} »`;
+      // Audit palier 1 du 22/11/2026, P1-04 : l'ancien et le nouveau niveau, puis le motif.
+      case "urgence_corrigee":
+        return `${URGENCES_INCIDENT[String(d.urgence_precedente)] ?? d.urgence_precedente} → ${URGENCES_INCIDENT[String(d.urgence)] ?? d.urgence}${d.motif ? ` — « ${d.motif} »` : ""}`;
       // Décision D22 : le report ou l'annulation du rendez-vous par le locataire. Le motif est dit en mots (liste
       // fermée), la précision libre entre guillemets ; les dates à l'heure de Paris.
       case "rdv_report_demande":
@@ -350,6 +361,22 @@ export async function PaneIncident({
           d.motif ? `« ${d.motif} »` : null,
           d.tardive ? "annulation à moins de 24 h" : null,
         ].filter(Boolean).join(" · ");
+      // Audit palier 1 (P2-04) : qui était absent, qui le dit, et la précision de celui qui l'a consigné.
+      case "rdv_manque":
+        return [
+          d.rdv_debut ? `rendez-vous du ${formaterDateHeure(String(d.rdv_debut))}` : null,
+          d.absent === "artisan" ? "l’artisan était absent" : d.absent === "locataire" ? "le locataire était absent" : null,
+          d.par === "artisan" ? "indiqué par l’artisan" : d.par === "gestionnaire" ? "consigné par le gestionnaire" : null,
+          d.note ? `« ${d.note} »` : null,
+        ].filter(Boolean).join(" · ") || null;
+      case "facture_relancee":
+        return [
+          d.numero ? `n° ${d.numero}` : null,
+          d.relance != null ? `relance n° ${d.relance}` : null,
+          d.jours_depuis_depot != null ? `déposée depuis ${d.jours_depuis_depot} jours` : null,
+          d.etat === "deposee" ? "pas encore contrôlée"
+            : d.reste_cents != null ? `reste à régler : ${eur(centsEnEuros(Number(d.reste_cents)))}` : null,
+        ].filter(Boolean).join(" · ") || null;
       default:
         return null;
     }
@@ -365,6 +392,8 @@ export async function PaneIncident({
 
   const peutModifierSuivi = etatIncident !== "clos" &&
     (estResponsable || !incident.responsable_account_id || incident.responsable_account_id === monCompte);
+  // Audit palier 1 du 22/11/2026, P1-04 : la correction de l'urgence, pour qui peut agir sur le suivi du dossier.
+  const correctionUrgence = peutModifierSuivi && <FormulaireUrgence orgId={orgId} incidentId={incidentId} urgente={incident.urgence === "urgente"} />;
   const responsableAffiche = incident.responsable_account_id === monCompte ? "vous" : incident.responsable_account_id ? emails.get(incident.responsable_account_id) ?? "un gestionnaire" : "non attribué";
 
   const prochaineAction = aQualifier && decisionRequise
@@ -443,7 +472,7 @@ export async function PaneIncident({
   const presentationSignalement = estProprietaire && <PresentationSignalementIncident
     compact numero={incident.numero} titre={titreAffiche}
     statut={<>{incident.urgence === "urgente" && <span className="puce puce-rouge">Urgent</span>}<span className={`incident-statut ${COULEURS_ETAT_INCIDENT[incident.etat] ?? "puce puce-grise"}`}>{libelleEtatIncidentProprietaire(incident.etat)}</span></>}
-    lieu={<div>{lot ? <Link href={`${base}/parc/${lot.bien_id}/lots/${lot.id}`}>{lot.nom}</Link> : <Link href={`${base}/parc?sel=bien:${incident.bien_id}`}>{bienConcerne?.nom ?? "Bien"} · Parties communes</Link>}{(chambre || incident.piece) && <span> · {[...new Set([chambre, incident.piece].filter(Boolean))].join(" · ")}</span>}{incident.anciennete && <small>Depuis : {incident.anciennete}</small>}</div>}
+    lieu={<div>{lot ? <Link href={`${base}/parc/${lot.bien_id}/lots/${lot.id}`}>{lot.nom}</Link> : <Link href={`${base}/parc?sel=bien:${incident.bien_id}`}>{bienConcerne?.nom ?? "Bien"} · Parties communes</Link>}{(chambre || incident.piece) && <span> · {[...new Set([chambre, incident.piece].filter(Boolean))].join(" · ")}</span>}{incident.anciennete && <small>Depuis : {incident.anciennete}</small>}{/* Audit palier 1, P2-02 : lu sans déplier, avant de proposer un créneau. */}{incident.disponibilites_locataire && <small data-disponibilites-locataire>Disponibilités du locataire : {incident.disponibilites_locataire}</small>}</div>}
     informations={informationsSignalement} description={descriptionSansTitre || null}
     photos={galeriePhotos} nombrePhotos={photos.length} photosIndisponibles={Boolean(erreurLiens)}
     ajoutPhoto={incident.etat !== "clos" ? <FormulairePhotoIncident orgId={orgId} incidentId={incidentId}/> : null}
@@ -615,13 +644,14 @@ export async function PaneIncident({
       </section>
       )}
       <EchecLecture quoi={lecturesManquees}/>
+      {correctionUrgence}
       <NavigationIncident/>
       {estProprietaire && <RubriqueIncident rubrique="devis"><p className="text-sm text-muted-foreground">Les devis et factures reçus pour cet incident apparaissent ici. Le dépôt d’une facture ne vaut pas règlement.</p></RubriqueIncident>}
       {estProprietaire && <RubriqueIncident rubrique="echanges"><p className="text-sm text-muted-foreground">Les échanges avec les participants de l’intervention restent rattachés à ce dossier.</p>{declarant && <Link className="inline-flex min-h-11 items-center text-sm underline" href={`${base}/personnes/${declarant.id}#messages`}>Écrire au locataire</Link>}</RubriqueIncident>}
       <RubriqueIncident rubrique="suivi">{(!estProprietaire || decisionRequise) && decisionCommuns}</RubriqueIncident>
       <div id="intervention"><VoletArtisan orgId={orgId} incidentId={incidentId} etat={incident.etat} categorie={incident.categorie} imputation={incident.imputation} lotId={null} estProprietaire={estProprietaire}/></div>
       <RubriqueIncident rubrique="suivi">{estProprietaire && !decisionRequise && decisionCommuns}</RubriqueIncident>
-      <RubriqueIncident rubrique="devis"><div id="factures"><FacturesIncident orgId={orgId} incidentId={incidentId} imputation={incident.imputation} base={base}/></div></RubriqueIncident>
+      <RubriqueIncident rubrique="devis"><div id="factures" className="space-y-4"><FacturesIncident orgId={orgId} incidentId={incidentId} imputation={incident.imputation} base={base}/></div></RubriqueIncident>
       <Link href={`${base}/parc?sel=bien:${incident.bien_id}#consommations`} className={estProprietaire ? "incident-lien-depenses" : "btn-or"}>Dépenses et charges du bien →</Link>
       <RubriqueIncident rubrique="suivi">{incident.etat==="clos"?<p id="cloture" className="text-sm">Incident clos{incident.clos_le?` le ${formaterDate(incident.clos_le)}`:""}.</p>:motifsCloture.length>0&&<details id="cloture"><summary className="cursor-pointer py-3 font-medium">Clôturer l’incident</summary><FormulaireCloture orgId={orgId} incidentId={incidentId} motifs={motifsCloture}/></details>}</RubriqueIncident>
       {chronologie}
@@ -670,6 +700,7 @@ export async function PaneIncident({
         </ol>}
       </section>
       )}
+      {correctionUrgence}
       <NavigationIncident/>
       {estProprietaire && <RubriqueIncident rubrique="devis"><p className="text-sm text-muted-foreground">Les devis et factures reçus pour cet incident apparaissent ici. Le dépôt d’une facture ne vaut pas règlement.</p></RubriqueIncident>}
       {estProprietaire && <RubriqueIncident rubrique="echanges"><p className="text-sm text-muted-foreground">Les échanges avec les participants de l’intervention restent rattachés à ce dossier.</p>{declarant && <Link className="inline-flex min-h-11 items-center text-sm underline" href={`${base}/personnes/${declarant.id}#messages`}>Écrire au locataire</Link>}</RubriqueIncident>}
@@ -709,6 +740,13 @@ export async function PaneIncident({
                   <span>{incident.anciennete}</span>
                 </div>
               )}
+              {/* Audit palier 1, P2-02 : ce que le locataire a dit de ses disponibilités en signalant. */}
+              {incident.disponibilites_locataire && (
+                <div className="ligne-info" data-disponibilites-locataire>
+                  <span>Disponibilités du locataire</span>
+                  <span>{incident.disponibilites_locataire}</span>
+                </div>
+              )}
             </CardContent>
           </Card>}
 
@@ -737,7 +775,7 @@ export async function PaneIncident({
           </div>
 
           {decisionRepliee && blocDecision}
-          <RubriqueIncident rubrique="devis"><div id="factures"><FacturesIncident orgId={orgId} incidentId={incidentId} imputation={incident.imputation} base={base} /></div></RubriqueIncident>
+          <RubriqueIncident rubrique="devis"><div id="factures" className="space-y-4"><FacturesIncident orgId={orgId} incidentId={incidentId} imputation={incident.imputation} base={base} /></div></RubriqueIncident>
           <RubriqueIncident rubrique="suivi">{(!estProprietaire || motifsCloture.length > 0 || incident.etat === "clos") && <details id="cloture" open={!estProprietaire || incident.etat === "termine"} className="rounded-xl border border-border bg-card p-4">
             <summary className="min-h-11 cursor-pointer content-center font-semibold">{incident.etat === "clos" ? "Incident clos · consulter" : "Clôturer l’incident"}</summary>
           <Card className="mt-3 border-0 shadow-none">

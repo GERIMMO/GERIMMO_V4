@@ -47,6 +47,8 @@ export const MESSAGE_LIMITE_IA =
   "La limite quotidienne des appels à l’IA, réglée dans « Relais en mon absence », est atteinte : cet appel n’a pas eu lieu. Il pourra être refait demain, ou dès que la limite sera relevée.";
 export const MESSAGE_ARRET_IA =
   "Un arrêt d’urgence en cours couvre cet appel à l’IA : il n’a pas eu lieu. Il sera de nouveau possible quand l’arrêt sera levé dans « Relais en mon absence ».";
+/** Interrupteur IA (22/11/2026) : un seul message, neutre, pour tous les écrans. Ni panne, ni limite. */
+export const MESSAGE_IA_DESACTIVEE = "L’assistance par IA est désactivée. Utilisez la saisie manuelle.";
 export const MESSAGE_CONTROLE_IA_INDISPONIBLE =
   "Le contrôle des appels à l’IA est indisponible : par prudence, cet appel n’a pas eu lieu. Réessayez dans un instant.";
 
@@ -55,6 +57,17 @@ export class PlafondIAAtteint extends ErreurIA {
   constructor() {
     super(MESSAGE_LIMITE_IA);
     this.name = "PlafondIAAtteint";
+  }
+}
+
+/**
+ * Interrupteur IA (22/11/2026) : le superviseur a désactivé l'IA. L'appel n'a pas eu lieu et rien n'est compté.
+ * Ce n'est ni une panne ni un échec : les tâches planifiées le traitent comme un état neutre.
+ */
+export class IADesactivee extends ErreurIA {
+  constructor() {
+    super(MESSAGE_IA_DESACTIVEE);
+    this.name = "IADesactivee";
   }
 }
 
@@ -72,6 +85,7 @@ export async function reserverAppelIA(db: SupabaseClient, usage: UsageIA): Promi
   }
   if (resultat.error) throw new ArretSupervision(MESSAGE_CONTROLE_IA_INDISPONIBLE, "indisponible");
   if (resultat.data === "accorde") return;
+  if (resultat.data === "desactive") throw new IADesactivee();
   if (resultat.data === "arret") throw new ArretSupervision(MESSAGE_ARRET_IA);
   if (resultat.data === "plafond") throw new PlafondIAAtteint();
   throw new ArretSupervision(MESSAGE_CONTROLE_IA_INDISPONIBLE, "indisponible");
@@ -79,7 +93,7 @@ export async function reserverAppelIA(db: SupabaseClient, usage: UsageIA): Promi
 
 /** Le message à montrer quand la garde a empêché l'appel ; `null` pour toute autre erreur. */
 export function messageGardeIA(e: unknown): string | null {
-  if (e instanceof PlafondIAAtteint || e instanceof ArretSupervision) return e.message;
+  if (e instanceof PlafondIAAtteint || e instanceof ArretSupervision || e instanceof IADesactivee) return e.message;
   return null;
 }
 
@@ -98,6 +112,7 @@ export async function reserverAppelIAPrive(db: SupabaseClient, orgId: string, us
   catch { throw new ErreurIA("L’assistance est momentanément indisponible. Réessayez dans un instant."); }
   if (resultat.error) throw new ErreurIA("L’assistance est indisponible pour cet espace. Rechargez la page avant de réessayer.");
   if (resultat.data === "accorde") return;
+  if (resultat.data === "desactive") throw new IADesactivee();
   if (resultat.data === "patientez") throw new ErreurIA("Patientez quelques secondes avant une nouvelle demande.");
   if (resultat.data === "limite_compte") throw new ErreurIA("Vous avez atteint la limite de demandes du jour. Vous pourrez reprendre demain.");
   if (resultat.data === "plafond") throw new ErreurIA("L’assistance a atteint sa limite du jour. Réessayez demain.");

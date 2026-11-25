@@ -10,7 +10,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { lireMontantAvecEspaces } from "@/lib/saisie-montant";
 import { texteMentionCaution } from "@/lib/mention-caution";
-import { REFUS_SANS_GARANTIE_CUMULEE } from "@/lib/textes-signature-actes";
+import { REFUS_CAUTION_BAILLEUR_SOCIETE, REFUS_CAUTION_SANS_COLOCATAIRE, REFUS_SANS_GARANTIE_CUMULEE } from "@/lib/textes-signature-actes";
+import { normaliserQualiteBailleur } from "@/lib/qualite-bailleur";
+import { EXCEPTION_EPOUX_PACS, regleColocationSolidarite } from "./mentions-location";
 import {
   Fusion,
   assemblerPage,
@@ -31,6 +33,7 @@ import {
   nomsBailleurs,
   nomsLocataires,
   referenceCourte,
+  referenceDuContenu,
 } from "./communs";
 import type { Assemblage } from "./index";
 
@@ -65,19 +68,36 @@ export async function assemblerCautionnement(
 ): Promise<Assemblage> {
   const ctx = await chargerContexteBail(supabase, orgId, bailId);
   if ("erreur" in ctx) return ctx;
+  // Phase 3 (C46) : l'acte engage la caution « pour la durée du bail et celle de ses renouvellements » : il s'établit à la
+  // signature du bail ou pendant la location, jamais une fois le congé enregistré ni après la fin du bail.
+  if (ctx.bail.etat === "termine") return { erreur: "Ce bail est terminé : un acte de cautionnement ne s’établit plus pour ce contrat." };
+  if (ctx.bail.etat !== "brouillon" && ctx.bail.etat !== "actif") return { erreur: "Un congé est enregistré pour ce bail (préavis en cours) : un nouvel acte de cautionnement n’a plus lieu d’être." };
 
   const garant = ctx.garants.find((g) => g.id === options?.garant);
   if (!garant) return { erreur: "Ce garant n'est pas rattaché au bail." };
   // Constat R30 : le bailleur certifie l'absence d'assurance ou d'autre garantie des obligations locatives (case de
   // la carte du bail et du catalogue). À relire par le juriste (source non ouverte le 23/10/2026) : art. 22-1.
   if (options?.sans_garantie_cumulee !== "oui") return { erreur: REFUS_SANS_GARANTIE_CUMULEE };
+  // Textes officiels, lot T2 (R03-A1) : bailleur société non familiale. Un refus vaut mieux qu'un acte nul. Qualité absente
+  // ou illisible : traitée comme une personne physique (même règle que la durée du bail, qualite-bailleur.ts).
+  const etudiantNonBoursier = options?.etudiant_non_boursier === "oui";
+  const bailleurSociete = ctx.bailleurs.some((b) => ["SCI", "Personne morale"].includes(normaliserQualiteBailleur(b.qualite) ?? ""));
+  if (bailleurSociete && !etudiantNonBoursier) return { erreur: REFUS_CAUTION_BAILLEUR_SOCIETE };
+  // Lot T2 (R17-A3) : bail à plusieurs locataires, garant rattaché à personne (ou à quelqu'un qui n'est plus au bail).
+  if (ctx.locataires.length > 1 && !ctx.locataires.some((l) => l.id === garant.garant_de)) return { erreur: REFUS_CAUTION_SANS_COLOCATAIRE };
 
   const solidaire = options?.forme !== "simple";
   const montantMax = montantMaxDepuisOptions(options?.montant_max);
 
   const f = new Fusion();
   const exp = expediteur(ctx);
-  const reference = referenceCourte("CAUT", garant.id);
+  // Phase 3, lot 51 (W12, même défaut que C18) : la référence se tire du garant ET de l'engagement (bail, forme, plafond) : deux
+  // actes différents du même garant n'ont plus le même numéro ; le même acte garde le sien d'une génération à l'autre.
+  const reference = referenceDuContenu("CAUT", garant.id, {
+    bail: ctx.bail.id,
+    forme: solidaire ? "solidaire" : "simple",
+    montant_max: montantMax === null ? "" : montantMax.toFixed(2),
+  });
   const bailleurPrincipal = ctx.bailleurs[0] ?? null;
   const plusieursBailleurs = ctx.bailleurs.length > 1;
   // Garant nominatif : il ne couvre qu'un des locataires du bail
@@ -90,19 +110,24 @@ export async function assemblerCautionnement(
     ? f.champ(nomPersonne(locataireCouvert), "nom et prénom(s) du locataire couvert")
     : nomsLocataires(f, ctx.locataires);
   // Le même libellé sert dans l'étendue et dans la mention : compté une fois
+  // Phase 3, lot 51 (W13) : dans le texte courant, le « € » passait seul à la ligne (« 1 200,50 » / « € ») ; une espace
+  // insécable le garde avec le nombre, comme pour « % ». La mention transmise au prestataire de signature (mentionCaution)
+  // n'est pas touchée.
+  const plafondImprime = montantMax !== null ? eur(montantMax).replace(/ €$/, "\u00a0€") : "";
   const montantMaxHtml =
     montantMax !== null
-      ? `<b>${eur(montantMax)}</b> (${montantEnLettres(montantMax)})`
+      ? `<b>${plafondImprime}</b> (${montantEnLettres(montantMax)})`
       : f.champ(null, "montant maximal garanti");
   const montantMaxLettresHtml =
     montantMax !== null
-      ? `${montantEnLettres(montantMax)} (${eur(montantMax)})`
+      ? `${montantEnLettres(montantMax)} (${plafondImprime})`
       : f.champ(null, "montant maximal garanti");
   const chargesMode =
     ctx.bail.charges_mode === "forfait"
       ? "forfait de charges"
       : "provisions sur charges avec régularisation annuelle";
 
+  // Reprise du lot 48 (U04, U06) : le bailleur passe par `f.bailleur` (même texte) : ses manques mènent à l'écran du détenteur.
   const corps = `
     ${enTete(f, exp, { libelle: "Acte", reference, etabliLe: new Date().toISOString() })}
     ${titre("Acte de cautionnement", solidaire ? "Engagement de caution solidaire" : "Engagement de caution simple", [
@@ -117,12 +142,20 @@ export async function assemblerCautionnement(
     ci-après dénommé(e) « la caution ».</p>
 
     ${section("II — Le bailleur")}
-    <p>${nomsBailleurs(f, ctx.bailleurs)}, ${f.champ(adressePersonne(bailleurPrincipal), "domicile ou siège social")},
+    <p>${f.bailleur(() => `${nomsBailleurs(f, ctx.bailleurs)}, ${f.champ(adressePersonne(bailleurPrincipal), "domicile ou siège social")}`)},
     ci-après dénommé${plusieursBailleurs ? "s" : ""} « le bailleur ».</p>
     ${
       ctx.organisation.type === "agence"
         ? `<p>Le bailleur est représenté par son mandataire : ${echapper(ctx.organisation.name)},
            ${f.champ(exp.adresse, "adresse du mandataire")}.</p>`
+        : ""
+    }
+
+    ${
+      // Lot T2 (R03-A1) : la déclaration qui a permis l'acte y figure.
+      bailleurSociete
+        ? `<p>Le bailleur, personne morale, déclare que le logement est loué à un étudiant ne bénéficiant pas d'une bourse de
+           l'enseignement supérieur (article 22-1 de la loi du 6 juillet 1989).</p>`
         : ""
     }
 
@@ -138,8 +171,11 @@ export async function assemblerCautionnement(
     charges : ${f.montant(ctx.bail.charges, "charges mensuelles")} (${chargesMode}).<br/>
     ${
       ctx.bail.revision_irl
-        ? `Le loyer est révisé chaque année dans la limite de la variation de l'indice de référence
-           des loyers (IRL) — trimestre de référence : ${f.champ(ctx.bail.irl_trimestre, "trimestre IRL de référence")}.
+        ? /* Lot T2 (R03-A2) : les conditions de la révision « tel[le]s qu'[elles] figurent au contrat de location »
+             (article 22-1) : la date de révision et la valeur de l'indice, comme au bail, plus seulement le trimestre. */
+          `Le loyer est révisé chaque année à la date anniversaire du contrat, dans la limite de la variation de l'indice
+           de référence des loyers (IRL). Trimestre de référence : ${f.champ(ctx.bail.irl_trimestre, "trimestre IRL de référence")}
+           — valeur de l'indice : ${f.champ(ctx.bail.irl_valeur !== null ? Number(ctx.bail.irl_valeur).toLocaleString("fr-FR") : null, "valeur de l'indice")}.
            Le cautionnement s'étend au loyer ainsi révisé.`
         : `Le bail ne prévoit pas de clause de révision annuelle du loyer.`
     }</p>
@@ -159,18 +195,17 @@ export async function assemblerCautionnement(
     }
 
     ${section("VI — Étendue et durée de l'engagement")}
-    <p>La caution garantit le paiement des loyers, des charges, des réparations locatives, des
-    intérêts et, le cas échéant, des pénalités ou intérêts de retard dus par le locataire au titre du
+    <p>La caution garantit le paiement des loyers, des charges, des réparations locatives et des
+    intérêts de retard dus par le locataire au titre du
     bail. L'engagement vaut pour la durée du bail et celle de ses renouvellements, dans la limite
     d'un montant maximal, principal et accessoires compris, de ${montantMaxHtml}.</p>
     <p>L'engagement ne comporte pas de durée déterminée. Conformément à l'avant-dernier alinéa de
     l'article 22-1 de la loi n° 89-462 du 6 juillet 1989 : « ${RESILIATION_CAUTION_DUREE_INDETERMINEE} »</p>
     ${
       locataireCouvert && ctx.locataires.length > 1
-        ? `<p class="mentions">Colocation — cautionnement nominatif : l'engagement s'éteint à
-           l'expiration d'un délai de six mois après la date d'effet du congé du colocataire couvert,
-           ou dès qu'un nouveau colocataire le remplace au bail (article 8-1 de la loi du
-           6 juillet 1989).</p>`
+        ? /* Lot T2 (R17-A4, R17-A1) : la règle dans les mots de l'article 8-1 VI ; à deux locataires, l'exception des époux
+             et partenaires de PACS, que Gerimmo ne sait pas reconnaître (même texte qu'au bail). */
+          `<p class="mentions">Cautionnement nominatif, donné pour ${nomsCouverts}. ${regleColocationSolidarite("la solidarité du colocataire désigné ci-dessus et l'engagement de la caution prennent", "ils s'éteignent")}${ctx.locataires.length === 2 ? ` ${EXCEPTION_EPOUX_PACS}` : ""}</p>`
         : ""
     }
 
@@ -189,7 +224,7 @@ export async function assemblerCautionnement(
     ${/* Constat R28 : la date est celle de la signature, jamais celle de la génération (comme le bail) ; un exemplaire
          par partie, ou un exemplaire électronique remis à chacune. À relire par le juriste (source non ouverte le
          23/10/2026) : remise d'un exemplaire du bail à la caution, art. 22-1 de la loi du 6 juillet 1989. */ ""}
-    <p>Fait à ${f.champ(exp.ville, "commune")}, le <span class="fusion">date effective à compléter lors de la signature</span>,
+    <p class="fait-a">Fait à ${f.champ(exp.ville, "commune")}, le <span class="fusion">date effective à compléter lors de la signature</span>,
     en autant d'exemplaires originaux que de parties ou, en cas de signature électronique, sous forme d'un exemplaire
     électronique remis à chacune d'elles ; un exemplaire du contrat de location est remis à la caution (article 22-1 de
     la loi du 6 juillet 1989).</p>
@@ -215,7 +250,7 @@ export async function assemblerCautionnement(
       locataires: (locataireCouvert ? [locataireCouvert] : ctx.locataires).map(p=>nomPersonne(p)).filter(Boolean).join(", "),
       plafond: `${montantEnLettres(montantMax)} (${eur(montantMax)})`, solidaire,
     }),
-    titreGed: `Cautionnement — ${nomPersonne(garant) ?? garant.nom}`,
+    titreGed: `Cautionnement ${solidaire ? "solidaire" : "simple"} — ${nomPersonne(garant) ?? garant.nom}`,
     nomFichier: `cautionnement-${reference.toLowerCase()}`,
     liens: [
       { entite: "bail", entiteId: ctx.bail.id },

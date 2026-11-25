@@ -1,8 +1,8 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { avecEcheanceReglementaire, classerPiecesBail, type DiagnosticBail, type PieceBail } from "@/lib/documents-bail";
+import { avecEcheanceReglementaire, noticeDeposeeRetenue, resumeNoticeAActualiser, resumeNoticeRetenu, type DiagnosticBail, type PieceBail } from "@/lib/documents-bail";
 import { preparerDiagnosticsBail } from "@/lib/exigences-diagnostics-bail";
-import { TYPES_DIAGNOSTIC } from "@/lib/parc";
+import { estBienHabitation, TYPES_DIAGNOSTIC } from "@/lib/parc";
 import { jourAParis, jourValide } from "@/lib/presentation-document";
 import type { QualificationDiagnostic } from "@/lib/qualification-diagnostics";
 import { baseEspace } from "@/lib/racine-espace";
@@ -117,11 +117,27 @@ export async function lireRecapitulatifPiecesBail(
     if (etat === INDISPONIBLE) lectureIndisponible = true;
     pieces.push({ id, titre, moment, ...etat, href });
   };
-  const documentsBail = liens.lignes.map(l => parId.get(l.document_id)).filter((d): d is Fichier => Boolean(d))
-    .sort((a, b) => b.created_at.localeCompare(a.created_at) || b.id.localeCompare(a.id));
-  const notice = classerPiecesBail(documentsBail, [], bail.reglement_copropriete).notices[0];
+  // Lot 45 (T14) : le même résumé que la fiche du bail et la signature (le plus récent, resumeNoticeRetenu).
+  const notice = resumeNoticeRetenu(liens.lignes.map(l => parId.get(l.document_id)).filter((d): d is Fichier => Boolean(d)));
   const liensIncomplets = liens.erreur || fichiers.erreur || liens.lignes.some(l => !parId.has(l.document_id));
-  ajouter("notice", "Notice d’information", "signature", liensIncomplets ? INDISPONIBLE : fichier(notice?.id ?? null, true), `${baseBail}#annexes-attendues`);
+  // Phase 3 (C01) : la pièce que Gerimmo prépare est un résumé ; la notice officielle reste à remettre à part.
+  // Reprise du lot 40 (C01) : un résumé rangé avec l'ancien texte est à actualiser (la préparation de la signature le refuse).
+  const etatNotice = liensIncomplets ? INDISPONIBLE : fichier(notice?.id ?? null, true);
+  // Reprise du lot D3 (M4) : hors bien d'habitation, Gerimmo ne demande pas la notice (bien illisible : on garde l'exigence).
+  // Seconde reprise (point 5) : son résumé non plus.
+  const noticeNonDemandee = !bienIndisponible && !estBienHabitation(bien!.type);
+  ajouter("notice", "Résumé de la notice d’information", "signature", etatNotice.statut === "pret" && resumeNoticeAActualiser(notice)
+    ? { statut: "a_completer", detail: "Actualisez le résumé : celui qui est rangé a été établi avec un ancien texte." }
+    : etatNotice.statut === "a_completer" && !notice && noticeNonDemandee ? { statut: "non_concerne", detail: "Bien déclaré hors habitation : Gerimmo ne le demande pas." }
+    : etatNotice, `${baseBail}#annexes-attendues`);
+  // Décision du 24/11/2026 (Q46) : la notice officielle, déposée par le bailleur. Sans elle, la signature électronique est
+  // bloquée ; pour une signature sur papier, le bailleur l'annexe lui-même.
+  const noticeDeposee = noticeDeposeeRetenue(liens.lignes.map(l => parId.get(l.document_id)).filter((d): d is Fichier => Boolean(d)));
+  const etatNoticeDeposee = liensIncomplets ? INDISPONIBLE : fichier(noticeDeposee?.id ?? null, true);
+  ajouter("notice-deposee", "Notice d’information officielle", "signature", etatNoticeDeposee.statut === "a_completer" && !noticeDeposee
+    ? noticeNonDemandee ? { statut: "non_concerne", detail: "Bien déclaré hors habitation : Gerimmo ne la demande pas." }
+    : { statut: "a_completer", detail: "À déposer : la signature électronique est bloquée sans elle. Sur papier, annexez-la au contrat." }
+    : etatNoticeDeposee.statut === "pret" ? { statut: "pret", detail: "Déposée par vous ; jointe à la signature électronique. Sur papier, annexez-la au contrat." } : etatNoticeDeposee, `${baseBail}#notice-deposee`);
   ajouter("reglement", "Règlement de copropriété", "signature", bienIndisponible ? INDISPONIBLE
     : bien!.copropriete === false ? { statut: "non_concerne", detail: "Le bâtiment est déclaré hors copropriété." }
       : bien!.copropriete === null ? { statut: "a_verifier", detail: "Précisez si le bâtiment est en copropriété." }

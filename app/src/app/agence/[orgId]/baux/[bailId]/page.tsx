@@ -1,6 +1,7 @@
 import { RubriqueBail, situationDatesBail } from "./presentation-fiche-bail";
 import { HistoriqueRecommandes } from "@/components/historique-recommandes";
 import { PlanApurementBail } from "@/components/plan-apurement-bail";
+import { lirePlanApurementDuBail } from "@/lib/rappels-loyers";
 import { SuiviBailLecture, HistoriqueBailLecture } from "./suivi-bail-lecture";
 import { OngletsDossier } from "@/components/onglets-dossier";
 import { avertissementsCoherenceLoyer } from "@/lib/coherence-loyer";
@@ -38,6 +39,7 @@ import {
 import { deElide } from "@/lib/elision";
 import { nomComplet } from "@/lib/roles-personnes";
 import { premier } from "@/lib/postgrest";
+import { estBienHabitation } from "@/lib/parc";
 import { actionsAttendues } from "@/lib/actions-attendues";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
@@ -54,11 +56,13 @@ import {
 import { FormulaireEditionBail } from "./formulaire-edition-bail";
 import { FormulaireComplementsBail } from "./formulaire-complements-bail";
 import { GenererCongeBailleur } from "./generer-conge-bailleur";
-import { GenererAvenant } from "./generer-avenant";
+import { RubriqueAvenantsBail, chargerAvenantsBail } from "./avenants-bail";
 import { CarteCautionnement } from "./carte-cautionnement";
 import { ConseilsChoixLocataire } from "@/components/conseils-choix-locataire";
 import { CONSEILS_LOCATAIRE_VALIDES } from "@/lib/conseils-locataire";
 import { CarteBailSigne } from "./carte-bail-signe";
+import { lireEcartDpe } from "@/lib/avertissement-dpe";
+import { AvertissementDpe } from "@/components/avertissement-dpe";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { FormulaireInventaire, type LigneInventaire } from "./formulaire-inventaire";
 import { FormulaireColocation, type LigneColoc } from "./formulaire-colocation";
@@ -81,6 +85,7 @@ import { CarteConservationBail } from "./carte-conservation-bail";
 import { EchecLecture, PageEchecLecture } from "../../parc/echec-lecture";
 import { exigerUuids } from "@/lib/identifiants";
 import { baseEspace, racineEspace } from "@/lib/racine-espace";
+import { jourDuMois } from "@/lib/jour-du-mois";
 
 export const metadata = { title: "Bail — Gerimmo" };
 
@@ -122,6 +127,17 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   // alors comme avant et n'annonce rien que la base ne ferait pas.
   const { data: bascule, error: basculeIndisponible } = await supabase.from("baux").select("loyers_suivis_depuis").eq("id", bailId).eq("organization_id", orgId).maybeSingle();
   const loyersSuivisDepuis = basculeIndisponible ? null : ((bascule as { loyers_suivis_depuis?: string | null } | null)?.loyers_suivis_depuis ?? null);
+  // Case « mariés ou pacsés » (décision du 24/11/2026, migration 20261125152000) : lecture À PART et tolérante, comme la date de
+  // bascule ; tant que la colonne n'existe pas, la case est vue non cochée (règle de la colocation, l'affichage d'avant).
+  const { data: lectureEpouxPacs, error: epouxPacsIndisponible } = await supabase.from("baux").select("locataires_epoux_pacses").eq("id", bailId).eq("organization_id", orgId).maybeSingle();
+  const epouxPacs = !epouxPacsIndisponible && (lectureEpouxPacs as { locataires_epoux_pacses?: boolean | null } | null)?.locataires_epoux_pacses === true;
+  // Relecture de la fusion (A-01, migration 20261125153000) : les personnes ajoutées après la signature, lues à part. Une
+  // lecture en échec vaut « présentes à la signature » : les textes d'avant, ceux que la base applique sans la migration.
+  const { data: lectureMarques, error: marquesIndisponibles } = epouxPacs
+    ? await supabase.from("bail_personnes").select("id, entree_apres_signature").eq("bail_id", bailId)
+    : { data: null, error: null };
+  const entreesApresSignature = new Set(marquesIndisponibles ? [] : ((lectureMarques ?? []) as { id: string; entree_apres_signature?: boolean | null }[])
+    .filter((l) => l.entree_apres_signature === true).map((l) => l.id));
   const suiviSignature = await lirePresentationSignatures(orgId, { baux: [bailId] });
   const documentSigne = bail.document_signe ?? archiveSignee(signatureDuBail(suiviSignature.circuits, bailId));
   const signeNonActif = bail.etat === "brouillon" && Boolean(documentSigne);
@@ -141,7 +157,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     { data: bailPersonnes, error: erreurBailPersonnes },
     { data: intentions, error: erreurIntentions },
   ] = await Promise.all([
-      supabase.from("lots").select("id, nom, bien_id, etat, meuble, surface_m2, colocation_loyer_reference, bien:biens!lots_bien_id_fkey(zone_tendue, copropriete)").eq("id", bail.lot_id).maybeSingle(),
+      supabase.from("lots").select("id, nom, bien_id, etat, meuble, surface_m2, colocation_loyer_reference, bien:biens!lots_bien_id_fkey(zone_tendue, copropriete, type)").eq("id", bail.lot_id).maybeSingle(),
       // Les pièces déclarées du lot : leur absence rend l'état des lieux générique.
       supabase
         .from("lot_pieces")
@@ -239,6 +255,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     garant_de: l.garant_de,
     date_depart: l.date_depart,
     date_solidarite_fin: l.date_solidarite_fin,
+    entree_apres_signature: entreesApresSignature.has(l.id),
     garant_de_nom: l.garant_de ? nomsPersonnes.get(l.garant_de) ?? null : null,
   }));
   // Les garants du bail (id = PERSONNE, pas la ligne) — pour le cautionnement
@@ -281,6 +298,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     // l'écran puisse dire si elle a bougé depuis — il n'en change rien tout
     // seul : la date d'arrêté appartient au gérant.
     { data: montantsAJour, error: erreurMontants },
+    // Phase 3, lot 44 (reprise, C65) : le plan d'apurement en cours du bail et le jour de son activation, pour que la rubrique
+    // « Relances » dise ce qu'elle peut encore enregistrer (une relance antérieure au plan) au lieu de tout proposer.
+    planApurement,
   ] = await Promise.all([
     loyersActif
       ? actionsAttendues(supabase, orgId, { bailId, racine: racineEspace(estProprietaire) })
@@ -302,7 +322,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           .eq("bail_id", bailId),
         supabase
           .from("revisions_loyer")
-          .select("id, date_effet, date_echeance, date_demande, irl_trimestre, ancien_loyer, nouveau_loyer, irl_reference, irl_nouveau")
+          .select("id, date_effet, date_echeance, date_demande, premier_terme, irl_trimestre, ancien_loyer, nouveau_loyer, irl_reference, irl_nouveau, irl_reference_trimestre")
           .eq("bail_id", bailId)
           .order("date_effet", { ascending: false }),
         supabase
@@ -326,7 +346,8 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       ? supabase
           .from("restitutions")
           .select(
-            "id, date_remise_cles, delai_mois, depot, impayes, trop_percu, montants_arretes_le, sans_edl_entree, statut, solde, date_emission, envoye_le, retenues(id, libelle, cout, duree_vie_ans, age_ans, montant_retenu, sans_justificatif, justificatif_document, created_at)"
+            // Seconde reprise du lot D3 : avec la fiche de la pièce de chaque retenue (une pièce purgée ne justifie plus rien).
+            "id, date_remise_cles, delai_mois, depot, impayes, trop_percu, montants_arretes_le, sans_edl_entree, statut, solde, date_emission, envoye_le, retenues(id, libelle, cout, duree_vie_ans, age_ans, montant_retenu, sans_justificatif, justificatif_document, created_at, piece:documents!retenues_justificatif_document_fkey(purged_at))"
           )
           .eq("bail_id", bailId)
           .maybeSingle()
@@ -334,6 +355,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     restitutionActif
       ? supabase.rpc("montants_restitution_a_jour", { p_bail: bailId })
       : Promise.resolve({ data: null, error: null }),
+    loyersActif
+      ? lirePlanApurementDuBail(supabase, orgId, bailId)
+      : Promise.resolve({ enCours: false, depuis: null, error: null }),
   ]);
   const ecarts = ((comparatif ?? []) as {
     piece: string | null;
@@ -370,6 +394,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   const noter = (libelle: string, erreur: unknown) => {
     if (erreur) echecs.push(libelle);
   };
+  noter("le plan d’apurement", planApurement.error);
   noter("le lot", erreurLot);
   noter("le locataire", erreurLocataire);
   noter("les états des lieux", erreurEdls);
@@ -518,8 +543,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             modifiable={bail.etat === "brouillon"}
           />);
   const annexesContrat = (<div id="inventaire" className="space-y-4">      {/* Cautionnement : un acte par garant (réforme 2021 — mention type à
-          apposer par la caution), forme solidaire par défaut. */}
-      {garantsDuBail.length > 0 && (
+          apposer par la caution), forme solidaire par défaut. Phase 3 (C46) : à la signature ou pendant la location,
+          jamais une fois le congé enregistré ni après la fin du bail (l'acte serait refusé). */}
+      {garantsDuBail.length > 0 && (bail.etat === "brouillon" || bail.etat === "actif") && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Cautionnement</CardTitle>
@@ -558,6 +584,8 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   // Décision B du 20/11/2026 : un bail déjà en cours (date d'entrée passée) s'active par son contrat signé, même si le
   // logement n'a jamais été « mis en location ». La base décide (controler_mise_en_location) ; la fiche l'annonce.
   const dejaEnCours = bail.etat === "brouillon" && bailDejaEnCours(bail.date_debut, aujourdhuiParis());
+  // Reprise du lot D3 (M4) : le type du bien, pour ne rappeler la notice que sur un bien d'habitation.
+  const bienDuLot = premier(lot?.bien ?? null);
   const lotEnPreparation = bail.etat === "brouillon" && lot?.etat === "brouillon" && !dejaEnCours;
   // Date de bascule : ce que la base posera à l'activation (premier_mois_suivi), annoncé avant le dépôt. Rien si la
   // base ne connaît pas encore la règle.
@@ -570,7 +598,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             <CardDescription>
               {bail.document_signe
                 ? "Le contrat signé est disponible dans les documents du locataire."
-                : "Déposez le contrat signé par les parties pour démarrer la location. Le locataire le retrouve ensuite dans « Mes documents »."}
+                : `${estProprietaire ? "Signature sur papier, toujours possible. " : ""}Déposez le contrat signé par les parties pour démarrer la location. Le locataire le retrouve ensuite dans « Mes documents ».`}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -579,6 +607,14 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             </p>}
             {moisBasculeAnnonce && !bail.document_signe && <p className="text-sm" data-loyers-suivis-a-partir>
               Gerimmo suivra les loyers à partir {deElide(moisBasculeAnnonce)} : ceux d’avant ne seront pas réclamés.
+            </p>}
+            {/* Décision du 24/11/2026 (Q46) : la signature sur papier n'est pas bloquée par la notice ; l'écran rappelle
+                seulement qu'elle est à annexer au contrat (Gerimmo ne la joint qu'à la signature électronique). */}
+            {/* Reprise du lot D3 (M4) : rappel réservé aux biens d'habitation, comme le blocage de la voie électronique
+                (bien illisible : le rappel reste affiché). */}
+            {bail.etat === "brouillon" && !bail.document_signe && (!bienDuLot || estBienHabitation(bienDuLot.type)) && <p className="text-sm" data-rappel-notice-papier>
+              Signature sur papier : annexez vous-même au contrat la notice d’information officielle, en entier.{" "}
+              <a className="underline" href="#notice-deposee">Voir la notice de ce bail</a>
             </p>}
             {lotEnPreparation && <p className="text-sm">
               Le logement est encore en préparation. Ouvrez sa fiche et choisissez « Mettre en location » avant d’activer le bail.{" "}
@@ -620,13 +656,25 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
 
 </div>);
   const piecesAdministratives = (<div className="space-y-4">      {/* Documents-0 : la notice d'information (05), annexe obligatoire */}
-      <Card>
+      <Card id="notice-information">
         <CardHeader>
           <CardTitle className="text-base">Notice d&apos;information</CardTitle>
-          <CardDescription>
-            Annexe obligatoire au contrat (arrêté du 29 mai 2015) — générée et
-            rangée dans Documents, à remettre avec le bail.
-          </CardDescription>
+          {/* Seconde reprise du lot D3 (point 5) : hors habitation, la carte de la notice dit « non demandée » ; ce texte
+              ne dit donc plus « annexe obligatoire » et ne renvoie plus à une notice à remettre. */}
+          {!bienDuLot || estBienHabitation(bienDuLot.type) ? (
+            <CardDescription data-notice-resume>
+              Annexe obligatoire au contrat. Gerimmo en prépare un résumé, rangé dans
+              Documents : il ne remplace pas la notice officielle, dont le texte complet
+              est à remettre au locataire avec le bail (site officiel de
+              l&apos;administration, service-public.fr).
+            </CardDescription>
+          ) : (
+            <CardDescription data-notice-resume="hors-habitation">
+              Ce bien n&apos;est pas déclaré comme un logement (appartement, maison, immeuble) :
+              Gerimmo ne demande ni la notice d&apos;information ni son résumé. Vous pouvez
+              tout de même générer le résumé ; il sera rangé dans Documents.
+            </CardDescription>
+          )}
         </CardHeader>
         <CardContent>
           <BoutonGenererDocument
@@ -634,7 +682,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             code="notice"
             cibleId={bailId}
             cheminRetour={`${base}/baux/${bailId}`}
-            libelle="Générer la notice (PDF)"
+            libelle="Générer le résumé de la notice (PDF)"
           />
         </CardContent>
       </Card>
@@ -691,7 +739,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         premier(lot?.bien ?? null)?.zone_tendue == null && (
           <p className="border-l-[3px] border-l-warning bg-warning-soft px-3 py-2 text-sm text-warning-soft-foreground">
             Zone tendue non renseignée pour ce logement : elle fixe le préavis du
-            locataire (1 mois de plein droit en zone tendue) et le plafond des
+            locataire (1 mois en zone tendue, s&apos;il le précise et le justifie dans sa lettre) et le plafond des
             honoraires. Renseignez-la sur la fiche du bien, ou choisissez la zone
             des honoraires, avant la signature. À défaut, un congé du locataire à
             1 mois sera accepté puis signalé à vérifier.
@@ -807,6 +855,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               }}
               colocation
               etatBail={bail.etat}
+              epouxPacs={epouxPacs}
             />
             {rappelConseilsLocataire}
           </CardContent>
@@ -891,6 +940,8 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       {depotSigne}
       {piecesAdministratives}
       </RubriqueBail>);
+  // Avenants du bail (audit palier 1, P1-14) : lus ici, avant le rendu — la rubrique n'attend rien elle-même.
+  const lectureAvenants = await chargerAvenantsBail(supabase, orgId, bailId, bail.etat);
   const rubriqueSuivi = (<section id="suivi-bail" className="space-y-4">
 
       {/* États des lieux */}
@@ -956,6 +1007,8 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               encaissements={(encaissements ?? []) as Encaissement[]}
               quittances={(quittances ?? []) as Quittance[]}
               revisionIrl={Boolean(bail.revision_irl)}
+              cautionAuBail={lignesColoc.some((l) => l.role === "garant" && (!l.date_depart || l.date_depart >= aujourdhuiParis()))}
+              avertissementDpe={bail.revision_irl ? <AvertissementDpe ecart={await lireEcartDpe(supabase, orgId, bail.lot_id)} usage="Sa classe décide si la révision du loyer est possible : elle est refusée en classe F ou G." /> : null}
               irlReference={bail.irl_valeur === null ? null : Number(bail.irl_valeur)}
               irlTrimestre={bail.irl_trimestre}
               revisions={(revisions ?? []) as Revision[]}
@@ -969,6 +1022,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               copropriete={Boolean(premier(lot?.bien ?? null)?.copropriete)}
               aujourdhui={aujourdhuiParis()}
               decompteSortie={etatDecompteSortie(restitution, erreurRestitution)}
+              planApurement={planApurement.enCours ? { depuis: planApurement.depuis } : null}
             />
             <HistoriqueRecommandes orgId={orgId} bailId={bailId} />
             <PlanApurementBail orgId={orgId} bailId={bailId} base={base} decompte={etatDecompteSortie(restitution, erreurRestitution)} />
@@ -995,18 +1049,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         </RubriqueDossier>
       )}
 
-      {/* Avenant au bail : modification du contrat en cours, actée par les parties */}
-      {(bail.etat === "actif" || bail.etat === "preavis") && (
-        <RubriqueDossier id="avenant" titre="Avenant au bail" resume="Préparer une modification à faire signer aux parties">
-          <div>
-            <GenererAvenant
-              orgId={orgId}
-              bailId={bailId}
-              cheminRetour={`${base}/baux/${bailId}`}
-            />
-          </div>
-        </RubriqueDossier>
-      )}
+      {/* Avenant au bail : préparer le texte à faire signer, puis enregistrer l'avenant signé — ses nouveaux montants
+          s'appliquent d'eux-mêmes aux loyers appelés à partir de sa date d'effet (audit palier 1, P1-14). */}
+      <RubriqueAvenantsBail lecture={lectureAvenants} orgId={orgId} bailId={bailId} base={base} bail={{ ...bail, loyers_suivis_depuis: loyersSuivisDepuis }} lectureSeule={traverseeLectureSeule} />
 
       </section>);
   // Conservation des pièces (plan de conformité du 23/10) : lue seulement pour un bail en préavis ou terminé.
@@ -1067,7 +1112,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           <CardContent className="space-y-3 text-sm">
             {(conges ?? []).map((c, i) => (
               <p key={i} className={c.annule_le ? "text-muted-foreground" : undefined}>
-                Donné par {c.par === "bailleur" ? "le bailleur" : "le locataire"}, date enregistrée
+                Donné par {c.par === "bailleur" ? "le bailleur" : "le locataire"}, reçu
                 le {formaterDate(c.date_premiere_presentation)}, préavis {c.preavis_mois} mois
                 → effet le <span className="font-medium">{formaterDate(c.date_effet)}</span>
                 {c.motif && !c.annule_le && (
@@ -1194,7 +1239,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         <div><dt><Wallet size={17} aria-hidden="true" /> Loyer mensuel</dt><dd>{bail.loyer_hc == null || bail.charges == null ? "À compléter" : eur(Number(bail.loyer_hc) + Number(bail.charges))}</dd><dd className={styles.precision}>{bail.loyer_hc == null ? "Loyer à définir" : `${eur(Number(bail.loyer_hc))} hors charges`}{bail.charges != null && ` + ${eur(Number(bail.charges))} de charges`}</dd></div>
         <div><dt><CalendarDays size={17} aria-hidden="true" /> Dates du bail</dt><dd>{bail.date_debut ? formaterDate(bail.date_debut) : "Date d’entrée absente du dossier"}</dd><dd className={styles.precision}>{situationDatesBail(bail)}</dd></div>
         <div><dt><ShieldCheck size={17} aria-hidden="true" /> Dépôt de garantie</dt><dd>{bail.depot_garantie == null ? "Montant contractuel non indiqué" : eur(Number(bail.depot_garantie))}</dd><dd className={styles.precision}>{bail.depot_garantie == null ? "À retrouver dans votre contrat" : "Montant prévu au contrat · versements dans Suivi"}</dd></div>
-        <div><dt><CalendarDays size={17} aria-hidden="true" /> Échéance du loyer</dt><dd>{bail.jour_echeance == null ? "Jour de paiement à confirmer" : `Le ${bail.jour_echeance} du mois`}</dd><dd className={styles.precision}>{bail.charges_mode === "forfait" ? "Charges au forfait" : bail.charges_mode === "provision" ? "Provisions sur charges" : "Conditions du contrat"}</dd></div>
+        <div><dt><CalendarDays size={17} aria-hidden="true" /> Échéance du loyer</dt><dd>{bail.jour_echeance == null ? "Jour de paiement à confirmer" : `Le ${jourDuMois(bail.jour_echeance)} du mois`}</dd><dd className={styles.precision}>{bail.charges_mode === "forfait" ? "Charges au forfait" : bail.charges_mode === "provision" ? "Provisions sur charges" : "Conditions du contrat"}</dd></div>
       </dl>}
       {signeNonActif && <div className="rounded-[var(--rayon-carte)] border border-success/20 bg-success-soft p-4 text-sm"><strong>Le bail est signé. La location n’est pas encore activée.</strong><p className="mt-1">Le contrat signé est archivé ; l’activation reste une action séparée.</p><Link className="inline-flex min-h-11 items-center underline" href={`${base}/documents/${documentSigne}/fichier`}>Consulter le bail signé →</Link></div>}
       {suiviSignature.erreur && <p role="status" className="text-sm">Le suivi des signatures est indisponible. Réessayez pour connaître l’état du contrat.</p>}
@@ -1282,7 +1327,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             </HistoriqueBailLecture>
             <HistoriqueBailLecture titre="Révisions et régularisations" erreur={Boolean(erreurRevisions || erreurRegul)}>
               {!revisions?.length && <p>Aucune révision enregistrée.</p>}
-              {revisions?.map(r => <p key={r.id}>Révision au {formaterDate(r.date_effet)} : {eur(r.ancien_loyer)} → {eur(r.nouveau_loyer)} · IRL {r.irl_reference} → {r.irl_nouveau}</p>)}
+              {revisions?.map(r => <p key={r.id}>Révision au {formaterDate(r.date_effet)} : {eur(r.ancien_loyer)} → {eur(r.nouveau_loyer)} · IRL {r.irl_reference} → {r.irl_nouveau}{r.premier_terme ? ` · loyer révisé appliqué à partir du ${formaterDate(r.premier_terme)}` : ""}</p>)}
               {!regularisations?.length && <p>Aucune régularisation enregistrée.</p>}
               {regularisations?.map(r => <p key={r.id}>Exercice {r.annee} · provisions {eur(r.provisions)} · charges réelles {eur(r.charges_reelles)} · écart {eur(r.ecart)}</p>)}
             </HistoriqueBailLecture>
@@ -1308,7 +1353,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         orgId={orgId} bailId={bailId} controleInitial={await verifierDossierBail(orgId, bailId)}
         contenus={[
           null,
-          <EtapePersonnesBail key="personnes" orgId={orgId} bailId={bailId} lotId={bail.lot_id} principalId={bail.locataire_principal} colocation={bail.type === "colocation" && !bail.chambre_id} />,
+          <EtapePersonnesBail key="personnes" orgId={orgId} bailId={bailId} lotId={bail.lot_id} principalId={bail.locataire_principal} colocation={bail.type === "colocation" && !bail.chambre_id} epouxPacs={epouxPacs} />,
           <CompleterSurPlace key="logement" orgId={orgId} bailId={bailId} lotId={bail.lot_id} individuel={Boolean(bail.chambre_id)} />,
           bail.chambre_id && lot ? <div key="plafond" id="loyer-plafond-colocation"><ChambresLogement orgId={orgId} lotId={bail.lot_id} bienId={lot.bien_id} chambres={[]} plafond={lot.colocation_loyer_reference} mode="plafond" /></div> : null,
           lot ? <DocumentsParcoursBail key="documents" orgId={orgId} bailId={bailId} lotId={bail.lot_id} bienId={lot.bien_id} copropriete={premier(lot.bien)?.copropriete ?? null} reglementId={bail.reglement_copropriete} annexes={annexesContrat} dateDebut={bail.date_debut} edlEntree={(edls ?? []).find(e => e.type === "entree") ?? null} erreurEdl={Boolean(erreurEdls)} /> : <p key="documents">Le logement est indisponible.</p>,

@@ -9,7 +9,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { verifierGerant } from "@/lib/ged-acces";
 import { valeursDuFormulaire } from "@/lib/formulaires";
-import { abandonnerPieceGed, preparerFichierGed } from "@/lib/ged-depot";
+import { abandonnerPieceGed, deposerFichierGed, preparerFichierGed } from "@/lib/ged-depot";
+import { detecterMimeReel, TAILLE_MAX_DEPOT_OCTETS } from "@/lib/file-type";
+import { estUuid } from "@/lib/identifiants";
 import { lireDecimal, lireDecimalFacultatif } from "@/lib/saisie-montant";
 import { baseEspace } from "@/lib/racine-espace";
 
@@ -52,7 +54,7 @@ export async function enregistrerMentionsEdl(
     maj.attestation_assurance_fournie = assurance === "oui";
   } else {
     const adresse = texte("adresse_restitution_depot");
-    if (!adresse) return { erreur: "L'adresse de restitution du dépôt de garantie est obligatoire.", valeurs };
+    if (!adresse) return { erreur: "L’adresse du nouveau domicile ou du lieu d’hébergement du locataire est obligatoire.", valeurs };
     maj.adresse_restitution_depot = adresse;
   }
   const { error } = await supabase.from("etats_des_lieux").update(maj)
@@ -390,4 +392,107 @@ export async function supprimerCle(
   if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
   return { succes: "Clé retirée." };
+}
+
+// ── Photos de la grille (audit palier 1 du 22/11/2026, P2-01) ────────────────────────────────────────────────────────
+// Une photo par élément, tant que l'état des lieux n'est pas signé. La photo est un document de l'espace (type
+// « autre », rattaché au bail) ; la ligne ne garde que son identifiant. Le déclencheur `edl_lignes_fige_trg` fige la
+// photo avec la ligne à la signature ; la clé étrangère refuse le document d'un autre espace.
+
+async function ligneDeLEdl(
+  supabase: Awaited<ReturnType<typeof verifierGerant>>["supabase"],
+  orgId: string,
+  edlId: string,
+  ligneId: string
+): Promise<{ id: string; libelle: string; piece: string | null; photo_document_id: string | null } | null> {
+  if (!estUuid(ligneId) || !estUuid(edlId)) return null;
+  const { data } = await supabase
+    .from("edl_lignes")
+    .select("id, libelle, piece, photo_document_id")
+    .eq("id", ligneId)
+    .eq("edl_id", edlId)
+    .eq("organization_id", orgId)
+    .maybeSingle();
+  return (data as { id: string; libelle: string; piece: string | null; photo_document_id: string | null } | null) ?? null;
+}
+
+export async function joindrePhotoLigneEdl(
+  orgId: string,
+  bailId: string,
+  edlId: string,
+  ligneId: string,
+  formData: FormData
+): Promise<EtatEdl> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+  if (await edlEstSigne(supabase, orgId, edlId)) return { erreur: "Cet état des lieux est signé — ses photos sont figées." };
+  const ligne = await ligneDeLEdl(supabase, orgId, edlId, ligneId);
+  if (!ligne) return { erreur: "Élément introuvable dans cet état des lieux. Rechargez la page." };
+
+  const fichier = formData.get("photo");
+  if (!(fichier instanceof File) || fichier.size === 0) return { erreur: "Choisissez une photo." };
+  if (fichier.size > TAILLE_MAX_DEPOT_OCTETS) return { erreur: `Photo trop lourde (${TAILLE_MAX_DEPOT_OCTETS / 1024 / 1024} Mo maximum).` };
+  const mime = detecterMimeReel(new Uint8Array(await fichier.arrayBuffer()));
+  if (mime !== "image/jpeg" && mime !== "image/png") return { erreur: "Une photo doit être une image JPEG ou PNG." };
+
+  // Essai à blanc avant tout dépôt : on réécrit la valeur actuelle. La base refuse ici ce qu'elle refuserait après
+  // (circuit de signature en cours, état des lieux signé entre-temps, espace fermé) : aucun fichier n'est déposé pour rien.
+  const { data: essai, error: refus } = await supabase
+    .from("edl_lignes")
+    .update({ photo_document_id: ligne.photo_document_id })
+    .eq("id", ligne.id)
+    .eq("edl_id", edlId)
+    .eq("organization_id", orgId)
+    .select("id");
+  if (refus) return { erreur: sansJargon(refus.message) };
+  if (!essai?.length) return { erreur: "Vous ne pouvez pas modifier cet état des lieux." };
+
+  const titre = `Photo d’état des lieux — ${ligne.piece ? `${ligne.piece} — ` : ""}${ligne.libelle}`.slice(0, 200);
+  const depot = await deposerFichierGed(supabase, user, orgId, fichier, "autre", titre);
+  // La même image déjà déposée dans l'espace : on rattache la pièce existante plutôt que d'en créer une seconde.
+  const documentId = depot.documentId ?? depot.doublonId;
+  if (!documentId) return { erreur: depot.erreur ?? "La photo n’a pas pu être déposée." };
+
+  const { error: erreurLien } = await supabase.from("document_liens").upsert(
+    { document_id: documentId, organization_id: orgId, entite: "bail", entite_id: bailId },
+    { onConflict: "document_id,entite,entite_id", ignoreDuplicates: true }
+  );
+  if (erreurLien) return { erreur: "La photo est déposée dans Documents, mais son rattachement au bail a échoué. Réessayez." };
+
+  const { data: maj, error } = await supabase
+    .from("edl_lignes")
+    .update({ photo_document_id: documentId })
+    .eq("id", ligne.id)
+    .eq("edl_id", edlId)
+    .eq("organization_id", orgId)
+    .select("id");
+  if (error) return { erreur: sansJargon(error.message) };
+  if (!maj?.length) return { erreur: "La photo n’a pas pu être rattachée à cet élément. Rechargez la page." };
+
+  revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
+  return { succes: ligne.photo_document_id ? "Photo remplacée." : "Photo ajoutée." };
+}
+
+export async function retirerPhotoLigneEdl(
+  orgId: string,
+  bailId: string,
+  edlId: string,
+  ligneId: string
+): Promise<EtatEdl> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+  if (await edlEstSigne(supabase, orgId, edlId)) return { erreur: "Cet état des lieux est signé — ses photos sont figées." };
+  const ligne = await ligneDeLEdl(supabase, orgId, edlId, ligneId);
+  if (!ligne) return { erreur: "Élément introuvable dans cet état des lieux. Rechargez la page." };
+  if (!ligne.photo_document_id) return { succes: "Aucune photo sur cet élément." };
+  const { error } = await supabase
+    .from("edl_lignes")
+    .update({ photo_document_id: null })
+    .eq("id", ligne.id)
+    .eq("edl_id", edlId)
+    .eq("organization_id", orgId);
+  if (error) return { erreur: sansJargon(error.message) };
+  revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
+  // La fiche d'un document ne se supprime pas : la photo reste dans les documents du bail, elle ne figure plus à l'état des lieux.
+  return { succes: "Photo retirée de l’état des lieux. Le fichier reste dans les documents du bail." };
 }

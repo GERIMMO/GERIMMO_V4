@@ -15,7 +15,8 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Fusion, type DocumentAssemble } from "@/lib/documents/gabarit";
-import { construireQuittance, signataireQuittance, versementsDuTerme } from "@/lib/documents/modeles/quittance";
+import { construireQuittance, libelleMode, signataireQuittance, versementsDuTerme } from "@/lib/documents/modeles/quittance";
+import { mentionEtage } from "@/lib/documents/modeles/communs";
 import { refusDocumentIncomplet } from "@/lib/documents/completude";
 
 type Nom = { nom: string; prenom: string | null };
@@ -73,21 +74,9 @@ export type DonneesQuittanceDocument = {
   vue_gestionnaire: boolean;
 };
 
-// Les codes enregistrés par « Payé par » (fiche du bail), en toutes lettres
-// sur le document : « par virement », pas « par virement » brut ni « par caf ».
-const MODES: Record<string, string> = {
-  virement: "virement",
-  cheque: "chèque",
-  prelevement: "prélèvement",
-  especes: "espèces",
-  caf: "versement CAF / APL",
-  autre: "autre moyen",
-};
-
-export function libelleMode(mode: string | null | undefined): string | null {
-  if (!mode) return null;
-  return MODES[mode] ?? mode;
-}
+// Les libellés des modes de règlement vivent avec le modèle de quittance (documents/modeles/quittance.ts) depuis la phase 3
+// (lot 36, C48) : la quittance du catalogue imprimait le code (« par cheque »). Ils restent exportés ici pour leurs lecteurs.
+export { libelleMode };
 
 function nomComplet(p: Nom): string {
   return [p.nom, p.prenom].filter(Boolean).join(" ").trim();
@@ -150,7 +139,9 @@ export function assemblerQuittanceDelivree(d: DonneesQuittanceDocument): Documen
   const logement = [
     adresse(d.logement.adresse, d.logement.code_postal, d.logement.ville),
     d.logement.lot_nom && d.logement.lot_nom !== "Lot unique" ? d.logement.lot_nom : null,
-    d.logement.etage ? `étage ${d.logement.etage}` : null,
+    // Même règle que le PDF : « étage » ne complète qu'un numéro, et l'étage déjà dit par le nom du lot n'est pas redit
+    // (phase 3, C63 et reprise du lot 35).
+    mentionEtage(d.logement.etage, d.logement.lot_nom && d.logement.lot_nom !== "Lot unique" ? d.logement.lot_nom : null),
   ]
     .filter(Boolean)
     .join(", ");
@@ -206,6 +197,18 @@ export function assemblerQuittanceDelivree(d: DonneesQuittanceDocument): Documen
       email: d.organisation.email,
       telephone: d.organisation.telephone,
       ville: d.organisation.ville,
+      // Phase 3, lot 46 (second passage, T19) : l'adresse et la commune imprimées viennent du profil de l'espace
+      // (quittance_document : organisation), même quand les bailleurs émettent. La liste « à renseigner » de la page y mène ;
+      // elle envoyait, par déduction du lien au bail, vers la fiche du propriétaire, que cette quittance ne lit pas.
+      // POINT OUVERT (reprise du lot 46, signalé, non tranché) : chez un propriétaire qui gère lui-même, cette page associe le
+      // NOM des bailleurs à l'ADRESSE de l'espace, alors que le PDF de la même quittance (modeles/quittance.ts, expediteur)
+      // imprime le nom ET l'adresse des détenteurs ; une SCI y paraît à l'adresse de l'espace. Aligner suppose que
+      // quittance_document (lisible par le locataire, et source de l'empreinte des courriels de quittance) rende l'adresse
+      // des bailleurs : migration et choix de données laissés au dirigeant (questions du lot 46) et au juriste.
+      // Phase 3, lot 49 : une version alignée (lot 48, U07 : migration 20261123230000, commits a3f9440e et cf2142f7) a été
+      // retirée avant publication, faute de décision : elle faisait lire au locataire, même ancien, les coordonnées des
+      // détenteurs actuels, et bloquait des quittances déjà délivrées quand un détenteur n'avait pas d'adresse.
+      emetteur: "espace",
     },
     // La signature préenregistrée vit dans le stockage privé de
     // l'organisation, que le locataire ne lit pas : la zone reste à signer.
@@ -220,6 +223,45 @@ export function assemblerQuittanceDelivree(d: DonneesQuittanceDocument): Documen
  */
 export function manquantsQuittance(doc: Pick<DocumentAssemble, "manquants">): string[] {
   return refusDocumentIncomplet(doc)?.manquants ?? [];
+}
+
+/**
+ * Phase 3, lot 61 (reprise, M2) : ce qui manque à l'ÉMETTEUR pour qu'une quittance soit délivrée, AVANT qu'il existe le
+ * moindre document. Un nouveau locataire, sans reçu ni quittance dans son historique, lisait « quittance établie et
+ * disponible ici — rien à demander » chez un émetteur dont le profil incomplet retiendra pourtant la quittance.
+ *
+ * `emetteur` est ce que rend `attestation_emetteur_locataire`, une lecture DÉJÀ ouverte au locataire (aucun droit
+ * nouveau) : type, nom, adresse, e-mail de l'espace et bailleurs du logement. On assemble la quittance d'un terme
+ * d'essai entièrement renseigné, avec ce seul émetteur : la barrière est donc celle du vrai document
+ * (`assemblerQuittanceDelivree`, `manquantsQuittance`), pas une seconde liste de champs à tenir à jour.
+ */
+export function manquantsEmetteurQuittance(emetteur: {
+  type?: string | null;
+  nom?: string | null;
+  adresse?: string | null;
+  code_postal?: string | null;
+  ville?: string | null;
+  email?: string | null;
+  siret?: string | null;
+  bailleurs?: BailleurQuittanceDocument[] | null;
+}): string[] {
+  const essai = "00000000-0000-4000-8000-000000000000";
+  return manquantsQuittance(assemblerQuittanceDelivree({
+    quittance_id: essai, appel_id: essai, organization_id: essai, bail_id: essai,
+    est_quittance: true, montant: 100, montant_du: 100, loyer_hc: 90, charges: 10, prorata: false,
+    date_emission: "2026-01-31", periode: "2026-01-01", bail_date_debut: "2025-01-01", bail_date_fin: null, charges_mode: "provision",
+    organisation: {
+      type: emetteur.type ?? "", nom: emetteur.nom ?? "", siret: emetteur.siret ?? null, carte_pro: null,
+      adresse: emetteur.adresse ?? null, code_postal: emetteur.code_postal ?? null, ville: emetteur.ville ?? null,
+      telephone: null, email: emetteur.email ?? null,
+    },
+    bailleurs: emetteur.bailleurs ?? [],
+    locataires: [{ nom: "Essai", prenom: "Locataire" }],
+    logement: { lot_nom: "Lot unique", etage: null, adresse: "1 rue d'essai", code_postal: "75001", ville: "Paris" },
+    appels: [{ id: essai, periode: "2026-01-01", montant_du: 100 }],
+    encaissements: [{ date_paiement: "2026-01-05", mode: "virement", montant: 100, created_at: "2026-01-05T10:00:00Z" }],
+    vue_gestionnaire: false,
+  }));
 }
 
 /** Lecture sous l'identité de l'appelant (locataire, gérant ou tâche d'envoi). */

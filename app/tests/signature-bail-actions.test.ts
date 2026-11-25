@@ -81,6 +81,39 @@ describe('Activation d’un bail préparé avant la confirmation du mobile par l
   expect((await activerBailApresSignature("org","11111111-1111-4111-8111-111111111111","circuit")).erreur).toBeUndefined();
   expect(m.rpc).toHaveBeenCalledWith("activer_bail_signature_electronique",{p_circuit:"circuit"});
  });
+ // Reprise du lot 35 : un bail préparé avec la présentation d'aujourd'hui avant la version g8 (feuille g7, typographie
+ // d'alors) se recalcule sans revenir à la présentation d'avant #331.
+ it("reconnaît un bail préparé avant la version g8 avec la présentation d'aujourd'hui",async()=>{
+  m.circuit.signataires=[];
+  m.assembler.mockImplementation(async(_db:unknown,_org:string,_bail:string,opts?:{presentationAncienne?:boolean;typographieArchivee?:boolean})=>({empreinte:opts?.presentationAncienne?"avant-331":opts?.typographieArchivee?"ancienne":"g8",manquants:[]}));
+  expect((await activerBailApresSignature("org","11111111-1111-4111-8111-111111111111","circuit")).erreur).toBeUndefined();
+  expect(m.assembler.mock.calls.some(c=>(c[3] as {typographieArchivee?:boolean;presentationAncienne?:boolean}|undefined)?.typographieArchivee===true&&!(c[3] as {presentationAncienne?:boolean}).presentationAncienne)).toBe(true);
+  expect(m.rpc).toHaveBeenCalledWith("activer_bail_signature_electronique",{p_circuit:"circuit"});
+ });
+ // Textes officiels, lot T2 (R17-A2) : un contrat nu à durée réduite n'est plus préparé. Un bail signé AVANT ce refus reste
+ // activable : le rendu du jour (refusé) est sauté, le rendu archivé rend l'empreinte du circuit.
+ it("lot T2 : un bail nu à durée réduite signé avant le refus s'active par son rendu archivé",async()=>{
+  m.circuit.signataires=[];
+  const {REFUS_BAIL_DUREE_REDUITE}=await import("@/lib/documents/modeles/mentions-location");
+  m.assembler.mockImplementation(async(_db:unknown,_org:string,_bail:string,opts?:{presentationAncienne?:boolean;typographieArchivee?:boolean})=>{
+   if(!opts?.presentationAncienne&&!opts?.typographieArchivee) throw new Error(REFUS_BAIL_DUREE_REDUITE);
+   return {empreinte:opts?.typographieArchivee?"ancienne":"avant-331",manquants:[]};
+  });
+  expect((await activerBailApresSignature("org","11111111-1111-4111-8111-111111111111","circuit")).erreur).toBeUndefined();
+  expect(m.rpc).toHaveBeenCalledWith("activer_bail_signature_electronique",{p_circuit:"circuit"});
+ });
+ it("lot T2 : tout autre refus du rendu du jour reste une erreur, sans activation",async()=>{
+  m.circuit.signataires=[];
+  m.assembler.mockImplementation(async()=>{throw new Error("Le bail contient une personne sortie : vérifiez ses parties avant de préparer la signature.");});
+  expect((await activerBailApresSignature("org","11111111-1111-4111-8111-111111111111","circuit")).erreur).toContain("personne sortie");
+  expect(m.rpc.mock.calls.some(c=>c[0]==="activer_bail_signature_electronique")).toBe(false);
+ });
+ it("aucune mise en forme connue ne rend l'empreinte : le bail n'est pas activé",async()=>{
+  m.circuit.signataires=[];
+  m.assembler.mockImplementation(async()=>({empreinte:"autre",manquants:[]}));
+  expect((await activerBailApresSignature("org","11111111-1111-4111-8111-111111111111","circuit")).erreur).toContain("ont changé");
+  expect(m.rpc.mock.calls.some(c=>c[0]==="activer_bail_signature_electronique")).toBe(false);
+ });
  it('l’ancien calcul (numéro de la fiche) vaut pour un garant qui n’a pas confirmé son numéro',async()=>{
   m.circuit.signataires=[garant(false)];
   expect((await activerBailApresSignature('org','11111111-1111-4111-8111-111111111111','circuit')).erreur).toBeUndefined();

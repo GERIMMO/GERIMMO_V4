@@ -32,6 +32,8 @@ export function DecisionArtisan({ artisanId, operation, siretVerifie = false }: 
         <label className="flex items-start gap-2 text-sm"><input type="checkbox" name="confirmation" value="oui" required className="mt-1 size-4 accent-[var(--encre)]" />Je confirme : l’inscription redevient « à examiner » et n’est plus proposée aux agences. Les interventions en cours ne sont pas interrompues.</label>
       </>}
       {operation === "refus" && <label className="block space-y-1 text-sm"><span>Motif communiqué à l’artisan</span><textarea name="motif" required maxLength={1500} rows={3} className="w-full rounded border border-[var(--filet)] bg-[var(--ivoire)] p-2" /></label>}
+      {/* Audit palier 1 (P1-16) : le motif part aussi par e-mail, comme les conditions de l'espace artisan le disent. */}
+      {(operation === "refus" || operation === "suspension") && <p className="text-sm text-[var(--texte-secondaire)]">Ce motif est envoyé à l’artisan par e-mail et reste visible dans son espace.</p>}
       <BoutonEnvoi variant={operation === "refus" || operation === "remise_en_attente" || operation === "suspension" ? "outline" : "default"} disabled={operation === "validation" && !siretVerifie}>{libelles[operation]}</BoutonEnvoi>
       {etat.erreur && <p role="alert" className="text-sm text-[var(--destructive)]">{etat.erreur}</p>}
       {etat.succes && <p role="status" className="text-sm text-[var(--success)]">{etat.succes}</p>}

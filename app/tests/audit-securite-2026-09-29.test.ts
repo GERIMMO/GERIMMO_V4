@@ -237,15 +237,18 @@ describe.skipIf(!DB_URL)("Audit sécurité du 29/09", () => {
     expect((await un<{ v: boolean }>(`select verifie_le is not null as v from public.documents where id=$1`, [doc])).v).toBe(true);
   });
 
-  it("envoyer_pour_signature et log_document_access : même règle de portefeuille", async () => {
+  // Décision Q21 du 24/11 (lot D5, migration 20261125140000) : l'ancien parcours de signature manuelle est retiré ;
+  // envoyer_pour_signature n'est plus appelable par un compte connecté. Ce test affirmait la garde de portefeuille
+  // DANS la fonction ; il affirme désormais le refus à l'entrée, pour l'agent comme pour l'administrateur (plus strict).
+  // La garde de portefeuille de log_document_access, elle, est tenue comme avant.
+  it("envoyer_pour_signature : fermée à tout compte connecté ; log_document_access : règle de portefeuille", async () => {
     const doc = await documentA("courrier");
     await agir(agentA);
-    expect(await echec(`select public.envoyer_pour_signature($1,$2,$3)`, [orgA, doc, personneA])).toMatch(/hors de votre portefeuille/);
+    expect(await echec(`select public.envoyer_pour_signature($1,$2,$3)`, [orgA, doc, personneA])).toMatch(/permission denied for function envoyer_pour_signature/);
     expect(await echec(`select public.log_document_access($1,'consultation')`, [doc])).toMatch(/acces refuse/);
     await agir(adminA);
     expect(await echec(`select public.log_document_access($1,'consultation')`, [doc])).toBe("");
-    // L'admin passe la garde de portefeuille ; la suite des contrôles métier s'applique.
-    expect(await echec(`select public.envoyer_pour_signature($1,$2,$3)`, [orgA, doc, personneA])).toMatch(/espace locataire actif/);
+    expect(await echec(`select public.envoyer_pour_signature($1,$2,$3)`, [orgA, doc, personneA])).toMatch(/permission denied for function envoyer_pour_signature/);
   });
 
   it("l'agent retrouve ses propres dépôts (document_deja_visible_agent)", async () => {

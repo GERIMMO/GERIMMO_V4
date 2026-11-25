@@ -1,4 +1,5 @@
 import { adresseDuSite } from "@/lib/site";
+import { MENTION_IA_ARTICLE, type OrigineArticle } from "@/components/mention-ia-article";
 
 export class RefusFacebookCertain extends Error {}
 
@@ -14,6 +15,8 @@ export type ArticleFacebook = {
   slug: string;
   facebookTexte: string | null;
   facebookImageUrl: string | null;
+  /** `publications.origine` : le post d'un article d'origine « ia » se termine par la mention (reprise du 24/11, M3). */
+  origine: OrigineArticle;
   afficheMarketing?: {empreinte:string|null};
 };
 
@@ -22,7 +25,10 @@ export function texteFacebook(article: ArticleFacebook): string {
   const url = `${site}/journal/${article.slug}${article.id ? "#gerimmo-" + encodeURIComponent(article.id) : ""}`;
   const introduction = article.facebookTexte?.trim() ||
     `${article.titre}\n\n${article.chapo?.trim() || "Un nouvel article du Journal Gerimmo."}`;
-  const pied = `\n\nLire l’article : ${url}`;
+  // Reprise du 24/11/2026 (M3) : un post est une publication à part entière, lue sans ouvrir l'article. Celui d'un
+  // article rédigé avec l'aide de l'IA se termine donc par la même mention que l'article ; un article écrit à la main, non.
+  const mention = article.origine === "ia" ? `\n\n${MENTION_IA_ARTICLE}` : "";
+  const pied = `\n\nLire l’article : ${url}${mention}`;
   if (pied.length > 5000) throw new Error("Lien de publication trop long.");
   return introduction.slice(0, 5000 - pied.length).replace(/[\uD800-\uDBFF]$/, "") + pied;
 }
@@ -141,7 +147,9 @@ export async function retrouverPostFacebook(article: ArticleFacebook, depuis: st
   const response = await fetch(url, {headers:{Authorization:"Bearer "+await jetonPourLaPage(page,secret)},cache:"no-store",signal:AbortSignal.timeout(15000)});
   if (!response.ok) return null;
   const feed = await response.json() as {data?:{id:string;message?:string}[];paging?:{next?:string}};
-  const message = texteFacebook(article);
-  const correspondances = feed.data?.filter(post=>post.message===message && post.id.startsWith(page+"_"));
+  // Un envoi parti juste avant la reprise du 24/11 (M3) ne porte pas la mention : on le reconnaît aussi, pour ne
+  // jamais publier deux fois le même article.
+  const messages = [texteFacebook(article), texteFacebook({...article, origine: "manuel"})];
+  const correspondances = feed.data?.filter(post=>post.message!==undefined && messages.includes(post.message) && post.id.startsWith(page+"_"));
   return article.id && !feed.paging?.next && correspondances?.length===1 ? correspondances[0].id : null;
 }

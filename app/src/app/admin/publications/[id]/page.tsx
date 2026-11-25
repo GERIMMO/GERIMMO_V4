@@ -7,6 +7,8 @@ import { createClient } from "@/lib/supabase/server";
 import { EditeurPublication } from "./editeur-publication";
 import { sansJargon } from "@/lib/erreurs";
 import { libellePeriode } from "@/lib/periode-publication";
+import { santeFacebook } from "@/lib/marketing-meta";
+import { etatPageFacebook } from "@/lib/diffusion-facebook";
 
 // Un article existant se MODIFIE (audit 25/09, C18) ; « Écrire » est la page « nouvelle ».
 export const metadata = { title: "Modifier l’article" };
@@ -31,6 +33,10 @@ export default async function PagePublication({ params }: PageProps<"/admin/publ
 
   if (error) return <main className="p-4 sm:p-7"><LectureIndisponible sujet="Article" retour={`/admin/publications/${id}`} /></main>;
   if (!p) notFound();
+  // Défaut d'écran E198 : l'éditeur affirmait une « Page Facebook connectée » et proposait « Publier sur Facebook »
+  // alors que « Marketing et contenus » disait la Page « À relier ». Il lit la connexion de la même façon que cet écran
+  // (admin/marketing/page.tsx).
+  const etatFacebook = etatPageFacebook(await santeFacebook());
   // L'en-tête dit l'écran et l'état de l'article (24/09) : il répétait le
   // titre, premier champ éditable 60 px plus bas, sans suivre sa saisie, et
   // en 20 px au lieu du h1 commun.
@@ -69,6 +75,7 @@ export default async function PagePublication({ params }: PageProps<"/admin/publ
         facebookPostId={p.facebook_post_id}
         facebookPublieLe={p.facebook_publie_le}
         facebookErreur={p.facebook_erreur ? sansJargon(p.facebook_erreur) : null}
+        facebook={etatFacebook}
       />
     </main>
   );

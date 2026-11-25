@@ -12,7 +12,7 @@ import {
   supprimerAppelCharges,
   type EtatAppel,
 } from "@/app/actions/appels-charges";
-import { LIBELLES_NATURE, type NatureCharge } from "@/lib/charges";
+import { LIBELLES_NATURE, phraseSuggestion, type NatureCharge } from "@/lib/charges";
 import { eur } from "@/lib/ged";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
@@ -92,7 +92,7 @@ function AppelBloc({
   const ecartTotal = Math.round((somme - Number(appel.total)) * 100) / 100;
 
   return (
-    <div className="space-y-3 rounded-lg border border-border p-4">
+    <div className="space-y-3 rounded-lg border border-border p-4" data-appel-exercice={appel.exercice}>
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-medium">Exercice {appel.exercice}</span>
         <span className="text-sm text-muted-foreground">· total appel {eur(appel.total)}</span>
@@ -131,6 +131,18 @@ function AppelBloc({
                   {p.propose && p.nature !== "a_qualifier" ? " (proposé)" : ""}
                 </span>
               </div>
+              {/* Audit palier 1, P0-03 : la grille suggère, le gestionnaire choisit. Tant que le poste est « à
+                  qualifier », la suggestion se lit ici ; elle ne s'applique que par le geste « Qualifier ». */}
+              {modifiable && p.nature === "a_qualifier" && phraseSuggestion(p.libelle) && (
+                <p className="text-xs text-muted-foreground" data-suggestion-nature>{phraseSuggestion(p.libelle)}</p>
+              )}
+              {/* Une ancienne proposition « récupérable » jamais confirmée : la validation la refuse tant qu'elle
+                  n'est pas confirmée (base : valider_ventilation). */}
+              {modifiable && p.propose && p.nature === "recuperable" && (
+                <p className="text-xs text-warning-soft-foreground" data-proposition-a-confirmer>
+                  Nature proposée automatiquement : confirmez-la par « Qualifier », ou corrigez-la.
+                </p>
+              )}
               {modifiable && (
                 <div className="flex flex-wrap items-center gap-2">
                   <FormQualifierPoste orgId={orgId} bienId={bienId} lotId={lotId} poste={p} />
@@ -218,7 +230,8 @@ function FormCreerAppel({
         </BoutonEnvoi>
       </div>
       <p className="text-sm text-muted-foreground">
-        Puis saisissez chaque poste : la grille (décret 87-713) propose la nature, vous corrigez.
+        Puis saisissez chaque poste. Chacun naît « à qualifier » : Gerimmo suggère une nature d’après son intitulé, vous
+        choisissez et confirmez poste par poste. Rien n’est mis à la charge du locataire sans votre choix.
       </p>
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
     </form>
@@ -335,7 +348,7 @@ function BoutonValider({
         Valider la ventilation
       </BoutonEnvoi>
       <span className="text-xs text-muted-foreground">
-        Total des postes = total de l&apos;appel, aucun poste à qualifier.
+        Total des postes = total de l&apos;appel, aucun poste à qualifier, aucune nature proposée restée sans confirmation.
       </span>
       {etat.erreur && <span className="text-sm text-destructive">{etat.erreur}</span>}
     </form>

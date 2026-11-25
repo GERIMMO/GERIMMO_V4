@@ -254,7 +254,8 @@ describe("D14 — durée de 7 jours des copies locales, purge à la déconnexion
     const composant = readFileSync("src/components/purger-copies-autres-comptes.tsx", "utf8");
     expect(composant).toMatch(/purgerCopiesAutresComptes\(compteId\)/);
     expect(composant).toMatch(/purgerCopiesPerimees\(\)/);
-    for (const f of ["src/components/menu-compte.tsx", "src/app/compte/page.tsx", "src/app/securite/page.tsx", "src/app/espaces/page.tsx"]) {
+    // Phase 3, lot 61 : l'en-tête de /compte (déconnexion, purge) est dans bandeau-compte.tsx, partagé avec /compte/donnees.
+    for (const f of ["src/components/menu-compte.tsx", "src/app/compte/bandeau-compte.tsx", "src/app/securite/page.tsx", "src/app/espaces/page.tsx"]) {
       expect(readFileSync(f, "utf8"), f).toMatch(/<PurgerCopiesAutresComptes /);
     }
   });

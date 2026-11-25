@@ -12,7 +12,7 @@ export default async function Page({searchParams}:{searchParams:Promise<{q?:stri
  const trouves=data.clients.filter(c=>`${c.nom} ${c.email} ${c.adresse}`.toLocaleLowerCase().includes(q.toLocaleLowerCase()));
  return <div className="space-y-6">
   <EnteteSousPage rubrique="personnes" titre="Mes clients externes" mention="Vos clients propres, sans compte Gerimmo. Ce carnet et ses documents restent privés."/>
-  <NavigationPrivee/>
+  <NavigationPrivee enCours="/artisan/clients"/>
   <LectureSeule active={active} exclusion={exclusion}/>
   <Carte>
    <TitreSection>Retrouver un client</TitreSection>

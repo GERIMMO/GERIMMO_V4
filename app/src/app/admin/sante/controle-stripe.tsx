@@ -12,11 +12,18 @@ const LIBELLES: Record<string, string> = {
   periode: "Échéance différente", annulation: "Résiliation à rapprocher", facture_non_reportee: "Facture payée non reportée",
   lecture_incomplete: "Lecture partielle à poursuivre", prestataire_indisponible: "Stripe indisponible lors du contrôle",
 };
-export function SuiviStripe({ controle }: { controle: ControleStripe | null }) {
-  return <ConsoleSection id="controle-stripe" titre="Paiements Stripe" description="Réceptions, abonnements et écarts de facturation." icone="sante" ton="vert" statut={!controle ? "Lecture indisponible" : `${controle.ecarts} écarts · ${controle.a_reprendre} réceptions à examiner`}>
+/**
+ * Défaut d'écran E199 : la section était verte en toutes circonstances (ton écrit en dur), y compris Stripe non relié,
+ * où « 0 écarts » ne vient d'aucun contrôle. Elle n'est verte que si Stripe est relié (ses deux clés, lues par
+ * « Connexions des services ») et que rien n'attend d'examen.
+ */
+export function SuiviStripe({ controle, stripeRelie }: { controle: ControleStripe | null; stripeRelie: boolean }) {
+  const aVerifier = !controle || !stripeRelie || controle.ecarts + controle.a_reprendre > 0;
+  return <ConsoleSection id="controle-stripe" titre="Paiements Stripe" description="Réceptions, abonnements et écarts de facturation." icone="sante" ton={aVerifier ? "ambre" : "vert"} statut={!controle ? "Lecture indisponible" : !stripeRelie ? "Stripe non relié" : `${controle.ecarts} écarts · ${controle.a_reprendre} réceptions à examiner`}>
     <div className="entete-carte mb-3">
       <Link href="/admin" className="lien-texte">Abonnements et finances</Link></div>
     {!controle ? <p role="status">Le contrôle Stripe est indisponible. Aucun état à jour ne peut être confirmé.</p> : <>
+      {!stripeRelie && <p role="status" className="mb-3 text-sm">Stripe n’est pas relié (voir « Connexions des services ») : ces compteurs ne viennent d’aucun contrôle.</p>}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{[
         [controle.en_attente, "réceptions en attente"], [controle.a_reprendre, "réceptions à examiner"],
         [controle.a_controler, "dossiers à contrôler aujourd’hui"], [controle.ecarts, "dossiers avec écarts"],

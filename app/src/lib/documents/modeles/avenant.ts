@@ -10,7 +10,7 @@ import {
   cartouches,
   echapper,
   enTete,
-  faitA,
+  faitALaSignature,
   section,
   titre,
 } from "../gabarit";
@@ -22,9 +22,17 @@ import {
   nomsLocataires,
   adresseLogement,
   referenceCourte,
+  referenceAvenant,
   liensLocataires,
 } from "./communs";
 import type { Assemblage } from "./index";
+
+export function refusAvenantSelonEtat(etat: string): string | null {
+  if (etat === "actif" || etat === "preavis") return null;
+  if (etat === "brouillon") return "L’avenant modifie un bail signé et en cours. Ce bail est encore en préparation : modifiez directement le contrat avant sa signature, ou activez d’abord la location s’il est déjà signé.";
+  if (etat === "termine") return "Ce bail est terminé : il ne se modifie plus par avenant.";
+  return "L’avenant se prépare pour un bail signé et en cours (actif ou en préavis).";
+}
 
 export async function assemblerAvenant(
   supabase: SupabaseClient,
@@ -34,6 +42,10 @@ export async function assemblerAvenant(
 ): Promise<Assemblage> {
   const ctx = await chargerContexteBail(supabase, orgId, bailId);
   if ("erreur" in ctx) return ctx;
+  // Phase 3 (C06) : l'avenant modifie « le contrat de location conclu entre les parties » — un bail signé et en cours (actif
+  // ou en préavis). Un brouillon n'est pas conclu ; un bail terminé ne se modifie plus. Même règle que la liste du catalogue.
+  const refusEtat = refusAvenantSelonEtat(ctx.bail.etat);
+  if (refusEtat) return { erreur: refusEtat };
 
   const f = new Fusion();
   const exp = expediteur(ctx);
@@ -79,7 +91,8 @@ export async function assemblerAvenant(
 
     <div class="bloc-signataires">
     ${section("Date et signatures")}
-    ${faitA(f, exp.ville, new Date().toISOString(), ", en autant d'exemplaires originaux que de parties.")}
+    ${/* Phase 3 (C23) : l'avenant est daté par les parties en le signant, comme le bail — plus du jour de sa génération. */
+      faitALaSignature(f, exp.ville, ", en autant d'exemplaires originaux que de parties.")}
     <div class="signatures">
       ${cadreSignature("Le bailleur", f.champ(nomPersonne(bailleurPrincipal), "nom et prénom(s), ou dénomination"))}
       ${cadreSignature(
@@ -99,7 +112,9 @@ export async function assemblerAvenant(
       f,
       titreDocument: "Avenant au bail",
       nomPied: "Avenant au bail",
-      reference: referenceCourte("AVT", ctx.bail.id),
+      // Phase 3 (C18) : une référence propre à cet avenant, plus celle du seul bail. Reprise du lot 40 : tirée de son objet
+      // et de ses modifications (et non plus de l'heure de génération), elle reste la même dans le PDF préparé pour la signature.
+      reference: referenceAvenant(ctx.bail.id, { objet: objetBrut, modifications: modificationsBrutes }),
       corps,
     }),
     titreGed: objetTronque ? `Avenant — ${objetTronque}` : "Avenant au bail",

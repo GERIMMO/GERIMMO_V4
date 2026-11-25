@@ -10,7 +10,8 @@ import { actualiserSignatureBail, annulerSignatureBail, envoyerSignatureBail, li
 
 import { DOCUMENTS_ZOHO, type SelectionSignature } from "@/lib/politique-signature";
 import { formaterDate } from "@/lib/ged";
-import { confirmationEdlSurPlace, dateVisiteFr } from "@/lib/textes-signature-actes";
+import { confirmationEdlSurPlace, dateVisiteFr, LIBELLE_SIGNATURE_ELECTRONIQUE } from "@/lib/textes-signature-actes";
+import { estResumeNoticeJoint } from "@/lib/documents-bail";
 
 /** Le jour de Paris, « AAAA-MM-JJ » : borne de la date de la visite (jamais dans le futur). */
 const aujourdhuiIso = () => new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Paris",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
@@ -87,8 +88,15 @@ export function SignatureElectroniqueBail({orgId,bailId,selection,apresSignature
   const edlConfirme = code!=="edl" || (surPlace && Boolean(dateVisiteFr(visite)) && visite<=aujourdhuiIso());
   const parties=c && !["annule","refuse","expire"].includes(c.etat)?c.signataires:vue?.signataires??[];
   const signes=parties.filter(p=>p.statut==="signed").length;
-  const annexes=c && !["annule","refuse","expire"].includes(c.etat)?c.annexes:vue?.annexes??[];
+  const pieces=c && !["annule","refuse","expire"].includes(c.etat)?c.annexes:vue?.annexes??[];
+  // Phase 3, reprise du lot 45 (T15) : le résumé de la notice établi par Gerimmo n'est pas une annexe du contrat. L'écran le
+  // liste à part, comme la page de garde du dossier (« Document d’information joint ») ; les autres pièces restent les annexes.
+  const annexes=pieces.filter(a=>!estResumeNoticeJoint(a));
+  const resumesJoints=pieces.filter(estResumeNoticeJoint);
+  const lienPiece=(a:{id:string;titre:string})=><li key={a.id}><a className="inline-flex min-h-11 items-center underline underline-offset-4" href={`${base}/documents/${a.id}/fichier`} target="_blank" rel="noreferrer">{a.titre}</a></li>;
   function corriger(champ:string) {
+    // Décision du 24/11/2026 (Q46) : la consigne « Déposez la notice d’information officielle… » mène à la carte du dépôt.
+    if (/notice d’information officielle/i.test(champ)) return "#notice-deposee";
     if (/annexe|notice|règlement|version PDF|diagnostic|étape Documents/i.test(champ)) return "#etape-bail-5";
     if (/signataire|propriétaire|locataire|rôles|e-mail|SMS|représentant/i.test(champ)) return "#etape-bail-2";
     return cibleChampBail(champ,orgId,racine).href;
@@ -97,7 +105,7 @@ export function SignatureElectroniqueBail({orgId,bailId,selection,apresSignature
   return <section aria-labelledby={titreId} className="min-w-0 rounded-2xl border border-border bg-card p-4 sm:p-5 space-y-4 [&_button]:h-auto [&_button]:min-h-10 [&_button]:max-w-full [&_button]:whitespace-normal">
     <header className="flex flex-wrap items-start justify-between gap-3">
       <div className="flex min-w-0 gap-3"><span className="shrink-0 rounded-xl bg-primary/10 p-2.5 text-primary h-fit"><FileSignature size={22}/></span><div className="min-w-0">
-        <h4 id={titreId} className="font-semibold text-base">Signature · {DOCUMENTS_ZOHO[code]}</h4>
+        <h4 id={titreId} className="font-semibold text-base">{LIBELLE_SIGNATURE_ELECTRONIQUE} · {DOCUMENTS_ZOHO[code]}</h4>
         <p className="text-sm text-muted-foreground">{code === "devis_artisan" ? "L’offre validée par l’artisan est jointe sans modification. Les propriétaires signent leur acceptation." : "Un document commun, les propriétaires signent en dernier."}</p>
       </div></div>
       {c&&<span className={`rounded-full px-3 py-1 text-xs font-semibold ${c.etat==="termine"?"bg-success-soft text-foreground":"bg-primary/10 text-primary"}`}>{attente?.etat==="en_attente"&&!mobileCautionConfirme?"En attente de la caution":attenteGarant?"En attente du garant":ETATS[c.etat]}</span>}
@@ -120,7 +128,8 @@ export function SignatureElectroniqueBail({orgId,bailId,selection,apresSignature
       </li>)}
     </ol>}
     {!!vue?.manquants?.length&&!actif&&c?.etat!=="termine"&&<ManquantsSignature manquants={vue.manquants} manquantsDejaAffiches={estBail ? manquantsDejaAffiches : undefined} corriger={estBail ? corriger : undefined}/>}
-    {!!annexes.length&&<div className="text-sm"><p className="font-medium">Annexes jointes au contrat · {annexes.length}</p><ul className="mt-1 grid gap-x-4 sm:grid-cols-2">{annexes.map(a=><li key={a.id}><a className="inline-flex min-h-11 items-center underline underline-offset-4" href={`${base}/documents/${a.id}/fichier`} target="_blank" rel="noreferrer">{a.titre}</a></li>)}</ul></div>}
+    {!!annexes.length&&<div className="text-sm"><p className="font-medium">Annexes jointes au contrat · {annexes.length}</p><ul className="mt-1 grid gap-x-4 sm:grid-cols-2">{annexes.map(lienPiece)}</ul></div>}
+    {!!resumesJoints.length&&<div className="text-sm" data-document-information-joint><p className="font-medium">Document d’information joint</p><p className="text-xs text-muted-foreground">Ce résumé, établi par Gerimmo, accompagne le contrat dans le même dossier de signature. Il n’est pas une annexe du contrat et ne remplace pas la notice d’information officielle, que le bailleur remet au locataire avec le contrat.</p><ul className="mt-1 grid gap-x-4 sm:grid-cols-2">{resumesJoints.map(lienPiece)}</ul></div>}
     {code==="edl"&&c&&c.etat!=="pret"&&c.confirmation_sur_place?.texte&&<div className="rounded-xl border border-border p-3 text-sm"><p className="font-medium">Confirmation du bailleur avant l’envoi</p><p>{c.confirmation_sur_place.texte}</p><p className="text-xs text-muted-foreground">Donnée le {instant(c.confirmation_sur_place.confirme_le)}, depuis l’espace propriétaire. Elle est conservée avec ce circuit de signature.</p></div>}
     {actif&&<div className="space-y-2"><div className="flex justify-between text-sm"><span>Progression</span><span>{signes} / {parties.length} signatures</span></div><progress className="h-2 w-full accent-primary" max={Math.max(1,parties.length)} value={signes} aria-label="Signatures reçues"/><p className="text-xs text-muted-foreground">Le PDF envoyé reste inchangé. Chaque personne reçoit son invitation lorsque vient son tour.</p></div>}
     {c?.etat==="pret"&&<div className="rounded-xl bg-muted/40 p-3 space-y-3">

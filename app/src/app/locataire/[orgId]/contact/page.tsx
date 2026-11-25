@@ -1,4 +1,5 @@
 import { lireIdentiteContact } from "../identite-contact";
+import { interlocuteurDeLIdentite } from "@/lib/identite-contact-locataire";
 import { AssistantPrive } from "@/components/assistant-prive";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
@@ -56,7 +57,7 @@ export default async function PageContactLocataire(
       </div>
 
       {aEchoue(eGestionnaire, eFil) && (
-        <PanneLecture quoi="votre fil de messages" />
+        <PanneLecture quoi="votre fil de messages" interlocuteur={interlocuteurDeLIdentite(identiteContact)} />
       )}
 
       <div className="loc-grille">
@@ -66,6 +67,7 @@ export default async function PageContactLocataire(
           agence={identiteContact.nom ?? (identiteContact.agence ? "votre gestionnaire" : "votre bailleur")}
           lectureSeule={!adhesionActive}
           lectureEnEchec={aEchoue(eFil)}
+          interlocuteur={interlocuteurDeLIdentite(identiteContact)}
         />
         <div className="space-y-4">
           {g && (
@@ -79,7 +81,7 @@ export default async function PageContactLocataire(
                 {g.email_contact && (
                   <div className="ligne-info">
                     <span className="shrink-0 whitespace-nowrap">E-mail</span>
-                    <a href={`mailto:${g.email_contact}`} className="lien-discret min-w-0 wrap-anywhere">
+                    <a href={`mailto:${g.email_contact}`} className="lien-discret min-w-0 py-1.5 wrap-anywhere">
                       {g.email_contact}
                     </a>
                   </div>
@@ -89,7 +91,7 @@ export default async function PageContactLocataire(
                     <span className="shrink-0 whitespace-nowrap">Téléphone</span>
                     <a
                       href={`tel:${g.telephone.replace(/\s/g, "")}`}
-                      className="lien-discret min-w-0 wrap-anywhere"
+                      className="lien-discret min-w-0 py-1.5 wrap-anywhere"
                     >
                       {g.telephone}
                     </a>
@@ -113,7 +115,8 @@ export default async function PageContactLocataire(
 
         </div>
       </div>
-      <AssistantPrive key={`${orgId}:${user.id}`} orgId={orgId} compteId={user.id} lectureSeule={!adhesionActive} />
+      <AssistantPrive key={`${orgId}:${user.id}`} orgId={orgId} compteId={user.id} lectureSeule={!adhesionActive}
+        aides={[{ href: `/locataire/${orgId}/faq`, libelle: "Aide et questions fréquentes" }, { href: `/locataire/${orgId}/regles`, libelle: "Les règles à connaître" }]} />
     </div>
   );
 }

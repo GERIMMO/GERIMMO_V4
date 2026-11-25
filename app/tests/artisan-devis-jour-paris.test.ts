@@ -25,6 +25,8 @@ vi.mock("next/navigation", () => ({ notFound: () => { throw new Error("notFound"
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/app/artisan/acces", () => ({
   verifierAccesArtisan: async () => ({ user: { id: "u1" } }),
+  // Audit P2-04 : la page du devis lit aussi les lignes gardées par l'artisan (aucune dans ces scénarios).
+  chargerMesLignesDevis: async () => [],
   chargerFicheArtisan: async () => ({ fiche: { artisan_id: "a1", decennale_valide: true } }),
   chargerSollicitations: async () => ({
     lignes: [{

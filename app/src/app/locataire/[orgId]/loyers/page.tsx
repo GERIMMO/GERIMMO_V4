@@ -1,5 +1,5 @@
 import { SuiviEcheanciersCharges } from "@/components/suivi-echeanciers-charges";
-import { disponibilitesQuittances } from "@/lib/quittance-conforme";
+import { disponibilitesQuittances, manquantsEmetteurQuittance } from "@/lib/quittance-conforme";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { aujourdhuiParis, eur, formaterDate } from "@/lib/ged";
@@ -14,6 +14,8 @@ import { BORD_ETAT, tagLocataire } from "../pastille-locataire";
 import type { BailLocataire } from "../types";
 import { BoutonCopierIban } from "./bouton-copier-iban";
 import { PlanApurementLocataire, type MonPlanApurement } from "@/components/plan-apurement-locataire";
+import { lireIdentiteContact } from "../identite-contact";
+import { interlocuteurDeLIdentite } from "@/lib/identite-contact-locataire";
 
 export const metadata = { title: "Mes paiements" };
 
@@ -24,6 +26,8 @@ export default async function PagePaiementsLocataire(
 ) {
   const { orgId } = await props.params;
   const { supabase, organisation } = await verifierAccesEspaceLocataire(orgId);
+  // Lot 47 : « votre gestionnaire » seulement dans un espace d'agence ; chez un propriétaire, « votre bailleur ».
+  const qui = interlocuteurDeLIdentite(await lireIdentiteContact(orgId));
 
   const [
     { data: echeancier, error: eEcheancier },
@@ -34,6 +38,7 @@ export default async function PagePaiementsLocataire(
     { data: beneficiaire },
     { data: plansRows },
     { data: demandePlan },
+    { data: emetteurBrut, error: eEmetteur },
   ] = await Promise.all([
     supabase.rpc("mon_echeancier_locataire", { p_org: orgId }),
     supabase.rpc("mon_bail_locataire", { p_org: orgId }),
@@ -49,6 +54,10 @@ export default async function PagePaiementsLocataire(
     // Plan d'apurement (02/11) : le plan vivant ou le dernier, et la demande en attente.
     supabase.rpc("mon_plan_apurement", { p_org: orgId }),
     supabase.rpc("ma_demande_plan_apurement", { p_org: orgId }),
+    // Lot 61 (reprise, M2) : l'émetteur de ses documents, pour ne pas promettre une quittance que son profil incomplet
+    // retiendra. Lecture déjà ouverte au locataire (celle de l'attestation et du titre « Mon gestionnaire ») : aucun
+    // droit nouveau.
+    supabase.rpc("attestation_emetteur_locataire", { p_org: orgId }),
   ]);
   const planApurement = ((plansRows ?? []) as MonPlanApurement[])[0] ?? null;
   const ibanBrut = String(beneficiaire?.iban ?? "").replace(/\s+/g, "").toUpperCase();
@@ -98,6 +107,20 @@ export default async function PagePaiementsLocataire(
     prorata?: boolean | null;
   }[];
   const disponibilites = await disponibilitesQuittances(supabase, lignesLoyer.map(l => l.quittance_id));
+  // Lot 61 : un document de l'historique est retenu faute d'informations obligatoires de l'émetteur (« Document en
+  // préparation ») : la quittance du mois soldé le sera aussi, tant qu'elles manquent.
+  const documentEnPreparation = Object.values(disponibilites).includes("en_preparation");
+  // Lot 61 (reprise, M2) : la phrase ne basculait que s'il existait DÉJÀ un document retenu dans l'historique. Un nouveau
+  // locataire (aucun reçu) chez un émetteur au profil incomplet lisait encore « rien à demander ». Trois cas :
+  //  - un document est retenu, ou l'émetteur a des informations obligatoires manquantes : « en préparation » ;
+  //  - l'émetteur est lu et complet : la phrase d'origine ;
+  //  - l'émetteur ne se lit pas (lecture en échec, ou aucune ligne) : on ne promet pas sans savoir — « en principe »,
+  //    comme la FAQ.
+  const emetteurLu = !eEmetteur && emetteurBrut && typeof emetteurBrut === "object" && !Array.isArray(emetteurBrut)
+    ? (emetteurBrut as Parameters<typeof manquantsEmetteurQuittance>[0]) : null;
+  const promesseQuittance: "en-preparation" | "disponible" | "en-principe" =
+    documentEnPreparation || (emetteurLu && manquantsEmetteurQuittance(emetteurLu).length > 0) ? "en-preparation"
+      : emetteurLu ? "disponible" : "en-principe";
   const sommesEchues = lignesLoyer.filter(l => l.statut === "impaye" || l.statut === "partiel");
   const soldeEchu = sommesEchues.reduce((s, l) => s + Math.max(0, Math.round((Number(l.montant_du) - Number(l.montant_couvert)) * 100)), 0) / 100;
   const bail = ((bauxRows ?? []) as BailLocataire[])[0];
@@ -106,6 +129,10 @@ export default async function PagePaiementsLocataire(
     new Date(d).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
   const prochaine = lignesLoyer.find((l) => ["impaye", "partiel", "attendu"].includes(l.statut));
   const forfait = bail?.charges_mode === "forfait";
+  // Lot 61 : le premier mois affiché est postérieur au mois de début du bail (comparaison de « AAAA-MM »).
+  const historiqueCommenceApresLeBail =
+    !aEchoue(eEcheancier) && lignesLoyer.length > 0 && Boolean(bail?.date_debut) &&
+    lignesLoyer[0].periode.slice(0, 7) > bail!.date_debut!.slice(0, 7);
   // Seuls les mois SOLDÉS ont une quittance ; un paiement partiel n'a qu'un
   // reçu, et la mention le comptait comme une quittance (24/09).
   const nbQuittances = lignesLoyer.filter((l) => l.statut === "paye" && l.quittance_id && disponibilites[l.quittance_id] === "disponible").length;
@@ -162,7 +189,7 @@ export default async function PagePaiementsLocataire(
       </div>
 
       {aEchoue(eEcheancier, eBaux, eRestitution, eRetenues, eRelances) && (
-        <PanneLecture quoi="vos paiements" />
+        <PanneLecture quoi="vos paiements" interlocuteur={qui} />
       )}
 
       {/* Sous le titre de l'écran (20/11) : ce bloc et son titre passaient
@@ -200,13 +227,13 @@ export default async function PagePaiementsLocataire(
                   {prochaine.prorata ? " (au prorata des jours occupés)" : ""} — à régler par
                   virement à{" "}
                   {ibanBrut ? (
-                    "votre gestionnaire, coordonnées ci-dessous"
+                    `votre ${qui}, coordonnées ci-dessous`
                   ) : (
                     <Link
                       href={`/locataire/${orgId}/contact`}
                       className="font-medium text-[var(--bleu)] underline underline-offset-2"
                     >
-                      votre gestionnaire
+                      votre {qui}
                     </Link>
                   )}
                   .
@@ -225,9 +252,25 @@ export default async function PagePaiementsLocataire(
                     </div>
                   </div>
                 )}
-                <p className="mt-2 text-[13px] text-muted-foreground">
-                  Après paiement intégral, votre quittance est établie et disponible
-                  ici — rien à demander.
+                {/* Phase 3, lot 61 (E013, E130) : la phrase promettait « rien à demander » alors qu'un document du même
+                    historique attend que l'émetteur complète ses informations obligatoires — la même barrière
+                    retiendra la quittance. Dans ce cas, la phrase le dit et mène à l'interlocuteur. Reprise (M2) : la
+                    même bascule sans document, quand le profil de l'émetteur est incomplet (`promesseQuittance`). */}
+                <p className="mt-2 text-[13px] text-muted-foreground" data-phrase-quittance={promesseQuittance}>
+                  {promesseQuittance === "en-preparation" ? (
+                    <>
+                      Après paiement intégral, votre quittance sera disponible ici dès que votre {qui} aura
+                      complété les informations obligatoires du document. Vous pouvez le lui demander :{" "}
+                      <Link href={`/locataire/${orgId}/contact`} className="lien-texte">
+                        écrire à mon {qui}
+                      </Link>
+                      .
+                    </>
+                  ) : promesseQuittance === "disponible" ? (
+                    "Après paiement intégral, votre quittance est établie et disponible ici — rien à demander."
+                  ) : (
+                    "Après paiement intégral, votre quittance est établie et disponible ici — en principe, rien à demander."
+                  )}
                   {prochaine.prorata &&
                     " Ce mois-ci est calculé au prorata de votre date d'entrée ou de sortie."}
                 </p>
@@ -273,7 +316,7 @@ export default async function PagePaiementsLocataire(
               <p className="text-[13px] text-muted-foreground">
                 {forfait
                   ? `Forfait de ${eur(Number(bail.charges ?? 0))} par mois : il couvre les charges sans régularisation — aucun décompte annuel à attendre.`
-                  : `Provision de ${eur(Number(bail.charges ?? 0))} par mois : une fois par an, votre gestionnaire la compare aux charges réelles. Le décompte de régularisation arrive dans Mes documents — vous ne payez que ce qui a été réellement dépensé.`}
+                  : `Provision de ${eur(Number(bail.charges ?? 0))} par mois : une fois par an, votre ${qui} la compare aux charges réelles. Le décompte de régularisation arrive dans Mes documents — vous ne payez que ce qui a été réellement dépensé.`}
               </p>
             </div>
           )}
@@ -355,6 +398,15 @@ export default async function PagePaiementsLocataire(
               })}
             </ul>
           )}
+          {/* Phase 3, lot 61 (E016, E134) : le bail commence avant le premier mois de l'historique (loyers suivis ici
+              à partir d'un mois plus tardif) et rien ne le disait — le locataire pouvait croire un mois perdu. */}
+          {historiqueCommenceApresLeBail && (
+            <p className="mt-3 text-xs text-muted-foreground" data-historique-depuis>
+              Cet historique commence en {moisLong(lignesLoyer[0].periode)} : les mois antérieurs de votre bail
+              (depuis le {formaterDate(bail.date_debut)}) n&apos;y figurent pas. Pour un mois plus ancien, écrivez à
+              votre {qui}.
+            </p>
+          )}
           <p className="mt-3 text-xs text-muted-foreground">
             {CONSERVATION_DOCUMENTS_LOCATAIRE} Utiles pour la CAF ou un futur dossier
             de location.
@@ -417,7 +469,7 @@ export default async function PagePaiementsLocataire(
             ))}
           </ul>
           <p className="mt-2.5 text-xs text-muted-foreground">
-            Une difficulté de paiement ? Écrivez à votre gestionnaire : une
+            Une difficulté de paiement ? Écrivez à votre {qui} : une
             solution se trouve toujours plus tôt que tard.
           </p>
         </div>
@@ -426,6 +478,7 @@ export default async function PagePaiementsLocataire(
       {/* Plan d'apurement (02/11) : le plan en cours, ou la demande quand des loyers sont en retard */}
       <PlanApurementLocataire
         orgId={orgId}
+        interlocuteur={qui}
         plan={planApurement}
         demandeEnCours={demandePlan === true}
         detteEchue={soldeEchu}
@@ -525,7 +578,7 @@ export default async function PagePaiementsLocataire(
                 normale du logement est déduite des retenues (décote de
                 vétusté) : elle ne peut pas vous être facturée. Un désaccord ?{" "}
                 <Link href={`/locataire/${orgId}/contact`} className="lien-discret">
-                  Écrivez à votre gestionnaire
+                  Écrivez à votre {qui}
                 </Link>
                 .
               </p>

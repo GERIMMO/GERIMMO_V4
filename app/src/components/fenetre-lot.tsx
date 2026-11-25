@@ -12,6 +12,7 @@ import {
   chargerComptabiliteDuLot,
   chargerEcheancierLocataire,
   chargerRelancesDuLot,
+  chargerPlanApurementEnCours,
   chargerHistoriqueDuLot,
   envoyerRapportDuLot,
   type FicheLot,
@@ -31,7 +32,6 @@ import { Modale } from "@/components/ui/modale";
 import { LecteurDocument } from "@/components/lecteur-document";
 import { BadgeStatut, type TonStatut } from "@/components/badge-statut";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
-import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CleEnvoi } from "@/components/cle-envoi";
@@ -49,6 +49,10 @@ import { TYPES_DOCUMENT, eur, formaterDate, moisEnFrancais } from "@/lib/ged";
 import { regrouperDocumentsLot } from "@/lib/documents-lot";
 import { CATEGORIES_INCIDENT } from "@/lib/incidents";
 import { useBaseEspace } from "@/components/racine-espace-contexte";
+import { mentionEtage } from "@/lib/etage";
+import { RELANCES_SUSPENDUES_SOUS_PLAN } from "@/lib/paliers-reception-loyer";
+import { jourDuMois } from "@/lib/jour-du-mois";
+import { interlocuteurLocataire, type InterlocuteurLocataire } from "@/lib/interlocuteur-locataire";
 
 // LA FENÊTRE DU LOT — sur le gabarit remis par l'humain le 12/09.
 //
@@ -126,6 +130,7 @@ export function FenetreLotProvider({
   orgId,
   lotInitial = null,
   estProprietaire = false,
+  interlocuteur = interlocuteurLocataire(null),
   children,
 }: {
   orgId: string;
@@ -135,6 +140,11 @@ export function FenetreLotProvider({
    * honoraires, les mentions « hors mandat » ne lui disent rien.
    */
   estProprietaire?: boolean;
+  /**
+   * Lot 47 : vu par le locataire, à qui il s'adresse — « gestionnaire » dans un espace d'agence, « bailleur » chez un
+   * propriétaire (la page du locataire le passe ; sans lui, la règle commune donne « bailleur »).
+   */
+  interlocuteur?: InterlocuteurLocataire;
   children: ReactNode;
 }) {
   const [ouvert, setOuvert] = useState<{ id: string; libelle?: string } | null>(
@@ -151,6 +161,7 @@ export function FenetreLotProvider({
           lotId={ouvert.id}
           libelle={ouvert.libelle}
           estProprietaire={estProprietaire}
+          interlocuteur={interlocuteur}
           fermer={() => setOuvert(null)}
         />
       )}
@@ -192,12 +203,14 @@ function FenetreLot({
   lotId,
   libelle,
   estProprietaire,
+  interlocuteur,
   fermer,
 }: {
   orgId: string;
   lotId: string;
   libelle?: string;
   estProprietaire: boolean;
+  interlocuteur: InterlocuteurLocataire;
   fermer: () => void;
 }) {
   // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
@@ -323,7 +336,7 @@ function FenetreLot({
           </div>
 
           {onglet === "resume" && (
-            <OngletResume orgId={orgId} fiche={fiche} allerA={setOnglet} estProprietaire={estProprietaire} />
+            <OngletResume orgId={orgId} fiche={fiche} allerA={setOnglet} estProprietaire={estProprietaire} interlocuteur={interlocuteur} />
           )}
           {onglet === "documents" && <OngletDocuments orgId={orgId} fiche={fiche} fermer={fermer} />}
           {onglet === "compta" &&
@@ -377,7 +390,7 @@ function EnteteLot({
               {[
                 fiche.surface_m2 !== null ? formaterSurface(fiche.surface_m2) : null,
                 fiche.pieces !== null ? `${fiche.pieces} pièce${fiche.pieces > 1 ? "s" : ""}` : null,
-                fiche.etage ? `étage ${fiche.etage}` : null,
+                mentionEtage(fiche.etage, identite?.titre),
                 fiche.meuble ? "meublé" : null,
               ]
                 .filter(Boolean)
@@ -447,6 +460,9 @@ function BandeauAction({
   const locataire = fiche.portee === "locataire";
   const impaye = Number(fiche.impaye_echu);
   const [echelle, setEchelle] = useState<EchelonRelance[] | null>(null);
+  // Phase 3, lot 44 (C65) : null tant que le plan n'est pas lu — aucune relance n'est proposée avant de savoir.
+  const [plan, setPlan] = useState<EtatPlanDuBail | null>(null);
+  const bailId = fiche.bail_id;
 
   useEffect(() => {
     if (locataire || impaye <= 0) return;
@@ -454,10 +470,13 @@ function BandeauAction({
     chargerRelancesDuLot(fiche.lot_id).then((r) => {
       if (vivant && !r.erreur) setEchelle(r.donnees ?? []);
     });
+    if (bailId) chargerPlanApurementEnCours(orgId, bailId).then((r) => {
+      if (vivant) setPlan(r.erreur ? "illisible" : r.donnees ? "en_cours" : "aucun");
+    });
     return () => {
       vivant = false;
     };
-  }, [locataire, impaye, fiche.lot_id]);
+  }, [locataire, impaye, fiche.lot_id, orgId, bailId]);
 
   if (impaye <= 0) {
     // Rien à régler : on le dit une fois, sobrement. Un bandeau vert
@@ -512,6 +531,7 @@ function BandeauAction({
             orgId={orgId}
             bailId={fiche.bail_id}
             echelle={echelle}
+            plan={plan}
             rafraichir={rafraichir}
           />
         )}
@@ -556,22 +576,32 @@ function EchelleRelance({ echelons }: { echelons: EchelonRelance[] }) {
   );
 }
 
+/** Le plan d'apurement du bail, vu de la fenêtre : « en_cours » (actif ou en défaut), « aucun », ou « illisible ». */
+export type EtatPlanDuBail = "en_cours" | "aucun" | "illisible";
+
 /** Les trois gestes du gabarit : encaisser, encaisser une partie, monter d'un cran. */
-function GestesImpaye({
+export function GestesImpaye({
   orgId,
   bailId,
   echelle,
+  plan,
   rafraichir,
 }: {
   orgId: string;
   bailId: string;
   echelle: EchelonRelance[] | null;
+  /** null : pas encore lu. */
+  plan: EtatPlanDuBail | null;
   rafraichir: () => void;
 }) {
+  const base = useBaseEspace(orgId);
   const [partiel, setPartiel] = useState(false);
   // Le prochain barreau NON franchi : « étape suivante » ne redemande pas une
   // relance déjà envoyée, et disparaît une fois la mise en demeure partie.
-  const prochain = (echelle ?? []).find((e) => !e.envoye_le) ?? null;
+  // Phase 3, lot 44 (C65) : seulement quand le bail n'a AUCUN plan d'apurement en cours. Sous plan, les relances sont
+  // suspendues jusqu'à sa fin (la base, la préparation des courriers et ajouterRelance le refusent) ; plan illisible ou pas
+  // encore lu : rien n'est proposé.
+  const prochain = plan === "aucun" ? (echelle ?? []).find((e) => !e.envoye_le) ?? null : null;
 
   const [etatRelance, actionRelance] = useActionState<EtatLoyers, FormData>(
     async (etat, formData) => {
@@ -614,6 +644,19 @@ function GestesImpaye({
         <p className="max-w-xs text-xs text-muted-foreground">
           La mise en demeure part en recommandé, hors de la plateforme : le
           numéro et la date de première présentation se saisissent depuis le bail.
+        </p>
+      )}
+      {plan === "en_cours" && (
+        <p className="max-w-xs text-xs text-muted-foreground">
+          {RELANCES_SUSPENDUES_SOUS_PLAN}{" "}
+          <Link href={`${base}/baux/${bailId}#plan-apurement`} className="lien-discret">
+            Suivre le plan d’apurement dans le bail
+          </Link>
+        </p>
+      )}
+      {plan === "illisible" && (
+        <p className="max-w-xs text-xs text-muted-foreground">
+          Impossible de vérifier le plan d’apurement de ce bail : aucune relance n’est proposée ici.
         </p>
       )}
       {partiel && (
@@ -692,11 +735,13 @@ function OngletResume({
   fiche,
   allerA,
   estProprietaire,
+  interlocuteur,
 }: {
   orgId: string;
   fiche: FicheLot;
   allerA: (o: Onglet) => void;
   estProprietaire: boolean;
+  interlocuteur: InterlocuteurLocataire;
 }) {
   // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
   const base = useBaseEspace(orgId);
@@ -740,13 +785,13 @@ function OngletResume({
         </Carte>}
 
         {locataire ? (
-          <Carte titre="Mon logement" badge="mon gestionnaire" ton="neutre">
+          <Carte titre="Mon logement" badge={`mon ${interlocuteur}`} ton="neutre">
             <Ligne libelle="Immeuble" valeur={fiche.bien_nom} />
             <Ligne libelle="Adresse" valeur={`${fiche.adresse}, ${fiche.code_postal} ${fiche.ville}`} />
             <p className="mt-3 text-sm text-muted-foreground">
-              Une question, une panne ? Votre gestionnaire répond depuis{" "}
+              Une question, une panne ? Votre {interlocuteur} répond depuis{" "}
               <Link href={`/locataire/${orgId}/contact`} className="lien-discret">
-                Mon gestionnaire
+                Mon {interlocuteur}
               </Link>
               .
             </p>
@@ -769,7 +814,8 @@ function OngletResume({
             {fiche.mandat_id ? (
               <>
                 <Ligne libelle="Honoraires" valeur={fiche.taux_honoraires !== null ? `${Number(fiche.taux_honoraires)} %` : null} />
-                <Ligne libelle="Rapport" valeur={fiche.jour_rapport ? `le ${fiche.jour_rapport} du mois` : null} />
+                {/* Reprise du lot 43 : « le 1er du mois », comme l'échéance et le mandat imprimé (plus « le 1 du mois »). */}
+                <Ligne libelle="Rapport" valeur={fiche.jour_rapport ? `le ${jourDuMois(fiche.jour_rapport)} du mois` : null} />
                 <div className="mt-3">
                   <button type="button" onClick={() => allerA("compta")} className={buttonVariants({ size: "sm" })}>
                     Envoyer le rapport
@@ -819,7 +865,7 @@ function OngletResume({
             <Ligne libelle="Charges" valeur={fiche.charges !== null ? eur(fiche.charges) : "Non renseignées"} />
             <Ligne libelle="Total mensuel" valeur={loyer === null ? "À compléter" : eur(loyer)} />
             <Ligne libelle="Dépôt de garantie" valeur={fiche.depot_garantie !== null ? eur(fiche.depot_garantie) : null} />
-            <Ligne libelle="Échéance" valeur={fiche.jour_echeance ? `Le ${fiche.jour_echeance} du mois` : null} />
+            <Ligne libelle="Échéance" valeur={fiche.jour_echeance ? `Le ${jourDuMois(fiche.jour_echeance)} du mois` : null} />
             {impaye > 0 && <p className="mt-2 text-sm text-destructive">{eur(impaye)} restant dû</p>}
             <Link href={locataire ? `/locataire/${orgId}/logement#bail` : `${base}/baux/${fiche.bail_id}`} className="lien-discret mt-3 inline-flex min-h-11 items-center">Ouvrir le bail →</Link>
           </> : <>
@@ -879,7 +925,6 @@ function ActionsRapides({
   // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
   const base = useBaseEspace(orgId);
   const locataire = fiche.portee === "locataire";
-  const retour = locataire ? `/locataire/${orgId}/logement` : `${base}/parc`;
   return (
     <div>
       <p className="eyebrow mb-2">Actions rapides</p>
@@ -898,24 +943,21 @@ function ActionsRapides({
           </>
         ) : (
           <>
-            {/* Ces deux-là GÉNÈRENT vraiment leur document : le gabarit les
-                dessinait, les modèles existaient déjà. */}
+            {/* Reprise du lot 38 : l'avis d'échéance se prépare pour UN terme (appel de loyer), la lettre de révision pour UNE
+                révision enregistrée. Ces deux boutons leur passaient l'identifiant du bail et échouaient toujours (« Appel de loyer
+                introuvable. », « Révision introuvable. ») : ils mènent désormais à la rubrique des loyers du bail, où chaque terme
+                restant à régler et chaque révision ont leur bouton.
+                Phase 3, lot 44 : « Préparer un avis ou une révision » promettait deux documents que la rubrique n'offre pas toujours
+                (avis : seulement pour un terme non soldé ; révision : seulement si le bail prévoit la révision IRL), ce que la
+                fenêtre ne sait pas. Le lien dit où il mène. */}
             {fiche.bail_id && (
               <>
-                <BoutonGenererDocument
-                  orgId={orgId}
-                  code="avis_echeance"
-                  cibleId={fiche.bail_id}
-                  cheminRetour={retour}
-                  libelle="Avis d’échéance"
-                />
-                <BoutonGenererDocument
-                  orgId={orgId}
-                  code="revision_irl"
-                  cibleId={fiche.bail_id}
-                  cheminRetour={retour}
-                  libelle="Révision IRL"
-                />
+                <Link
+                  href={`${base}/baux/${fiche.bail_id}#loyers`}
+                  className={buttonVariants({ variant: "outline", size: "sm" })}
+                >
+                  Loyers du bail
+                </Link>
                 <Link
                   href={`${base}/baux/${fiche.bail_id}#edl`}
                   className={buttonVariants({ variant: "outline", size: "sm" })}

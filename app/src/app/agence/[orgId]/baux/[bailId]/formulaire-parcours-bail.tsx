@@ -61,7 +61,7 @@ const groupes:Groupe[]=[
   {nom:"paiement_echeance",titre:"Paiement du loyer",options:[["echoir","À échoir (d’avance)"],["echu","À terme échu"]]},
   {nom:"lieu_paiement",titre:"Lieu ou modalités de paiement",aide:"Exemple : virement au bailleur."},
  ]},
- {etapes:["loyer"],titre:"Honoraires",ancre:"complements-honoraires",agence:true,aide:"À renseigner pour une location gérée par une agence. Indiquez 0 si aucun honoraire n’est facturé.",champs:[
+ {etapes:["loyer"],titre:"Honoraires",ancre:"complements-honoraires",agence:true,aide:"À renseigner pour une location gérée par une agence. Indiquez 0 si aucun honoraire n’est facturé. Le contrat rappelle la loi et répartit ces montants ; le détail des prestations réellement réalisées et les autres prestations facturées au bailleur ne s’y impriment pas : écrivez-les dans les clauses particulières.",champs:[
   {nom:"zone_honoraires",titre:"Zone des honoraires",options:[["","À confirmer"],["tres_tendue","Très tendue"],["tendue","Tendue"],["autre","Autre zone"]]},
   {nom:"honoraires_bailleur",titre:"Visite, dossier, bail — bailleur (€ TTC)",type:"montant"},
   {nom:"honoraires_locataire",titre:"Visite, dossier, bail — locataire (€ TTC)",type:"montant"},
@@ -85,7 +85,9 @@ const groupes:Groupe[]=[
   {nom:"clause_resolutoire_assurance",titre:"Défaut d’assurance",options:choix},
   {nom:"clause_resolutoire_troubles",titre:"Troubles de voisinage jugés",options:choix},
   {nom:"clause_resolutoire_servitude",titre:"Non-respect de la servitude",options:choix,visible:v=>v.servitude_residence_principale==="true"},
-  {nom:"duree_reduite_evenement",titre:"Événement justifiant une durée réduite",aide:"À préciser seulement si le régime du bail permet une durée réduite."},
+  // Textes officiels, lot T2 (R20-A1, R17-A2) : la durée réduite n'existe pas en location meublée (champ masqué) ; en location
+  // nue, Gerimmo ne sait pas encore préparer ce contrat et le dit avant que l'utilisateur ne remplisse le champ.
+  {nom:"duree_reduite_evenement",titre:"Événement justifiant une durée réduite",visible:v=>!(v.type==="meuble"||((v.type==="colocation"||v.type==="colocation_individuelle")&&v.logement_meuble==="true")),aide:"Laissez vide pour un bail de la durée normale. Gerimmo ne sait pas encore préparer un bail à durée réduite : si ce champ est rempli, le contrat n’est pas produit."},
  ]},
  {etapes:["clauses"],titre:"Travaux et accords particuliers",repliable:true,ancre:"complements-travaux",resume:"À compléter seulement si vous avez prévu des dispositions particulières",champs:[
   {nom:"travaux_recents",titre:"Travaux récents du bailleur",type:"textarea"},
@@ -272,6 +274,8 @@ export function FormulaireParcoursBail({orgId,bailId,defauts,bailPrecedent,sorti
       {c.nom==="chambre_id"&&lienChambres&&<Link href={lienChambres} className="text-xs underline">{chambres.length?"Modifier les chambres du lot":"Ajouter une chambre au lot"}</Link>}
       {c.nom === "clauses_particulieres" && <AvertissementClauses id={`${id}-aide`} />}
       {c.aide&&<p id={`${id}-aide`} className="text-xs text-muted-foreground">{c.aide}</p>}
+      {/* Phase 3 (C08) : une première location n'a pas de « dernier contrat » : le bail n'imprime pas ces travaux, l'écran le dit. */}
+      {c.nom==="travaux_recents"&&valeurs.precedente_location==="premiere"&&<p data-travaux-premiere-location className="text-xs text-muted-foreground">Vous avez indiqué une première location : le contrat imprime « Sans objet — première location » pour cette rubrique, qui porte sur les travaux faits depuis la fin du dernier contrat. Ce que vous saisissez ici n’y figure pas.</p>}
      </div>;
     })}</div>
     {g.titre==="Loyer et charges"&&totalMensuel!=null&&<div className={styles.total} role="status"><span>Loyer + charges, par mois</span><strong>{eur(totalMensuel)}</strong></div>}

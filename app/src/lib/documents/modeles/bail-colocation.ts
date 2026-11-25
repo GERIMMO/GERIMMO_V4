@@ -1,10 +1,11 @@
-import { presentationArchivee, type OptionsContrat } from "./communs";
+import { presentationArchivee, typographieArchivee, type OptionsContrat } from "./communs";
 // Contrat commun : le régime dépend du logement, jamais d'une option du navigateur.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Fusion } from "../gabarit";
 import { chargerContexteBail, liensLocataires, referenceCourte } from "./communs";
-import { construireBailNu } from "./bail-nu";
+import { construireBailNu, refusBailDureeReduite } from "./bail-nu";
 import { construireBailMeuble, type LigneInventaire } from "./bail-meuble";
+import { refusEpouxPacs } from "./mentions-location";
 import type { Assemblage } from "./index";
 
 export async function assemblerBailColocation(supabase: SupabaseClient, orgId: string, bailId: string, format: OptionsContrat = {}): Promise<Assemblage> {
@@ -12,12 +13,17 @@ export async function assemblerBailColocation(supabase: SupabaseClient, orgId: s
   if ("erreur" in ctx) return ctx;
   if (ctx.bail.type !== "colocation" || ctx.bail.chambre_id) return { erreur: "Ce modèle est réservé au contrat commun de colocation." };
   if (ctx.bail.etat !== "brouillon") return { erreur: "Le contrat initial se prépare en brouillon. Pour un bail signé, préparez un avenant." };
-  if (!ctx.bail.locataire_principal || !ctx.locataires.some(p => p.id === ctx.bail.locataire_principal)) {
-    return { erreur: "Renseignez d'abord le locataire principal du bail." };
-  }
-  if (new Set(ctx.locataires.map(p => p.id)).size < 2) {
-    return { erreur: "Ajoutez au moins un colocataire au locataire principal dans la carte Colocation." };
-  }
+  // Textes officiels, lot T2 (R17-A2) : régime nu seulement ; en meublé, le champ n'est plus lu (R20-A1).
+  const refus = (ctx.lot.meuble ? null : refusBailDureeReduite(ctx, format)) ?? refusEpouxPacs(ctx, Boolean(format[presentationArchivee] || format[typographieArchivee]));
+  if (refus) return refus;
+  // Phase 3, lot 46 (reprise, T21) : un principal ou un second colocataire manquant rend le contrat INCOMPLET (« nom et
+  // prénom(s) », « nom du colocataire 2 » : les libellés du contrôle du brouillon), plus refusé ; la liste « À renseigner » mène
+  // à la fiche du bail. Le PDF reste bloqué tant qu'ils manquent. Un principal désigné mais illisible reste un refus : ce n'est
+  // pas une donnée à compléter.
+  const f = new Fusion();
+  if (!ctx.bail.locataire_principal) f.champ(null, "nom et prénom(s)");
+  else if (!ctx.locataires.some(p => p.id === ctx.bail.locataire_principal)) return { erreur: "Le locataire principal ne peut pas être vérifié. Réessayez." };
+  if (new Set(ctx.locataires.map(p => p.id)).size < 2) f.champ(null, "nom du colocataire 2");
   const { data: dpe, error: erreurDpe } = await supabase.from("diagnostics").select("classe_dpe")
     .eq("lot_id", ctx.lot.id).eq("type", "dpe").is("archived_at", null)
     .order("date_realisation", { ascending: false }).limit(1).maybeSingle();
@@ -29,12 +35,13 @@ export async function assemblerBailColocation(supabase: SupabaseClient, orgId: s
     if (error) return { erreur: "L'inventaire ne peut pas être lu. Réessayez avant de générer le contrat." };
     inventaire = data ?? [];
   }
-  const options = { presentationAncienne: format[presentationArchivee], dpeClasse: dpe?.classe_dpe ?? null, f: new Fusion(), inventaire };
+  const options = { presentationAncienne: format[presentationArchivee], typographieArchivee: format[typographieArchivee], dpeClasse: dpe?.classe_dpe ?? null, f, inventaire };
   const document = ctx.lot.meuble ? construireBailMeuble(ctx, options) : construireBailNu(ctx, options);
   const regime = ctx.lot.meuble ? "meublé" : "nu";
   return {
     document,
-    titreGed: `Colocation — bail commun ${regime} (à faire signer)`,
+    // Case « mariés ou pacsés » : pas une colocation (article 8-1, I), le classement le dit aussi.
+    titreGed: ctx.bail.locataires_epoux_pacses ? `Contrat de location — logement ${regime} (à faire signer)` : `Colocation — bail commun ${regime} (à faire signer)`,
     nomFichier: `colocation-${ctx.lot.meuble ? "meuble" : "nu"}-${referenceCourte("BAIL", bailId).toLowerCase()}`,
     liens: [{ entite: "bail", entiteId: bailId }, { entite: "lot", entiteId: ctx.lot.id }, ...liensLocataires(ctx)],
   };

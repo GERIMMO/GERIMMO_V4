@@ -13,6 +13,7 @@ import { baseEspace } from "@/lib/racine-espace";
 import { lireCadreFiscal } from "@/lib/lecture-profils-fiscaux";
 import { ProfilsFiscaux } from "@/components/profil-fiscal-detenteur";
 import { TitreEcran } from "@/components/titre-ecran";
+import { chargerReperesFiscaux, phrasesMicroFoncier } from "@/lib/reperes-fiscaux";
 
 
 
@@ -243,6 +244,11 @@ export async function RecapitulatifFiscal(props: {
     <Link className="lien-discret inline-flex min-h-11 items-center" href={`${base}/comptabilite/fiscal?annee=${annee}${bien ? `&bien=${encodeURIComponent(bien)}` : ""}${entite ? `&entite=${encodeURIComponent(entite)}` : ""}`}>Préparer ma déclaration en {annee + 1} (revenus {annee}) →</Link>
   </div>;
 
+  // Audit palier 1, P2-09 : le plafond et l'abattement du micro-foncier ne sont plus écrits ici. Ils se lisent dans le
+  // réglage du superviseur, avec la date de leur dernière vérification ; illisibles, la phrase ne cite aucun chiffre.
+  // Lus seulement pour l'écran complet (la vue compacte n'affiche pas cette aide).
+  const reperesFiscaux = await chargerReperesFiscaux(supabase);
+  const microFoncier = phrasesMicroFoncier(reperesFiscaux);
 
   return (
     <main className="mx-auto w-full max-w-4xl space-y-[1.125rem] p-4 sm:p-7">
@@ -457,11 +463,11 @@ export async function RecapitulatifFiscal(props: {
       {preparation}
       <details className="loc-carte space-y-3"><summary className="min-h-11 cursor-pointer font-medium">Références fiscales et limites de cette aide</summary>
       <p className="text-xs text-muted-foreground">Version des règles {recap.versionRegles}. Référence : <a className="underline" href="https://www.impots.gouv.fr/sites/default/files/formulaires/2044/2026/2044_5487.pdf">notice officielle 2044, millésime 2026 (revenus 2025)</a>. Les éditions futures, rubriques et régimes particuliers non couverts restent à vérifier. Les montants non déductibles confirmés ({eur(recap.nonDeductible)}) sont exclus.</p>
+      <p className="text-xs text-muted-foreground" data-micro-foncier={reperesFiscaux ? (reperesFiscaux.verifieLe ? "verifie" : "non_date") : "illisible"}>
+        {microFoncier.regle} {microFoncier.verification}
+      </p>
       <p className="text-xs text-muted-foreground">
-        Régime micro-foncier : si vos recettes brutes n&apos;excèdent pas
-        15 000 €, seule la ligne des recettes vous sert (abattement automatique
-        de 30 %). Le meublé (BIC) et la SCI relèvent d&apos;autres déclarations,
-        que ce récapitulatif ne couvre pas.
+        Le meublé (BIC) et la SCI relèvent d&apos;autres déclarations, que ce récapitulatif ne couvre pas.
       </p>
       </details>
     </main>

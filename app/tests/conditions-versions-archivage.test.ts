@@ -44,7 +44,13 @@ import { archiverConditionsEnVigueur } from "../src/app/actions/conditions-versi
 const VALEURS = { denomination: "Éditeur fictif EI", email: "contact@example.com", siege: "1 rue de l'Exemple, Paris" };
 
 /** Un client de service : l'identité (valeurs, révisions successives) et la RPC d'archivage. */
-function service(options: { revisions?: number[]; retour?: unknown; erreur?: unknown; valeurs?: Record<string, string> } = {}) {
+function service(options: {
+  revisions?: number[]; retour?: unknown; erreur?: unknown; valeurs?: Record<string, string>;
+  /** Reprise D4 (D4R-02) : les souscriptions lues dans `abonnements` (aucune par défaut) ; `null` : lecture en échec. */
+  abonnes?: { stripe_statut: string | null }[] | null;
+  /** La version en vigueur est-elle déjà dans `versions_conditions` ? */
+  archivee?: boolean;
+} = {}) {
   const revisions = [...(options.revisions ?? [3, 3])];
   const rpc = vi.fn(async () => ({ data: options.retour ?? { statut: "archivee" }, error: options.erreur ?? null }));
   const lectures: string[] = [];
@@ -52,6 +58,15 @@ function service(options: { revisions?: number[]; retour?: unknown; erreur?: unk
     rpc,
     from: (table: string) => {
       lectures.push(table);
+      if (table === "abonnements") {
+        const reponse = options.abonnes === null ? { data: null, error: { message: "lecture refusée" } } : { data: options.abonnes ?? [], error: null };
+        const a = { select: () => a, not: () => a, limit: async () => reponse };
+        return a;
+      }
+      if (table === "versions_conditions") {
+        const v = { select: () => v, eq: () => v, maybeSingle: async () => ({ data: options.archivee ? { version: CONDITIONS_VERSION } : null, error: null }) };
+        return v;
+      }
       const q = {
         select: () => q,
         eq: () => q,
@@ -234,7 +249,8 @@ describe("archiverConditionsPubliees", () => {
 
   it("B1 et I1 sur les pages réellement servies par next start : la page normale s'archive entière, la page dégradée est refusée", async () => {
     // Pages relevées le 11/11/2026 sur le build de cette branche : base du banc joignable (identité fictive), puis
-    // base coupée (statut 200, mentions « à venir »).
+    // base coupée (statut 200, mentions « à venir »). Lot T4 (24/11/2026) : les passages du contrat modifiés par la
+    // version du 24/11/2026 y ont été remplacés sans nouveau relevé (voir l'en-tête de tests/conditions-flux.test.ts).
     const banc = {
       denomination: "Éditeur fictif du banc EI", forme: "Entrepreneur individuel (EI)", siege: "1 rue de l'Exemple, 75000 Paris",
       rcs: "RNE 000 000 000", siret: "00000000000000", directeurPublication: "Personne fictive", email: "contact@example.com",
@@ -255,6 +271,40 @@ describe("archiverConditionsPubliees", () => {
     expect(d.statut).toBe("echec");
     expect(d.message).toContain("n'a pas pu lire l'identité de l'éditeur");
     expect(t.rpc).not.toHaveBeenCalled();
+  });
+
+  // Reprise du lot D4 (relecture D4R-02) : l'article 16 promet une annonce par courriel avant l'effet d'une nouvelle
+  // version ; Gerimmo ne l'envoie pas encore. Avec un abonné actif, une nouvelle version des conditions clients ne
+  // s'archive pas (l'archivage déclencherait aussitôt la demande d'accord) ; le super-administrateur lit pourquoi.
+  it.each([
+    ["un abonné actif", [{ stripe_statut: "active" }], "Un abonné actif est concerné"],
+    ["un abonné en retard de paiement et un abonnement clos", [{ stripe_statut: "past_due" }, { stripe_statut: "canceled" }], "Un abonné actif est concerné"],
+    ["deux abonnés, dont un statut inconnu", [{ stripe_statut: "trialing" }, { stripe_statut: null }], "2 abonnés actifs sont concernés"],
+    ["une lecture des abonnements en échec", null, "n'a pas pu être lu"],
+  ])("D4R-02 — %s : nouvelle version refusée, rien n'est lu ni archivé, le message dit d'annoncer d'abord", async (_cas, abonnes, qui) => {
+    const s = service({ abonnes });
+    const lirePage = vi.fn(pagePubliee);
+    const [r] = await archiverConditionsPubliees({ service: s.client as never, site: "https://site.example.com", lirePage });
+    expect(r).toMatchObject({ document: "conditions_clients", statut: "echec" });
+    expect(r.message).toContain(qui);
+    expect(r.message).toContain("rien n'est archivé");
+    expect(r.message).toContain("article 16");
+    expect(r.message).toContain("annoncer la version aux abonnés");
+    expect(lirePage).not.toHaveBeenCalledWith("https://site.example.com/conditions");
+    expect(s.rpc).not.toHaveBeenCalledWith("archiver_version_conditions", expect.objectContaining({ p_document: "conditions_clients" }));
+  });
+
+  it("D4R-02 — aucun abonné actif (abonnements clos seulement) : la version s'archive comme avant", async () => {
+    const s = service({ abonnes: [{ stripe_statut: "canceled" }, { stripe_statut: "incomplete_expired" }] });
+    const [r] = await archiverConditionsPubliees({ service: s.client as never, site: "https://site.example.com", lirePage: pagePubliee });
+    expect(r.statut).toBe("archivee");
+    expect(s.rpc).toHaveBeenCalledWith("archiver_version_conditions", expect.objectContaining({ p_document: "conditions_clients" }));
+  });
+
+  it("D4R-02 — version déjà archivée : avec des abonnés, elle se revérifie toujours (rien de nouveau n'est archivé)", async () => {
+    const s = service({ abonnes: [{ stripe_statut: "active" }], archivee: true, retour: { statut: "deja_archivee", empreinte_sha256: "a".repeat(64) } });
+    const [r] = await archiverConditionsPubliees({ service: s.client as never, site: "https://site.example.com", lirePage: pagePubliee });
+    expect(r.statut).toBe("deja_archivee");
   });
 
   it("un refus de la base n'est jamais présenté comme un archivage", async () => {

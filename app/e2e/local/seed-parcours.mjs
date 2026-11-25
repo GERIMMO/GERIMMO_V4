@@ -985,6 +985,25 @@ if (ficheArtisan.statut_plateforme !== "valide") {
   console.log("· artisan validé par la plateforme, SIRET vérifié");
 }
 
+// 9.c bis Audit palier 1 (P1-07) : l'artisan conteste une note. Sert à la matrice des écrans (generer-matrice.mjs) :
+//     l'écran « Évaluations contestées » de la console n'existe que derrière une contestation (RM-11.4.5).
+//     Rejouable — la clé d'envoi est fixe, la base rend la même demande. Hors jeu de démonstration.
+if (!vente) {
+  ok(
+    "contestation de note (artisan)",
+    await artisan.rpc("soumettre_retour", {
+      p_cle: "5e2e0c07-0000-4000-8000-000000000107",
+      p_nature: "contestation",
+      p_titre: "Note à réexaminer (recette)",
+      p_description: "Je demande le réexamen d’une évaluation qui ne correspond pas à mon intervention.",
+      p_attendu: null,
+      p_ecran: "/artisan/note",
+      p_org: null,
+      p_action: "navigation",
+    })
+  );
+}
+
 // 9.d L'incident se qualifie AVANT toute consultation (RM-7.2.7).
 const incidentCourant = ok(
   "état de l'incident",

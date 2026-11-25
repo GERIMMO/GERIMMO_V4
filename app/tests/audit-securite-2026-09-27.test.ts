@@ -151,6 +151,28 @@ describe.skipIf(!DB_URL)("Audit sécurité du 27/09", () => {
       // Prédicat booléen (l'artisan a-t-il une assurance à jour ?) posé le 27/09
       // par la console de contrôle ; ne rend aucune donnée — à confirmer par son auteur.
       "artisan_assurance_deposee(uuid)",
+      // Interrupteur IA (22/11/2026) : un seul booléen global (« le superviseur laisse-t-il l'IA activée ? »), sans
+      // donnée d'un compte ni d'une organisation, que les écrans de chaque espace lisent pour proposer la saisie
+      // manuelle. Definer parce que la table du réglage reste fermée aux comptes ordinaires ; anon ne l'exécute pas
+      // (tests/interrupteur-ia-base.test.ts).
+      "ia_disponible()",
+      // Envois automatiques (22/11/2026, P1-08) : quatre booléens globaux (« le superviseur a-t-il ouvert l'avis
+      // d'échéance, la relance, le rappel de rendez-vous, la relance d'invitation ? »), sans donnée d'un compte ni
+      // d'une organisation, que les écrans de chaque espace lisent pour savoir s'ils proposent l'accord ou affichent
+      // « envoi suspendu ». Definer parce que la table du réglage reste fermée à tous les comptes ; anon ne l'exécute
+      // pas ; elle ne cite ni la table ni une autre colonne (tests/envois-suspendus-base.test.ts).
+      "envois_automatiques_proposes()",
+      // Repères fiscaux (23/11/2026, P2-09) : le plafond et l'abattement du micro-foncier cités par l'aide du
+      // récapitulatif fiscal, et la date de leur dernière vérification. Trois valeurs sans rapport avec un compte ni
+      // une organisation (le plafond et le taux sont dans la loi), que l'écran du propriétaire lit. Definer parce que
+      // la table du réglage reste fermée à tous les comptes ; anon ne l'exécute pas ; elle ne rend aucune autre
+      // colonne (tests/reperes-fiscaux-base.test.ts).
+      "reperes_fiscaux()",
+      // Décision du 24/11/2026 (Q38) : la même lecture, avec en plus la source du contrôle (le texte saisi par le
+      // superviseur : site officiel, page, date). Quatre valeurs sans rapport avec un compte ni une organisation.
+      // Definer pour la même raison ; anon ne l'exécute pas ; elle ne rend aucune autre colonne
+      // (tests/reperes-fiscaux-source-base.test.ts).
+      "reperes_fiscaux_avec_source()",
     ]);
     const sansGarde = rows.map((r) => r.f).filter((f) => !motivees.has(f) && !f.startsWith("montant_abonnement_cents("));
     expect(sansGarde, `Fonctions definer sans garde apparente :\n${sansGarde.join("\n")}`).toEqual([]);

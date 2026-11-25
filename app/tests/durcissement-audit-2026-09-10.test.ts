@@ -4,6 +4,7 @@
  * sans empêcher le geste légitime. Transaction annulée à la fin.
  */
 import { verifierBaseDeTest } from "./garde-base";
+import { auJourDeParis } from "./fixtures/jour-de-paris-fige";
 import { couvrirParMandat } from "./fixtures/mandat";
 import { requeteProprietaire } from "./fixtures/requete-proprietaire";
 import { config } from "dotenv";
@@ -275,18 +276,22 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
       )
     ).rejects.toThrow(/depot_encaissements/i);
     await db.query("rollback to savepoint s");
-    // 2. Le décompte arrêté ne se déverrouille pas : ni suppression, ni retour
-    //    « en cours » (aucune policy d'écriture sur restitutions) — sans quoi la
-    //    seconde borne se dissoudrait d'un UPDATE (RM-2.7.3).
-    const efface = await db.query(`delete from public.restitutions where bail_id = $1`, [
-      sortant.id,
-    ]);
-    expect(efface.rowCount).toBe(0);
-    const rouvre = await db.query(
+    // 2. Le décompte arrêté ne se déverrouille pas : ni suppression, ni retour « en cours » — sans quoi la seconde
+    //    borne se dissoudrait d'un UPDATE (RM-2.7.3). Jusqu'au 22/11, aucune politique d'écriture n'existait sur
+    //    `restitutions` et la tentative ne touchait simplement aucune ligne. Depuis le ménage P2-08 (migration
+    //    20261122235959), le droit d'écriture lui-même est retiré aux comptes connectés : la tentative est refusée
+    //    net. La règle tenue ici est la même, en plus strict ; on vérifie en plus que le décompte n'a pas bougé.
+    const avant = (await db.query(`select id, statut from public.restitutions where bail_id = $1`, [sortant.id])).rows;
+    expect(avant).toHaveLength(1);
+    for (const tentative of [
+      `delete from public.restitutions where bail_id = $1`,
       `update public.restitutions set statut = 'en_cours' where bail_id = $1`,
-      [sortant.id]
-    );
-    expect(rouvre.rowCount).toBe(0);
+    ]) {
+      await db.query("savepoint s");
+      await expect(db.query(tentative, [sortant.id])).rejects.toThrow(/permission denied for table restitutions/);
+      await db.query("rollback to savepoint s");
+    }
+    expect((await db.query(`select id, statut from public.restitutions where bail_id = $1`, [sortant.id])).rows).toEqual(avant);
   });
 
   it("une fonction déclencheur ne s'accroche plus à une table forgée (advisor 2026-09-10)", async () => {
@@ -849,7 +854,7 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
       `insert into public.baux (organization_id, lot_id, type, etat, loyer_hc, charges,
          date_debut, jour_echeance, irl_valeur, irl_trimestre)
        values ($1,$2,'nu'::public.bail_type,'actif'::public.bail_etat,600,50,
-         (public.aujourdhui_paris() - interval '2 years')::date,5,145.17,'2e trimestre 2025')
+         (public.aujourdhui_paris() - interval '2 years')::date,5,145.17,'2e trimestre 2024')
        returning id`,
       [org, lotSuite.id]
     );
@@ -942,16 +947,21 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
     // l'indice de la PREMIÈRE révision (148,03), pas sur celui de la
     // signature : 611,82 × 152 / 148,03. L'ancien calcul (÷ 145,17) donnait
     // 640,61 € — la hausse 2025 comptée deux fois (audit du 27/09).
+    // Décision Q23 du 24/11/2026 : la révision d'une année est refusée passé un an après sa date de révision, même antidatée.
+    // « Celle de l'an dernier » s'enregistre donc le jour où elle a été demandée (jour de Paris figé un an plus tôt) ;
+    // les montants vérifiés sont les mêmes.
+    // Seconde reprise du lot D2 (24/11/2026) : l'année de l'indice ne peut plus dépasser celle de la date de révision. Les
+    // libellés de ce bail étaient décalés d'un an (« T2 2026 » pour la révision de l'an dernier, « T2 2027 » pour celle de
+    // ce jour, référence « 2e trimestre 2025 ») : ils sont remis à leur année (2024, 2025, 2026). Mêmes valeurs d'indice,
+    // mêmes montants vérifiés.
     const {
       rows: [anDernier],
-    } = await db.query(
-      `select public.reviser_loyer($1, 148.03, 'T2 2026', (public.aujourdhui_paris() - interval '1 year')::date) as loyer`,
-      [bailSuite.id]
-    );
+    } = await auJourDeParis(db, "public.aujourdhui_paris() - interval '1 year'", enGerant, () =>
+      db.query(`select public.reviser_loyer($1, 148.03, 'T2 2025', public.aujourdhui_paris()) as loyer`, [bailSuite.id]));
     expect(Number(anDernier.loyer)).toBe(611.82);
     const {
       rows: [cetteAnnee],
-    } = await db.query(`select public.reviser_loyer($1, 152.00, 'T2 2027', public.aujourdhui_paris()) as loyer`, [
+    } = await db.query(`select public.reviser_loyer($1, 152.00, 'T2 2026', public.aujourdhui_paris()) as loyer`, [
       bailSuite.id,
     ]);
     expect(Number(cetteAnnee.loyer)).toBe(628.23);

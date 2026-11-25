@@ -17,7 +17,9 @@ export function preparerVueFactures(data: ActiviteArtisanPrivee, clients: Factur
     const bilan = bilanReglements(f, data.reglements, data.avoirs);
     const client = f.origine === "gerimmo" ? clients.find(c => c.facture_id === f.id) : undefined;
     const validationInconnue = f.origine === "gerimmo" && (lectureClientsEnEchec || !client);
-    const statut = bilan.avoir ? "Annulée par avoir"
+    // Audit palier 1 (P1-03) : refusée par le client, elle n'est pas due ; elle reste au registre, sans geste de règlement.
+    const statut = client?.etat === "refusee" ? "Refusée par votre client"
+      : bilan.avoir ? "Annulée par avoir"
       : bilan.solde < 0 ? "Trop-perçu déclaré"
       : bilan.solde === 0 ? (bilan.declare > 0 ? "Réglée · déclaré" : "Solde nul")
       : bilan.declare > 0 ? "Partiellement réglée · déclaré"
@@ -26,7 +28,7 @@ export function preparerVueFactures(data: ActiviteArtisanPrivee, clients: Factur
       : client?.etat === "deposee" ? "En attente de validation" : "À régler";
     return { f, bilan, client, statut };
   });
-  const attendues = lignes.filter(l => l.bilan.solde > 0);
+  const attendues = lignes.filter(l => l.bilan.solde > 0 && l.client?.etat !== "refusee");
   return { lignes, attendues: attendues.length, reste: attendues.reduce((s, l) => s + l.bilan.solde, 0), enValidation: attendues.filter(l => l.client?.etat === "deposee").length };
 }
 
@@ -54,7 +56,7 @@ export function VueFactures({ data, erreur, clients, erreurClients, agenda, acti
           <dl className={styles.chiffres}><div><dt>Facturé TTC</dt><dd>{euros(Number(f.montant_ttc_cents))}</dd></div><div><dt>Reçu déclaré</dt><dd>{euros(bilan.declare)}</dd></div><div><dt>Solde</dt><dd>{euros(bilan.solde)}</dd></div></dl>
           <div className={styles.actionFacture}><span className={styles.etatSimple} data-soldee={bilan.solde === 0 && !bilan.avoir}>{statut}</span>
             {client && (client.etat !== "deposee" || bilan.declare > 0) && <small>{phraseEtatPourArtisan(client)}</small>}
-            {bilan.solde > 0 && !bilan.avoir && peutDeclarer ? <Link href={`${url}#declarer-reglement`} className={styles.actionReglement}>Déclarer un règlement reçu →</Link> : <Link href={url} className={styles.actionReglement}>Voir le détail et l’historique →</Link>}
+            {bilan.solde > 0 && !bilan.avoir && peutDeclarer && client?.etat !== "refusee" ? <Link href={`${url}#declarer-reglement`} className={styles.actionReglement}>Déclarer un règlement reçu →</Link> : <Link href={url} className={styles.actionReglement}>Voir le détail et l’historique →</Link>}
           </div>
         </li>;
       })}

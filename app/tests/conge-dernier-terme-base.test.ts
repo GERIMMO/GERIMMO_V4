@@ -27,6 +27,11 @@ const url = process.env.SUPABASE_DB_URL;
 verifierBaseDeTest(url);
 
 describe("dernier terme et congé — manifeste et retour (sans base)", () => {
+  it("le décor de ce fichier écrit les paiements dans l'ordre des termes (relecture du 24/11 : sans cela le test était instable)", () => {
+    const decor = readFileSync("tests/conge-dernier-terme-base.test.ts", "utf8").match(/insert into encaissements\(organization_id,bail_id,montant,date_paiement,mode\)\s+select [^`]*`/)?.[0] ?? "";
+    expect(decor).toContain("from appels_loyer a where a.bail_id=$2 order by a.periode`");
+  });
+
   it("la migration est au manifeste une seule fois, en dernier, avec son retour listé au LISEZ-MOI", () => {
     const manifeste = readFileSync("e2e/local/ordre-migrations.txt", "utf8").trim().split(/\r?\n/);
     expect(manifeste.filter((l) => l === `${NOM}.sql`)).toHaveLength(1);
@@ -112,8 +117,10 @@ describe.skipIf(!url)("le dernier terme suit le congé ; dépôt au centime (ave
       values($1,$2,$3,'nu','actif',($4::date - interval '13 months')::date,450,50,450,1,true,true,140,'T2 2025') returning id`, [org, lot, personne, mois])).rows[0].id;
     await db.query("select public.generer_appels_loyer_interne($1)", [bail]);
     // Tout est payé, mois courant compris : quittances émises.
+    // Relecture du 24/11 (lot D2, troisième reprise, point 4) : les paiements sont écrits dans l'ordre des termes. Sans
+    // `order by`, la base les rendait dans un ordre libre et le test passait ou non selon cet ordre (test instable).
     await db.query(`insert into encaissements(organization_id,bail_id,montant,date_paiement,mode)
-      select $1,$2,a.montant_du,a.date_echeance,'virement' from appels_loyer a where a.bail_id=$2`, [org, bail]);
+      select $1,$2,a.montant_du,a.date_echeance,'virement' from appels_loyer a where a.bail_id=$2 order by a.periode`, [org, bail]);
     await db.query("select * from public.resynchroniser_quittances($1)", [bail]);
     await agir(compte);
   });

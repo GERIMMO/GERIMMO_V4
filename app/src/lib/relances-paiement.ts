@@ -50,6 +50,18 @@ export type BilanRelances = {
   livraisonsEnAttente?: number;
 };
 
+/**
+ * Les versions des conditions générales sous lesquelles le courrier d'impayé peut partir : celles où l'article 15.4
+ * (résiliation par l'Éditeur après mise en demeure), que ce courrier cite, existe avec ce sens. Un contrat conclu sous
+ * une autre version n'est pas relancé par courrier : le relais est alerté.
+ *
+ * LA MÊME LISTE EST DANS LA BASE (fonction `empreinte_avant_alertes_direction`, migrations 20261116201034 puis
+ * 20261125104000) : les deux se changent ENSEMBLE, à chaque nouvelle version des conditions.
+ * tests/courrier-impaye-version-conditions-base.test.ts échoue si la version en vigueur manque à l'une ou à l'autre.
+ * Lot T4 (24/11/2026) : version du 24 novembre 2026 ajoutée (articles 15.2 à 15.4 inchangés en numéro et en sens).
+ */
+export const VERSIONS_AVEC_ARTICLE_15_4: readonly string[] = ["2026-11-24", "2026-11-15", "2026-10-24"];
+
 /** La base programme chaque palier. Stripe confirme la facture. Le journal durable attend la preuve de livraison
  * du premier courrier avant de faire avancer le palier et d'autoriser une restriction d'écriture. */
 export async function envoyerRelancesDues(
@@ -77,7 +89,7 @@ export async function envoyerRelancesDues(
       }, { avantEffet: options.avantEffet });
     }
     const contrat = await lireContexteCourrier(supabase, r.organization_id, true);
-    if (!contrat?.destinataire || !contrat.stripe_subscription_id || !["2026-11-15","2026-10-24"].includes(contrat.cgu_version ?? "") || !contrat.cgu_version || !r.en_defaut_depuis || !r.resiliable_le) {
+    if (!contrat?.destinataire || !contrat.stripe_subscription_id || !VERSIONS_AVEC_ARTICLE_15_4.includes(contrat.cgu_version ?? "") || !contrat.cgu_version || !r.en_defaut_depuis || !r.resiliable_le) {
       sansAdresse.push(r.organisation);
       await signaler("Vérifier la commande, les conditions acceptées et le responsable habilité.");
       continue;

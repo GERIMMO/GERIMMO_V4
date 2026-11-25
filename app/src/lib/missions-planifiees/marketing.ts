@@ -12,7 +12,13 @@ import {creerVisuelMarketing} from '@/lib/visuel-marketing';
 import {envoyerSurFacebook,RefusFacebookCertain,retrouverPostFacebook} from '@/lib/facebook';
 import {alerterSuperviseurDuPost} from '@/lib/alerte-veto-marketing';
 import {composantesParis,dateParis} from '@/lib/heure-paris-calcul';
-import {PlafondIAAtteint,reserverAppelIA} from '@/lib/plafond-ia';
+import {IADesactivee,PlafondIAAtteint,reserverAppelIA} from '@/lib/plafond-ia';
+import {iaDesactiveeParLeSuperviseur} from '@/lib/etat-ia';
+import {santeFacebook} from '@/lib/marketing-meta';
+import {etatPageFacebook,RAISON_DIFFUSION_MASQUEE,type EtatPageFacebook} from '@/lib/diffusion-facebook';
+
+/** Interrupteur IA (22/11/2026) : ce que la mission consigne quand la préparation est suspendue faute d'IA. */
+export const RAISON_IA_DESACTIVEE='L’IA est désactivée : la préparation automatique des posts est suspendue. Un article se crée et se publie à la main.';
 
 // LA MISSION MARKETING EN DEUX TEMPS (06/10/2026).
 //
@@ -36,8 +42,8 @@ export function maintenantParis(date=new Date()){
  const c=composantesParis(date);
  return {date:dateParis(date),jour:c.isodow,objet:new Date(`${dateParis(date)}T12:00:00Z`)};
 }
-const CHAMPS='id,titre,slug,chapo,statut,facebook_texte,facebook_image_url,facebook_post_id,facebook_envoi_demarre_le,image_empreinte,image_essais,image_en_cours_le,updated_at,programmee_pour,veille_source_id,marketing_jour';
-type Article={id:string;titre:string;slug:string;chapo:string|null;statut:string;facebook_texte:string|null;facebook_image_url:string|null;facebook_post_id:string|null;facebook_envoi_demarre_le:string|null;image_empreinte:string|null;image_essais:number;image_en_cours_le:string|null;updated_at:string;programmee_pour:string|null;veille_source_id:string|null;marketing_jour:string|null};
+const CHAMPS='id,titre,slug,chapo,statut,facebook_texte,facebook_image_url,facebook_post_id,facebook_envoi_demarre_le,image_empreinte,image_essais,image_en_cours_le,updated_at,programmee_pour,veille_source_id,marketing_jour,origine';
+type Article={id:string;titre:string;slug:string;chapo:string|null;statut:string;facebook_texte:string|null;facebook_image_url:string|null;facebook_post_id:string|null;facebook_envoi_demarre_le:string|null;image_empreinte:string|null;image_essais:number;image_en_cours_le:string|null;updated_at:string;programmee_pour:string|null;veille_source_id:string|null;marketing_jour:string|null;origine:'ia'|'manuel'};
 type Reglages={phase_editoriale?:Phase;actif:boolean;publication_automatique:boolean;diffusion_version:number;jours_semaine:number[];heure_paris:number;heure_preparation_paris:number;validation_obligatoire:boolean;veille_mots_inclus:string[];veille_mots_exclus:string[]};
 type Db=NonNullable<ReturnType<typeof clientDeService>>;
 
@@ -51,6 +57,8 @@ export function visuelReprenable(a:{image_empreinte:string|null;image_essais:num
 
 /** L'appel vient du cron Vercel (CRON_SECRET) ou de pg_cron (jeton généré en base). */
 export async function appelAutorise(request:Request,db:Db){
+ // Audit palier 1 du 22/11/2026 (P1-17) : sans jeton présenté, rien à comparer — la base n'est pas lue.
+ if(!(request.headers.get('authorization')??'').startsWith('Bearer '))return false;
  if(porteurDuSecret(request,process.env.CRON_SECRET))return true;
  const {data}=await db.rpc('jeton_declencheur_marketing');
  return typeof data==='string'&&data.length===64&&porteurDuSecret(request,data);
@@ -63,12 +71,18 @@ export async function diffuserPostsEchus(db:Db,r:Reglages,options:{manuel?:boole
  const {data:ids,error}=await db.rpc('publications_marketing_echues');
  if(error)return {erreur:'Les posts à diffuser ne peuvent pas être lus.',diffuses:[] as string[],attentes:[] as string[],erreurs:[] as string[]};
  const diffuses:string[]=[],attentes:string[]=[],erreurs:string[]=[];
+ // Décision du dirigeant du 25/11/2026 : « la diffusion Facebook est masquée tant que la Page n'est pas vérifiée ».
+ // L'écran masque la diffusion hors Page « Relié » ; la mission la refuse aussi, avec la même lecture que l'écran
+ // (etatPageFacebook de santeFacebook), même si la publication automatique est activée en base : le post échu ne
+ // paraît pas sur le site, rien n'est réservé ni envoyé, il reste programmé (en attente) et le bilan dit pourquoi.
+ // La Page n'est lue qu'une fois par passage, et seulement s'il y a un post à diffuser.
+ let page:EtatPageFacebook|null=null,diffusionSuspendue:string|undefined;
  for(const id of (ids??[]) as string[]){
   const {data:article}=await db.from('publications').select(CHAMPS).eq('id',id).maybeSingle();
   if(!article)continue;
   const a=article as Article;
   if(a.facebook_envoi_demarre_le){
-   const preuve=await retrouverPostFacebook({id:a.id,titre:a.titre,chapo:a.chapo,slug:a.slug,facebookTexte:a.facebook_texte,facebookImageUrl:a.facebook_image_url},a.facebook_envoi_demarre_le).catch(()=>null);
+   const preuve=await retrouverPostFacebook({id:a.id,titre:a.titre,chapo:a.chapo,slug:a.slug,facebookTexte:a.facebook_texte,facebookImageUrl:a.facebook_image_url,origine:a.origine},a.facebook_envoi_demarre_le).catch(()=>null);
    if(preuve){
     const trace=await db.from('publications').update({facebook_post_id:preuve,facebook_publie_le:new Date().toISOString(),facebook_erreur:null}).eq('id',a.id).is('facebook_post_id',null).select('id').maybeSingle();
     if(!trace.error && trace.data){diffuses.push(a.id);continue;}
@@ -79,6 +93,9 @@ export async function diffuserPostsEchus(db:Db,r:Reglages,options:{manuel?:boole
    if(source.error||!source.data){erreurs.push(`${a.id} : source de veille impossible à vérifier, diffusion suspendue.`);continue;}
    if(!sujetDansPerimetre(source.data.titre)){attentes.push(a.id);continue;}
   }
+  // Avant toute parution, réservation ou envoi (un envoi déjà engagé, plus haut, reste signalé comme tel).
+  page??=etatPageFacebook(await santeFacebook());
+  if(page!=='relie'){diffusionSuspendue=RAISON_DIFFUSION_MASQUEE[page];attentes.push(a.id);continue;}
   // Parution sur le site : la base relit tout (accord, validation, texte complet, veille écartée).
   await verifierAvantEffet(db,'marketing');
   if(a.statut!=='publiee'){
@@ -97,7 +114,7 @@ export async function diffuserPostsEchus(db:Db,r:Reglages,options:{manuel?:boole
    reserve=true;
   };
   try{
-   const resultat=await envoyerSurFacebook({id:a.id,titre:a.titre,chapo:a.chapo,slug:a.slug,facebookTexte:a.facebook_texte,facebookImageUrl:a.facebook_image_url,afficheMarketing:{empreinte:a.image_empreinte}},reserverAvantPublication);
+   const resultat=await envoyerSurFacebook({id:a.id,titre:a.titre,chapo:a.chapo,slug:a.slug,facebookTexte:a.facebook_texte,facebookImageUrl:a.facebook_image_url,origine:a.origine,afficheMarketing:{empreinte:a.image_empreinte}},reserverAvantPublication);
    const trace=await db.from('publications').update({facebook_post_id:resultat.post_id,facebook_publie_le:new Date().toISOString(),facebook_erreur:null}).eq('id',a.id);
    if(trace.error){erreurs.push(`${a.id} : Facebook a répondu, confirmation non conservée. Ne pas renvoyer.`);continue;}
    diffuses.push(a.id);
@@ -115,7 +132,7 @@ export async function diffuserPostsEchus(db:Db,r:Reglages,options:{manuel?:boole
    erreurs.push(`${a.id} : confirmation Facebook manquante.`);
   }
  }
- return {erreur:undefined as string|undefined,diffuses,attentes,erreurs};
+ return {erreur:undefined as string|undefined,diffuses,attentes,erreurs,...(diffusionSuspendue?{diffusion_suspendue:diffusionSuspendue}:{})};
 }
 
 // ── Préparation ────────────────────────────────────────────────────────────
@@ -165,7 +182,8 @@ async function choisirSujet(db:Db,r:Reglages,cible:Cible):Promise<{sujet:SujetMa
    return {sujet,source:info.id,motifs};
   }catch(e){if(e instanceof ArretSupervision)throw e;motifs.push(`${info.titre.slice(0,60)} : ${e instanceof Error?e.message:'rédaction impossible'}`);
    // X19 (SA-10) : limite du jour atteinte, aucune autre actualité ne sera rédigée aujourd'hui : sujet éditorial.
-   if(e instanceof PlafondIAAtteint)break;}
+   // Interrupteur IA (22/11/2026) : IA désactivée, aucune autre actualité ne sera rédigée non plus.
+   if(e instanceof PlafondIAAtteint||e instanceof IADesactivee)break;}
  }
  return {sujet:editorial,source:null,motifs};
 }
@@ -175,6 +193,10 @@ export async function preparerPostDu(db:Db,r:Reglages,cible:Cible){
  if(existant.error)return {erreur:'Impossible de vérifier les publications existantes.'};
  let article=existant.data as Article|null;const motifs:string[]=[];
  if(article&&!['brouillon','planifiee'].includes(article.statut))return {agi:false,raison:'Le créneau est déjà tenu.',article:article.id};
+ // Interrupteur IA (22/11/2026) : un post exige une image nouvelle, que seule l'IA produit ici. IA désactivée et pas
+ // d'image déjà prête : rien n'est créé (ni brouillon, ni réservation de visuel), rien n'est compté en échec. Un
+ // article déjà illustré, lui, se programme normalement.
+ if(!article?.image_empreinte&&await iaDesactiveeParLeSuperviseur(db))return {agi:false,ia_desactivee:true,raison:RAISON_IA_DESACTIVEE,...(article?{article:article.id}:{})};
  if(!article){
   // Avant toute rédaction ou image payante ; tous les brouillons comptent,
   // même ceux hors périmètre, pour arrêter réellement l'accumulation.
@@ -226,11 +248,14 @@ export async function preparerPostDu(db:Db,r:Reglages,cible:Cible){
    const message=e instanceof Error?e.message:'Le visuel doit être repris.';
    // Un refus avant l'appel payant n'est pas un essai d'image. Le témoin de réservation
    // et le compteur empêchent d'annuler une autre tentative démarrée entre-temps.
-   const sansEssai=!appelIAEngage&&(e instanceof PlafondIAAtteint||e instanceof ArretSupervision);
+   const sansEssai=!appelIAEngage&&(e instanceof PlafondIAAtteint||e instanceof ArretSupervision||e instanceof IADesactivee);
    const essais=sansEssai?Math.max(0,article.image_essais-1):article.image_essais;
-   const miseAJour=db.from('publications').update({image_en_cours_le:null,facebook_erreur:message,...(sansEssai?{image_essais:essais}:{})}).eq('id',article.id);
+   // IA désactivée entre la lecture de l'état et l'appel : ce n'est pas une erreur du post.
+   const iaCoupee=e instanceof IADesactivee;
+   const miseAJour=db.from('publications').update({image_en_cours_le:null,facebook_erreur:iaCoupee?null:message,...(sansEssai?{image_essais:essais}:{})}).eq('id',article.id);
    if(article.image_en_cours_le)await miseAJour.eq('image_en_cours_le',article.image_en_cours_le).eq('image_essais',article.image_essais);
    if(e instanceof ArretSupervision)throw e;
+   if(iaCoupee)return {agi:false,ia_desactivee:true,raison:RAISON_IA_DESACTIVEE,article:article.id};
    return {erreur:message,article:article.id,essais,reprise};
   }
  }
@@ -259,7 +284,7 @@ export async function traiterMarketing(request:Request){
  const preparation=cible?await preparerPostDu(db,reglages,cible):null;
  const erreur=diffusion.erreur||diffusion.erreurs.length||(preparation&&'erreur'in preparation);
  const resultat:Record<string,unknown>={agi:diffusion.diffuses.length>0||Boolean(preparation&&'agi'in preparation&&preparation.agi),publiees:diffusion.diffuses.length,facebook:diffusion.diffuses.length>0,
-  ...(diffusion.diffuses.length?{diffusees:diffusion.diffuses}:{}),...(diffusion.attentes.length?{en_attente:diffusion.attentes}:{}),...(diffusion.erreurs.length||diffusion.erreur?{erreurs:[...(diffusion.erreur?[diffusion.erreur]:[]),...diffusion.erreurs]}:{}),
+  ...(diffusion.diffuses.length?{diffusees:diffusion.diffuses}:{}),...(diffusion.attentes.length?{en_attente:diffusion.attentes}:{}),...('diffusion_suspendue' in diffusion?{diffusion_suspendue:diffusion.diffusion_suspendue}:{}),...(diffusion.erreurs.length||diffusion.erreur?{erreurs:[...(diffusion.erreur?[diffusion.erreur]:[]),...diffusion.erreurs]}:{}),
   ...(preparation?{preparation}:{raison_preparation:'Rien à préparer pour l’instant.'})};
  if(preparation && 'erreur' in preparation)resultat.erreur=preparation.erreur;
  if(preparation && 'file_pleine' in preparation)resultat.action_marketing='traiter_file';

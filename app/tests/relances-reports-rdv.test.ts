@@ -61,3 +61,35 @@ describe('D22 — relance unique du report avant échéance',()=>{
   terminer();expect(await passe).toBeInstanceOf(ArretSupervision);
  });
 });
+
+// Décision du dirigeant du 24/11/2026 (Q37, lot D4) : cette relance est le cinquième envoi automatique, avec son
+// interrupteur, fermé par défaut (migration 20261125110000). La tâche le lit une fois par passe.
+describe('Q37 — la relance du report suit son interrupteur',()=>{
+ const avecInterrupteur=(reponse:unknown)=>{const {db,rpc}=client();const base=rpc.getMockImplementation()!;
+  rpc.mockImplementation((async(nom:string,...reste:unknown[])=>nom==='envoi_automatique_ouvert'?reponse:(base as (...a:unknown[])=>Promise<unknown>)(nom,...reste)) as never);return{db,rpc};};
+ it.each([
+  ['fermé',{data:false,error:null}],
+  ['illisible',{data:true,error:{message:'refus'}}],
+  ['absent (migration non appliquée)',{data:null,error:null}],
+ ])('interrupteur %s : aucun contexte n’est joint, la relance reste suspendue comme avant',async(_libelle,reponse)=>{
+  const {db,rpc}=avecInterrupteur(reponse);
+  await envoyerRelancesReportsRdv(db);
+  expect(rpc).toHaveBeenCalledWith('envoi_automatique_ouvert',{p_flux:'relance_report_rdv'});
+  expect(m.envoi).toHaveBeenCalledTimes(1);
+  expect(m.envoi.mock.calls[0][0]).not.toHaveProperty('contexteMetier');
+  expect(m.envoi.mock.calls[0][0]).toMatchObject({to:'artisan@example.invalid',cleIdempotence:'rdv-report:relance:d1'});
+ });
+ it('interrupteur ouvert : le contexte désigne la demande, pour que la base refasse la preuve avant l’envoi',async()=>{
+  const {db}=avecInterrupteur({data:true,error:null});
+  expect((await envoyerRelancesReportsRdv(db)).envoyees).toBe(1);
+  expect(m.envoi.mock.calls[0][0]).toMatchObject({contexteMetier:{type:'relance_report_rdv',id:'d1'},to:'artisan@example.invalid',cleIdempotence:'rdv-report:relance:d1',organisation:{id:'o1'}});
+  // Rien d'autre que le type et la demande : la réservation change d'une passe à l'autre, elle n'entre pas dans la preuve.
+  expect(Object.keys(m.envoi.mock.calls[0][0].contexteMetier).sort()).toEqual(['id','type']);
+ });
+ it('aucune demande à relancer : l’interrupteur n’est même pas lu',async()=>{
+  const rpc=vi.fn(async()=>({data:[],error:null}));
+  await envoyerRelancesReportsRdv({rpc} as unknown as SupabaseClient);
+  expect(rpc).not.toHaveBeenCalledWith('envoi_automatique_ouvert',expect.anything());
+  expect(m.envoi).not.toHaveBeenCalled();
+ });
+});

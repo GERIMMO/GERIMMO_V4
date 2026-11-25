@@ -48,6 +48,100 @@ export const FICHIERS_EN_SERIE = [
   // Rejeu du compteur réservé au relais et fermeture des droits des fonctions.
   "tests/relais-agences-base.test.ts",
   "tests/relais-inscriptions-base.test.ts",
+  "tests/decompte-sortie-echeancier-charges-base.test.ts",
+  "tests/interrupteur-ia-base.test.ts",
+  "tests/lien-garant-admis-base.test.ts",
+  "tests/incident-urgence-corrigee-base.test.ts",
+  "tests/evaluation-contestee-base.test.ts",
+  "tests/signatures-electroniques-locataire-base.test.ts",
+  "tests/facture-artisan-refus-base.test.ts",
+  "tests/echanges-intervention-non-lus-base.test.ts",
+  "tests/avenants-bail-base.test.ts",
+  "tests/envois-suspendus-base.test.ts",
+  "tests/decision-artisan-base.test.ts",
+  "tests/relances-d4-base.test.ts",
+  "tests/ancien-parcours-signature-manuelle-base.test.ts",
+  "tests/accord-conditions-archivee-base.test.ts",
+  // Audit palier 1, P1-19 : rejoue la migration et le retour de la déclaration d'incident depuis la fiche du bien.
+  "tests/incident-bien-categorie-base.test.ts",
+  // Audit palier 1, P0-03 : rejoue la migration et le retour de la validation des appels de charges.
+  "tests/charges-proposees-a-confirmer-base.test.ts",
+  // Audit palier 1, P2-02 : rejoue la migration et le retour des disponibilités du locataire.
+  "tests/disponibilites-locataire-incident-base.test.ts",
+  // Audit palier 1, P2-01 : rejoue la migration et le retour des photos d'état des lieux.
+  "tests/edl-photos-base.test.ts",
+  // Audit palier 1, P2-02 (seconde partie) : rejoue la migration et le retour de la garantie annoncée.
+  "tests/devis-garantie-annoncee-base.test.ts",
+  // Audit palier 1, P2-03 : rejoue la migration et le retour des absences et de la semaine type de l'artisan.
+  "tests/artisan-absences-semaine-type-base.test.ts",
+  "tests/artisan-relance-rdv-manque-base.test.ts",
+  "tests/artisan-lignes-devis-base.test.ts",
+  "tests/pointage-loyer-releve-base.test.ts",
+  "tests/menage-droits-sans-politique-base.test.ts",
+  "tests/reperes-fiscaux-base.test.ts",
+  "tests/regularisation-premiere-mensualite-base.test.ts",
+  "tests/contrat-individuel-message-plafond-base.test.ts",
+  "tests/revision-loyer-delai-premier-terme-base.test.ts",
+  // Reprise du lot D2 (24/11) : rejeu de 20261124130000 et de son retour (reviser_loyer change de signature, déclencheur
+  // des appels réécrit) dans la transaction du fichier, et `aujourdhui_paris()` figée.
+  "tests/revision-loyer-reprise-d2-base.test.ts",
+  // Seconde reprise du lot D2 (24/11) : rejeu de 20261124150000 et de son retour (reviser_loyer et déclencheur des appels
+  // réécrits) dans la transaction du fichier, et `aujourdhui_paris()` figée.
+  "tests/revision-loyer-seconde-reprise-d2-base.test.ts",
+  // Troisième reprise du lot D2 (24/11) : rejeu de 20261124170000, de son retour et de l'ordre complet des quatre retours
+  // (reviser_loyer réécrite) dans la transaction du fichier, et `aujourdhui_paris()` figée.
+  "tests/revision-loyer-troisieme-reprise-d2-base.test.ts",
+  // Seconde reprise du lot D1 (24/11) : rejeu de 20261124140000 et de son retour (`lignes_lisibles_par` réécrite).
+  "tests/export-droits-par-colonne-base.test.ts",
+  // Lot D3 (24/11, Q38 et Q46) : rejeu de 20261124190000 et de 20261124180000, et de leurs retours, dans la transaction
+  // de chaque fichier (colonne et fonctions du réglage fiscal ; valeur du type des documents).
+  "tests/reperes-fiscaux-source-base.test.ts",
+  "tests/notice-information-deposee-base.test.ts",
+  // Reprise du lot D3 (24/11) : rejeu de 20261124200000 et de 20261124210000, et de leurs retours, dans la transaction de
+  // chaque fichier (déclencheur de la table des retenues ; ancien réglage fiscal réécrit).
+  "tests/justificatif-retenue-piece-existante-base.test.ts",
+  "tests/reperes-fiscaux-ancien-reglage-base.test.ts",
+  // Seconde reprise du lot D3 (24/11) : rejeu de 20261124220000 et de 20261124230000, et de leurs retours, dans la
+  // transaction de chaque fichier (mêmes objets que les deux fichiers ci-dessus).
+  "tests/justificatif-retenue-dossier-du-bail-base.test.ts",
+  "tests/reperes-fiscaux-journal-source-base.test.ts",
+  // Textes officiels, lot T1 (25/11) : rejeu de 20261125101500 et de son retour dans la transaction du fichier
+  // (`enregistrer_conge` réécrite, même fonction que tests/conge-dernier-terme-base.test.ts).
+  "tests/textes-t1-conges-base.test.ts",
+  // Textes officiels, lot T4 (24/11) : rejeu de 20261125103000 et de son retour dans la transaction du fichier
+  // (trois fonctions de la conservation des factures réécrites).
+  "tests/factures-conservation-dix-ans-base.test.ts",
+  // Même lot : rejeu de 20261125104000 et de son retour (fonction de preuve des courriers d'incident de contrat).
+  "tests/courrier-impaye-version-conditions-base.test.ts",
+  // Seconde reprise du lot T4 (24/11) : rejeu de 20261125105000 (purge des archives de comptes) et de 20261125106000
+  // (contraintes, colonne et déclencheur de supervision_identite) et de leurs retours, dans la transaction du fichier.
+  "tests/archive-compte-apres-client-stripe-base.test.ts",
+  "tests/type-vendeur-vente-sans-mediateur-base.test.ts",
+  // Textes officiels, lot T3 : rejoue la migration 20261125111000 et son retour (trois fonctions) dans sa transaction.
+  "tests/textes-t3-base.test.ts",
+  // Reprise du lot T3 (T3R-1, 25/11) : rejoue 20261125151000 et son retour, puis le retour du lot T3, dans sa transaction
+  // (mêmes fonctions que tests/textes-t3-base.test.ts).
+  "tests/textes-t3-reprise-base.test.ts",
+  // Case « mariés ou pacsés » (décision du 24/11, 25/11) : rejoue 20261125152000 et son retour, retire et rajoute la colonne
+  // de `baux` dans sa transaction (verrou sur la table des baux).
+  "tests/bail-epoux-pacses-base.test.ts",
+  // Relecture de la fusion (A-01, 25/11) : rejoue 20261125153000 et son retour (déclencheurs de `bail_personnes` et de
+  // `baux`, fonction du départ) dans sa transaction.
+  "tests/bail-epoux-pacses-tiers-base.test.ts",
+  // Reprise de la relecture de la fusion (X-01, 25/11) : rejoue 20261125154000 et son retour (déclencheurs de `baux` et de
+  // `bail_personnes`) dans sa transaction.
+  "tests/bail-epoux-pacses-nouvelle-signature-base.test.ts",
+  // Essai de publication « retours » (RET-01, 25/11) : joue la chaîne des 52 retours du lot à publier (DDL sur tout le
+  // schéma) dans la transaction du fichier, annulée à la fin.
+  "tests/retours-lot-publication-registre.test.ts",
+  // Réserve du relecteur du lot D2 : ces trois fichiers figent le jour de Paris (`create or replace` de
+  // `aujourdhui_paris()` dans leur transaction, tests/fixtures/jour-de-paris-fige.ts) : le verrou pris sur la fonction
+  // ferait attendre les fichiers lancés en parallèle.
+  "tests/durcissement-audit-2026-09-10.test.ts",
+  "tests/audit-baux-documents-2026-09-29-base.test.ts",
+  "tests/audit-metier-2026-09-27.test.ts",
+  "tests/publications-origine-base.test.ts",
+  "tests/motif-retrait-auteur-base.test.ts",
   "tests/artisan-activation-securite.test.ts",
   "tests/retours-atomicite.test.ts",
   // Rejeu transactionnel des droits Stripe et de la lecture de session (DDL).
@@ -214,6 +308,13 @@ export const FICHIERS_EN_SERIE = [
   // Décisions 2B et 3A du 22/11 : rejeu de 20261122090000 et de son retour (create or replace de
   // bail_blocages_mise_en_location et de activer_bail, que les deux fichiers ci-dessus rejouent aussi).
   "tests/bail-repris-dpe-g-edl-base.test.ts",
+  // Lot 61 (reprise) : ce fichier a échoué une fois en parallèle (« orchestration_cases violates foreign key constraint
+  // orchestration_cases_organization_id_fkey ») puis réussi seul. Cause reproduite à deux sessions : il appelle
+  // actualiser_orchestration(), qui parcourt les dossiers de TOUTE la base, donc aussi ceux qu'un autre fichier a validés
+  // puis retire au même moment (l'espace disparaît entre la lecture du dossier et le contrôle de la clé étrangère). La
+  // même fonction rend 0 sans rien faire tant qu'un autre fichier tient son verrou consultatif dans une transaction
+  // ouverte. Il passe donc après les fichiers parallèles, seul sur la base.
+  "tests/pilotage-dossiers.test.ts",
 ];
 
 export default defineConfig({

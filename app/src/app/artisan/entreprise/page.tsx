@@ -1,7 +1,7 @@
 import { OngletsDossier } from "@/components/onglets-dossier";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowUpRight, Banknote, Building2, FileCheck2, FilePenLine, Mail, Phone, Star } from "lucide-react";
+import { ArrowUpRight, Banknote, Building2, FileCheck2, FilePenLine, Mail, MapPin, Phone, Star } from "lucide-react";
 import { clientDeService } from "@/lib/supabase/service";
 import { DocumentsEntreprise } from "./documents-entreprise";
 import { chargerNote, chargerPieces, verifierAccesArtisan } from "../acces";
@@ -9,10 +9,17 @@ import { degreEcheance, formaterSiret, formaterTelephone, METIERS } from "../lib
 import { Carte, EnteteSousPage, Etiquette, Erreur } from "../ui";
 import { FormulaireMetiersZones, ReglageVisibilite } from "./reglages-entreprise";
 import { PresenceReseau } from "./presence-reseau";
+import { AbsencesArtisan, SemaineTypeArtisan } from "./disponibilites-artisan";
+import { aujourdhuiParis } from "@/lib/ged";
+import type { AbsenceArtisan, PlageJour } from "@/lib/semaine-type-artisan";
 import { exclusionLue } from "@/lib/artisan-prive-exclusion";
 import styles from "./entreprise.module.css";
 
-export const metadata = { title: "Mon entreprise" };
+// Phase 3, lot 60 (E121, E127) : la page s'appelait « Ma fiche entreprise » dans le menu latéral et dans les liens qui y
+// mènent (facturation, attestations, évaluations, devis), « Mon entreprise » dans son titre, le menu du compte et le menu
+// du téléphone. Un seul nom : « Ma fiche entreprise ». « Mon entreprise » reste le titre du groupe du menu latéral
+// (fiche, attestations, évaluations, règles). Question notée pour le dirigeant : c'est un choix de vocabulaire.
+export const metadata = { title: "Ma fiche entreprise" };
 const ETATS_SIRET: Record<string, string> = { verifie: "SIRET vérifié", non_verifie: "SIRET en cours de vérification", invalide: "SIRET signalé invalide" };
 const ETATS_PLATEFORME: Record<string, string> = { en_attente: "Inscription en cours de validation", valide: "Inscription validée", refuse: "Inscription refusée" };
 
@@ -24,6 +31,11 @@ export default async function PageEntreprise() {
   const exclu = exclusionLue(exclusion) === "liste_noire";
   const documents = service ? await service.from("artisan_profils_documents").select("adresse,mentions,logo_data").eq("artisan_id", fiche.artisan_id).maybeSingle() : null;
   const [pieces, note] = await Promise.all([chargerPieces(), chargerNote()]);
+  // Audit palier 1, P2-03 : les absences et la semaine type, lues sous les droits de l'artisan (fonctions réservées).
+  const [absencesLues, semaineLue] = await Promise.all([supabase.rpc("mes_absences_artisan"), supabase.rpc("ma_semaine_type")]);
+  const disponibilitesIllisibles = Boolean(absencesLues.error || semaineLue.error);
+  const absences = (absencesLues.data ?? []) as AbsenceArtisan[];
+  const semaineType = ((semaineLue.data ?? []) as PlageJour[]).map((p) => ({ jour: Number(p.jour), debut: p.debut, fin: p.fin }));
   const piecesTendues = pieces.lignes.filter(p => ["expiree", "critique", "proche"].includes(degreEcheance(p.jours_avant_echeance, p.expiree))).length;
   const aucunePiece = !pieces.erreur && pieces.lignes.length === 0;
   const profilDocuments = documents && !documents.error ? documents.data : null;
@@ -34,7 +46,7 @@ export default async function PageEntreprise() {
   ];
 
   return <div className={styles.page}>
-    <EnteteSousPage rubrique="entreprise" titre="Mon entreprise" mention=""/>
+    <EnteteSousPage rubrique="entreprise" titre="Ma fiche entreprise" mention=""/>
     <section className={styles.identite} aria-label="Votre entreprise">
       <div className={styles.logo}>{profilDocuments?.logo_data ? <Image src={profilDocuments.logo_data} alt={`Logo de ${fiche.raison_sociale}`} width={72} height={72} unoptimized/> : <Building2 size={32} aria-hidden/>}</div>
       <div className={styles.nomEntreprise}><p className={styles.surtitre}>Votre fiche professionnelle</p><h2>{fiche.raison_sociale}</h2><p>{(fiche.metiers ?? []).map(m => METIERS[m] ?? m).join(" · ") || "Métier à renseigner"}</p><div className={styles.statuts}>
@@ -52,6 +64,10 @@ export default async function PageEntreprise() {
             <div><dt>SIRET</dt><dd className={styles.siret}>{formaterSiret(fiche.siret)}</dd></div>
             <div><dt><Phone size={14} aria-hidden/>Téléphone</dt><dd>{formaterTelephone(fiche.telephone)}</dd></div>
             <div><dt><Mail size={14} aria-hidden/>Adresse e-mail</dt><dd>{fiche.email || "Non renseignée"}</dd></div>
+            {/* Phase 3, lot 60 (E120) : l'adresse de l'entreprise ne se lisait que dans l'onglet « Mes devis », où elle se saisit ;
+                la demande de devis la réclame (« Votre adresse d'entreprise manque sur le devis ») et l'artisan la cherchait ici.
+                Lecture seule : la saisie reste à un seul endroit. Si elle n'a pas pu être lue, la ligne n'affirme rien. */}
+            {documents && !documents.error && <div data-adresse-entreprise><dt><MapPin size={14} aria-hidden/>Adresse de l’entreprise (imprimée sur vos devis)</dt><dd className="whitespace-pre-line">{profilDocuments?.adresse?.trim() || "Non renseignée"}</dd><dd><Link href="#entreprise-devis" className="inline-flex min-h-11 items-center font-medium underline underline-offset-4">{profilDocuments?.adresse?.trim() ? "Modifier dans « Mes devis »" : "Compléter dans « Mes devis »"}</Link></dd></div>}
           </dl>
           {fiche.statut_motif && <p className={styles.commentaire}><strong>{fiche.statut_plateforme === "valide" ? "Commentaire de Gerimmo" : "Motif communiqué par Gerimmo"}</strong>{fiche.statut_motif}</p>}
           <p className={styles.aide}>Une correction de raison sociale ou de SIRET ? <Link href="/assistance?ecran=%2Fartisan%2Fentreprise&action=lien&retour=%2Fartisan%2Fentreprise">Contactez Gerimmo</Link>.</p>
@@ -60,6 +76,12 @@ export default async function PageEntreprise() {
       { id: "entreprise-reseau", titre: "Zone et métiers", contenu: <>
         <PresenceReseau fiche={fiche} exclu={exclu}/>
         <ReglageVisibilite visibilite={fiche.visibilite} siretVerifie={fiche.siret_etat === "verifie"}/>        <FormulaireMetiersZones metiers={(fiche.metiers ?? []).filter(m => m in METIERS)} codesPostaux={fiche.codes_postaux ?? []} complement={<div className={styles.noteZone}><p>Votre zone et vos métiers déterminent les demandes reçues. Le réseau vous propose dès que votre inscription est validée et votre profil public.</p><Link href="/artisan/regles">Les règles à connaître pour mon activité <ArrowUpRight size={14} aria-hidden/></Link></div>}/>
+</> },
+      { id: "entreprise-disponibilites", titre: "Disponibilités", contenu: <>
+        {disponibilitesIllisibles ? <Erreur>Vos disponibilités ne sont pas disponibles pour le moment. Rechargez la page.</Erreur> : <>
+          <AbsencesArtisan absences={absences} aujourdhui={aujourdhuiParis()} />
+          <SemaineTypeArtisan semaine={semaineType} />
+        </>}
 </> },
       { id: "entreprise-devis", titre: "Mes devis", contenu: <>
         {documents && !documents.error ? <DocumentsEntreprise profil={documents.data ?? { adresse: "", mentions: "", logo_data: null }}/>: <Erreur>Les informations de vos documents ne sont pas disponibles pour le moment. Réessayez avant de valider un devis.</Erreur>}</> },

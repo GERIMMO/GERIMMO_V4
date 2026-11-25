@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { ArretSupervision, verifierAvantEffet } from './controle-effets';
 import { envoyerEmail } from './email';
+import { envoiAutomatiqueOuvert } from './envois-suspendus';
 import { echapperMarque } from './marque-organisation';
 import { instantRdv } from './rendez-vous-locataire';
 import { adresseDuSite } from './site';
@@ -19,8 +20,14 @@ export async function envoyerRelancesReportsRdv(db: SupabaseClient, options: {ec
   if(horloge()>=fin)return bilan;
   const lecture = await db.rpc('reports_rdv_a_relancer', {p_limite:10});
   if (lecture.error) return {...bilan,echecs:1};
+  const demandes = (lecture.data ?? []) as {demande_id:string}[];
+  // Décision du dirigeant du 24/11/2026 (Q37) : cette relance est le cinquième envoi automatique, avec son interrupteur
+  // (migration 20261125110000), lu une fois par passe. Fermé (le défaut) : aucun contexte n'est joint, la relance reste
+  // suspendue par la liste fermée, exactement comme avant. Ouvert : le contexte désigne la demande, et la base refait
+  // la preuve juste avant l'envoi (demande toujours en attente, relance réservée et pas encore partie, adresse de l'artisan).
+  const ouvert = demandes.length > 0 && await envoiAutomatiqueOuvert(db, 'relance_report_rdv');
   // Dix appels bornés et parallèles ; chacun revérifie l'arrêt et réserve atomiquement sa demande.
-  const resultats = await Promise.allSettled(((lecture.data ?? []) as {demande_id:string}[]).map(async ({demande_id}) => {
+  const resultats = await Promise.allSettled(demandes.map(async ({demande_id}) => {
     if(horloge()>=fin){bilan.restantes=(bilan.restantes??0)+1;return;}
     await verifierAvantEffet(db, 'rappels');
     if(horloge()>=fin){bilan.restantes=(bilan.restantes??0)+1;return;}
@@ -56,6 +63,7 @@ export async function envoyerRelancesReportsRdv(db: SupabaseClient, options: {ec
         get delaiMaxMs(){return Math.max(1,Math.floor(Math.min(15_000,fin-horloge())));},
         organisation:{db,id:relance.organization_id},
         to:relance.adresse,
+        ...(ouvert ? { contexteMetier: { type: 'relance_report_rdv' as const, id: demande_id } } : {}),
         cleIdempotence:`rdv-report:relance:${demande_id}`,
         subject:'Un report de rendez-vous attend votre réponse',
         html:`<p>Le locataire vous a demandé de reporter son rendez-vous. Répondez avant ${echapperMarque(instantRdv(relance.expire_le))}.</p><p>Le rendez-vous actuel reste valable tant que vous n’avez pas accepté une nouvelle date.</p><p><a href="${echapperMarque(`${adresseDuSite()}/artisan/missions/${relance.intervention_id}`)}">Voir la demande de report</a></p>`,

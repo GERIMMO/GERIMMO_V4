@@ -10,12 +10,13 @@
  *
  * Les pages sont rendues sans base (identité fictive) ou lues telles quelles.
  */
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { CONDITIONS_DATE, PRESTATAIRES, cleCoordonnees } from "../src/lib/editeur";
+import { CONFIDENTIALITE_DATE, PRESTATAIRES, cleCoordonnees } from "../src/lib/editeur";
 
 const lecture = vi.hoisted(() => ({ valeurs: {} as Record<string, string | null> }));
 vi.mock("@/lib/conservation-publique", () => ({ lireDureesPubliques: async () => ({ regles: [], indisponible: false }) }));
@@ -44,6 +45,9 @@ beforeEach(() => {
     ...Object.fromEntries(PRESTATAIRES.map((p) => [cleCoordonnees(p), "Coordonnées fictives"])),
   };
 });
+
+/** La date de /confidentialite et l'empreinte de son texte rendu, relevées ensemble (défaut d'écran E056). */
+const DATE_ET_EMPREINTE_CONFIDENTIALITE = { date: "24 novembre 2026", empreinte: "ec55401dadb37713af92f251480491a2fb9485ba72ccb7fdee3d8a05f5158554" };
 
 async function confidentialite() {
   return texte(renderToStaticMarkup(await Confidentialite()));
@@ -78,17 +82,22 @@ describe("/confidentialite (lot 4)", () => {
     expect(lire("app/confidentialite/page.tsx")).not.toContain("à confirmer par le juriste et le DPO");
   });
 
-  it("factures de Gerimmo six ans au moins (L. 102 B), jamais dix ; preuve du contrat dix ans après le dernier abonnement payé", async () => {
+  // Lot T4 du 24/11/2026 (écart R31-A1). Ce test affirmait « six ans au moins, jamais dix » : c'était la règle du 23/10
+  // (éditeur non commerçant, ancien délai de l'article L. 102 B du livre des procédures fiscales). Le recueil fourni par
+  // le dirigeant contient l'article 36 de la loi n° 2026-534 du 25 juin 2026, qui porte ce délai à dix ans pour les
+  // pièces dont la conservation expire après le 1er janvier 2027 — toutes les factures de Gerimmo. Le test dit dix ans.
+  it("factures de Gerimmo dix ans au moins (L. 102 B), plus jamais six ; preuve du contrat dix ans après le dernier abonnement payé", async () => {
     const page = await confidentialite();
-    expect(page).toContain("Au moins 6 ans (obligation fiscale : livre des procédures fiscales, art. L. 102 B), chez notre prestataire de paiement, selon sa propre politique de conservation");
-    // La copie jointe à l'archive d'un compte fermé est retirée six ans après la fin de l'exercice de la facture, à
-    // défaut après la fin du dernier abonnement payé (echeance_facture_archivee, migration 20261024140000).
-    expect(page).toContain("la copie jointe à la preuve du contrat d’un compte fermé est supprimée six ans après la fin de l’exercice de la facture");
+    expect(page).toContain("Au moins 10 ans (obligation fiscale : livre des procédures fiscales, art. L. 102 B), chez notre prestataire de paiement, selon sa propre politique de conservation");
+    // La copie jointe à l'archive d'un compte fermé est retirée dix ans après la fin de l'exercice de la facture, à
+    // défaut après la fin du dernier abonnement payé (echeance_facture_archivee, migration 20261125103000).
+    expect(page).toContain("la copie jointe à la preuve du contrat d’un compte fermé est supprimée dix ans après la fin de l’exercice de la facture");
     expect(page).toContain("Émission ; pour la copie jointe à la preuve du contrat, fin de l’exercice de la facture (à défaut, fin du dernier abonnement payé)");
-    expect(page).toContain("avec la copie de vos factures, six ans après la fin de leur exercice");
+    expect(page).toContain("avec la copie de vos factures, dix ans après la fin de leur exercice");
     expect(page).toContain("où votre fiche de client est supprimée au terme de la conservation de vos factures");
-    expect(page).toContain("les factures d'abonnement, au moins six ans, chez notre prestataire de paiement");
-    expect(page).not.toMatch(/factures[^.;]{0,80}dix ans/i);
+    expect(page).toContain("les factures d'abonnement, au moins dix ans, chez notre prestataire de paiement");
+    expect(page).toContain("Les factures d'abonnement émises par Gerimmo sont conservées au moins dix ans");
+    expect(page).not.toMatch(/factures[^.;]{0,80}(?:six ans|6 ans)/i);
     expect(page).not.toContain("10 ans (obligation légale)");
     expect(page).not.toContain("conservation comptable obligatoire des factures est de dix ans");
     expect(page).toContain("dix ans après la fin de votre dernier abonnement payé");
@@ -173,15 +182,45 @@ describe("/confidentialite (lot 4)", () => {
     expect(page).toContain("propriétaires bailleurs qui gèrent eux-mêmes leurs biens");
   });
 
-  it("est datée comme la V1 des conditions (date provisoire jusqu'à la publication)", async () => {
-    expect(await confidentialite()).toContain(`Dernière mise à jour : ${CONDITIONS_DATE}.`);
+  // Défaut d'écran E056 (passe 1) : ce test figeait « Dernière mise à jour : CONDITIONS_DATE », date de la version des
+  // conditions. Modifiée le 22/11 sans nouvelle version, la page affichait encore le 15 novembre ; à l'inverse, une
+  // version des conditions qui ne la touche pas l'aurait datée à tort. Elle porte désormais sa propre date.
+  it("porte sa propre date de mise à jour, qui ne suit pas la version des conditions", async () => {
+    vi.resetModules();
+    vi.doMock("@/lib/editeur", async (original) => ({ ...(await original<typeof import("../src/lib/editeur")>()), CONDITIONS_DATE: "1er janvier 2099" }));
+    try {
+      const { default: Page } = await import("../src/app/confidentialite/page");
+      const { CONFIDENTIALITE_DATE } = await import("../src/lib/editeur");
+      const page = texte(renderToStaticMarkup(await Page()));
+      expect(page).toContain(`Dernière mise à jour : ${CONFIDENTIALITE_DATE}.`);
+      expect(page).not.toContain("1er janvier 2099");
+    } finally {
+      vi.doUnmock("@/lib/editeur");
+      vi.resetModules();
+    }
+  });
+
+  // E056 : la date ne reste vraie que si elle change avec la page. L'empreinte du texte rendu (identité fictive
+  // ci-dessus, durées de conservation par défaut) est relevée avec la date : un texte modifié échoue ici, tant que la date
+  // et l'empreinte n'ont pas été relevées de nouveau ensemble.
+  it("une modification de son texte demande une nouvelle date (empreinte relevée avec la date)", async () => {
+    const empreinte = createHash("sha256").update(await confidentialite()).digest("hex");
+    expect(
+      { date: CONFIDENTIALITE_DATE, empreinte },
+      `Le texte de /confidentialite a changé (empreinte ${empreinte}) : mettez CONFIDENTIALITE_DATE (lib/editeur.ts) à la date du jour, puis relevez ici la date et l'empreinte.`,
+    ).toEqual(DATE_ET_EMPREINTE_CONFIDENTIALITE);
   });
 });
 
-describe("mentions légales (lot 4 : aucun changement de texte)", () => {
-  it("le médiateur manquant s'y dit « Adhésion à venir », sans fermer la vente", async () => {
+// Lot D7 (décision du dirigeant du 24/11/2026, Q7) : ce test figeait « Adhésion à venir : aucun organisme n'est désigné
+// à ce jour. ». Le texte change : il ne suppose plus une adhésion, il dit qu'aucun médiateur n'est désigné, que ses
+// coordonnées seront publiées à sa désignation, et où adresser une réclamation en attendant.
+describe("mentions légales (lot D7 : le médiateur non désigné)", () => {
+  it("le médiateur manquant s'y dit « aucun organisme n'est désigné », sans fermer la vente ni promettre un recours", async () => {
     const page = texte(renderToStaticMarkup(await Mentions()));
-    expect(page).toContain("Adhésion à venir : aucun organisme n’est désigné à ce jour.");
+    expect(page).toContain("Médiateur de la consommation : aucun organisme n’est désigné à ce jour. Ses coordonnées seront publiées sur cette page dès sa désignation.");
+    expect(page).not.toContain("Adhésion à venir");
+    expect(page).not.toContain("peut recourir gratuitement à un médiateur compétent");
     expect(page).not.toMatch(/vente (?:est )?fermée|fermée faute de médiateur/i);
   });
 });

@@ -12,6 +12,9 @@ import { nomComplet } from "@/lib/roles-personnes";
 import { etatAssuranceLocataire } from "@/lib/assurance-locataire";
 import { aEchoue } from "./panne-lecture";
 import { BOUTON_URGENCE } from "./pastille-locataire";
+import { FournisseurEtatIA } from "@/components/etat-ia";
+import { etatIA } from "@/lib/etat-ia";
+import { lireEchangesNonLus } from "@/lib/echanges-intervention";
 
 // L'apparence de l'organisation, lue une fois par requête : la marque de la
 // barre latérale ET le titre de l'onglet en ont besoin.
@@ -49,6 +52,8 @@ export default async function LayoutLocataire({
 }: LayoutProps<"/locataire/[orgId]">) {
   const { orgId } = await params;
   const { supabase, user, personne, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
+  // Interrupteur IA (22/11/2026) : lu une fois ici, offert aux composants de l'espace.
+  const etatDeLIA = await etatIA(supabase);
   const apparence = await lireApparence(orgId);
   const identite = await lireIdentiteContact(orgId);
   const nomPublic = identite.nom ?? "Mon espace locataire";
@@ -59,7 +64,7 @@ export default async function LayoutLocataire({
     { data: nonLus, error: eNonLus },
     { data: demandes, error: eDemandes },
     { data: baux, error: eBaux },
-    { data: signatures, error: eSignatures },
+    echangesNonLus,
   ] =
     await Promise.all([
       supabase.rpc("mes_pieces_locataire", { p_org: orgId }),
@@ -67,7 +72,8 @@ export default async function LayoutLocataire({
       supabase.rpc("messages_non_lus_locataire", { p_org: orgId }),
       supabase.rpc("mes_pieces_demandees", { p_org: orgId }),
       supabase.rpc("mon_bail_locataire", { p_org: orgId }),
-      supabase.rpc("mes_demandes_signature", { p_org: orgId }),
+      // Audit palier 1 (P1-05) : les discussions d'intervention qui portent un message qu'il n'a pas lu.
+      lireEchangesNonLus(supabase, orgId),
     ]);
   const attestations = ((pieces ?? []) as {
     type: string;
@@ -99,7 +105,8 @@ export default async function LayoutLocataire({
     eNonLus,
     eDemandes,
     eBaux,
-    eSignatures
+    // (aEchoue attend une erreur ou rien : « false » y passerait pour une panne.)
+    echangesNonLus.erreur ? true : null
   );
 
   return (
@@ -119,10 +126,10 @@ export default async function LayoutLocataire({
           libelleContact={identite.titre}
           badgeDocuments={
             (assuranceOk ? 0 : 1) +
-            ((demandes ?? []) as unknown[]).length +
-            ((signatures ?? []) as unknown[]).length
+            ((demandes ?? []) as unknown[]).length
           }
-          badgeDemandes={demandesEnCours}
+          // Audit palier 1 (P1-05) : une discussion d'intervention à lire s'ajoute aux demandes en cours.
+          badgeDemandes={demandesEnCours + echangesNonLus.lignes.length}
           badgeMessages={Number(nonLus ?? 0)}
         />
       </aside>
@@ -133,7 +140,8 @@ export default async function LayoutLocataire({
           <MenuCompte
             initiales={
               personne
-                ? `${(personne.prenom?.[0] ?? "").toUpperCase()}${(personne.nom?.[0] ?? "").toUpperCase()}`
+                ? // Lot 61 (E137) : nom puis prénom, comme le nom affiché à côté (« Dupont Alice » → « DA », pas « AD »).
+                  `${(personne.nom?.[0] ?? "").toUpperCase()}${(personne.prenom?.[0] ?? "").toUpperCase()}`
                 : "◇"
             }
             // Plus de « Locataire » sous le nom (25/09, D39) : la barre
@@ -166,7 +174,7 @@ export default async function LayoutLocataire({
         )}
         {/* Plus de marge basse réservée au rond flottant (25/09, D40) : l'aide
             vit dans la barre latérale, le rond n'existe plus chez le locataire. */}
-        <main id="contenu-espace" tabIndex={-1} className="loc-corps mx-auto">{children}</main>
+        <main id="contenu-espace" tabIndex={-1} className="loc-corps mx-auto"><FournisseurEtatIA etat={etatDeLIA}>{children}</FournisseurEtatIA></main>
       </div>
     </div>
   );

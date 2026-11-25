@@ -8,6 +8,7 @@ import { envoyerLienMotDePasse } from "@/lib/lien-mot-de-passe";
 import { createClient } from "@/lib/supabase/server";
 import { estUuid } from "@/lib/identifiants";
 import { suiteInvitationLocataire } from "@/lib/invitations-locataire";
+import { messageDeLaBasePourInvite } from "@/lib/interlocuteur-locataire";
 
 export type EtatInvitation = { erreur?: string; succes?: string };
 
@@ -48,7 +49,8 @@ export async function repondreInvitation(invitationId: string, _etat: EtatInvita
   const { data, error } = await supabase.rpc("repondre_invitation_locataire", { p_id: invitationId, p_accepter: choix === "accepter" });
   revalidatePath(`/invitations/${invitationId}`);
   revalidatePath("/espaces");
-  if (error || data?.erreur) return { erreur: sansJargon(error?.message ?? data.erreur) };
+  // Lot 47 : « Contactez votre gestionnaire » (refus écrits en base) était faux chez un propriétaire qui gère lui-même.
+  if (error || data?.erreur) return { erreur: messageDeLaBasePourInvite(sansJargon(error?.message ?? data.erreur)) };
   if (data?.etat === "acceptee" && estUuid(data.organization_id)) redirect(`/locataire/${data.organization_id}`);
   return { succes: "Invitation refusée. Aucun accès n’a été ajouté à votre compte." };
 }

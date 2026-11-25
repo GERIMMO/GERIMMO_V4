@@ -20,12 +20,17 @@ export const URL_SERIE_INSEE_IRL = "https://www.insee.fr/fr/statistiques/serie/0
 export type NumeroTrimestre = 1 | 2 | 3 | 4;
 export type Trimestre = { trimestre: NumeroTrimestre; annee: number };
 
+/**
+ * Ce que l'utilisateur a saisi (ou ce que l'Insee publie pour SA date). Tout peut manquer : un trimestre est `null`
+ * tant que son trimestre ET son année ne sont pas choisis (décision du dirigeant du 25/11/2026 : aucun champ n'est
+ * prérempli, le calcul ne part jamais d'une valeur que l'utilisateur n'a pas saisie).
+ */
 export type EntreeIrl = {
   loyer: number | null;
   indiceReference: number | null;
-  trimestreReference: Trimestre;
+  trimestreReference: Trimestre | null;
   indiceNouveau: number | null;
-  trimestreNouveau: Trimestre;
+  trimestreNouveau: Trimestre | null;
 };
 
 export type AlerteIrl = {
@@ -56,18 +61,20 @@ export function ecartEnTrimestres(a: Trimestre, b: Trimestre): number {
   return b.annee * 4 + b.trimestre - (a.annee * 4 + a.trimestre);
 }
 
-/** Les alertes qui ne dépendent que des trimestres et des indices. */
+/** Les alertes qui ne dépendent que des trimestres et des indices (celles des trimestres, une fois les deux saisis). */
 export function alertesIrl(e: EntreeIrl): AlerteIrl[] {
   const alertes: AlerteIrl[] = [];
-  const ecart = ecartEnTrimestres(e.trimestreReference, e.trimestreNouveau);
-  if (ecart <= 0) {
+  const tRef = e.trimestreReference;
+  const tNouv = e.trimestreNouveau;
+  const ecart = tRef && tNouv ? ecartEnTrimestres(tRef, tNouv) : null;
+  if (tRef && tNouv && ecart != null && ecart <= 0) {
     alertes.push({
       code: "ordre-des-indices",
       gravite: "erreur",
-      message: `Le nouvel indice (${libelleTrimestre(e.trimestreNouveau)}) doit être postérieur à l'indice de référence (${libelleTrimestre(e.trimestreReference)}).`,
+      message: `Le nouvel indice (${libelleTrimestre(tNouv)}) doit être postérieur à l'indice de référence (${libelleTrimestre(tRef)}).`,
     });
   }
-  if (e.trimestreReference.trimestre !== e.trimestreNouveau.trimestre) {
+  if (tRef && tNouv && tRef.trimestre !== tNouv.trimestre) {
     alertes.push({
       code: "trimestres-differents",
       gravite: "attention",
@@ -75,7 +82,7 @@ export function alertesIrl(e: EntreeIrl): AlerteIrl[] {
         "Les deux indices ne portent pas sur le même trimestre. La révision se calcule sur le trimestre fixé au bail : le nouvel indice est celui du même trimestre, un an plus tard.",
     });
   }
-  if (ecart > 4) {
+  if (ecart != null && ecart > 4) {
     alertes.push({
       code: "plus-d-un-an",
       gravite: "attention",
@@ -98,7 +105,9 @@ export function calculerRevisionIrl(e: EntreeIrl): ResultatIrl {
   const alertes = alertesIrl(e);
   const manque: string[] = [];
   if (e.loyer == null || e.loyer <= 0) manque.push("le loyer hors charges actuel");
+  if (e.trimestreReference == null) manque.push("le trimestre et l'année de l'indice de référence");
   if (e.indiceReference == null || e.indiceReference <= 0) manque.push("l'indice de référence");
+  if (e.trimestreNouveau == null) manque.push("le trimestre et l'année du nouvel indice");
   if (e.indiceNouveau == null || e.indiceNouveau <= 0) manque.push("le nouvel indice");
   if (manque.length > 0 || e.loyer == null || e.indiceReference == null || e.indiceNouveau == null) {
     return { ok: false, manque, alertes };
@@ -113,11 +122,6 @@ export function calculerRevisionIrl(e: EntreeIrl): ResultatIrl {
   };
 }
 
-/** L'exemple pré-rempli de la page (à vérifier sur le site de l'Insee avant tout usage réel). */
-export const EXEMPLE_IRL: EntreeIrl = {
-  loyer: 850,
-  indiceReference: 146.68,
-  trimestreReference: { trimestre: 2, annee: 2025 },
-  indiceNouveau: 148.37,
-  trimestreNouveau: { trimestre: 2, annee: 2026 },
-};
+// Plus d'exemple prérempli (décision du dirigeant du 25/11/2026). `EXEMPLE_IRL` portait un loyer (850 €) et deux
+// trimestres (T2 2025 → T2 2026), après en avoir porté les deux indices (défauts E054 = E167) : l'écran les affichait
+// comme une saisie. Un exemple ne se montre plus qu'en texte indicatif, dans un champ vide (calculateur-irl.tsx).

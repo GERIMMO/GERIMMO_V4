@@ -44,6 +44,11 @@ export const COULEURS_ETAT_EDL: Record<string, string> = {
   signe: "puce puce-loue",
   brouillon: "puce puce-prep",
 };
+// Les mots de la fiche du bail (« Signé », « En cours ») pour la liste de choix des documents (phase 3, S34).
+export const ETATS_EDL: Record<string, string> = {
+  signe: "Signé",
+  brouillon: "En cours",
+};
 
 // Statuts d'un appel de loyer (échéancier agence et espace locataire)
 export const STATUTS_APPEL_LOYER: Record<string, string> = {
@@ -182,6 +187,24 @@ export function avertissementExerciceNonTermine(annee: number, decompte: EtatDec
 export const LIBELLE_CONFIRMATION_EXERCICE_NON_TERMINE =
   "Exercice non terminé : comparaison non homogène. Je confirme l’enregistrement de cette régularisation, qui ne pourra plus être modifiée.";
 
+// Lot T3 (R16-A1) — complément de charges d'un exercice ancien. L'article 7-1 de la loi du 6 juillet 1989 fait courir les
+// trois ans « à compter du jour où le titulaire d'un droit a connu ou aurait dû connaître les faits lui permettant d'exercer
+// ce droit » ; Gerimmo comptait depuis le 31 décembre de l'exercice et REFUSAIT le complément en le disant « prescrit », alors
+// qu'il ne connaît pas ce jour (comptes de copropriété approuvés plus tard, délai interrompu…). Il avertit maintenant et
+// demande une confirmation explicite ; il ne refuse plus et ne dit plus « prescrit ».
+// Même seuil que l'ancien refus de la base (31/12 de l'exercice antérieur à aujourd'hui moins trois ans) : au 24/11/2026,
+// 2022 et avant ; 2023 à partir du 1er janvier 2027. `aujourdhui` : le jour de Paris (AAAA-MM-JJ).
+export function exerciceDePlusDeTroisAns(annee: number, aujourdhui: string): boolean {
+  return annee + 3 < Number(aujourdhui.slice(0, 4));
+}
+
+export function avertissementExerciceAncien(annee: number): string {
+  return `Exercice ${annee} clos depuis plus de trois ans : un complément de charges à la charge du locataire est peut-être prescrit. Le délai de trois ans court du jour où le bailleur a connu ou aurait dû connaître ces dépenses (article 7-1 de la loi du 6 juillet 1989) : Gerimmo ne connaît pas ce jour et ne se prononce pas. Un trop-perçu peut toujours être rendu au locataire.`;
+}
+
+export const LIBELLE_CONFIRMATION_EXERCICE_ANCIEN =
+  "Exercice de plus de trois ans : je confirme l’enregistrement de cette régularisation, en sachant qu’un complément réclamé au locataire est peut-être prescrit.";
+
 // D40 (CHF-06, option A) : une régularisation émise en cours de bail n'écrit ni appel ni écriture au livre. Son solde est repris au décompte
 // de sortie (montants_reels_bail), tant qu'il n'est pas finalisé. L'appel complémentaire ou l'avoir (option B) est différé : avis spécialisé.
 export const MESSAGE_SOLDE_NON_APPELE = "Ce solde n’est pas appelé : il sera repris au décompte de sortie.";
@@ -225,6 +248,9 @@ export function derniereDateAnniversaire(dateDebut: string | null | undefined, a
 // jour-là, sinon à la date de la demande — jamais rétroactivement. Date
 // d'effet = max(anniversaire, demande). Miroir de `reviser_loyer` (migration
 // 20260929120000). null avant le premier anniversaire.
+// Depuis la décision Q43 du 24/11/2026, cette « date d'effet » n'est plus la date d'application du loyer révisé : elle
+// reste la date à laquelle la révision est acquise (elle sert à compter une révision par année de bail). Le loyer révisé
+// s'applique au premier terme qui suit la demande : voir `premierTermeApresDemande`.
 export function datesRevisionIrl(
   dateDebut: string | null | undefined,
   dateDemande: string
@@ -232,6 +258,117 @@ export function datesRevisionIrl(
   const echeance = derniereDateAnniversaire(dateDebut, dateDemande);
   if (!echeance) return null;
   return { echeance, dateEffet: dateDemande > echeance ? dateDemande : echeance };
+}
+
+// Décision Q23 du 24/11/2026 : la révision d'une année se demande pendant un an à compter de sa date de révision
+// (`echeance`, une date anniversaire du bail). La date limite est la veille de la date anniversaire suivante : révision
+// prévue le 15/10/2025, date limite le 14/10/2026 (exemple de la fiche Service-Public F1311 lue le 24/11/2026 : 13 mars
+// 2025 → 12 mars 2026). Miroir de `reviser_loyer` (migration 20261124100000), qui refuse au-delà.
+export function dateLimiteRevision(dateDebut: string | null | undefined, echeance: string): string | null {
+  if (!dateDebut) return null;
+  // La date anniversaire suivante est la dernière atteinte un an et un jour plus tard (le 29/02 se replie comme en base).
+  const [a, m, j] = echeance.slice(0, 10).split("-").map(Number);
+  const suivante = derniereDateAnniversaire(dateDebut, new Date(Date.UTC(a + 1, m - 1, j + 1)).toISOString().slice(0, 10));
+  if (!suivante || suivante <= echeance.slice(0, 10)) return null;
+  const veille = new Date(`${suivante}T00:00:00Z`);
+  veille.setUTCDate(veille.getUTCDate() - 1);
+  return veille.toISOString().slice(0, 10);
+}
+
+// Décision Q43 du 24/11/2026 : le loyer révisé ne s'applique jamais à des jours antérieurs à la demande. Il s'applique au
+// premier terme dont la période COMMENCE après la date de la demande. Les termes sont des mois civils : c'est le 1er du
+// mois qui suit la demande (demande du 15/10 ou du 31/10 → terme de novembre ; demande du 01/11 → terme de décembre).
+// La base retient en plus qu'un terme déjà appelé n'est pas modifié (`revisions_loyer.premier_terme`).
+export function premierTermeApresDemande(dateDemande: string): string {
+  const [a, m] = dateDemande.slice(0, 7).split("-").map(Number);
+  return new Date(Date.UTC(a, m, 1)).toISOString().slice(0, 10);
+}
+
+// Reprise du lot D2 (24/11/2026) : le premier terme appelé au loyer révisé, tel que `reviser_loyer` l'écrit sur la révision
+// (migration 20261124130000). Antidater la demande ne fait pas gagner un terme : on part du plus tardif entre la date de
+// la demande et le jour de l'enregistrement, et le terme retenu suit toujours le dernier terme déjà appelé.
+export function premierTermeRevise(dateDemande: string, jourEnregistrement: string, dernierTermeAppele?: string | null): string {
+  const terme = premierTermeApresDemande(dateDemande > jourEnregistrement ? dateDemande : jourEnregistrement);
+  const apresAppels = dernierTermeAppele ? premierTermeApresDemande(dernierTermeAppele) : terme;
+  return apresAppels > terme ? apresAppels : terme;
+}
+
+// Seconde reprise du lot D2 (24/11/2026) : la révision d'une année non faite se reconnaît à l'ANNÉE DE BAIL. À partir de la
+// deuxième année de bail, s'il n'existe aucune révision pour l'année de bail précédente, la base exige l'indice du même
+// trimestre de l'année précédente et calcule sur un an (elle ne se fie plus à la seule année lue dans le libellé du
+// trimestre, qui peut manquer). Miroir de `reviser_loyer` (migration 20261124150000) ; le formulaire s'en sert pour
+// afficher le champ de cet indice. L'année de bail d'une date est le nombre de dates anniversaires atteintes.
+//
+// Troisième reprise (24/11/2026, règle C3 de la migration 20261124170000) : quand AUCUNE révision n'est enregistrée dans
+// Gerimmo et que l'année de l'indice du bail est celle de l'indice demandé moins un (bail repris en cours, révisé ailleurs
+// l'an dernier, indice du bail à jour), l'indice du bail est déjà celui de l'année précédente : rien n'est exigé.
+// `indice` porte ces deux années quand elles sont connues ; sans lui, la fonction répond comme avant.
+export function indicePrecedentExige(
+  dateDebut: string | null | undefined,
+  dateDemande: string,
+  revisions: { date_effet: string }[],
+  indice?: { anneeIndice: number | null; anneeIndiceBail: number | null },
+): boolean {
+  if (!dateDebut) return false;
+  const anneeDeBail = (jour: string) => {
+    const anniversaire = derniereDateAnniversaire(dateDebut, jour.slice(0, 10));
+    return anniversaire ? Number(anniversaire.slice(0, 4)) - Number(dateDebut.slice(0, 4)) : 0;
+  };
+  const annee = anneeDeBail(dateDemande);
+  if (annee < 2 || revisions.some((r) => anneeDeBail(r.date_effet) === annee - 1)) return false;
+  const indiceDuBailAJour =
+    revisions.length === 0 && indice != null && indice.anneeIndice !== null && indice.anneeIndiceBail !== null &&
+    indice.anneeIndiceBail === indice.anneeIndice - 1;
+  return !indiceDuBailAJour;
+}
+
+// Reprise du lot D2 (24/11/2026) : dès qu'une révision est enregistrée, le bail porte le loyer révisé, alors que ce loyer
+// ne s'applique qu'à partir de son premier terme. Tant que ce terme n'est pas commencé, ce qu'on affiche ou atteste comme
+// « le loyer » est celui du terme en cours (le loyer d'avant la révision), et le loyer révisé s'annonce avec son terme.
+// Une seule fonction pour l'attestation de loyer, le dossier CAF, l'attestation du locataire et son espace.
+//
+// Seconde reprise (24/11/2026). La règle, telle quelle :
+//  - le loyer du terme en cours est l'« ancien loyer » de la PLUS ANCIENNE révision en attente (premier terme après le mois
+//    en cours). Deux révisions peuvent attendre le même terme : celle de l'année passée, demandée la veille de la date
+//    anniversaire (700 → 714 €), et celle de l'année qui commence, demandée le lendemain (714 → 728 €). Le terme en cours
+//    reste à 700 € ;
+//  - ce qui s'annonce est le loyer du bail (728 €), à compter de ce premier terme ;
+//  - un bail qui finit avant ce premier terme n'annonce rien : le loyer révisé ne lui sera jamais appelé.
+// Les révisions doivent arriver rangées par premier terme puis par date d'enregistrement : c'est l'ordre que rend
+// `revisions_de_mon_loyer_locataire`, et celui que demande le dossier du bail. Le tri ci-dessous garde cet ordre à
+// premier terme égal.
+export type RevisionDuLoyer = { ancien_loyer: number | string; nouveau_loyer: number | string; premier_terme: string | null };
+export type LoyerDuTerme = {
+  /** Le loyer hors charges du terme en cours. */
+  loyer: number | null;
+  /** Le loyer révisé qui n'est pas encore appliqué : son montant, son premier terme et le dernier terme à l'ancien loyer (1er du mois). */
+  aVenir: { loyer: number; premierTerme: string; dernierTermeAvant: string } | null;
+};
+export function loyerDuTermeEnCours(
+  loyerDuBail: number | string | null,
+  revisions: RevisionDuLoyer[],
+  aujourdhui: string,
+  dateFin?: string | null,
+): LoyerDuTerme {
+  const loyer = loyerDuBail === null ? null : Number(loyerDuBail);
+  const moisEnCours = `${aujourdhui.slice(0, 7)}-01`;
+  const centimes = (v: number | string) => Math.round(Number(v) * 100);
+  const enAttente = revisions
+    .filter((r) => r.premier_terme !== null && r.premier_terme.slice(0, 10) > moisEnCours)
+    .sort((a, b) => a.premier_terme!.localeCompare(b.premier_terme!));
+  const premiere = enAttente[0];
+  const derniere = enAttente[enAttente.length - 1];
+  // On s'en tient au loyer du bail si rien n'attend, si le bail ne porte pas le loyer de la dernière révision en attente
+  // (un avenant est passé depuis), ou si le loyer ne change pas.
+  if (!premiere || loyer === null || centimes(derniere.nouveau_loyer) !== centimes(loyer) || centimes(premiere.ancien_loyer) === centimes(loyer)) {
+    return { loyer, aVenir: null };
+  }
+  const premierTerme = premiere.premier_terme!.slice(0, 10);
+  // Le bail finit avant le premier terme révisé : le terme en cours reste à l'ancien loyer, et rien ne s'annonce.
+  if (dateFin && dateFin.slice(0, 10) < premierTerme) return { loyer: Number(premiere.ancien_loyer), aVenir: null };
+  const [a, m] = premierTerme.split("-").map(Number);
+  const dernierTermeAvant = new Date(Date.UTC(a, m - 2, 1)).toISOString().slice(0, 10);
+  return { loyer: Number(premiere.ancien_loyer), aVenir: { loyer, premierTerme, dernierTermeAvant } };
 }
 
 // Numéro (1 à 4) du trimestre IRL lu dans un libellé libre : « T2 2026 »,

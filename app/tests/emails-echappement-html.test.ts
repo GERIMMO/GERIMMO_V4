@@ -32,6 +32,7 @@ describe("les courriers n'interprètent jamais une valeur saisie comme du HTML",
       dateEcheance: "2026-09-01",
       reste: 400,
       lien: "https://gerimmo.fr/locataire/org/loyers",
+      interlocuteur: "bailleur",
     });
     sansBaliseInjectee(html);
   });
@@ -44,6 +45,7 @@ describe("les courriers n'interprètent jamais une valeur saisie comme du HTML",
       periode: "2026-09-01",
       dateEcheance: "2026-09-01",
       totalDu: 800,
+      interlocuteur: "bailleur",
     });
     sansBaliseInjectee(html);
   });

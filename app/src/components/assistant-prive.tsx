@@ -6,9 +6,14 @@ import { ChevronDown, LockKeyhole, Send, Sparkles, Trash2 } from "lucide-react";
 import { demanderAssistantPrive } from "@/app/actions/conversation-privee";
 import { SUJETS_ASSISTANT, type MessageAssistant, type SujetAssistant } from "@/lib/conversation-privee";
 import { BoutonEnvoi } from "./ui/bouton-envoi";
+import { useIAUtilisable } from "./etat-ia";
 
-export function AssistantPrive({ orgId, compteId, lectureSeule = false }: { orgId: string; compteId: string; lectureSeule?: boolean }) {
+/** Un lien d'aide proposé à la place de l'assistant quand l'IA est coupée ou non connectée. */
+export type LienAide = { href: string; libelle: string };
+
+export function AssistantPrive({ orgId, compteId, lectureSeule = false, aides = [] }: { orgId: string; compteId: string; lectureSeule?: boolean; aides?: LienAide[] }) {
   const id = useId();
+  const iaUtilisable = useIAUtilisable();
   const verrou = useRef(false);
   const [messages, setMessages] = useState<MessageAssistant[]>([]);
   const [question, setQuestion] = useState("");
@@ -33,6 +38,15 @@ export function AssistantPrive({ orgId, compteId, lectureSeule = false }: { orgI
     } catch { setErreur("La connexion a été interrompue. Votre question est conservée ; vous pouvez réessayer."); }
     finally { verrou.current = false; setAttente(false); }
   }
+  // Interrupteur IA (22/11/2026) : IA coupée ou non connectée, aucune question ne part. L'aide écrite et la
+  // messagerie de la page prennent la place de l'assistant, sans bouton qui ne répondrait pas.
+  if (!iaUtilisable) return aides.length === 0 ? null : <section className="mb-5 rounded-2xl border bg-card p-4 sm:p-5" aria-label="Aide sur vos démarches" data-assistant-remplace>
+    <strong className="block text-sm">Une question sur vos démarches ?</strong>
+    <p className="mt-1 text-xs text-muted-foreground">Ces pages répondent aux questions les plus fréquentes.</p>
+    <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+      {aides.map(a => <li key={a.href}><a className="lien-discret inline-flex min-h-11 items-center" href={a.href}>{a.libelle}</a></li>)}
+    </ul>
+  </section>;
   return <details className="group mb-5 rounded-2xl border bg-card p-4 sm:p-5">
     <summary className="flex min-h-11 cursor-pointer list-none items-center gap-3 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring">
       <Sparkles size={20} className="shrink-0 text-primary" aria-hidden="true" />
@@ -41,7 +55,7 @@ export function AssistantPrive({ orgId, compteId, lectureSeule = false }: { orgI
       <ChevronDown size={18} aria-hidden="true" className="shrink-0 group-open:rotate-180" />
     </summary>
     <div className="mt-4 space-y-4 border-t pt-4">
-      <p className="max-w-3xl text-xs leading-relaxed text-muted-foreground">Échange privé entre vous et Gerimmo, conservé dans cette page jusqu’à son rechargement. Seuls vos messages et le sujet choisi sont transmis à l’IA. Aucun dossier n’est joint automatiquement.</p>
+      <p className="max-w-3xl text-xs leading-relaxed text-muted-foreground">Échange privé entre vous et Gerimmo, conservé dans cette page jusqu’à son rechargement. Seuls vos messages et le sujet choisi sont transmis à OpenAI, le prestataire d’IA de Gerimmo, établi aux États-Unis. Aucun dossier n’est joint automatiquement.</p>
       <p className="text-xs text-muted-foreground">Évitez les données personnelles de tiers. Gerimmo vous conseille sans agir à votre place.</p>
       {messages.length > 0 && <>
         <ol className="max-h-[55vh] space-y-3 overflow-y-auto overscroll-contain rounded-xl border p-3" aria-label="Votre échange privé avec Gerimmo" aria-live="polite" aria-relevant="additions">

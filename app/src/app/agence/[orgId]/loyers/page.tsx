@@ -4,7 +4,8 @@ import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
-import { chargerQuittancementDuMois } from "@/lib/quittancement-du-mois";
+import { chargerQuittancementDuMois, marquerPlansApurement } from "@/lib/quittancement-du-mois";
+import { gesteImpayeSelonPlan } from "@/lib/paliers-reception-loyer";
 import { eur, moisEnFrancais } from "@/lib/ged";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,7 +40,12 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
   const portefeuille = await lotsDuPortefeuille(supabase, orgId, role, user.id);
   const dansPortefeuille = (lotId: string | null | undefined) =>
     !portefeuille || (lotId != null && portefeuille.has(lotId));
-  const { mois, lignes, error } = await chargerQuittancementDuMois(supabase, orgId, dansPortefeuille);
+  const quittancement = await chargerQuittancementDuMois(supabase, orgId, dansPortefeuille);
+  const { mois, error } = quittancement;
+  // Phase 3, lot 44 (reprise, C65) : chaque terme non couvert porte l'état du plan d'apurement de son bail. Sous plan en
+  // cours, les relances sont suspendues et le bail refuse d'enregistrer une relance datée de l'activation ou après : la
+  // page ne compte plus ce terme « à relancer » et mène au plan au lieu d'inviter à « Relancer sur le bail ».
+  const lignes = error ? quittancement.lignes : await marquerPlansApurement(supabase, orgId, quittancement.lignes);
 
   const loyers = resumerLoyersParcMois(lignes);
   const appele = loyers?.attendu ?? 0;
@@ -47,6 +53,9 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
   const reste = (Math.round(appele * 100) - Math.round(encaisse * 100)) / 100;
   const impayes = lignes.filter((l) => Number(l.montant_couvert) < Number(l.montant_du));
   const nbRegles = lignes.length - impayes.length;
+  const sousPlan = impayes.filter((l) => l.plan_apurement === "en_cours").length;
+  const planIllisible = impayes.some((l) => l.plan_apurement === "illisible");
+  const aRelancer = planIllisible ? 0 : impayes.length - sousPlan;
   // Un mois sans appel n'est pas un mois réussi : rien n'était dû. Les tuiles
   // restent neutres et la carte des impayés se tait (24/09).
   const moisVide = lignes.length === 0;
@@ -160,7 +169,14 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
                   ? "rien n’était dû"
                   : impayes.length === 0
                     ? "rien à relancer"
-                    : `${impayes.length} locataire${impayes.length > 1 ? "s" : ""} à relancer`}
+                    : planIllisible
+                      ? `${impayes.length} terme${impayes.length > 1 ? "s" : ""} non couvert${impayes.length > 1 ? "s" : ""} · plans d’apurement à vérifier`
+                      : [
+                          aRelancer > 0 && `${aRelancer} locataire${aRelancer > 1 ? "s" : ""} à relancer`,
+                          sousPlan > 0 && `${sousPlan} sous plan d’apurement`,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
               </span>
             </div>
           </section>
@@ -210,10 +226,13 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
           {!moisVide && (
           <Card>
             <CardHeader>
-              <CardTitle>Impayés à relancer</CardTitle>
+              {/* Phase 3, lot 44 (reprise, C65) : un terme sous plan d'apurement n'est pas « à relancer ». */}
+              <CardTitle>{sousPlan > 0 || planIllisible ? "Impayés du mois" : "Impayés à relancer"}</CardTitle>
               <CardDescription>
                 Chaque terme non couvert, avec son reste. La relance se consigne sur le bail —
                 elle vaut preuve.
+                {sousPlan > 0 && <> Sous un plan d’apurement en cours, les relances sont suspendues jusqu’à sa fin (dette soldée, plan caduc ou annulé).</>}
+                {planIllisible && <> Impossible de vérifier les plans d’apurement : aucune relance n’est proposée ici.</>}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -223,14 +242,18 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
                 </p>
               ) : (
                 <ul className="divide-y divide-border">
-                  {impayes.map((l) => (
+                  {impayes.map((l) => {
+                    // Phase 3, lot 44 (reprise, C65) : sous plan d'apurement en cours, le rang mène au plan du bail et
+                    // le dit (relances suspendues) ; plan illisible, aucune relance n'est proposée.
+                    const geste = gesteImpayeSelonPlan(l.plan_apurement);
+                    return (
                     <li key={l.appel_id}>
                       {/* La relance se fait sur le bail, section des loyers :
                           le lien le dit et y mène directement — et c'est TOUT
                           le rang qui se clique, pas ces trois mots (retour du
                           24/09 : « je veux que tout le carré soit cliquable »). */}
                       <Link
-                        href={`${base}/baux/${l.bail_id}#loyers`}
+                        href={`${base}/baux/${l.bail_id}${geste.ancre}`}
                         className="-mx-2 flex flex-wrap items-center justify-between gap-2 rounded-lg px-2 py-2.5 hover:bg-[var(--survol)]"
                       >
                         <span className="min-w-0">
@@ -238,12 +261,14 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
                           <span className="block text-xs text-muted-foreground">
                             {l.lot_nom} · reste {eur(Number(l.montant_du) - Number(l.montant_couvert))}
                             {l.dette_anterieure_reste ? ` · dette antérieure ${eur(Number(l.dette_anterieure_reste))}` : ""}
+                            {geste.detail ? ` · ${geste.detail}` : ""}
                           </span>
                         </span>
-                        <span className="lien-discret">Relancer sur le bail →</span>
+                        <span className="lien-discret">{geste.libelle}</span>
                       </Link>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               )}
             </CardContent>

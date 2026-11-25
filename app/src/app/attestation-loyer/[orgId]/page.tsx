@@ -12,7 +12,10 @@ import { eur, formaterDate, aujourdhuiParis } from "@/lib/ged";
 import { nomComplet } from "@/lib/roles-personnes";
 import { BoutonImprimer } from "@/components/bouton-imprimer";
 import { aEchoue, PanneLecture } from "@/app/locataire/[orgId]/panne-lecture";
+import { interlocuteurDeLIdentite } from "@/lib/identite-contact-locataire";
+import { completerIdentiteContact } from "@/lib/interlocuteur-locataire-serveur";
 import type { BailLocataire } from "@/app/locataire/[orgId]/types";
+import { loyerDuTermeEnCours, type RevisionDuLoyer } from "@/lib/baux";
 
 // Le titre de l'onglet porte la marque de l'émetteur, jamais « Gerimmo »
 // (25/09, D04 ; relevé à nouveau le 27/09).
@@ -45,11 +48,15 @@ export default async function PageAttestationLoyer(
     { data: baux, error: eBail },
     { data: echeancier, error: eEcheancier },
     { data: emetteurBrut, error: eEmetteur },
+    { data: revisions },
   ] = await Promise.all([
     supabase.rpc("mon_bail_locataire", { p_org: orgId }),
     supabase.rpc("mon_echeancier_locataire", { p_org: orgId }),
     // L'identité de l'émetteur (27/09) : nom, adresse, qualité.
     supabase.rpc("attestation_emetteur_locataire", { p_org: orgId }),
+    // Reprise du lot D2 (24/11) : les révisions du bail, pour attester le loyer du terme en cours et non un loyer révisé
+    // qui ne s'applique pas encore. Lecture ratée : le loyer du bail s'affiche comme avant, sans annonce.
+    supabase.rpc("revisions_de_mon_loyer_locataire", { p_org: orgId }),
   ]);
   // Une lecture tombée donnait ici le pire des écrans : un échéancier vide se
   // lit « après votre premier loyer réglé » — on annonçait à un locataire de
@@ -66,6 +73,11 @@ export default async function PageAttestationLoyer(
   // l'agence pour le compte du bailleur — avec l'adresse de l'un ou l'autre
   // (27/09). Sans identité complète, pas d'attestation.
   const emetteur = emetteurBrut ? emetteurAttestation(emetteurBrut as EmetteurAttestationBrut) : null;
+  // Lot 47 : « gestionnaire » seulement dans un espace d'agence, lu dans la même identité que l'émetteur (et que le
+  // titre « Mon gestionnaire » / « Mon bailleur » de l'espace). La panne le suivait déjà ; les deux refus disaient
+  // « mon gestionnaire » dans tous les espaces. Reprise : sans émetteur lisible, le type de l'espace complète
+  // l'identité, comme pour ce titre (`completerIdentiteContact`).
+  const interlocuteur = interlocuteurDeLIdentite(await completerIdentiteContact(supabase, orgId, eEmetteur ? null : emetteurBrut));
 
   const aujourdhui = aujourdhuiParis();
   // « de juillet 2026 à septembre 2026 » — avec l'élision devant voyelle
@@ -82,9 +94,17 @@ export default async function PageAttestationLoyer(
   const moisPayes = moisEchus.filter((l) => l.statut === "paye");
   // Loyer charges comprises : inconnu tant que rien n'est renseigné. `eur`
   // imprime « — » ; additionner deux absences donnerait un loyer de 0,00 €.
+  // Reprise du lot D2 : tant que le premier terme révisé n'est pas commencé, le loyer attesté est celui du terme en cours.
+  const duTerme = loyerDuTermeEnCours(
+    bail?.loyer_hc ?? null,
+    ((revisions ?? []) as (RevisionDuLoyer & { bail_id: string })[]).filter((r) => r.bail_id === bail?.bail_id),
+    aujourdhui,
+    // Seconde reprise du lot D2 : un bail qui finit avant le premier terme révisé n'annonce rien.
+    bail?.date_fin,
+  );
   const loyerCc =
-    bail && (bail.loyer_hc !== null || bail.charges !== null)
-      ? Number(bail.loyer_hc ?? 0) + Number(bail.charges ?? 0)
+    bail && (duTerme.loyer !== null || bail.charges !== null)
+      ? Number(duTerme.loyer ?? 0) + Number(bail.charges ?? 0)
       : null;
 
   let contenu: ReactNode;
@@ -93,7 +113,7 @@ export default async function PageAttestationLoyer(
   if (lectureKO) {
     // Ni attestation ni explication de refus : les deux seraient un mensonge
     // tant qu'on n'a pas pu lire l'échéancier.
-    contenu = <PanneLecture quoi="votre attestation de bon paiement" />;
+    contenu = <PanneLecture quoi="votre attestation de bon paiement" interlocuteur={interlocuteur} />;
   } else if (!bail || moisEchus.length === 0) {
     contenu = (
       <div className="vide-guide">
@@ -105,18 +125,20 @@ export default async function PageAttestationLoyer(
       </div>
     );
   } else if (enSouffrance.length > 0) {
+    // Phase 3, lot 61 (E015, E136) : « redeviendra disponible » supposait qu'elle l'avait déjà été ; « sera » est vrai
+    // dans les deux cas.
     contenu = (
       <div className="vide-guide">
         <p className="titre max-sm:pr-14">Attestation indisponible pour l&apos;instant</p>
         <p className="explication">
           {enSouffrance.length} loyer{enSouffrance.length > 1 ? "s" : ""} reste
           {enSouffrance.length > 1 ? "nt" : ""} dû{enSouffrance.length > 1 ? "s" : ""} sur
-          votre échéancier. L&apos;attestation redeviendra disponible dès que
+          votre échéancier. L&apos;attestation sera disponible dès que
           votre compte sera soldé.
         </p>
         <div className="geste">
           <Link href={`/locataire/${orgId}/contact`} className="btn-or">
-            Une difficulté ? Écrire à mon gestionnaire
+            Une difficulté ? Écrire à mon {interlocuteur}
           </Link>
         </div>
       </div>
@@ -124,6 +146,8 @@ export default async function PageAttestationLoyer(
   } else if (!emetteur || emetteur.manquants.length > 0) {
     // Un document « fait pour valoir » sans auteur identifiable n'a pas de
     // valeur ([[Quittance conforme]]) : on ne le délivre pas à moitié.
+    // Phase 3, lot 61 (E015, E136) : « redeviendra disponible » supposait qu'elle l'avait déjà été ; « sera » est vrai
+    // dans les deux cas.
     contenu = (
       <div className="vide-guide">
         <p className="titre max-sm:pr-14">Attestation indisponible pour l&apos;instant</p>
@@ -131,11 +155,11 @@ export default async function PageAttestationLoyer(
           Vos loyers sont à jour, mais l&apos;attestation doit porter l&apos;identité
           complète de celui qui la signe
           {emetteur ? ` (il manque ${emetteur.manquants.join(", ")})` : ""}. Demandez à
-          votre gestionnaire de la compléter.
+          votre {interlocuteur} de la compléter.
         </p>
         <div className="geste">
           <Link href={`/locataire/${orgId}/contact`} className="btn-or">
-            Écrire à mon gestionnaire
+            Écrire à mon {interlocuteur}
           </Link>
         </div>
       </div>
@@ -165,7 +189,16 @@ export default async function PageAttestationLoyer(
         <div>
           <div className="ligne-info">
             <span>Loyer mensuel charges comprises</span>
-            <span className="montant">{eur(loyerCc)}</span>
+            <span className="montant text-right" data-loyer-atteste>
+              {eur(loyerCc)}
+              {duTerme.aVenir && (
+                <span className="block text-xs font-normal">
+                  jusqu&apos;au terme {deElide(moisLong(duTerme.aVenir.dernierTermeAvant))} ;{" "}
+                  {eur(duTerme.aVenir.loyer + Number(bail.charges ?? 0))} à compter du terme{" "}
+                  {deElide(moisLong(duTerme.aVenir.premierTerme))} (révision annuelle du loyer)
+                </span>
+              )}
+            </span>
           </div>
           <div className="ligne-info">
             <span>Mois réglés à ce jour</span>

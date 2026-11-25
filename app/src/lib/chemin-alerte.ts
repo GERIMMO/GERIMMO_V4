@@ -83,12 +83,19 @@ const ANCRES_BAIL = new Map<string, string>([
  * qui la ferme dès que le devis est retenu, écarté, annulé ou expiré.
  */
 const SE_FERMENT_SEULES = new Set([
+  // Audit palier 1 (P1-05) : fermée par `marquer_echange_intervention_lu` dès qu'un gestionnaire a lu la discussion.
+  "message_intervention",
   // Décision D22 (migration 20261014620000) : les trois alertes nées d'un geste du locataire sur son rendez-vous se
   // ferment dès que la mission avance (nouveau rendez-vous fixé, intervention démarrée ou terminée, mission annulée)
   // — déclencheur `demandes_rdv_suivre_mission` — ou par l'arbitrage du rendez-vous.
   "rdv_annule_locataire",
   "rdv_annule_tardif",
   "rdv_demande_sans_reponse",
+  // Audit palier 1 (P2-04, migration 20261122235800) : fermée par `fermer_alerte_rdv_manque` dès que la mission avance
+  // (nouveau rendez-vous, démarrage, fin, refus, annulation) ; et la relance d'une facture par
+  // `fermer_alerte_relance_facture`, dès que la facture est réglée en totalité ou refusée.
+  "rdv_manque",
+  "facture_artisan_relancee",
   "assurance_expiration",
   "attestation_a_verifier",
   "decompte",
@@ -137,11 +144,24 @@ const LIBELLES = new Map<string, string>([
   // dossier d'incident, où se lisent la facture et les créneaux.
   ["facture_artisan_a_valider", "Contrôler la facture de l’artisan"],
   ["creneaux_arbitrage", "Fixer le rendez-vous"],
+  // Audit palier 1 (P1-07) : Gerimmo a retiré une évaluation après la contestation de l'artisan
+  // (retirer_evaluation_contestee, 20261122150000 : {incident_id, lot_id, intervention_id, source, libelle}).
+  // Une information : rien à faire, sinon lire le dossier ; l'alerte se ferme à la main.
+  ["evaluation_retiree", "Ouvrir le dossier de l’intervention"],
+  // Audit palier 1 (P1-05) : le locataire ou l'artisan a écrit dans la discussion de l'intervention
+  // (signaler_message_intervention, 20261122180000 : {incident_id, lot_id, intervention_id, messages, dernier_role,
+  // dernier_le, libelle} — jamais le texte). L'alerte se ferme d'elle-même quand un gestionnaire a lu la discussion.
+  ["message_intervention", "Lire le message de l’intervention"],
   // Décision D22 : le locataire a annulé (l'artisan repropose des dates ; le gérant peut fixer le rendez-vous), ou
   // l'artisan n'a pas répondu à sa demande de report (le rendez-vous est maintenu ; rappeler le locataire).
   ["rdv_annule_locataire", "Suivre le nouveau rendez-vous"],
   ["rdv_annule_tardif", "Suivre le nouveau rendez-vous"],
   ["rdv_demande_sans_reponse", "Voir le rendez-vous maintenu"],
+  // Audit palier 1 (P2-04) : l'artisan a consigné l'absence du locataire à un rendez-vous confirmé
+  // ({incident_id, lot_id, intervention_id, rdv_debut, absent, libelle}) ; ou il relance une facture restée sans
+  // règlement ({incident_id, lot_id, intervention_id, facture_id, numero, relance, libelle}).
+  ["rdv_manque", "Convenir d’un nouveau rendez-vous"],
+  ["facture_artisan_relancee", "Voir la facture relancée par l’artisan"],
   ["loyer_impaye", "Ouvrir les loyers du bail"],
   ["zone_tendue_a_verifier", "Vérifier la zone tendue du bail"],
   ["regularisation_non_appelee", "Ouvrir les loyers et régularisations du bail"],
@@ -229,9 +249,13 @@ export function cheminFicheAlerte(a: Alerte, orgId: string, racine: string = RAC
     type === "devis_revision_expiree" ||
     type === "facture_artisan_a_valider" ||
     type === "creneaux_arbitrage" ||
+    type === "evaluation_retiree" ||
+    type === "message_intervention" ||
     type === "rdv_annule_locataire" ||
     type === "rdv_annule_tardif" ||
-    type === "rdv_demande_sans_reponse"
+    type === "rdv_demande_sans_reponse" ||
+    type === "rdv_manque" ||
+    type === "facture_artisan_relancee"
   ) {
     const incident = texte(a.details, "incident_id");
     if (incident) return `${base}/incidents?sel=${incident}`;

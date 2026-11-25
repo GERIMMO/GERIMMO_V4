@@ -197,6 +197,7 @@ export async function envoyerRelancesInvitations(
       resultat = await expedier({
         email: d.email,
         invitationId: d.invitation_id,
+        rang: d.rang,
         expireLe: d.expire_le,
         avantEnvoi: options.avantEffet,
         echeanceMs: fin,

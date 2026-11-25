@@ -21,7 +21,9 @@ import { ArretSupervision } from "@/lib/controle-effets";
 import { origineDeRetour } from "@/lib/site";
 import { CONDITIONS_DATE, CONDITIONS_VERSION, REGIME_TVA } from "@/lib/editeur";
 import { aujourdhuiParis } from "@/lib/ged";
-import { messageRepriseSansAccord, repriseExigeAccord } from "@/lib/nouvelle-version-conditions";
+import { accordAuProchainActe, messageActeSansAccord, messageRepriseSansAccord, repriseExigeAccord } from "@/lib/nouvelle-version-conditions";
+import { versionDeclaree } from "@/lib/conditions-versions";
+import { versionArchivee } from "@/lib/conditions-acceptation-serveur";
 import {
   ERREUR_ACCEPTATION_CONDITIONS,
   ERREUR_CONDITIONS_PERIMEES,
@@ -51,7 +53,7 @@ import { baseDeLOrganisation } from "@/lib/racine-espace-serveur";
 export type EtatAbonnementAction = {
   erreur?: string;
   succes?: boolean;
-  /** « Annuler la résiliation » attend l'accord à cette version des conditions (case posée sous le bouton). */
+  /** L'acte (reprise, hausse, changement de périodicité) attend l'accord à cette version des conditions (case posée sous le bouton). */
   accordConditions?: { version: string; dateVersion: string };
 };
 
@@ -268,7 +270,10 @@ export async function demarrerAbonnement(
   //    légales complètes, pas de paiement — même phrase qu'à l'écran. Une
   //    lecture en échec ferme aussi. « Votre essai continue » seulement si
   //    l'essai court encore (un essai gelé garde le statut « essai »).
-  const motifIdentite = await lireMotifIdentiteEditeur(supabase, essaiEnCours(etat), etat.public_tarif === "proprietaire_direct");
+  //    Reprise du 24/11/2026 (D7R-04) : cette action n'ouvre que des PREMIÈRES souscriptions (un abonnement en cours
+  //    est refusé plus haut) ; le vendeur doit donc être identifié pour tout client, agence comprise, blocage levé ou
+  //    non. Le médiateur n'est exigé, par défaut, que pour un particulier.
+  const motifIdentite = await lireMotifIdentiteEditeur(supabase, essaiEnCours(etat), etat.public_tarif === "proprietaire_direct", true);
   if (motifIdentite) return { erreur: motifIdentite };
   // 2. La version en vigueur des conditions, acceptée par LE COMPTE qui clique.
   //    L'écran propose la case qui l'enregistre (accepterConditionsGenerales) ;
@@ -416,11 +421,15 @@ export async function confirmerHausse(
   if (!reglages.pret) return { erreur: "Le paiement en ligne n'est pas ouvert." };
   if (!REGIME_TVA) return { erreur: REGIME_ABSENT };
   // Lot B3 (19/10) : une hausse est un paiement ; sans l'identité complète de
-  // l'éditeur, elle attend aussi. Les conditions ne sont pas redemandées : le
-  // contrat est déjà formé (arbitrage du 19/10). Un client abonné n'est pas
+  // l'éditeur, elle attend aussi. Les conditions déjà acceptées ne sont pas
+  // redemandées : le contrat est déjà formé (arbitrage du 19/10). Un client abonné n'est pas
   // en essai : la phrase s'arrête avant « Votre essai continue ».
   const motifIdentite = await lireMotifIdentiteEditeur(supabase, essaiEnCours(etat));
   if (motifIdentite) return { erreur: motifIdentite };
+  // Décision du dirigeant du 24/11/2026 (Q15) : si une NOUVELLE version attend l'accord exprès du Client, ce changement
+  // de contrat le demande d'abord (case sous le bouton ; le même geste l'enregistre). Sinon, rien n'est lu.
+  const accord = await accordAvantActe(supabase, formData);
+  if (accord) return accord;
 
   const unites = lireEntier(formData.get("unites"));
   if (unites === null || unites < Math.max(1, etat.unites_a_couvrir ?? 0)) {
@@ -557,6 +566,10 @@ export async function demanderPeriodicite(
           if (!reference || reference.montantCents !== payee.montantPeriodeCents) {
             return { erreur: "Votre tarif actuel est conservé. Confirmez d’abord le nouveau tarif dans Mon abonnement avant de changer de périodicité." };
           }
+          // Décision Q15 du 24/11/2026 : demander une AUTRE périodicité change le contrat (prix et durée de la période) ;
+          // si une nouvelle version attend l'accord exprès, il est demandé ici. Revenir sur une demande ne le demande pas.
+          const accord = await accordAvantActe(supabase, formData);
+          if (accord) return accord;
         }
       } catch (e) {
         if (e instanceof ArretSupervision) throw e;
@@ -587,9 +600,16 @@ export async function demanderPeriodicite(
  * d'effet est atteinte (relecture adverse du 24/10, défaut 3) : sans accord du compte, la tâche quotidienne reposerait
  * la non-reconduction le lendemain, sans prévenir. `null` : la reprise peut partir. Sinon le refus, qui fait poser la
  * case « J'ai lu et j'accepte la version du … » sous le bouton ; l'envoi qui la porte (version affichée = version du
- * serveur) enregistre l'accord, puis la reprise part. Aujourd'hui (2026-09-30), rien n'est lu.
+ * serveur) enregistre l'accord, puis la reprise part.
+ *
+ * Décision du dirigeant du 24/11/2026 (Q15, « accord exprès du client ») : la même garde sert à tout acte contractuel
+ * d'un Client déjà abonné — reprise, hausse de formule ou de capacité, changement de périodicité. Pour une version
+ * « au prochain acte » (lib/nouvelle-version-conditions.ts, règle 3), l'accord n'est demandé que si la version est
+ * ARCHIVÉE : l'archive porte l'empreinte que la base recopie sur l'acceptation (date, version, empreinte = la preuve).
+ * Version non archivée ou archive illisible : l'acte se fait comme avant, sans accord — rien n'est bloqué pour une
+ * preuve qu'on ne saurait pas garder.
  */
-async function accordAvantReprise(
+async function accordAvantActe(
   supabase: Awaited<ReturnType<typeof createClient>>,
   formData: FormData
 ): Promise<EtatAbonnementAction | null> {
@@ -599,8 +619,11 @@ async function accordAvantReprise(
   } = await supabase.auth.getUser();
   if (!user) return { erreur: MESSAGE_SESSION_EXPIREE };
   if (await conditionsEnVigueurAccepteesPar(supabase, user.id)) return null;
+  const auProchainActe = accordAuProchainActe(versionDeclaree("conditions_clients", CONDITIONS_VERSION));
+  if (auProchainActe && !(await versionArchivee(supabase, "conditions_clients", CONDITIONS_VERSION))) return null;
   const accordConditions = { version: CONDITIONS_VERSION, dateVersion: CONDITIONS_DATE };
-  if (formData.get("cgu") !== "oui") return { erreur: messageRepriseSansAccord(CONDITIONS_DATE), accordConditions };
+  // La phrase ne parle de non-reconduction que si la version en prévoit une.
+  if (formData.get("cgu") !== "oui") return { erreur: auProchainActe ? messageActeSansAccord(CONDITIONS_DATE) : messageRepriseSansAccord(CONDITIONS_DATE), accordConditions };
   if (!estLaVersionEnVigueur(formData.get("cgu_version"))) return { erreur: ERREUR_CONDITIONS_PERIMEES, accordConditions };
   const { error } = await supabase.rpc("accepter_cgu", {
     p_version: CONDITIONS_VERSION,
@@ -646,7 +669,7 @@ export async function resilierAbonnement(
     return { erreur: "La fermeture de votre compte est programmée : l'abonnement s'arrête avec elle. Pour la modifier ou l'annuler, écrivez-nous depuis « Aide »." };
   }
   if (!resilier) {
-    const refus = await accordAvantReprise(supabase, formData);
+    const refus = await accordAvantActe(supabase, formData);
     if (refus) return refus;
   }
   const {

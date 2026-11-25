@@ -8,6 +8,8 @@ import { assemblerBailMeuble, construireBailMeuble } from "@/lib/documents/model
 import { assemblerBailColocation } from "@/lib/documents/modeles/bail-colocation";
 import { assemblerBailIndividuel } from "@/lib/documents/modeles/bail-individuel";
 import { cibleChampBail } from "@/lib/documents/champs-bail-parcours";
+import { refusDocumentIncomplet } from "@/lib/documents/completude";
+import { lienPourManquant } from "@/lib/documents/ou-renseigner";
 
 const mocks = vi.hoisted(() => ({ charger: vi.fn() }));
 vi.mock("@/lib/documents/modeles/communs", async (original) => ({
@@ -140,11 +142,19 @@ it("distingue un principal référencé mais introuvable d’un principal non re
 it.each([
   ["nu", assemblerBailNu], ["meuble", assemblerBailMeuble],
   ["colocation", assemblerBailColocation], ["individuel", assemblerBailIndividuel],
-] as const)("conserve le refus de génération sans locataire : %s", async (type, assembler) => {
+] as const)("sans locataire, la génération ne produit aucun contrat : il est incomplet (« nom et prénom(s) ») : %s", async (type, assembler) => {
+  // Phase 3, lot 46 (reprise, T21) : ce test attendait un refus (« Renseignez d'abord le locataire principal du bail »), que le
+  // catalogue affichait sans lien. Un locataire à désigner est une donnée à compléter : le contrat est INCOMPLET, avec le libellé
+  // du contrôle du brouillon (« nom et prénom(s) »), et la liste « À renseigner » mène à la fiche du bail (cibleChampBail : la
+  // section des locataires). L’essentiel est inchangé : aucun contrat n'est produit sans son locataire (refusDocumentIncomplet).
   mocks.charger.mockResolvedValue(brouillon(type === "individuel" ? "colocation" : type, type === "individuel"));
   const c = client();
-  expect(await assembler(c.supabase, "org", "b1")).toHaveProperty("erreur");
-  expect(c.from).not.toHaveBeenCalled();
+  const r = await assembler(c.supabase, "org", "b1");
+  if ("erreur" in r) throw new Error(r.erreur);
+  expect(r.document.manquants).toContain("nom et prénom(s)");
+  expect(refusDocumentIncomplet(r.document)?.manquants).toContain("nom et prénom(s)");
+  expect(cibleChampBail("nom et prénom(s)", "org").href).toBe("#titre-locataires-bail");
+  expect(lienPourManquant("nom et prénom(s)", "org", r.liens, `bail_${type}`, "/espace", r.document.emetteur)?.ecran).toBe("fiche du bail");
 });
 
 it("CB-04 : un profil d’organisation incomplet est signalé au profil, sans être imputé aux parties complètes", async () => {

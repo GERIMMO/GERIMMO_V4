@@ -60,9 +60,10 @@ test.describe('Études, validation et visibilité par profil',()=>{
  });
  test('la supervision contrôle le mode automatique, et l’artisan trouve la veille',async({page,browser})=>{
   await page.goto('/admin/marketing');await page.getByText('Réglages de préparation et de diffusion',{exact:true}).click();const auto=page.getByLabel('Publier automatiquement');
-  if(await auto.isDisabled()){
-   // Sans Page Facebook reliée (audit 25/09, C21) : la case est décochée et désactivée, et le dit.
-   await expect(auto).not.toBeChecked();await expect(page.getByText('la Page Facebook n’est pas reliée').first()).toBeVisible();
+  if(!(await page.locator('#canaux').getByText('Relié',{exact:true}).isVisible())){
+   // Sans Page Facebook reliée et lue (audit 25/09, C21, puis décision du 25/11/2026) : la case n'est plus grisée mais
+   // masquée, et un court texte dit pourquoi (ce test cherchait la case désactivée et « la Page Facebook n’est pas reliée »).
+   await expect(auto).toHaveCount(0);await expect(page.locator('#reglages').getByText('la diffusion sur Facebook n’est',{exact:false})).toBeVisible();
   }else{
    await expect(auto).toBeChecked();
    await auto.uncheck();await page.getByRole('button',{name:'Enregistrer les réglages'}).click();await expect(page.getByRole('status')).toContainText('mis à jour');

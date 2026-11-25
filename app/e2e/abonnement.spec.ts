@@ -41,7 +41,7 @@ test.describe("Côté propriétaire bailleur", () => {
     await expect(tarifs).toContainText("Abonnement Gerimmo");
     await expect(tarifs).toContainText("2 biens en gestion");
     await expect(tarifs.locator("dl > div").filter({ has: page.locator("dt", { hasText: /^Mensuel$/ }) })).toContainText("7,98 € / mois");
-    await expect(tarifs).toContainText("TVA non applicable, art. 293 B du CGI");
+    await expect(tarifs).toContainText("TVA non applicable, article 293 B du CGI");
     await expect(page.locator("main")).not.toContainText("offert, à vie");
     await expect(page.getByRole("region", { name: "Récapitulatif avant paiement", exact: true })).toHaveCount(0);
   });
@@ -62,8 +62,11 @@ test.describe("Côté propriétaire bailleur", () => {
     await expect(details.getByRole("link", { name: /Conditions générales/ })).toHaveAttribute("href", "/conditions");
     await expect(page.getByRole("button", { name: /paiement sécurisé/ })).toHaveCount(0);
     await page.getByRole("link", { name: "Contacter Gerimmo", exact: true }).click();
-    await expect(page).toHaveURL(/\/assistance\?/);
-    await expect(page.locator("main")).toBeVisible();
+    // D27 : le lien pointe /assistance, qui renvoie aussitôt le propriétaire direct vers l'aide intégrée à son espace,
+    // au formulaire de contact. On attend cette destination : l'adresse de passage n'est pas toujours observable
+    // (22/11/2026 : le parcours n'aboutissait alors qu'au second essai).
+    await expect(page).toHaveURL(new RegExp(`/espace/${ORG}/faq\\?ecran=[^#]*&retour=[^#]*#nouvelle$`));
+    await expect(page.getByRole("heading", { name: "Contacter Gerimmo", exact: true })).toBeVisible();
   });
 
   test("sans paiement en ligne ouvert, le refus est une phrase, pas une erreur d'API", async ({
@@ -137,7 +140,7 @@ test.describe("Côté agence", () => {
     await expect(recap).toContainText("Total à payer");
     await expect(recap).not.toContainText("Total HT");
     await expect(recap).not.toContainText("TTC");
-    await expect(recap).toContainText("TVA non applicable, art. 293 B du CGI");
+    await expect(recap).toContainText("TVA non applicable, article 293 B du CGI");
   });
 
   test("aucun identifiant Stripe ne descend jusqu'au navigateur", async ({

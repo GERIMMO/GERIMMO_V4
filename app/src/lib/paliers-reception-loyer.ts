@@ -9,6 +9,54 @@ export const LIBELLES_PALIERS = {
   inconnu: "Suivi à vérifier",
 } as const;
 
+/**
+ * Phase 3, lot 39 (reprise, C65) puis lot 44 : ce que l'écran dit d'un bail sous plan d'apurement en cours, à la place de la
+ * relance suivante (suivi des loyers, fenêtre du lot). Même fin que le protocole et que le refus au clic.
+ */
+export const RELANCES_SUSPENDUES_SOUS_PLAN =
+  "Plan d’apurement en cours : les relances sont suspendues jusqu’à sa fin (dette soldée, plan caduc ou annulé).";
+
+/** « 2026-11-20 » → « 20/11/2026 », sans fuseau : c'est déjà un jour de Paris. */
+function jourEnClair(jour: string) {
+  const [a, m, j] = jour.slice(0, 10).split("-");
+  return `${j}/${m}/${a}`;
+}
+
+/**
+ * Phase 3, lot 44 (reprise, C65) : la rubrique « Relances » du bail sous plan d'apurement en cours. Les relances sont
+ * suspendues « dès l'activation du plan » (protocole) ; une relance envoyée AVANT reste un fait à consigner — une mise en
+ * demeure et sa date de première présentation, par exemple. `depuis` : jour (Paris) de l'activation, null s'il est inconnu.
+ */
+export function relancesSuspenduesDepuis(depuis: string | null): string {
+  if (!depuis) return RELANCES_SUSPENDUES_SOUS_PLAN;
+  return `Plan d’apurement en cours depuis le ${jourEnClair(depuis)} : les relances sont suspendues jusqu’à sa fin (dette soldée, plan caduc ou annulé). Seule une relance envoyée avant cette date (une mise en demeure et sa date de première présentation, par exemple) peut encore être enregistrée.`;
+}
+
+/** Le refus serveur d'une relance datée du jour de l'activation du plan ou après (ajouterRelance). */
+export function relanceRefuseeSousPlan(depuis: string | null): string {
+  if (!depuis) return "Un plan d’apurement est en cours sur ce bail : les relances sont suspendues jusqu’à sa fin (dette soldée, plan caduc ou annulé).";
+  return `Un plan d’apurement est en cours sur ce bail depuis le ${jourEnClair(depuis)} : les relances sont suspendues jusqu’à sa fin (dette soldée, plan caduc ou annulé). Seule une relance envoyée avant le ${jourEnClair(depuis)} peut encore être enregistrée.`;
+}
+
+/**
+ * L'état du plan d'apurement du bail d'un terme impayé, tel que le lit marquerPlansApurement (lib/quittancement-du-mois) :
+ * « en_cours » (actif, ou en défaut avant sa caducité), « aucun », ou « illisible » (lecture impossible).
+ */
+export type PlanApurementLigne = "en_cours" | "aucun" | "illisible";
+
+/**
+ * Phase 3, lot 44 (reprise, C65) : le geste qu'une liste de loyers (« Loyers & charges » d'une agence, Finances du
+ * propriétaire) propose pour un terme impayé. Elle invitait à « Relancer sur le bail » même sous plan d'apurement en cours,
+ * où les relances sont suspendues et où le bail refuse d'enregistrer une relance datée de l'activation ou après : la liste
+ * mène alors au plan, comme la fenêtre du lot et le suivi des loyers. Plan illisible : aucune relance n'est proposée (même
+ * prudence que la fenêtre du lot). Aucun plan, ou plan non lu par l'appelant : la relance, comme avant.
+ */
+export function gesteImpayeSelonPlan(plan: PlanApurementLigne | undefined): { ancre: string; libelle: string; detail: string | null } {
+  if (plan === "en_cours") return { ancre: "#plan-apurement", libelle: "Suivre le plan d’apurement dans le bail →", detail: "plan d’apurement en cours : relances suspendues" };
+  if (plan === "illisible") return { ancre: "#loyers", libelle: "Voir sur le bail →", detail: "plan d’apurement non vérifié : aucune relance proposée ici" };
+  return { ancre: "#loyers", libelle: "Relancer sur le bail →", detail: null };
+}
+
 export type TermeSuivi = Omit<RappelLoyer, "lot_nom" | "locataire" | "periode">;
 type Etape = keyof typeof LIBELLES_PALIERS;
 export type PointReception = { etape: Etape; date: string; aConfirmer: boolean; confirmationExpiree?: boolean };
@@ -28,6 +76,9 @@ function pointDuTerme(ligne: TermeSuivi, jour: string, maintenant?: number): Poi
   const dernier = ligne.derniere_relance;
   const regles = ligne.relances_automatiques;
   if (ligne.recommande_transmis || dernier?.niveau === "mise_en_demeure") return null;
+  // Phase 3, lot 39 (reprise, C65) : pendant un plan d'apurement en cours, les relances sont suspendues (en base pour les
+  // automatiques, au clic pour les courriers) : aucun palier de relance n'est proposé ni annoncé pour ce terme.
+  if (ligne.plan_apurement_en_cours) return null;
   if (!regles || ligne.historique_relances_disponible === false || !Number.isInteger(regles.premierDelai) ||
       !Number.isInteger(regles.secondDelai) || regles.premierDelai < 1 || regles.secondDelai <= regles.premierDelai) {
     return { etape: "inconnu", date: echeance, aConfirmer: !confirme };

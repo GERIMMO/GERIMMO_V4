@@ -1,3 +1,5 @@
+import type { InterlocuteurLocataire } from "./interlocuteur-locataire";
+
 // Référentiel des incidents (Sprint 7, module 7 + registre A5) — une seule
 // source pour tous les écrans, sur le modèle de lib/baux.ts. La machine à
 // états est défendue en base (fonctions SECURITY DEFINER) ; ici on la décrit
@@ -43,6 +45,20 @@ export const ETATS_INCIDENT: Record<string, string> = {
   rouvert: "Rouvert — à requalifier",
 };
 
+// Phase 3, reprise du lot 36 : l'état d'un incident tel qu'un DOCUMENT l'imprime (ordre d'intervention adressé à l'entreprise,
+// compte rendu, comparatif, récapitulatif, rapport de gestion du mandant). Les libellés ci-dessus portent la consigne de travail
+// du gestionnaire (« — à clôturer », « À qualifier ») : à l'écran elle guide, sur un document remis à un tiers elle n'a pas sa
+// place. Mêmes mots que l'écran, sans la consigne ; « Signalé » comme la navigation du dossier.
+export const ETATS_INCIDENT_DOCUMENT: Record<EtatIncident, string> = {
+  declare: "Signalé",
+  qualifie: "Qualifié",
+  affecte: "Affecté",
+  en_cours: "En cours",
+  termine: "Terminé",
+  clos: "Clos",
+  rouvert: "Rouvert",
+};
+
 // Grammaire maquette : rouge = action attendue de l'agence, encre = en cours,
 // vert = clos.
 export const COULEURS_ETAT_INCIDENT: Record<string, string> = {
@@ -56,16 +72,19 @@ export const COULEURS_ETAT_INCIDENT: Record<string, string> = {
 };
 
 // Le locataire lit son statut dans ses mots (maquette, traduction LIB_LOC) —
-// jamais le vocabulaire interne.
+// jamais le vocabulaire interne. Lot 47 : celui qui examine est nommé selon
+// l'espace (`interlocuteurLocataire`) : « votre gestionnaire » en agence,
+// « votre bailleur » chez un propriétaire, qui n'a pas de gestionnaire.
 export function libelleEtatLocataire(
   etat: string,
-  imputation: string | null
+  imputation: string | null,
+  interlocuteur: InterlocuteurLocataire
 ): string {
   switch (etat) {
     case "declare":
-      return "Reçu — votre gestionnaire l'examine";
+      return `Reçu — votre ${interlocuteur} l'examine`;
     case "rouvert":
-      return "Rouvert — votre gestionnaire le réexamine";
+      return `Rouvert — votre ${interlocuteur} le réexamine`;
     case "qualifie":
       return imputation === "proprietaire"
         ? "Pris en charge par le propriétaire"
@@ -177,11 +196,15 @@ export const TYPES_EVENEMENT_INCIDENT: Record<string, string> = {
   intervention_demarree: "Intervention démarrée",
   compte_rendu: "Compte rendu de l'artisan",
   revision_imputation: "Imputation révisée après diagnostic",
+  // Audit palier 1 du 22/11/2026, P1-04 (migration 20261122140000) : la correction de l'urgence se lit au fil.
+  urgence_corrigee: "Urgence corrigée par le gestionnaire",
   evaluation: "Artisan évalué",
   // Audit du 27/09 (migrations 20260927122000 et 20260927123000).
   creneaux_refuses: "Dates du locataire refusées par l'artisan",
   facture_deposee: "Facture de l'artisan déposée",
   facture_validee: "Facture contrôlée et validée",
+  // Audit palier 1 (P1-03, migration 20261122170000) : refus motivé, l'artisan en dépose une autre.
+  facture_refusee: "Facture refusée, à corriger par l'artisan",
   // Audit du 13/10 (migration 20261013120000) : l'annulation se lit au fil.
   mission_annulee: "Mission annulée",
   // Décision D18 du 14/10 (migration 20261014600000, livraison 1) : le refus motivé d'un devis.
@@ -200,6 +223,9 @@ export const TYPES_EVENEMENT_INCIDENT: Record<string, string> = {
   rdv_report_retire: "Demande de report retirée",
   rdv_report_expire: "Demande de report sans réponse de l'artisan",
   rdv_annule_par_locataire: "Rendez-vous annulé par le locataire",
+  // Audit palier 1 (P2-04, migration 20261122235800) : un rendez-vous confirmé manqué, et la relance d'une facture.
+  rdv_manque: "Rendez-vous manqué",
+  facture_relancee: "Facture relancée par l'artisan",
 };
 
 export const PIECES_INCIDENT = [
@@ -327,6 +353,14 @@ export function titreIncident(categorie: string): string {
   return categorieIncident(categorie)?.court ?? categorie;
 }
 
+/** Phase 3, lot 61 : le nom d'une demande pour le locataire, là où il faut la désigner hors de sa carte (en-tête de la
+ *  discussion de l'intervention) — sa catégorie, puis la première ligne de ses propres mots, coupée à 80 caractères. */
+export function nomDemande(incident: { categorie: string; description?: string | null }): string {
+  const mots = incident.description?.trim().split(/\r?\n/)[0]?.trim() ?? "";
+  const extrait = mots.length > 80 ? `${mots.slice(0, 77).trimEnd()}…` : mots;
+  return extrait ? `${titreIncident(incident.categorie)} — ${extrait}` : titreIncident(incident.categorie);
+}
+
 /** Un propriétaire identifie le problème par son intitulé, plutôt que par « Autre ». */
 export function titreIncidentProprietaire(incident: { titre?: string | null; categorie: string; description?: string | null }): string {
   if (incident.titre?.trim()) return incident.titre.trim();
@@ -334,3 +368,12 @@ export function titreIncidentProprietaire(incident: { titre?: string | null; cat
   if (incident.categorie === "autre" && description) return description.length > 90 ? `${description.slice(0, 87).trimEnd()}…` : description;
   return titreIncident(incident.categorie);
 }
+
+// Audit palier 1 du 22/11/2026, P1-04 : la correction de l'urgence par le gestionnaire. Bornes du motif : celles de
+// la base (corriger_urgence_incident). Le motif reste au fil du dossier.
+export const URGENCES_INCIDENT: Record<string, string> = { normale: "Normale", urgente: "Urgente" };
+export const MOTIF_CORRECTION_URGENCE = { min: 5, max: 500 } as const;
+
+// Audit palier 1 du 22/11/2026, P2-02 : disponibilités du locataire données au signalement. Borne de la base
+// (contrainte incidents_disponibilites_locataire_bornees).
+export const DISPONIBILITES_LOCATAIRE_MAX = 300;

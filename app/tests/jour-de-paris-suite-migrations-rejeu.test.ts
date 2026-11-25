@@ -23,6 +23,7 @@ import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { verifierBaseDeTest } from "./garde-base";
+import { MAILLONS_CHAINE_COURRIELS } from "./fixtures/chaine-courriels";
 
 config({ path: ".env.local" });
 const DB_URL = (process.env.GERIMMO_HISTORIQUE_DB ?? process.env.SUPABASE_DB_URL);
@@ -509,6 +510,17 @@ describe.skipIf(!DB_URL)("jour de Paris, la suite — migrations et retours arri
       // Aucune migration qui cite la fonction du jour n'est oubliée : son retour doit précéder celui de 500000.
       const absentes = MIGRATIONS_QUI_CITENT_LE_JOUR.filter((m) => !chaine.some((code) => parCode(code) === m));
       expect(absentes).toEqual([]);
+    });
+
+    // Reprise du lot D4 (24/11) : un maillon de la chaîne des e-mails ne se défait que s'il est en tête. Dès que l'ordre
+    // complet nomme un maillon, il doit nommer aussi tous les maillons plus récents, sinon le retour du premier se
+    // refuse (« une migration plus récente prolonge la chaîne des e-mails ») : 20261122210000 manquait.
+    it("l'ordre complet nomme chaque maillon de la chaîne des e-mails posé au-dessus du plus ancien qu'il défait", () => {
+      const chaine = chaineDuLisezMoi().map((code) => parCode(code)?.replace(/\.sql$/, ""));
+      const presents = MAILLONS_CHAINE_COURRIELS.filter((m) => chaine.includes(m));
+      expect(presents.length).toBeGreaterThan(0);
+      const attendus = MAILLONS_CHAINE_COURRIELS.slice(MAILLONS_CHAINE_COURRIELS.indexOf(presents[0]));
+      expect(presents).toEqual(attendus);
     });
 
     it.each(FAMILLES)("$version a son retour arrière, déclaré dans le LISEZ-MOI du dossier", (famille) => {

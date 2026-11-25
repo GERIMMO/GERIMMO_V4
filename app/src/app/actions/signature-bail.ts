@@ -16,10 +16,13 @@ import { synchroniserCircuitSignatureBail } from "@/lib/signature-bail-worker";
 import { verifierAvantEffet } from "@/lib/controle-effets";
 import { sansJargon } from "@/lib/erreurs";
 import { assemblerSignatureDocument, selectionDuCircuit } from "@/lib/signature-document";
+import { estNoticeDeposeeJointe } from "@/lib/documents-bail";
 import { selectionSignatureValide, type SelectionSignature } from "@/lib/politique-signature";
 import { signatureEnEssai } from "@/lib/signature-essai";
 import { fermetureModeleSignature } from "@/lib/signature-interrupteurs";
+import { modeSelonReglages } from "@/lib/signature-ouverture";
 import { ERREUR_MENTION_CAUTION } from "@/lib/mention-caution";
+import { REFUS_BAIL_DUREE_REDUITE } from "@/lib/documents/modeles/mentions-location";
 import { REFUS_CONFIRMATION_EDL, controlerEnvoi, envoyerApresControle, estCircuitDeBail, garantsSansMobileConfirme, telephoneGarantConfirme } from "@/lib/signature-envoi";
 import { demanderConfirmationMobileCaution, echeanceLisible } from "@/lib/confirmation-mobile-caution";
 
@@ -109,7 +112,7 @@ export async function lireSignatureBail(org: string, bail: string, choix?: Selec
     // Elle ne vaut que pour un NOUVEL envoi : un circuit déjà envoyé (préparation, en cours, à vérifier) garde le mode d'avant et
     // ne porte pas le message, dont le « signer hors ligne » serait trompeur alors que les invitations sont parties (relecture du 19/10).
     const fermeture = circuit && ["preparation", "en_cours", "a_verifier"].includes(circuit.etat) ? undefined : fermetureModeleSignature(selection.code) ?? undefined;
-    const mode = fermeture ? "indisponible" : (selection.code !== "devis_artisan" || process.env.ZOHO_SIGN_DEVIS_ACTIF === "true" || signatureEnEssai(org)) && (selection.code === "bail" || (fournisseur === "zoho" && (process.env.ZOHO_SIGN_DOCUMENTS_ACTIF === "true" || signatureEnEssai(org)))) ? configurationSignatureBail(process.env,fournisseur,org)?.environnement ?? "indisponible" : "indisponible";
+    const mode = fermeture ? "indisponible" : modeSelonReglages(selection.code, org, fournisseur);
     // Un dossier déjà envoyé reste consultable même si ses données courantes ont changé.
     if (circuit && circuit.etat !== "pret") return { bailId:circuit.bail_id, selection:selectionDuCircuit(circuit), circuit, signataires:circuit.signataires, annexes:circuit.annexes, mode, essai:signatureEnEssai(org) || circuit.essai, fermeture };
     const preparation = await assemblerSignatureDocument(supabase,org,selection);
@@ -305,17 +308,32 @@ export async function activerBailApresSignature(org:string,bail:string,id:string
     if (signatureEnEssai(org)) throw new Error("Un essai de signature ne met pas un logement en location.");
     const {supabase,circuit} = await circuitAutorise(org,bail,id);
     if (circuit.modele && circuit.modele !== "bail") throw new Error("Seul le bail signé permet la mise en location.");
-    const actuel = await assemblerSignatureDocument(supabase,org,selectionDuCircuit(circuit));
-    let empreinte = actuel.empreinte;
+    // Décision du 24/11/2026 (Q46) : l'empreinte se recalcule avec la notice déposée que CE circuit portait, pas avec celle
+    // du jour. Un bail envoyé avant la décision (sans notice), ou une notice déposée de nouveau après l'envoi, ne change
+    // donc pas l'empreinte du contrat déjà signé.
+    const noticeDuCircuit = circuit.annexes.find(estNoticeDeposeeJointe)?.id ?? null;
+    const idBail = circuit.bail_id ?? bail;
+    // Textes officiels, lot T2 (R17-A2) : un contrat nu dont l'événement de durée réduite est rempli n'est plus préparé. Un bail
+    // signé AVANT ce refus doit rester activable : le rendu du jour est alors sauté, et les rendus archivés ci-dessous (ceux
+    // avec lesquels il a été préparé) sont comparés à l'empreinte du circuit. Tout autre refus reste une erreur.
+    let empreinte: string | null = await assemblerSignatureBail(supabase, org, idBail, { noticeDuCircuit }).then(r => r.empreinte, e => {
+      if (e instanceof Error && e.message === REFUS_BAIL_DUREE_REDUITE) return null;
+      throw e;
+    });
     // Les anciennes présentations restent vérifiables uniquement par correspondance
     // exacte avec l’empreinte conservée au moment de la signature.
+    // Phase 3 (reprise du lot 35) : un bail préparé avec la présentation d’aujourd’hui avant la version g8 des documents
+    // (feuille g7, typographie d’alors). La présentation d’avant #331 vient ensuite, avec la même mise en forme.
     if (empreinte !== circuit.empreinte) {
-      empreinte = (await assemblerSignatureBail(supabase, org, circuit.bail_id ?? bail, { presentationAncienne: true })).empreinte;
+      empreinte = (await assemblerSignatureBail(supabase, org, idBail, { typographieArchivee: true, noticeDuCircuit })).empreinte;
+    }
+    if (empreinte !== circuit.empreinte) {
+      empreinte = (await assemblerSignatureBail(supabase, org, idBail, { presentationAncienne: true, noticeDuCircuit })).empreinte;
     }
     // Décision du 24/10 : un bail préparé avant elle, dont le garant a signé avec le numéro de sa fiche (aucun numéro
     // confirmé par lui), garde l'ancien calcul de l'empreinte, qui comprenait ce numéro.
     if (empreinte !== circuit.empreinte && circuit.signataires.some(s=>s.qualite==="Garant"&&!s.telephoneConfirmeLe)) {
-      empreinte = (await assemblerSignatureBail(supabase,org,circuit.bail_id ?? bail,{ telephoneGarantDuDossier: true, presentationAncienne: true })).empreinte;
+      empreinte = (await assemblerSignatureBail(supabase, org, idBail, { telephoneGarantDuDossier: true, presentationAncienne: true, noticeDuCircuit })).empreinte;
     }
     if (empreinte !== circuit.empreinte) throw new Error("Les informations du dossier ont changé après la préparation du contrat. Vérifiez le PDF signé avant toute activation auprès de l’assistance.");
     const result = await supabase.rpc("activer_bail_signature_electronique",{p_circuit:id});

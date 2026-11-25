@@ -102,7 +102,7 @@
 | 13 Rappel d'assurance | Fiche personne → pièce **attestation d'assurance** (avec échéance) → **« Rappel PDF »**. |
 | 05 Notice d'information | Fiche bail → carte **« Notice d'information »** → **« Générer la notice (PDF) »**. |
 | 01 Bail nu | Fiche bail **en brouillon** (locataire renseigné) → carte **« Générer le bail »** → **« Générer le bail (PDF) »**. Refus propre si meublé/colocation (modèles 02/03 à venir). |
-| 14/15 État des lieux | Grille de l'EDL → bouton **« Générer le PDF »** dans l'en-tête (entrée ou sortie ; la sortie ajoute comparatif et retenues avec vétusté). |
+| 14/15 État des lieux | Grille de l'EDL → bouton **« Générer le PDF »** dans l'en-tête (entrée ou sortie ; la sortie ajoute la synthèse des écarts avec l'entrée, pièce par pièce). *Depuis le 23/11/2026 (phase 3, lot 41), les retenues chiffrées avec vétusté ne s'impriment plus dans l'état des lieux de sortie : elles sont dans le décompte de restitution et le décompte des retenues.* |
 
 Chaque génération : toast de confirmation, lien **« Ouvrir le PDF »**, fichier
 **visible dans l'onglet Documents** (rattaché au bail / à la personne / au lot,
@@ -133,7 +133,8 @@ Empreinte » sur chaque page.
 
 **Scénario D0.4 — États des lieux**
 1. Grille d'un EDL d'entrée signé → « Générer le PDF » → grille par pièce (élément/état/observations), relevés de compteurs, clés, équipements de sécurité.
-2. EDL de sortie → le PDF ajoute la **synthèse des écarts** vs l'entrée et, si une restitution existe, le **comparatif chiffré avec vétusté** et son total.
+2. EDL de sortie → le PDF ajoute la **synthèse des écarts** vs l'entrée, avec la **pièce** de chaque élément ; il n'imprime **aucun montant**, même si une restitution existe.
+   *(Mis à jour le 23/11/2026, phase 3, lot 41 : l'état des lieux est signé le jour du constat, les retenues sont arrêtées plus tard ; le comparatif chiffré avec vétusté et son total se contrôlent dans le **décompte de restitution** et le **décompte des retenues**, pas ici.)*
 3. Chaque ligne sans état saisi reste en libellé `neuf, bon, usagé, mauvais` (et remonte dans la liste).
 
 #### Persona : Propriétaire direct (proprietaire@gerimmo-demo.fr)

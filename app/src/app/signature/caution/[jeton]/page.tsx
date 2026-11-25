@@ -42,9 +42,17 @@ export default async function PageMobileCaution(props: PageProps<"/signature/cau
     catch { /* L’aide publique reste disponible si la session ne peut pas être lue. */ }
   }
   const bail = lien?.etat === "valide" && lien.acte === "bail";
+  // Défaut d'écran E173 : un lien qui ne sert pas (inconnu, annulé, déjà utilisé, expiré, illisible) ne dit pas son
+  // acte ; le panneau annonçait pourtant un cautionnement, y compris au garant qui ne signe que le bail. Il reste neutre,
+  // sauf pour la suspension, qui ne touche que l'acte de cautionnement (lib/signature-interrupteurs.ts).
+  const promesse = bail
+    ? "Un bail à signer en ligne, en qualité de garant."
+    : lien?.etat === "valide" || lien?.etat === "suspendu"
+      ? "Un acte de cautionnement à signer en ligne."
+      : "Un document à signer en ligne.";
   return (
     <CoquilleAuth
-      promesse={bail ? "Un bail à signer en ligne, en qualité de garant." : "Un acte de cautionnement à signer en ligne."}
+      promesse={promesse}
       sousPromesse="Vous confirmez vous-même le numéro de mobile qui recevra votre code de signature : aucun autre numéro n’est utilisé."
       mention="Lien personnel, à usage unique"
       titre={lien?.etat === "valide" ? "Confirmer votre numéro de mobile" : lien?.etat === "utilise" ? "Votre numéro est déjà confirmé" : "Vérifier votre lien de signature"}

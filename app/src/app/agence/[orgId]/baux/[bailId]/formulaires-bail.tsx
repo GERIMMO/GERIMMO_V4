@@ -12,6 +12,7 @@ import {
   terminerBail,
   type EtatBail,
 } from "@/app/actions/baux";
+import { deposerNoticeBail } from "@/app/actions/annexe-bail";
 import { creerEdl, type EtatEdl } from "@/app/actions/edl";
 import { buttonVariants } from "@/components/ui/button";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
@@ -94,6 +95,18 @@ export function FormulaireReglementCopropriete({ orgId, bailId }: { orgId: strin
   );
 }
 
+/** Décision du 24/11/2026 (Q46) : dépôt, par le bailleur, de la notice d'information officielle de ce bail. */
+export function FormulaireNoticeBail({ orgId, bailId, dejaDeposee }: { orgId: string; bailId: string; dejaDeposee: boolean }) {
+  return (
+    <FormulairePieceBail
+      id="depot-notice-information"
+      libelle="Notice d’information officielle (PDF)"
+      bouton={dejaDeposee ? "Déposer une autre version" : "Déposer la notice"}
+      action={deposerNoticeBail.bind(null, orgId, bailId)}
+    />
+  );
+}
+
 export function FormulaireConge({
   orgId,
   bailId,
@@ -119,10 +132,12 @@ export function FormulaireConge({
   const meuble = type === "meuble" || (type === "colocation" && meubleLot);
 
   // Préavis légal dérivé — MÊME règle que enregistrer_conge (la base fait
-  // autorité) : meublé 1 mois ; zone tendue 1 mois de plein droit ; réduit
-  // sur justificatif ; sinon 3. Bailleur : 3 (meublé) / 6 (nu).
+  // autorité) : meublé 1 mois ; nu 3 mois, ramené à 1 mois quand la lettre du
+  // locataire précise un motif de préavis réduit et le justifie. Bailleur : 3 (meublé) / 6 (nu).
+  // Textes officiels, lot T1 (R02-A5) : la zone tendue est l'un de ces motifs ; elle ne donne plus un mois d'office
+  // (article 15 I de la loi du 6 juillet 1989 : « A défaut, le délai de préavis applicable à ce congé est de trois mois »).
   const preavis =
-    par === "bailleur" ? (meuble ? 3 : 6) : meuble || zoneTendue || reduit ? 1 : 3;
+    par === "bailleur" ? (meuble ? 3 : 6) : meuble || reduit ? 1 : 3;
 
   return (
     <form data-saisie-confirmee action={formAction} className="space-y-3">
@@ -191,11 +206,12 @@ export function FormulaireConge({
           </div>
           <p className="text-sm text-muted-foreground">
             Le congé du bailleur prend effet au terme du bail ; il est refusé s&apos;il
-            est reçu moins de {meuble ? "3" : "6"} mois avant ce terme.
+            est reçu par le locataire moins de {meuble ? "3" : "6"} mois avant ce terme.
+            {!meuble && " Reprise : refusée quand le bailleur est une société qui n’est pas une SCI familiale. Logement acheté alors qu’il était déjà loué : la loi limite le congé pour vendre et repousse l’effet du congé pour reprise ; Gerimmo ne le vérifie pas à l’enregistrement."}
           </p>
         </div>
       ) : (
-        !meuble && !zoneTendue && (
+        !meuble && (
           <div className="space-y-1.5">
             <label className="flex items-center gap-2 text-sm">
               <input
@@ -204,26 +220,33 @@ export function FormulaireConge({
                 onChange={(e) => setReduit(e.target.checked)}
                 className="size-4"
               />
-              Préavis réduit à 1 mois (mutation, santé, perte d&apos;emploi, RSA/AAH…)
+              Préavis réduit à 1 mois : la lettre de congé précise le motif et le justifie
+              ({zoneTendue ? "zone tendue, " : ""}mutation, santé, perte d&apos;emploi, RSA/AAH…)
             </label>
-            {zoneInconnue ? (
+            {zoneTendue ? (
+              <p className="text-sm text-muted-foreground" data-conge-zone-tendue>
+                Logement en zone tendue : le préavis est d&apos;un mois seulement si le locataire le demande dans
+                sa lettre de congé, en précisant ce motif et en le justifiant. Sinon, le préavis est de trois mois.
+                Cochez la case après l&apos;avoir vérifié sur la lettre ; vous pouvez joindre le justificatif.
+              </p>
+            ) : zoneInconnue ? (
               <p className="border-l-[3px] border-l-warning bg-warning-soft px-3 py-2 text-sm text-warning-soft-foreground">
                 Zone tendue non renseignée pour ce bail : un congé à 1 mois est accepté
-                sans justificatif, puis signalé à vérifier (le locataire en zone tendue
-                y a droit de plein droit). Renseignez la zone sur la fiche du bien.
+                sans justificatif, puis signalé à vérifier (en zone tendue, le locataire y a
+                droit s&apos;il le précise et le justifie dans sa lettre). Renseignez la zone sur la fiche du bien.
               </p>
             ) : (
               <p className="text-sm text-muted-foreground">
-                En zone tendue, le préavis d&apos;un mois s&apos;applique de plein droit : inutile
-                de cocher, aucun justificatif n&apos;est exigible (la zone est celle figée au bail à sa signature).
+                Hors zone tendue (zone figée au bail à sa signature), le préavis d&apos;un mois demande un
+                justificatif. À défaut de motif précisé et justifié dans la lettre, le préavis est de trois mois.
               </p>
             )}
             {reduit && (
               <div>
                 <Label htmlFor={idJustificatifPreavis} className="text-sm">
-                  Justificatif du préavis réduit{zoneInconnue ? " (facultatif tant que la zone n’est pas vérifiée)" : ""}
+                  Justificatif du préavis réduit{zoneTendue ? " (facultatif en zone tendue)" : zoneInconnue ? " (facultatif tant que la zone n’est pas vérifiée)" : ""}
                 </Label>
-                <ChampFichier depotDirect id={idJustificatifPreavis} name="justificatif" accept=".pdf,.jpg,.jpeg,.png" required={!zoneInconnue} />
+                <ChampFichier depotDirect id={idJustificatifPreavis} name="justificatif" accept=".pdf,.jpg,.jpeg,.png" required={!zoneInconnue && !zoneTendue} />
               </div>
             )}
           </div>
@@ -238,13 +261,13 @@ export function FormulaireConge({
             : " (bailleur, nu)"
           : meuble
             ? " (locataire, meublé)"
-            : zoneTendue
-              ? " (locataire, zone tendue — de plein droit)"
-              : reduit
-                ? " (locataire, réduit)"
-                : " (locataire, nu)"}
-        . Le délai commence à la réception effective du congé. Pour un recommandé,
-        retenez le jour où le destinataire reçoit la lettre, pas le passage du facteur.
+            : reduit
+              ? " (locataire, réduit : motif précisé et justifié dans la lettre)"
+              : " (locataire, nu)"}
+        . Le délai commence à la réception effective du congé : pour un recommandé, le jour où le
+        destinataire reçoit la lettre (pas le passage du facteur ; une lettre non retirée ne fait pas courir le
+        délai) ; pour un acte de commissaire de justice, le jour de la signification ; pour une remise en main
+        propre, le jour de la remise.
       </p>
 
       <BoutonEnvoi enCoursTexte="Enregistrement…" size="sm" variant="outline">

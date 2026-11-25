@@ -1,4 +1,5 @@
 import { lireIdentiteContact } from "./identite-contact";
+import { interlocuteurDeLIdentite } from "@/lib/identite-contact-locataire";
 import { RendezVousLocataireConfirme } from "@/components/rendez-vous-locataire-confirme";
 import { lireToutesLesPages } from "@/lib/lecture-complete";
 import type { MonReleveConsommation } from "@/lib/consommations";
@@ -18,7 +19,8 @@ import { CarteGestionnaire, type Gestionnaire } from "./cartes-laterales";
 import { CarteDepotGarantie, type RestitutionLocataire } from "./carte-depot-garantie";
 import { aEchoue, LectureImpossible, PanneLecture } from "./panne-lecture";
 import type { IncidentLocataire } from "./incidents-locataire";
-import { NOTE_SIGNALEMENT_FERME, signalementOuvert, type BailLocataire } from "./types";
+import { noteSignalementFerme, signalementOuvert, type BailLocataire } from "./types";
+import { mentionEtage } from "@/lib/etage";
 
 // Les cartes indicateurs se cliquent EN ENTIER (24/09), comme les tuiles
 // a.kpi de l'agence : seul le lien de 12 px du bas réagissait, le gros
@@ -35,7 +37,9 @@ const CARTE_KPI =
   "loc-carte loc-kpi relative transition-[translate,box-shadow,border-color] duration-[var(--duree)] ease-[var(--courbe)] hover:!border-[color-mix(in_srgb,var(--marque)_28%,var(--filet))] hover:!shadow-[var(--ombre-2)] motion-safe:hover:-translate-y-0.5";
 const LIEN_ETIRE =
   "lien-discret after:absolute after:inset-0 after:rounded-[var(--rayon-carte)] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring";
-const LIEN_KPI_SECONDAIRE = "lien-discret relative z-10";
+// Lot 61 (E139) : ces liens isolés ne faisaient que 19 px de haut à la souris ; le remplissage vertical porte la cible
+// au-dessus de 24 px sans déplacer le texte (py sur un élément en ligne n'agrandit pas la ligne).
+const LIEN_KPI_SECONDAIRE = "lien-discret relative z-10 py-1.5";
 
 // Pas de titre propre : celui de l'accueil est le titre par défaut du layout,
 // « Mon espace — <agence> » (24/09 : l'onglet parlait au nom de Gerimmo dans
@@ -49,6 +53,8 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
   const { supabase, personne, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
 
   const identiteContact = await lireIdentiteContact(orgId);
+  // Lot 47 : « votre gestionnaire » seulement dans un espace d'agence ; chez un propriétaire, « votre bailleur ».
+  const qui = interlocuteurDeLIdentite(identiteContact);
   const avisCharges = await supabase.rpc("mes_avis_decompte",{p_org:orgId});
   const [
     { data: baux, error: eBaux },
@@ -58,7 +64,6 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
     { data: gestionnaires, error: eGestionnaire },
     { data: annonces, error: eAnnonces },
     { data: piecesDemandees, error: eDemandes },
-    { data: signatures, error: eSignatures },
     rendezVous,
     { data: creneaux, error: eCreneaux },
     { data: restitutions, error: eRestitution },
@@ -69,11 +74,12 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
     supabase.rpc("mes_incidents_locataire", { p_org: orgId }),
     supabase.rpc("mon_gestionnaire_locataire", { p_org: orgId }),
     supabase.rpc("mes_annonces_locataire", { p_org: orgId }),
-    // Les deux lectures que le menu faisait déjà de son côté : elles
-    // alimentent « Ce qui vous attend » (occasion relevée le 11/09) et
-    // remettent l'accueil d'accord avec le badge « Mes documents ».
+    // La lecture que le menu faisait déjà de son côté : elle alimente
+    // « Ce qui vous attend » (occasion relevée le 11/09) et remet l'accueil
+    // d'accord avec le badge « Mes documents ». (Décision Q21 du 24/11 : l'ancien
+    // parcours « télécharger, signer, redéposer » est retiré ; la signature
+    // électronique se lit dans « Mes documents ».)
     supabase.rpc("mes_pieces_demandees", { p_org: orgId }),
-    supabase.rpc("mes_demandes_signature", { p_org: orgId }),
     // Le rendez-vous à choisir : c'est le SEUL geste que l'intervention demande
     // au locataire, et il n'apparaissait que dans « Mes demandes ». Celui qui
     // n'ouvre pas cet écran ne sait pas qu'on attend sa disponibilité, et le
@@ -191,7 +197,6 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
   );
   const gestionnaire = ((gestionnaires ?? []) as Gestionnaire[])[0];
   const nbPiecesDemandees = ((piecesDemandees ?? []) as unknown[]).length;
-  const nbSignatures = ((signatures ?? []) as unknown[]).length;
   const creneauxAChoisir = (creneaux ?? []) as { intervention_id: string; categorie: string }[];
   const interventionsAPlanifier = new Set(creneauxAChoisir.map((c) => c.intervention_id)).size;
 
@@ -218,7 +223,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
   const aFaire: { cle: string; titre: string; detail: string; href: string; action: string }[] = [];
   const lectureReleves = await lireToutesLesPages<MonReleveConsommation>((debut, fin) => supabase.rpc("mes_releves_consommation", { p_org: orgId }, { count: "exact" }).order("demande_id").range(debut, fin), r => r.demande_id);
   const relevesAttendus = (lectureReleves.lignes ?? []).filter((d: { peut_repondre: boolean }) => d.peut_repondre).length;
-  if (lectureReleves.echec || relevesAttendus > 0) aFaire.push({ cle: "releves", titre: lectureReleves.echec ? "Vérifier mes demandes de relevés" : `${relevesAttendus} relevé${relevesAttendus > 1 ? "s" : ""} à transmettre`, detail: lectureReleves.echec ? "Le suivi n’a pas pu être chargé." : "Recopiez l’index de votre compteur ; votre gestionnaire le recevra ici.", href: `/locataire/${orgId}/releves`, action: "Voir mes relevés" });
+  if (lectureReleves.echec || relevesAttendus > 0) aFaire.push({ cle: "releves", titre: lectureReleves.echec ? "Vérifier mes demandes de relevés" : `${relevesAttendus} relevé${relevesAttendus > 1 ? "s" : ""} à transmettre`, detail: lectureReleves.echec ? "Le suivi n’a pas pu être chargé." : `Recopiez l’index de votre compteur ; votre ${qui} le recevra ici.`, href: `/locataire/${orgId}/releves`, action: "Voir mes relevés" });
   if (eCreneaux) {
     // La lecture des rendez-vous a échoué. Ne rien dire ferait croire au
     // locataire qu'on n'attend rien de lui — et le dossier s'arrêterait là,
@@ -251,8 +256,8 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
       titre: `Loyer ${deElide(moisLong(prochaine.periode))} à régler`,
       detail:
         prochaine.statut === "partiel"
-          ? `Il reste ${eur(resteADevoir)} à régler par virement à votre gestionnaire.`
-          : `${eur(resteADevoir)} à régler par virement à votre gestionnaire.`,
+          ? `Il reste ${eur(resteADevoir)} à régler par virement à votre ${qui}.`
+          : `${eur(resteADevoir)} à régler par virement à votre ${qui}.`,
       href: `/locataire/${orgId}/loyers`,
       action: "Mes paiements",
     });
@@ -266,7 +271,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
         ? "Votre attestation d'assurance a expiré"
         : "Votre attestation d'assurance manque",
       detail: assuranceDateInconnue
-        ? "Votre attestation est déposée, mais sa date d’expiration n’est pas renseignée. Vérifiez-la avec votre gestionnaire."
+        ? `Votre attestation est déposée, mais sa date d’expiration n’est pas renseignée. Vérifiez-la avec votre ${qui}.`
         : "L'assurance habitation est obligatoire pendant toute la durée du bail — une photo lisible suffit.",
       href: assuranceDateInconnue ? `/locataire/${orgId}/contact` : `/locataire/${orgId}/documents#assurance`,
       action: assuranceDateInconnue ? "Contacter" : "Déposer",
@@ -294,21 +299,9 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
         : `${aContester.length} signalements sont mis à votre charge`,
       detail:
         seul?.imputation_justification ||
-        "Votre gestionnaire a tranché qui paie la réparation. Vous pouvez contester : c'est tracé et cela ne bloque rien.",
+        `Votre ${qui} a tranché qui paie la réparation. Vous pouvez contester : c'est tracé et cela ne bloque rien.`,
       href: `/locataire/${orgId}/demandes`,
       action: "Voir / contester",
-    });
-  }
-  if (nbSignatures > 0) {
-    aFaire.push({
-      cle: "signature",
-      titre:
-        nbSignatures > 1
-          ? `${nbSignatures} documents à signer`
-          : "Un document à signer",
-      detail: "À télécharger, signer, puis redéposer — votre gestionnaire est prévenu.",
-      href: `/locataire/${orgId}/documents`,
-      action: "Ouvrir",
     });
   }
   if (nbPiecesDemandees > 0) {
@@ -318,7 +311,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
         nbPiecesDemandees > 1
           ? `${nbPiecesDemandees} pièces vous sont demandées`
           : "Une pièce vous est demandée",
-      detail: "Votre gestionnaire les attend pour compléter votre dossier.",
+      detail: `Votre ${qui} les attend pour compléter votre dossier.`,
       href: `/locataire/${orgId}/documents`,
       action: "Déposer",
     });
@@ -341,7 +334,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
         <p className="mt-1 text-sm text-muted-foreground">
           Vos prochaines actions, puis le suivi de votre logement et de vos paiements.
         </p>
-        <div className="mt-3 flex flex-wrap gap-2"><Link href={`/locataire/${orgId}/documents`} className={buttonVariants({ variant: "outline", size: "sm" })}>Mes documents</Link><Link href={`/locataire/${orgId}/contact`} className={buttonVariants({ variant: "outline", size: "sm" })}>Écrire à {identiteContact.agence ? "mon gestionnaire" : "mon bailleur"}</Link></div>
+        <div className="mt-3 flex flex-wrap gap-2"><Link href={`/locataire/${orgId}/documents`} className={buttonVariants({ variant: "outline", size: "sm" })}>Mes documents</Link><Link href={`/locataire/${orgId}/contact`} className={buttonVariants({ variant: "outline", size: "sm" })}>Écrire à mon {qui}</Link></div>
       </div>
       {!rendezVous.error && <RendezVousLocataireConfirme orgId={orgId} lignes={rendezVous.data ?? []}/>}
       {avisCharges.error ? <p role="alert" className="err !mb-0">Les avis de charges sont momentanément indisponibles.</p> :
@@ -359,14 +352,13 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
         eIncidents,
         eGestionnaire,
         eAnnonces,
-        eDemandes,
-        eSignatures
-      ) && <PanneLecture quoi="l'essentiel de votre logement" />}
+        eDemandes
+      ) && <PanneLecture quoi="l'essentiel de votre logement" interlocuteur={qui} />}
 
       {!eBaux && adhesionActive && (!bail || bail.etat === "brouillon") && !signalementOuvert(baux as BailLocataire[] | null) && <section className="loc-carte" aria-label="Situation de votre bail">
         <h2 className="titre-carte text-base font-medium">Votre bail n’est pas encore actif</h2>
         <p className="mt-2 text-sm text-muted-foreground">{bail ? (bail.document_signe ? "Un contrat signé est enregistré. Votre bailleur doit encore vérifier le dossier et activer le bail." : "Le contrat signé n’est pas encore disponible dans votre espace. Votre bailleur doit finaliser le dossier, puis activer le bail.") : "Aucun bail n’est encore rattaché à votre espace. Votre bailleur doit préparer ou vérifier ce rattachement."}</p>
-        <p className="mt-2 text-sm">Responsable de la prochaine étape : votre bailleur.{(nbPiecesDemandees > 0 || nbSignatures > 0) && " Des pièces ou signatures vous sont aussi demandées dans Mes documents."}</p>
+        <p className="mt-2 text-sm">Responsable de la prochaine étape : votre bailleur.{nbPiecesDemandees > 0 && " Des pièces vous sont aussi demandées dans Mes documents."}</p>
         <Link href={`/locataire/${orgId}/contact`} className="lien-discret mt-2 inline-flex min-h-11 items-center">Écrire à mon bailleur →</Link>
       </section>}
 
@@ -383,7 +375,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
                 bail.adresse ? bail.lot_nom : null,
                 bail.surface_m2 != null ? `${Number(bail.surface_m2).toLocaleString("fr-FR")}\u00a0m²` : null,
                 bail.pieces != null ? `${bail.pieces} pièce${bail.pieces > 1 ? "s" : ""}` : null,
-                bail.etage ? `étage ${bail.etage}` : null,
+                mentionEtage(bail.etage, bail.lot_nom),
                 bail.meuble ? "meublé" : null,
               ]
                 .filter(Boolean)
@@ -453,7 +445,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
           </ul>
           {enRetard && (
             <p className="mt-3 text-sm text-muted-foreground">
-              Une difficulté de paiement ? Écrivez à votre gestionnaire : une
+              Une difficulté de paiement ? Écrivez à votre {qui} : une
               solution se trouve toujours plus tôt que tard.
             </p>
           )}
@@ -636,7 +628,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
                 </Link>
               )}
               {adhesionActive && !peutSignaler && (
-                <span className="text-xs text-muted-foreground">{NOTE_SIGNALEMENT_FERME}</span>
+                <span className="text-xs text-muted-foreground">{noteSignalementFerme(qui)}</span>
               )}
               <Link
                 href={`/locataire/${orgId}/demandes`}

@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { pageErreurFichier } from "@/lib/page-erreur-fichier";
 import { verifierLocataire } from "@/lib/ged-acces";
 import { servirFichierSigne } from "@/lib/fichier-signe";
+import { lireInterlocuteurLocataire } from "@/lib/interlocuteur-locataire-serveur";
 
 // Droits et trace vérifiés avant la création du lien de lecture temporaire.
 
@@ -48,10 +49,12 @@ export async function GET(
     purged_at: string | null;
   }[])[0];
   if (!doc) {
+    // Lot 47 (reprise) : « dans cette agence » était dit aussi au locataire d'un propriétaire qui gère lui-même.
+    const ou = (await lireInterlocuteurLocataire(supabase, orgId)) === "gestionnaire" ? "dans cette agence" : "dans cet espace";
     return pageErreurFichier(
       404,
       "Bail introuvable",
-      "Aucun bail signé n'est disponible pour votre compte dans cette agence."
+      `Aucun bail signé n'est disponible pour votre compte ${ou}.`
     , "depuis votre espace");
   }
   if (doc.purged_at || !doc.storage_path) {

@@ -23,8 +23,15 @@ vi.mock('@/app/artisan/acces', () => ({
  verifierAccesArtisan: async () => ({ fiche: { statut_plateforme: 'valide', visibilite: 'public' }, supabase: { rpc: async () => ({data:null,error:null}) } }),
  chargerAgenda: async () => b.agenda,
  chargerReglementsFactures: async () => b.reglements,
+ // Audit P1-03 : les factures refusées par le client (aucune dans ces scénarios).
+ chargerFacturesRefusees: async () => ({ lignes: [], erreur: false }),
+ // Audit P1-05 : les discussions de mission portant un message à lire (aucune dans ces scénarios).
+ chargerEchangesNonLus: async () => ({ lignes: [], erreur: false }),
  chargerDemandesRdv: () => { b.lireDemandes(); return Promise.resolve(b.demandes); },
  chargerCreneauxMission: async () => ({ lignes: [], erreur: false }),
+ // Audit P2-04 : les rendez-vous manqués de la mission et l'état de relance de ses factures (aucun dans ces scénarios).
+ chargerRendezVousManques: async () => ({ lignes: [], erreur: false }),
+ chargerRelancesFactures: async () => ({ lignes: [], erreur: false }),
  chargerPhotosDemande: async () => ({ photos: [], erreur: false }),
  chargerSollicitations: async () => ({ lignes: [], erreur: false }),
  chargerPieces: async () => ({ lignes: [], erreur: false }),
@@ -45,7 +52,7 @@ const demande = (statut: DemandeRdvArtisan['statut']): DemandeRdvArtisan => ({de
 beforeEach(() => { b.agenda={lignes:[],erreur:false}; b.reglements={lignes:[],erreur:false}; b.demandes={lignes:[],erreur:false}; vi.clearAllMocks(); });
 test('PROD-01 : le rendu inactif ne propose ni contester ni rouvrir', () => {
  const commun={categorie:'plomberie_canalisation',est_declarant:true,imputation_contestee_le:null,declare_le:'2026-10-01',nb_photos:0};
- const html=renderToStaticMarkup(createElement(IncidentsLocataire,{ orgId:'org',peutAgir:false,peutSignaler:false,incidents:[{...commun,id:'ouvert',etat:'qualifie',imputation:'locataire'},{...commun,id:'clos',etat:'clos',imputation:'proprietaire'}] as IncidentLocataire[] }));
+ const html=renderToStaticMarkup(createElement(IncidentsLocataire,{ orgId:'org',peutAgir:false,peutSignaler:false,interlocuteur:'bailleur',incidents:[{...commun,id:'ouvert',etat:'qualifie',imputation:'locataire'},{...commun,id:'clos',etat:'clos',imputation:'proprietaire'}] as IncidentLocataire[] }));
  expect(html).not.toContain('Contester qui paie'); expect(html).not.toContain('Le problème persiste');
 });
 test('PROD-03 : une panne agenda propose de réessayer, sans faux 404', async () => {
@@ -82,7 +89,7 @@ test('PROD-06 : accueil présente le report demandé sur mission planifiée', as
 
 test.each([true, false])('PROD-01 : droits du titulaire actif=%s', actif => {
  const incident={id:'i',categorie:'plomberie_canalisation',est_declarant:actif,etat:'qualifie',imputation:'locataire',imputation_contestee_le:null,declare_le:'2026-10-01',nb_photos:0};
- const html=renderToStaticMarkup(createElement(IncidentsLocataire,{orgId:'org',peutAgir:true,peutSignaler:true,incidents:[incident] as IncidentLocataire[]}));
+ const html=renderToStaticMarkup(createElement(IncidentsLocataire,{orgId:'org',peutAgir:true,peutSignaler:true,interlocuteur:'bailleur',incidents:[incident] as IncidentLocataire[]}));
  expect(html.includes('Contester qui paie')).toBe(actif);
 });
 test('PROD-03 : une lecture réussie sans dossier reste un 404', async () => {

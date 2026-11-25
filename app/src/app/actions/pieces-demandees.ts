@@ -3,6 +3,8 @@ import { resoudreDepotsFormulaire, limiteFichierDepose } from "@/lib/depot-direc
 
 
 import { sansJargon } from "@/lib/erreurs";
+import { lireInterlocuteurLocataire } from "@/lib/interlocuteur-locataire-serveur";
+import { messageDeLaBasePourLocataire } from "@/lib/interlocuteur-locataire";
 import { createHash, randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -11,6 +13,9 @@ import { detecterMimeReel, pdfComplet, EXTENSIONS } from "@/lib/file-type";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 // 25/09 : le locataire est prévenu par e-mail de la demande et de la relance.
 import { notifierPieceDemandee } from "@/lib/notifications";
+import { REFERENCE_PIECES_DECRET, demandeUniqueDejaFaite, noteDecret, pieceDecret } from "@/lib/pieces-decret-2015";
+// Reprise T3R-2 : la place de la personne se lit dans un module commun à l'action et à la fiche de la personne.
+import { lireRegimePieces } from "@/lib/pieces-regime";
 
 export type EtatPieceDemandee = {
   erreur?: string;
@@ -38,17 +43,47 @@ export async function demanderPieceLocataire(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
-  const libelle = String(formData.get("libelle") ?? "").trim();
-  const type = String(formData.get("type") ?? "justificatif");
-  const note = String(formData.get("note") ?? "").trim();
-  if (!libelle) return { erreur: "Nommez la pièce demandée (ex. : RIB, avis d'imposition).", valeurs };
-  if (libelle.length > 120) return { erreur: "Le nom de la pièce doit tenir sur 120 caractères.", valeurs };
-  if (!["piece_identite", "justificatif", "attestation_assurance"].includes(type))
-    return { erreur: "Type de pièce invalide.", valeurs };
+  let libelle = String(formData.get("libelle") ?? "").trim();
+  let type = String(formData.get("type") ?? "justificatif");
+  let note = String(formData.get("note") ?? "").trim();
 
   const { data: personne, error: erreurPersonne } = await supabase.from("persons")
     .select("id, account_id").eq("id", personId).eq("organization_id", orgId).is("archived_at", null).maybeSingle();
   if (erreurPersonne || !personne) return { erreur: "Cette fiche est introuvable ou inaccessible.", valeurs };
+
+  // Lot T3 (R19-A1) : avant la signature du bail, et pour une caution, la pièce se choisit dans les listes du décret du
+  // 5 novembre 2015 (annexes I et II) ; le nom libre est refusé ICI, côté serveur, même pour une requête directe. Après
+  // la signature, la demande faite au locataire reste libre, comme avant. Les demandes déjà enregistrées ne sont pas touchées.
+  const regime = await lireRegimePieces(supabase, orgId, personId);
+  if ("erreur" in regime) return { erreur: regime.erreur, valeurs };
+  if (!regime.libre) {
+    const piece = pieceDecret(String(formData.get("piece_decret") ?? ""), regime.annexes);
+    if (!piece)
+      return {
+        erreur: `Choisissez la pièce dans la liste : avant la signature du bail, et pour une caution, seules les pièces de la liste du ${REFERENCE_PIECES_DECRET} peuvent être exigées.`,
+        valeurs,
+      };
+    if (piece.unique) {
+      // « Une pièce », « une seule pièce » : pas de seconde demande de la même rubrique tant que la première est en cours.
+      // Reprise T3R-6 : une pièce déjà reçue (identité périmée, illisible) peut être redemandée.
+      const { data: existantes, error: erreurExistantes } = await supabase.from("pieces_demandees")
+        .select("libelle, satisfaite_le").eq("organization_id", orgId).eq("person_id", personId);
+      if (erreurExistantes) return { erreur: "Impossible de vérifier les demandes déjà faites. Réessayez.", valeurs };
+      const enCours = ((existantes ?? []) as { libelle: string; satisfaite_le?: string | null }[]).filter((d) => !d.satisfaite_le).map((d) => String(d.libelle));
+      if (demandeUniqueDejaFaite(piece, enCours))
+        return {
+          erreur: `Cette demande est déjà faite pour cette personne et toujours en cours (« ${piece.libelle} ») : le décret ne permet d’exiger qu’une pièce de cette rubrique. Annulez la demande en cours pour la refaire.`,
+          valeurs,
+        };
+    }
+    libelle = piece.libelle;
+    type = piece.type;
+    note = noteDecret(piece) ?? "";
+  }
+  if (!libelle) return { erreur: "Nommez la pièce demandée (ex. : avis d'imposition, justificatif de domicile).", valeurs };
+  if (libelle.length > 120) return { erreur: "Le nom de la pièce doit tenir sur 120 caractères.", valeurs };
+  if (!["piece_identite", "justificatif", "attestation_assurance"].includes(type))
+    return { erreur: "Type de pièce invalide.", valeurs };
 
   const { data: demande, error } = await supabase
     .from("pieces_demandees")
@@ -178,9 +213,11 @@ export async function deposerMaPiece(
     p_taille: fichier.size,
     p_empreinte: empreinte,
   });
-  if (error) return { erreur: sansJargon(error.message) };
+  // Lot 47 (reprise) : le refus de la base (« … dans cette agence ») est rendu dans les mots de l'espace.
+  if (error) return { erreur: messageDeLaBasePourLocataire(sansJargon(error.message), await lireInterlocuteurLocataire(supabase, orgId)) };
 
   revalidatePath(`/locataire/${orgId}/documents`);
   revalidatePath(`/locataire/${orgId}`);
-  return { succes: "Pièce déposée. Merci — votre gestionnaire est notifié." };
+  // Lot 47 : « votre gestionnaire » seulement dans un espace d'agence ; chez un propriétaire, « votre bailleur ».
+  return { succes: `Pièce déposée. Merci — votre ${await lireInterlocuteurLocataire(supabase, orgId)} est notifié.` };
 }

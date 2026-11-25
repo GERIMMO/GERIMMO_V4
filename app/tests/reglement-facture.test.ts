@@ -51,7 +51,7 @@ describe("l'état d'une facture d'intervention (B.4)", () => {
   });
 
   it("chaque état a un libellé français pour le gérant", () => {
-    expect(Object.keys(LIBELLES_ETAT_REGLEMENT).sort()).toEqual(["deposee", "partiellement_reglee", "reglee", "validee"]);
+    expect(Object.keys(LIBELLES_ETAT_REGLEMENT).sort()).toEqual(["deposee", "partiellement_reglee", "refusee", "reglee", "validee"]);
     for (const libelle of Object.values(LIBELLES_ETAT_REGLEMENT)) expect(libelle).toMatch(/^[A-ZÉ]/);
   });
 

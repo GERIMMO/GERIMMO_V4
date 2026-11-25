@@ -4,6 +4,7 @@ import { useActionStateProtegee } from "@/lib/use-action-state-protegee";
 import { notifierDecompte, reglerAvisDecompte, preparerRegularisationFournitures, emettreRegularisationFournitures, type EtatRegularisationFournitures } from "@/app/actions/regularisation-fournitures";
 import type { BrouillonRegularisationFourniture } from "@/lib/regularisation-fournitures";
 import { eur, formaterDate } from "@/lib/ged";
+import { avertissementExerciceAncien, exerciceDePlusDeTroisAns, LIBELLE_CONFIRMATION_EXERCICE_ANCIEN } from "@/lib/baux";
 import { BoutonEnvoi } from "./ui/bouton-envoi";
 import { ProposerPlanCharges } from "./echeanciers-charges-client";
 import { ApercuDocumentEspace } from "./apercu-document-espace";
@@ -47,10 +48,13 @@ function Emission({ envoiDirect = false, orgId, d, aujourdhui, base, etat, submi
   if (etat.succes) return <div className="space-y-2"><p role="status" className="text-sm text-success-soft-foreground">{etat.succes}</p>{dateAvis ? <p>Avis envoyé dans Gerimmo le {formaterDate(dateAvis.slice(0,10))}{etat.consulteLe && ` · Accès au PDF le ${formaterDate(etat.consulteLe.slice(0,10))}`}</p> : <form data-saisie-confirmee action={envoyer}><BoutonEnvoi enCours={envoi} enCoursTexte="Transmission…">Notifier le locataire dans Gerimmo</BoutonEnvoi>{avis.erreur && <p role="alert">{avis.erreur}</p>}</form>}{etat.documentId && <ApercuDocumentEspace fichier={`${base}/documents/${etat.documentId}/fichier`} titre={`Décompte de charges ${d.annee}`} />}{etat.regularisationId && Number(d.source.ecart)<0 && <ProposerPlanCharges org={orgId} regularisation={etat.regularisationId} annee={d.annee} montant={-Number(d.source.ecart)} aujourdhui={aujourdhui} tardive={aujourdhui > `${d.annee+1}-12-31`} />}</div>;
   const enCours = `${d.annee}-12-31` >= aujourdhui;
   const tardive = aujourdhui > `${d.annee + 1}-12-31`;
+  const ancien = Number(d.source.ecart) < 0 && exerciceDePlusDeTroisAns(d.annee, aujourdhui);
   return <form data-saisie-confirmee action={submit} className="space-y-3 text-sm"><input name="empreinte" type="hidden" value={d.empreinte} />
     <label className="flex items-start gap-2"><input name="complet" type="checkbox" required className="mt-1" />J’ai vérifié que toutes les charges de cet exercice sont présentes, justifiées et ne sont pas déjà comptées ailleurs.</label>
     {enCours && <label className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3"><input name="exercice_en_cours" type="checkbox" required className="mt-1" />L’année n’est pas terminée. Je confirme ce décompte définitif, qui ne pourra pas être complété par une seconde régularisation annuelle.</label>}
     {tardive && Number(d.source.ecart) < 0 && <label className="flex items-start gap-2"><input name="etaler" type="checkbox" checked={etaler} onChange={e=>setEtaler(e.target.checked)} className="mt-1" />Le locataire demande à régler ce complément tardif en 12 mensualités.</label>}
+    {/* Lot T3 (R16-A1) : complément d'un exercice de plus de trois ans — averti et confirmé, plus refusé comme « prescrit ». */}
+    {ancien && <div data-exercice-ancien className="space-y-2 rounded-md border border-amber-200 bg-amber-50 p-3"><p className="font-medium">{avertissementExerciceAncien(d.annee)}</p><label className="flex items-start gap-2"><input name="exercice_ancien" type="checkbox" required className="mt-1" />{LIBELLE_CONFIRMATION_EXERCICE_ANCIEN}</label></div>}
     {etat.erreur && <p role="alert" className="text-destructive">{etat.erreur}</p>}
     {!d.source.bailleur && <p role="alert">Renseignez le détenteur dans la fiche du logement, puis recalculez le décompte.</p>}
     {d.source.bailleur && <ApercuDocumentEspace fichier={`/api/decompte-charges/${orgId}/${d.id}?version=${d.empreinte}&etaler=${etaler ? "1" : "0"}`} titre={`Vérifier le PDF de ${d.source.locataire}`} mime="application/pdf" />}

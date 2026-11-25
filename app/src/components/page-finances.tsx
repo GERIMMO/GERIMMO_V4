@@ -9,6 +9,7 @@ import { aujourdhuiParis, eur, formaterDate, moisEnFrancais } from "@/lib/ged";
 import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { QuittancementMois, type LigneQuittancement } from "@/app/agence/[orgId]/comptabilite/quittancement-mois";
+import { marquerPlansApurement } from "@/lib/quittancement-du-mois";
 import { RecapitulatifFiscal } from "@/components/recapitulatif-fiscal";
 import { lireLivreFinances, resumerLivre, type EcritureFinances } from "@/lib/finances";
 import { NavigationFinances, FiltresFinances, OutilsComptables } from "@/components/navigation-finances";
@@ -54,6 +55,10 @@ export async function PageFinances({ orgId, recherche }: {
   // depuis ce même écran, sans créer de revenu et sans ouvrir un autre patrimoine.
   const premierBail = !erreurPerimetre && !quittancement.error && !lignes.length && !bien && !entiteId && mois === actuel.slice(0,7)
     ? await supabase.from("baux").select("id").eq("organization_id",orgId).eq("etat","actif").limit(2) : null;
+  // Phase 3, lot 44 (reprise, C65) : le tableau du mois en cours invitait à « Relancer sur le bail » un terme impayé sous
+  // plan d'apurement en cours (relances suspendues) : ses termes non couverts portent l'état du plan de leur bail.
+  const lignesDuMois = mois === actuel.slice(0, 7) && !quittancement.error && !erreurPerimetre
+    ? await marquerPlansApurement(supabase, orgId, lignes) : lignes;
   const appele = lignes.reduce((s, l) => s + Number(l.montant_du), 0);
   const regle = lignes.reduce((s, l) => s + Math.min(Number(l.montant_du), Number(l.montant_couvert)), 0);
   // Une dépense commune d’un bâtiment mixte peut devoir être vérifiée. La
@@ -97,8 +102,10 @@ export async function PageFinances({ orgId, recherche }: {
           <p className="text-sm">Vérifiez la détention de ces lots pour la période, c’est-à-dire qui en était propriétaire à cette date. Ces sommes sont exclues du total de {entite?.nom}.</p>
           <ul>{incertaines.map(l => <li key={l.appel_id}>{l.lot_nom} · {eur(Number(l.montant_du))} demandé</li>)}</ul>
         </div>}
-        {lignes.length ? <details className="rounded-lg border border-border p-3"><summary className="min-h-11 cursor-pointer content-center text-sm font-medium">Voir {lignes.length === 1 ? "le loyer" : `les ${lignes.length} loyers`} {deElide(moisEnFrancais(mois))}</summary>{mois === actuel.slice(0, 7) ? <Card size="sm" className="mt-3"><QuittancementMois orgId={orgId} mois={mois} moisLabel={moisEnFrancais(mois)} lignes={lignes} proprietaire envoiGroupe={!bien && !entiteId} /></Card> : <ul className="mt-3 divide-y divide-border">{lignes.map(l => <li key={l.appel_id}><Link className="flex flex-wrap justify-between gap-2 py-3 text-sm" href={`${base}/baux/${l.bail_id}#loyers`}><span>{l.locataire ?? "Locataire non renseigné"} · {l.lot_nom}</span><span>{eur(Number(l.montant_du))} demandé · {eur(Number(l.montant_couvert))} réglé →</span></Link></li>)}</ul>}</details> : <p className="text-sm text-muted-foreground">Aucun loyer demandé sur cette période.{premierBail?.data?.length === 1 && <> <Link className="underline" href={`${base}/baux/${premierBail.data[0].id}#loyers`}>Vérifier l’échéancier du bail</Link></>}</p>}
+        {lignes.length ? <details className="rounded-lg border border-border p-3"><summary className="min-h-11 cursor-pointer content-center text-sm font-medium">Voir {lignes.length === 1 ? "le loyer" : `les ${lignes.length} loyers`} {deElide(moisEnFrancais(mois))}</summary>{mois === actuel.slice(0, 7) ? <Card size="sm" className="mt-3"><QuittancementMois orgId={orgId} mois={mois} moisLabel={moisEnFrancais(mois)} lignes={lignesDuMois} proprietaire envoiGroupe={!bien && !entiteId} /></Card> : <ul className="mt-3 divide-y divide-border">{lignes.map(l => <li key={l.appel_id}><Link className="flex flex-wrap justify-between gap-2 py-3 text-sm" href={`${base}/baux/${l.bail_id}#loyers`}><span>{l.locataire ?? "Locataire non renseigné"} · {l.lot_nom}</span><span>{eur(Number(l.montant_du))} demandé · {eur(Number(l.montant_couvert))} réglé →</span></Link></li>)}</ul>}</details> : <p className="text-sm text-muted-foreground">Aucun loyer demandé sur cette période.{premierBail?.data?.length === 1 && <> <Link className="underline" href={`${base}/baux/${premierBail.data[0].id}#loyers`}>Vérifier l’échéancier du bail</Link></>}</p>}
       </>}
+      {/* Audit palier 1, P2-05 : partir du relevé exporté par la banque plutôt que confirmer les loyers un par un. */}
+      <p><Link className={`${bouton} min-h-11`} href={`${base}/loyers/pointage`} data-lien-pointage>Pointer mes loyers avec un relevé de banque</Link></p>
       <details><summary className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-border px-3 text-sm font-medium">Historique des loyers <span aria-hidden>⌄</span></summary><nav aria-label="Mois des loyers" className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">{Array.from({length:12},(_,i) => <Link key={i} href={href(annee,i+1,"#loyers")} aria-current={i+1 === numeroMois ? "date" : undefined} className={`rounded-lg px-3 py-2 text-sm ${i+1 === numeroMois ? "bg-primary text-primary-foreground" : "bg-muted hover:underline"}`}>{moisEnFrancais(`${annee}-${String(i+1).padStart(2,"0")}`)}</Link>)}</nav></details>
     </section>
 }

@@ -6,6 +6,7 @@
  * à la fin de chaque test. Nécessite SUPABASE_DB_URL (base locale).
  */
 import { verifierBaseDeTest } from "./garde-base";
+import { auJourDeParis } from "./fixtures/jour-de-paris-fige";
 import { couvrirParMandat } from "./fixtures/mandat";
 import { config } from "dotenv";
 import { Client } from "pg";
@@ -149,12 +150,13 @@ describe.skipIf(!DB_URL)("Audit métier du 27/09 — corrections en base", () =>
       [b]
     );
     await enGerant();
+    // Décision Q23 du 24/11/2026 : la révision d'une année est refusée passé un an après sa date de révision, même antidatée.
+    // La révision de l'an dernier s'enregistre donc le jour où elle a été demandée (jour de Paris figé un an plus tôt) ;
+    // le calcul vérifié est le même.
     const {
       rows: [an1],
-    } = await db.query(
-      `select public.reviser_loyer($1, 148.03, 'T2 2025', (public.aujourdhui_paris() - interval '1 year')::date) as loyer`,
-      [b]
-    );
+    } = await auJourDeParis(db, "public.aujourdhui_paris() - interval '1 year'", enGerant, () =>
+      db.query(`select public.reviser_loyer($1, 148.03, 'T2 2025', public.aujourdhui_paris()) as loyer`, [b]));
     expect(Number(an1.loyer)).toBe(764.78); // l'exemple du wiki
     const {
       rows: [an2],
@@ -196,12 +198,20 @@ describe.skipIf(!DB_URL)("Audit métier du 27/09 — corrections en base", () =>
       [b]
     );
     await enGerant();
-    await db.query(`select public.reviser_loyer($1, 148.03, 'T2 2026', public.aujourdhui_paris())`, [b]);
+    // Seconde reprise du lot D2 (24/11/2026) : ce bail a deux ans et n'a pas été révisé la première année. La révision de la
+    // deuxième année exige désormais l'indice du même trimestre de l'année précédente (cinquième argument) ; ce test ne
+    // vérifie que la garde « plus récente », qui ne change pas.
+    await db.query(`select public.reviser_loyer($1, 148.03, 'T2 2026', public.aujourdhui_paris(), 145.17)`, [b]);
+    // Décision Q23 du 24/11/2026 : la révision d'une année est refusée passé un an après sa date de révision, même antidatée.
+    // Demander aujourd'hui la révision de l'an dernier tombe désormais d'abord sur ce refus-là. La garde « plus récente »
+    // reste vérifiée : la même demande, rejouée à sa date (jour de Paris figé un an plus tôt), est refusée par elle.
     await echec(
-      /plus récente/i,
+      /Révision refusée.*délai d'un an est passé/i,
       `select public.reviser_loyer($1, 147.00, 'T2 2025', (public.aujourdhui_paris() - interval '1 year')::date)`,
       [b]
     );
+    await auJourDeParis(db, "public.aujourdhui_paris() - interval '1 year'", enGerant, () =>
+      echec(/plus récente/i, `select public.reviser_loyer($1, 147.00, 'T2 2025', public.aujourdhui_paris())`, [b]));
   });
 
   // ------------------------------------------------------------------------

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { verifierGerant, verifierLocataire } from "@/lib/ged-acces";
 import { estUuid } from "@/lib/identifiants";
 import { sansJargon } from "@/lib/erreurs";
+import { lireInterlocuteurLocataire } from "@/lib/interlocuteur-locataire-serveur";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { lireMontantFacultatif } from "@/lib/saisie-montant";
 import { genererDocument } from "@/app/actions/documents-generes";
@@ -54,7 +55,10 @@ export async function activerPlanApurement(orgId: string, bailId: string, planId
   const { error } = await supabase.rpc("activer_plan_apurement", { p_org: orgId, p_plan: planId, p_date_acceptation: date });
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalider(orgId, bailId);
-  return { succes: "Plan activé : les relances automatiques sont suspendues tant qu’il est respecté." };
+  // Phase 3, lot 44 (C65) : « tant qu'il est respecté » annonçait une reprise des relances dès la première tranche manquée, alors
+  // que la base les suspend aussi pour un plan en défaut (plan_apurement_suspend_relances : actif, en_defaut) et que la
+  // préparation des courriers les refuse de même. Même fin que le protocole et que le refus au clic.
+  return { succes: "Plan activé : les relances de loyer sont suspendues jusqu’à sa fin (dette soldée, plan devenu caduc ou annulé)." };
 }
 
 export async function annulerPlanApurement(orgId: string, bailId: string, planId: string, _etat: EtatPlanApurement, f: FormData): Promise<EtatPlanApurement> {
@@ -93,5 +97,6 @@ export async function demanderPlanApurement(orgId: string, _etat: EtatPlanApurem
   revalidatePath(`/locataire/${orgId}/loyers`);
   revalidatePath(`/locataire/${orgId}/contact`);
   revalidatePath(`/agence/${orgId}/alertes`);
-  return { succes: "Demande transmise à votre gestionnaire. Vous serez informé de sa réponse dans votre messagerie." };
+  // Lot 47 : « votre gestionnaire » seulement dans un espace d'agence ; chez un propriétaire, « votre bailleur ».
+  return { succes: `Demande transmise à votre ${await lireInterlocuteurLocataire(supabase, orgId)}. Vous serez informé de sa réponse dans votre messagerie.` };
 }

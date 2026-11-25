@@ -14,6 +14,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { sansJargon } from "@/lib/erreurs";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { estUuid } from "@/lib/identifiants";
+import { libelleAbsence, lireSemaineType } from "@/lib/semaine-type-artisan";
 import { cheminInvitationArtisan } from "@/lib/invitations-artisan";
 import {
   detecterMimeReel,
@@ -284,6 +285,64 @@ export async function definirMaVisibilite(
 }
 
 // ══════════════════════════════════════════════════════════════════════════
+// 1 bis. Absences et semaine type (audit palier 1 du 22/11/2026, P2-03)
+// ══════════════════════════════════════════════════════════════════════════
+// L'artisan seul les déclare : aucune de ces fonctions n'accepte d'artisan en paramètre. Pendant une absence, la base
+// refuse toute nouvelle demande (`solliciter_artisan_interne`) ; ce qui est en cours ne change pas.
+
+const JOUR_SAISI = /^\d{4}-\d{2}-\d{2}$/;
+
+export async function declarerMonAbsence(
+  _etat: EtatArtisanAction,
+  formData: FormData
+): Promise<EtatArtisanAction> {
+  const { supabase, fiche } = await verifierArtisanAction();
+  if (!fiche) return REFUS;
+  const du = String(formData.get("du") ?? "").trim();
+  const au = String(formData.get("au") ?? "").trim() || du;
+  if (!JOUR_SAISI.test(du) || !JOUR_SAISI.test(au)) {
+    return { erreur: "Indiquez le premier et le dernier jour de votre absence." };
+  }
+  const { error } = await supabase.rpc("declarer_mon_absence", { p_du: du, p_au: au });
+  if (error) return { erreur: sansJargon(error.message) };
+  revalidatePath("/artisan/entreprise");
+  return { succes: `Absence enregistrée ${libelleAbsence({ du, au })}. Aucune nouvelle demande ne vous sera envoyée pendant cette période ; vos demandes et interventions en cours ne changent pas.` };
+}
+
+export async function retirerMonAbsence(
+  absenceId: string,
+  _etat: EtatArtisanAction,
+  _formData: FormData
+): Promise<EtatArtisanAction> {
+  void _formData;
+  const { supabase, fiche } = await verifierArtisanAction();
+  if (!fiche) return REFUS;
+  if (!estUuid(absenceId)) return { erreur: "Absence introuvable." };
+  const { error } = await supabase.rpc("retirer_mon_absence", { p_absence: absenceId });
+  if (error) return { erreur: sansJargon(error.message) };
+  revalidatePath("/artisan/entreprise");
+  return { succes: "Absence retirée." };
+}
+
+export async function enregistrerMaSemaineType(
+  _etat: EtatArtisanAction,
+  formData: FormData
+): Promise<EtatArtisanAction> {
+  const { supabase, fiche } = await verifierArtisanAction();
+  if (!fiche) return REFUS;
+  const lue = lireSemaineType(formData);
+  if ("erreur" in lue) return { erreur: lue.erreur };
+  const { error } = await supabase.rpc("enregistrer_ma_semaine_type", { p_jours: lue.jours });
+  if (error) return { erreur: sansJargon(error.message) };
+  revalidatePath("/artisan/entreprise");
+  return {
+    succes: lue.jours.length
+      ? "Semaine type enregistrée. Elle vous sert à préremplir vos créneaux ; elle ne réserve rien."
+      : "Semaine type effacée.",
+  };
+}
+
+// ══════════════════════════════════════════════════════════════════════════
 // 2. Attestations (RM-8.2.1 : c'est l'artisan qui dépose)
 // ══════════════════════════════════════════════════════════════════════════
 
@@ -531,6 +590,51 @@ export async function demarrerMonIntervention(
 
   rafraichirMission(interventionId);
   return { succes: "Intervention démarrée." };
+}
+
+// ── P2-04 (audit palier 1, 22/11/2026) : rendez-vous manqué et relance d'une facture ─────────────────────────────
+// Deux gestes de l'artisan sur SA mission ; la base tient les règles (heure du rendez-vous passée, délais de relance)
+// et répond par une phrase que l'écran affiche telle quelle.
+
+/** « Le locataire était absent » : le rendez-vous tombe, un nouveau est à convenir, le gestionnaire est prévenu. */
+export async function consignerMonRendezVousManque(
+  interventionId: string,
+  _etat: EtatArtisanAction,
+  formData: FormData
+): Promise<EtatArtisanAction> {
+  const { supabase, fiche } = await verifierArtisanAction();
+  if (!fiche) return REFUS;
+  if (!estUuid(interventionId)) return { erreur: "Mission introuvable." };
+  if (formData.get("confirmation") !== "oui") {
+    return { erreur: "Cochez la case pour confirmer que vous étiez sur place et que le locataire était absent." };
+  }
+  const note = String(formData.get("note") ?? "").trim();
+  if (note.length > 500) return { erreur: "Raccourcissez votre précision (500 caractères au plus)." };
+  const { error } = await supabase.rpc("consigner_rdv_manque_artisan", {
+    p_intervention: interventionId,
+    p_note: note || null,
+  });
+  if (error) return { erreur: sansJargon(error.message) };
+  rafraichirMission(interventionId);
+  return { succes: "Rendez-vous manqué consigné : votre client est prévenu. Proposez de nouvelles dates quand vous le pouvez." };
+}
+
+/** Relance d'une facture déposée et pas réglée : une alerte chez le client, une ligne au dossier, aucun e-mail. */
+export async function relancerMaFacture(
+  factureId: string,
+  interventionId: string,
+  _etat: EtatArtisanAction,
+  _formData: FormData
+): Promise<EtatArtisanAction> {
+  void _formData;
+  const { supabase, fiche } = await verifierArtisanAction();
+  if (!fiche) return REFUS;
+  if (!estUuid(factureId) || !estUuid(interventionId)) return { erreur: "Facture introuvable." };
+  const { error } = await supabase.rpc("relancer_ma_facture", { p_facture: factureId });
+  if (error) return { erreur: sansJargon(error.message) };
+  rafraichirMission(interventionId);
+  revalidatePath("/artisan/facturation");
+  return { succes: "Relance enregistrée : votre client la voit dans son espace, sur le dossier de l’intervention. Aucun e-mail n’est envoyé." };
 }
 
 /**

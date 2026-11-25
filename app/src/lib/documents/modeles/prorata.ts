@@ -11,9 +11,11 @@ import {
   faitA,
   blocSignatureEmetteur,
   formaterDateFr,
+  moisEnToutesLettres,
   section,
   tableau,
   titre,
+  ligneTotal,
 } from "../gabarit";
 import {
   chargerContexteBail,
@@ -24,6 +26,7 @@ import {
   referenceCourte,
   signatureOrganisation,
   liensLocataires,
+  CSS_COURRIER_RESSERRE,
 } from "./communs";
 import type { Assemblage } from "./index";
 
@@ -102,10 +105,7 @@ export function construireProrata(d: DonneesProrata) {
         ), f.montant(d.chargesProratees)],
       ]
     )}
-    <table><tbody><tr class="total"><td><b>Total dû pour la période</b></td><td class="d"><b>${f.montant(
-      d.montantDu,
-      "total dû"
-    )}</b></td></tr></tbody></table>
+    ${ligneTotal("Total dû pour la période", f.montant(d.montantDu, "total dû"))}
     <div class="mentions">
       <p>Le prorata est calculé au réel du mois considéré, au centime le plus proche. Ce décompte
       accompagne l'avis d'échéance ou la quittance du terme concerné.</p>
@@ -118,7 +118,16 @@ export function construireProrata(d: DonneesProrata) {
     titreDocument: "Décompte de prorata",
     nomPied: "Décompte de prorata",
     reference: d.reference,
-    corps,
+    // Phase 3, lot 52 (W23, suite de C53) : à la taille commune, le décompte dépassait d'environ 3 cm ; la mention, « Fait à » et
+    // la signature (gardés ensemble, règle .fait-a) partaient seuls en page 2, loin du calcul qu'ils valident. La mise en page
+    // compacte des documents du catalogue et du reçu de dépôt (lot 51, W14 : titre à 19 pt, marges réduites) le garde sur une
+    // page, avec des lignes de tableau resserrées (ses deux tableaux comptent sept lignes et le total). Les règles de coupure
+    // communes ne changent pas.
+    // Reprise du lot 52 (W23) : cela ne laissait qu'environ 7 pt sous la zone de signature vierge (44 pt). Une signature
+    // enregistrée (image jusqu'à 52 pt de haut), un second locataire ou une adresse de logement sur trois lignes renvoyaient
+    // « Fait à » et la signature en page 2. La mise en page resserrée commune aux courriers de loyer (CSS_COURRIER_RESSERRE)
+    // gagne environ 70 pt de plus.
+    corps: `<style>${CSS_COURRIER_RESSERRE}</style>${corps}`,
   });
 }
 
@@ -129,7 +138,7 @@ export async function assemblerProrata(
 ): Promise<Assemblage> {
   const { data: appel } = await supabase
     .from("appels_loyer")
-    .select("id, bail_id, periode, loyer_hc, charges, montant_du, prorata")
+    .select("id, bail_id, periode, loyer_hc, charges, montant_du, prorata, base_loyer_hc, base_charges")
     .eq("id", appelId)
     .eq("organization_id", orgId)
     .maybeSingle();
@@ -139,18 +148,23 @@ export async function assemblerProrata(
   const ctx = await chargerContexteBail(supabase, orgId, appel.bail_id);
   if ("erreur" in ctx) return ctx;
 
-  const memePeriode = (iso: string | null) => iso && iso.slice(0, 7) === appel.periode.slice(0, 7);
+  const memePeriode = (iso: string | null) => Boolean(iso && iso.slice(0, 7) === appel.periode.slice(0, 7));
   const motif = memePeriode(ctx.bail.date_debut) ? "entrée" : "sortie";
+  // Phase 3 (C47) : la base imprimée est celle qui a ÉMIS l'appel (appels_loyer.base_loyer_hc et base_charges, mémorisées à
+  // l'émission et gardées par les recalculs), pas le loyer actuel du bail : après une révision ou un avenant, le décompte
+  // d'une entrée d'octobre 2025 imprimait 710,50 € × 17 / 31 pour un montant calculé sur 700,00 €. Les bornes sont celles
+  // du calcul de la base (montants_appel_loyer) : entrée ET sortie quand le bail commence et finit dans le même mois.
+  const base = (v: number | string | null | undefined) => (v === null || v === undefined ? null : Number(v));
 
   const f = new Fusion();
   const document = construireProrata({
     reference: referenceCourte("PRO", appel.id),
     motif,
     periode: appel.periode,
-    dateDebutOccupation: motif === "entrée" ? ctx.bail.date_debut : appel.periode,
-    dateFinOccupation: motif === "sortie" ? ctx.bail.date_fin : null,
-    loyerHcPlein: ctx.bail.loyer_hc === null ? null : Number(ctx.bail.loyer_hc),
-    chargesPleines: ctx.bail.charges === null ? null : Number(ctx.bail.charges),
+    dateDebutOccupation: memePeriode(ctx.bail.date_debut) ? ctx.bail.date_debut : appel.periode,
+    dateFinOccupation: memePeriode(ctx.bail.date_fin) ? ctx.bail.date_fin : null,
+    loyerHcPlein: base(appel.base_loyer_hc),
+    chargesPleines: base(appel.base_charges),
     loyerHcProrate: appel.loyer_hc === null ? null : Number(appel.loyer_hc),
     chargesProratees: appel.charges === null ? null : Number(appel.charges),
     montantDu: Number(appel.montant_du),
@@ -165,7 +179,8 @@ export async function assemblerProrata(
 
   return {
     document,
-    titreGed: `Décompte de prorata — ${appel.periode.slice(0, 7)}`,
+    // Phase 3 (C64) : le mois en toutes lettres, comme l'avis d'échéance et la quittance (« Décompte de prorata — octobre 2025 »).
+    titreGed: `Décompte de prorata — ${moisEnToutesLettres(appel.periode)}`,
     nomFichier: `prorata-${appel.periode.slice(0, 7)}`,
     liens: [
       { entite: "bail", entiteId: appel.bail_id },

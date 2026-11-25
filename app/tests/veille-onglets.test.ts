@@ -33,7 +33,9 @@ beforeEach(() => {
   mocks.getUser.mockResolvedValue({ data: { user: { id: "compte" } } });
   mocks.from.mockImplementation(() => {
     const q: Record<string, unknown> = {};
-    for (const methode of ["select", "order", "range"]) q[methode] = () => q;
+    // Phase 3, lot 61 : avec ?public=locataire, la page lit aussi les adhésions du compte (`eq`) pour renvoyer le
+    // locataire d'un seul espace vers ses règles ; ici le compte n'a aucune adhésion, la page reste servie.
+    for (const methode of ["select", "order", "range", "eq"]) q[methode] = () => q;
     q.contains = (...args: unknown[]) => {
       filtresContains.push(args);
       return q;

@@ -106,6 +106,16 @@ for (const profil of ['admin','agent','proprietaire','locataire'] as const) {
    const org=await entrerDansEspace(page,prefixe);
    const retour=`/${prefixe}/${org}`;
    await page.goto(`/veille?public=${profil==='locataire'?'locataire':'agence'}&retour=${encodeURIComponent(retour)}`);
+   // Phase 3, lot 61 (E138) : le locataire ne lit plus ses règles sur /veille, hors de son espace et sans menu ; l'ancienne
+   // adresse le ramène DANS son espace (/locataire/<id>/regles), où le menu fait le retour. Le filtre l'y garde.
+   if(profil==='locataire'){
+    await expect(page).toHaveURL(new RegExp(`${retour}/regles$`));
+    await page.getByRole('link',{name:'Tout voir',exact:true}).click();
+    await expect(page).toHaveURL(new RegExp(`${retour}/regles\\?`));
+    await expect(page.getByRole('heading',{level:1,name:'Les règles à connaître'})).toBeVisible();
+    await expect(page.getByRole('link',{name:'← Revenir à mon espace',exact:true})).toHaveCount(0);
+    return;
+   }
    await page.getByRole('link',{name:'Tout voir',exact:true}).click();
    await expect(page.getByRole('link',{name:'← Revenir à mon espace',exact:true})).toHaveAttribute('href',retour);
    await page.getByRole('link',{name:'← Revenir à mon espace',exact:true}).click();

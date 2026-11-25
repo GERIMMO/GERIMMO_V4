@@ -3,6 +3,8 @@ import { resoudreDepotsFormulaire, limiteFichierDepose } from "@/lib/depot-direc
 
 
 import { sansJargon } from "@/lib/erreurs";
+import { lireInterlocuteurLocataire } from "@/lib/interlocuteur-locataire-serveur";
+import { messageDeLaBasePourLocataire } from "@/lib/interlocuteur-locataire";
 import { createHash, randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -113,10 +115,12 @@ export async function deposerMonAttestation(
         valeurs,
       };
     }
-    return { erreur: sansJargon(erreurRpc.message), valeurs };
+    // Lot 47 (reprise) : le refus de la base (« … dans cette agence ») est rendu dans les mots de l'espace.
+    return { erreur: messageDeLaBasePourLocataire(sansJargon(erreurRpc.message), await lireInterlocuteurLocataire(supabase, orgId)), valeurs };
   }
 
   revalidatePath(`/locataire/${orgId}`);
   revalidatePath(`/locataire/${orgId}/documents`);
-  return { succes: "Attestation déposée. Merci — votre gestionnaire est notifié." };
+  // Lot 47 : « votre gestionnaire » seulement dans un espace d'agence ; chez un propriétaire, « votre bailleur ».
+  return { succes: `Attestation déposée. Merci — votre ${await lireInterlocuteurLocataire(supabase, orgId)} est notifié.` };
 }

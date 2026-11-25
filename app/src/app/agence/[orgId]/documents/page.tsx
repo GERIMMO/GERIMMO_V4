@@ -269,10 +269,10 @@ export default async function PageDocuments(
   }
   // Le montant affiché vient uniquement de la facture explicitement liée à ce document.
   const lectureFactures = estProprietaire
-    ? await lireParIdentifiants<{ document_id: string; montant_ttc_cents: number; validee_le: string | null; decision_motif: string | null }>(
+    ? await lireParIdentifiants<{ document_id: string; montant_ttc_cents: number; validee_le: string | null; decision_motif: string | null; refusee_le: string | null }>(
         docs.filter(d => d.type === "facture_artisan").map(d => d.id),
         ids => supabase.from("intervention_factures")
-          .select("document_id,montant_ttc_cents,validee_le,decision_motif")
+          .select("document_id,montant_ttc_cents,validee_le,decision_motif,refusee_le")
           .eq("organization_id", orgId).in("document_id", ids))
     : { data: [], error: null, tronquee: false };
   const factureDuDocument = (id: string) => {

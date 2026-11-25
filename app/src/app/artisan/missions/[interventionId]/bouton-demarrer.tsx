@@ -26,7 +26,10 @@ export function BoutonDemarrer({
   interventionId,
   sansRendezVous = false,
   discret = false,
+  sansPhrase = false,
 }: {
+  /** Reprise du lot 60 (R8) : l'écran écrit lui-même sa mise en garde, juste dessous — une seule suffit. */
+  sansPhrase?: boolean;
   interventionId: string;
   sansRendezVous?: boolean;
   /** En lien texte, quand l'écran dit déjà qu'il n'y a rien à faire (25/09, A10). */
@@ -49,7 +52,7 @@ export function BoutonDemarrer({
     <form data-saisie-confirmee action={action} className="space-y-2">
       {etat.erreur && <Erreur>{etat.erreur}</Erreur>}
       <Bouton className={sansRendezVous ? CLASSE_BOUTON_SOBRE : CLASSE_BOUTON_PRINCIPAL} />
-      {sansRendezVous && (
+      {sansRendezVous && !sansPhrase && (
         <p className={CLASSE_AIDE}>
           Si vous intervenez sans attendre le rendez-vous.
         </p>

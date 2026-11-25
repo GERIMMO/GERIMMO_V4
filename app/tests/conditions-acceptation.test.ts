@@ -175,7 +175,8 @@ describe("la garde de l'espace artisan (R10)", () => {
 
 describe("l'écran « Nos conditions générales évoluent » (R19)", () => {
   it("il ne s'affiche ni sur la version en vigueur ni sans acceptation", () => {
-    expect(CONDITIONS_VERSION).toBe("2026-11-15");
+    // Lot T4 (24/11/2026) : nouvelle version des conditions (article 17, annexe 1, conservation des factures).
+    expect(CONDITIONS_VERSION).toBe("2026-11-24");
     expect(nouvelleVersionAAccepter({ derniereVersionAcceptee: CONDITIONS_VERSION })).toBeNull();
     expect(nouvelleVersionAAccepter({ derniereVersionAcceptee: null })).toBeNull();
     expect(nouvelleVersionAAccepter({ derniereVersionAcceptee: CONDITIONS_VERSION, abonnement: { souscrit: true, periode_fin: "2026-12-01T00:00:00Z", annulation_demandee: false } })).toBeNull();

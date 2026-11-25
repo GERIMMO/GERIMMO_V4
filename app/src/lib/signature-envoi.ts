@@ -1,7 +1,8 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { configurationSignatureBail, type CircuitBail, type SignataireBail } from "@/lib/signature-bail";
+import { configurationSignatureBail, type AnnexeSignature, type CircuitBail, type SignataireBail } from "@/lib/signature-bail";
+import { estResumeNoticeJoint } from "@/lib/documents-bail";
 import { activerDemandeSignature, preparerCircuitSignature } from "@/lib/signature-prestataire";
 import { verifierAvantEffet } from "@/lib/controle-effets";
 import { sansJargon } from "@/lib/erreurs";
@@ -49,6 +50,18 @@ export function telephonesGarantsConfirmes(signataires: SignataireBail[]): boole
   return garantsSansMobileConfirme(signataires).length === 0;
 }
 
+/**
+ * Le nom de fichier de chaque pièce jointe au dossier de signature, tel que le prestataire l'affiche aux signataires.
+ * Phase 3, lot 45 (T15) : la page de garde liste le résumé de la notice à part (« Document d’information joint », « n’est pas
+ * une annexe du contrat ») ; il n'est plus transmis sous le nom « annexe-N.pdf ». Il porte le nom de son PDF dans Gerimmo ;
+ * les autres pièces gardent « annexe-N.pdf », numérotées dans l'ordre où la page de garde les liste. Un résumé rangé sous
+ * l'ancien titre reste une annexe, comme sur la page de garde (ajouterPagesSignature) ; sa préparation n'est plus envoyée.
+ */
+export function nomsFichiersPiecesJointes(annexes: Pick<AnnexeSignature, "titre">[]): string[] {
+  let numero = 0;
+  return annexes.map((a) => estResumeNoticeJoint(a) ? "resume-notice-information.pdf" : `annexe-${++numero}.pdf`);
+}
+
 /** Un circuit de bail (les anciens circuits sans `modele` en sont). */
 export const estCircuitDeBail = (circuit: Pick<CircuitBail, "modele">) => !circuit.modele || circuit.modele === "bail";
 
@@ -94,15 +107,16 @@ export async function controlerEnvoi(p: { db: SupabaseClient; org: string; bail:
   const contenu = new Uint8Array(await fichier.data.arrayBuffer());
   if (createHash("sha256").update(contenu).digest("hex") !== circuit.pdf_hash) throw new Error("Le fichier ne correspond plus au PDF préparé. Préparez une nouvelle version avant l’envoi.");
   const annexes: { pdf: Uint8Array; nomFichier: string }[] = [];
+  const noms = nomsFichiersPiecesJointes(circuit.annexes);
   let total = contenu.byteLength;
-  for (const a of circuit.annexes) {
+  for (const [i, a] of circuit.annexes.entries()) {
     const piece = await db.storage.from("documents").download(a.storage_path);
     if (piece.error || !piece.data) throw new Error("Une annexe n’a pas pu être chargée.");
     total += piece.data.size;
     if (total > 50_000_000) throw new Error("Les annexes dépassent 50 Mo. Réduisez la taille des PDF avant l’envoi.");
     const octets = new Uint8Array(await piece.data.arrayBuffer());
     if (createHash("sha256").update(octets).digest("hex") !== a.empreinte) throw new Error("Une annexe a changé. Préparez un nouveau dossier avant l’envoi.");
-    annexes.push({ pdf: octets, nomFichier: `annexe-${annexes.length + 1}.pdf` });
+    annexes.push({ pdf: octets, nomFichier: noms[i] });
   }
   return { config, titre: preparation.titreGed, contenu, annexes };
 }

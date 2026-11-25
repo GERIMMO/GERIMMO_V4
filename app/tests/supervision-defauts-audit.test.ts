@@ -47,7 +47,8 @@ const html = renderToStaticMarkup;
 beforeEach(() => {
   vi.clearAllMocks(); mock.resultats = {};
   mock.from.mockImplementation(requete);
-  mock.rpc.mockImplementation(async (nom: string) => nom === 'is_super_admin' ? ok(true) : mock.resultats[nom] ?? ok([]));
+  // Interrupteur IA (22/11/2026) : activée par défaut, comme en base ; un test la coupe par `mock.resultats.ia_disponible`.
+  mock.rpc.mockImplementation(async (nom: string) => nom === 'is_super_admin' ? ok(true) : mock.resultats[nom] ?? (nom === 'ia_disponible' ? ok(true) : ok([])));
   mock.user.mockResolvedValue({ data: { user: { id: 'moi' } }, error: null });
 });
 afterEach(() => { vi.useRealTimers(); vi.unstubAllEnvs(); });
@@ -159,6 +160,15 @@ describe('SA-08 : aucune promesse automatique sans configuration', () => {
     const rendu=html(await Marketing());
     expect(rendu).toContain(actif ? 'Connexion IA à terminer' : 'Préparation en pause'); expect(rendu).not.toContain('La préparation est prévue la veille');
   });
+  // Interrupteur IA (22/11/2026) : l'IA coupée par le superviseur se dit, sans la confondre avec une connexion à finir.
+  it('préparation active, IA désactivée par le superviseur : annoncée suspendue, avec la voie manuelle', async () => {
+    vi.stubEnv('OPENAI_API_KEY','fictif-test-jamais-envoye');
+    mock.resultats.ia_disponible = ok(false);
+    mock.resultats.marketing_reglages = ok({ actif: true, jours_semaine: [2,5], heure_paris: 9, heure_preparation_paris: 17, budget_mensuel_cents: 0, veille_mots_inclus: [], veille_mots_exclus: [] });
+    const rendu=html(await Marketing());
+    expect(rendu).toContain('IA désactivée'); expect(rendu).not.toContain('Connexion IA à terminer'); expect(rendu).not.toContain('Préparation activée');
+    expect(rendu).toContain('créer un article et le publier à la main'); expect(rendu).not.toContain('La préparation est prévue la veille');
+  });
 });
 
 
@@ -184,6 +194,21 @@ describe('Articles et demandes de contact : actions et pages accessibles', () =>
     const rendu=html(await Marketing());
     expect(rendu).toContain('Préparation activée'); expect(rendu).toContain('à 17 h, sous réserve');
   });
+});
+
+// Défauts d'écran E070 = E180 (passe 1) : la section qui lit audit_log par account_id — l'AUTEUR du geste — s'intitulait
+// « Actions sur ce compte » ; « Accès à une organisation accordé · role : artisan », geste fait par un administrateur
+// d'agence pour un artisan, s'y lisait comme un rôle d'artisan donné à ce compte.
+it("E070 : les actions faites PAR le compte ne se présentent plus comme faites sur lui", async () => {
+  mock.resultats.dossier_compte_supervision = ok([{ email: 'fictif@example.test', est_super_admin: false, facteurs_mfa: 0 }]);
+  mock.resultats.audit_log = ok([{ id: 'geste-1', action: 'adhesion_creee', details: { role: 'artisan' }, created_at: '2026-11-24T03:37:00Z', organization_id: null, organisation: null }]);
+  const rendu = html(await Compte(params('accountId')));
+  expect(rendu).not.toContain('Actions sur ce compte');
+  expect(rendu).toContain('Actions faites par ce compte');
+  expect(rendu).toContain('dont ce compte est l’auteur');
+  expect(rendu).toContain('Gestes faits sur ce compte');
+  mock.resultats.audit_log = ok([]);
+  expect(html(await Compte(params('accountId')))).toContain('Aucune action enregistrée : ce compte n’est l’auteur d’aucun geste sensible.');
 });
 
 // UX 12B : les accès restent ceux lus, seul leur libellé est accordé.

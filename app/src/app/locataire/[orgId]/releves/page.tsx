@@ -6,11 +6,15 @@ import type { MonReleveConsommation } from "@/lib/consommations";
 import { lireToutesLesPages } from "@/lib/lecture-complete";
 import { TitreEcran } from "@/components/titre-ecran";
 import { PanneLecture } from "../panne-lecture";
+import { lireIdentiteContact } from "../identite-contact";
+import { interlocuteurDeLIdentite } from "@/lib/identite-contact-locataire";
 
 export const metadata = { title: "Mes relevés" };
 export default async function PageReleves({ params }: { params: Promise<{ orgId: string }> }) {
   const { orgId } = await params;
   const { supabase } = await verifierAccesEspaceLocataire(orgId);
+  // Lot 47 : « votre gestionnaire » seulement dans un espace d'agence ; chez un propriétaire, « votre bailleur ».
+  const qui = interlocuteurDeLIdentite(await lireIdentiteContact(orgId));
   const demandes = await lireToutesLesPages<MonReleveConsommation>((debut, fin) => supabase.rpc("mes_releves_consommation", { p_org: orgId }, { count: "exact" }).order("demande_id").range(debut, fin), r => r.demande_id);
   // Même gabarit que les autres pages de l'espace (20/11) : la page posait son propre <main> dans celui de la
   // coquille (deux repères principaux, double gouttière), un h1 nu et un retour « ← Mon logement » qui menait à
@@ -20,7 +24,10 @@ export default async function PageReleves({ params }: { params: Promise<{ orgId:
     <div className="entete-page">
       <TitreEcran rubrique="releves">Mes relevés</TitreEcran>
     </div>
-    <p className="text-sm text-muted-foreground">Renseignez l’index. Une photo peut vous aider à le préremplir.</p>
-    {demandes.echec ? <PanneLecture quoi="vos demandes de relevés" /> : <RelevesLocataire orgId={orgId} demandes={demandes.lignes.sort((a, b) => b.echeance.localeCompare(a.echeance))} aujourdHui={aujourdhuiParis()} />}
+    {/* Phase 3, lot 61 (E017, E133) : la consigne s'affichait même sans relevé demandé, et promettait un préremplissage
+        par photo qui n'existe que si l'aide à la lecture est disponible (le bouton se propose alors de lui-même, sous
+        la photo). Elle ne s'affiche plus que s'il y a un relevé à transmettre, et ne promet que ce qui est toujours vrai. */}
+    {!demandes.echec && demandes.lignes.some(d => d.peut_repondre) && <p className="text-sm text-muted-foreground" data-consigne-releve>Recopiez l’index affiché sur le compteur. Vous pouvez joindre une photo du compteur (facultatif).</p>}
+    {demandes.echec ? <PanneLecture quoi="vos demandes de relevés" interlocuteur={qui} /> : <RelevesLocataire orgId={orgId} demandes={demandes.lignes.sort((a, b) => b.echeance.localeCompare(a.echeance))} aujourdHui={aujourdhuiParis()} />}
   </div>;
 }

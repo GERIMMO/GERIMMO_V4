@@ -97,6 +97,12 @@ export const ATTRIBUT_IDENTITE_EMPREINTE = "data-identite-empreinte";
 /** Une version telle que le code la déclare (conditions-versions.json). */
 export type VersionDeclaree = {
   nouvelles_souscriptions_uniquement?: boolean;
+  /**
+   * Décision du dirigeant du 24/11/2026 (Q15) : l'accord exprès du Client déjà abonné est demandé (rappel dans son
+   * espace, case à cocher), et redemandé à sa prochaine démarche sur son abonnement ; faute d'accord, RIEN n'est
+   * coupé et l'abonnement n'est jamais mis en non-reconduction pour cette version (lib/nouvelle-version-conditions.ts).
+   */
+  accord_au_prochain_acte?: boolean;
   date_effet: string;
   nature: "substantielle" | "technique";
   resume_modifications: string;

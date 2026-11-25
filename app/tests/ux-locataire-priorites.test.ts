@@ -10,7 +10,6 @@ vi.mock("@/components/suivi-echeanciers-charges", () => ({ SuiviEcheanciersCharg
 vi.mock("@/components/assistant-prive", () => ({ AssistantPrive: () => createElement("div", null, "Assistant facultatif") }));
 vi.mock("@/app/locataire/[orgId]/formulaire-attestation", () => ({ FormulaireAttestation: () => createElement("div", null, "Formulaire assurance conservé") }));
 vi.mock("@/app/locataire/[orgId]/documents/depot-piece", () => ({ DepotPiece: () => createElement("div", null, "Dépôt demandé conservé") }));
-vi.mock("@/app/locataire/[orgId]/documents/depot-signature", () => ({ DepotSignature: () => null }));
 vi.mock("@/lib/quittance-conforme", () => ({ disponibilitesQuittances: async () => ({}) }));
 vi.mock("@/lib/espace", () => ({ verifierAccesEspaceLocataire: async () => ({
   personne: { id: "loc", prenom: "Sam" }, user: { id: "compte" }, adhesionActive: banc.actif,

@@ -13,6 +13,7 @@ import { DonneesStructurees } from "@/components/donnees-structurees";
 import { articleJournal, filAriane } from "@/lib/donnees-structurees";
 import { adresseCanonique } from "@/lib/site";
 import { CHARTE_GERIMMO } from "@/lib/charte-gerimmo";
+import { MentionIaArticle } from "@/components/mention-ia-article";
 
 export const revalidate = 3600;
 
@@ -20,12 +21,16 @@ async function charger(slug: string) {
   const supabase = await createClient();
   // La RLS ne laisse voir que les articles parus : inutile de refiltrer ici,
   // mais on garde le filtre par sécurité si la politique changeait un jour.
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("publications")
-    .select("titre, chapo, corps, publie_le, updated_at, seo_description, sources, veine, facebook_image_url")
+    .select("titre, chapo, corps, publie_le, updated_at, seo_description, sources, veine, facebook_image_url, origine")
     .eq("slug", slug)
     .eq("statut", "publiee")
     .maybeSingle();
+  // Relecture du 24/11/2026 (M-c) : une lecture en erreur n'est pas un article absent. Sans cette ligne, un droit
+  // retiré au visiteur sur une seule des colonnes ci-dessus affichait « Article introuvable » pour TOUS les articles.
+  // L'erreur mène à l'écran d'erreur de l'application (src/app/error.tsx), qui propose de réessayer.
+  if (error) throw new Error("L’article n’a pas pu être lu.");
   return data;
 }
 
@@ -106,6 +111,8 @@ export default async function PageArticle({ params }: PageProps<"/journal/[slug]
 
         <h1 className="mt-1">{titreSansDoublon(a.titre)}</h1>
         {paruLe && <p className="mono-discret mt-2.5">Paru le {paruLe}</p>}
+        {/* Décision du 24/11/2026 (Q13) : la mention est visible sous la date, pour un article d'origine « ia » (M4). */}
+        <MentionIaArticle origine={a.origine} className="mono-discret sans-majuscules mt-1" />
         {/* 06/10 : l'illustration de l'article en tête, format large. */}
         <ImageJournal url={a.facebook_image_url} titre={titreSansDoublon(a.titre)} priorite className="mt-6" />
         {a.chapo && (

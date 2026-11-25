@@ -8,6 +8,7 @@ import { verifierGerant } from "@/lib/ged-acces";
 import { preparerFichierGed, type FichierPrepareGed } from "@/lib/ged-depot";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { erreurDuChamp, lireDecimalFacultatif, lireMontant } from "@/lib/saisie-montant";
+import { estRefusFichierDejaDepose, PIECE_DEPOSEE_PAR_UN_AUTRE } from "@/lib/justificatif-retenue";
 
 // Le Storage n'est pas transactionnel : quand la règle métier refuse la
 // retenue, l'octet est déjà monté. Sans fiche il est déjà illisible (la policy
@@ -20,6 +21,20 @@ async function abandonnerPiece(
   piece: FichierPrepareGed
 ): Promise<void> {
   await supabase.rpc("purger_fichier_sans_fiche", { p_storage_path: piece.chemin });
+}
+
+// Reprise du lot D3 (B1, décision Q49) : le fichier choisi est DÉJÀ rangé dans Documents (un devis unique pour plusieurs
+// réparations, l'état des lieux de sortie…). Un même fichier ne se dépose qu'une fois par espace : on rattache donc la
+// pièce existante à la retenue, sans copie. La base vérifie que cette pièce est du même espace, lisible par la personne
+// connectée et pas rangée dans le dossier d'une autre personne, d'un autre bail ou d'un autre logement (migrations
+// 20261124200000 et 20261124220000).
+const PIECE_DEJA_RANGEE = "Ce fichier est déjà dans vos documents : il a été rattaché à cette retenue, sans copie supplémentaire.";
+
+// Seconde reprise du lot D3 (point 2) : le refus d'un dépôt NOUVEAU. Si la base répond « fichier identique déjà
+// présent » alors que l'écran n'avait trouvé aucun doublon, c'est que la pièce existe mais que la personne connectée ne
+// la lit pas (agent limité à son portefeuille, pièce déposée par un collègue) : on lui dit à qui s'adresser.
+function refusDuDepot(message: string): string {
+  return estRefusFichierDejaDepose(message) ? PIECE_DEPOSEE_PAR_UN_AUTRE : sansJargon(message);
 }
 
 export type EtatRestit = {
@@ -93,11 +108,15 @@ export async function ajouterRetenue(
   const erreurDepotDirect = await resoudreDepotsFormulaire(supabase, formData);
   if (erreurDepotDirect) return { erreur: erreurDepotDirect };
   const fichier = formData.get("justificatif");
+  let pieceDejaRangee: string | null = null;
   if (fichier instanceof File && fichier.size > 0) {
     const prep = await preparerFichierGed(supabase, orgId, fichier);
-    if (prep.erreur || !prep.fichier) return { erreur: prep.erreur ?? "Échec du dépôt du justificatif.", valeurs };
-    piece = prep.fichier;
-    avertissement = prep.avertissement;
+    if (prep.doublonId) pieceDejaRangee = prep.doublonId; // B1 : rattachée sans copie, voir PIECE_DEJA_RANGEE
+    else if (prep.erreur || !prep.fichier) return { erreur: prep.erreur ?? "Échec du dépôt du justificatif.", valeurs };
+    else {
+      piece = prep.fichier;
+      avertissement = prep.avertissement;
+    }
   }
 
   const { error } = piece
@@ -118,13 +137,14 @@ export async function ajouterRetenue(
         p_cout: cout,
         p_duree_vie: dureeLue.valeur,
         p_age: ageLu.valeur,
-        p_justificatif: null,
+        p_justificatif: pieceDejaRangee,
       });
   if (error) {
     if (piece) await abandonnerPiece(supabase, piece);
-    return { erreur: sansJargon(error.message), valeurs };
+    return { erreur: piece ? refusDuDepot(error.message) : sansJargon(error.message), valeurs };
   }
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  if (pieceDejaRangee) return { succes: `Retenue ajoutée. ${PIECE_DEJA_RANGEE}` };
   return { succes: avertissement ? `Retenue ajoutée. ${avertissement}` : "Retenue ajoutée." };
 }
 
@@ -163,6 +183,13 @@ export async function justifierRetenue(
   // (double-clic, deux agents sur le même dossier) ne doit pas laisser la
   // seconde pièce derrière lui.
   const prep = await preparerFichierGed(supabase, orgId, fichier);
+  if (prep.doublonId) {
+    // B1 : la pièce existante est rattachée sans copie. `justifier_retenue` ferme aussi l'alerte « sans justificatif ».
+    const { error } = await supabase.rpc("justifier_retenue", { p_retenue: retenueId, p_document: prep.doublonId });
+    if (error) return { erreur: sansJargon(error.message) };
+    revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+    return { succes: `Justificatif joint. ${PIECE_DEJA_RANGEE}` };
+  }
   if (prep.erreur || !prep.fichier) return { erreur: prep.erreur ?? "Échec du dépôt du justificatif." };
   const piece = prep.fichier;
   const { error } = await supabase.rpc("justifier_retenue_avec_piece", {
@@ -174,7 +201,7 @@ export async function justifierRetenue(
   });
   if (error) {
     await abandonnerPiece(supabase, piece);
-    return { erreur: sansJargon(error.message) };
+    return { erreur: refusDuDepot(error.message) };
   }
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: prep.avertissement ? `Justificatif joint. ${prep.avertissement}` : "Justificatif joint." };

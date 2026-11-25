@@ -29,7 +29,9 @@ const UTILITES: Record<string, string> = {
   admin_agence: "Piloter le parc, les loyers, les mandats et l’équipe.",
   agent: "Traiter les actions de votre portefeuille et suivre les échanges avec vos locataires.",
   proprietaire_direct: "Suivre vos lots, vos loyers, vos dépenses et vos locataires.",
-  locataire: "Consulter votre logement, vos paiements et vos documents ; contacter votre gestionnaire.",
+  // Lot 47 : cette liste ne lit pas le type de chaque espace ; « votre gestionnaire » était faux chez un propriétaire qui
+  // gère lui-même. Même tournure que l'écran de choix des espaces.
+  locataire: "Consulter votre logement, vos paiements et vos documents ; contacter votre bailleur ou son gestionnaire.",
 };
 
 type Adhesion = {

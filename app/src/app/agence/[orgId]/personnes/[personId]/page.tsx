@@ -37,16 +37,20 @@ import {
   BoutonRetirerLigne,
 } from "./formulaire-mandat";
 import { FormulaireInvitation } from "./formulaire-invitation";
+import { lireEnvoisProposes } from "@/lib/envois-suspendus";
 import { CarteMessages } from "./carte-messages";
 import { buttonVariants } from "@/components/ui/button";
 import { ConversationProprietaire } from "../../messages/conversation-proprietaire";
 import { GestionJustificatifsPersonne } from "./gestion-justificatifs";
 import { CartePiecesDemandees } from "./carte-pieces-demandees";
+// Reprise T3R-2 : la même lecture que l'action qui enregistre la demande (locataire sorti, propriétaire mandant : nom libre).
+import { lireRegimePieces } from "@/lib/pieces-regime";
 import { EchecLecture, PageEchecLecture } from "../../documents/echec-lecture";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { exigerUuids } from "@/lib/identifiants";
 import { baseEspace } from "@/lib/racine-espace";
 import { etatInvitation, LIBELLES_INVITATION } from "@/lib/invitations-locataire";
+import { jourDuMois } from "@/lib/jour-du-mois";
 
 export const metadata = { title: "Fiche personne — Gerimmo" };
 
@@ -423,6 +427,9 @@ export default async function PagePersonne(
   const lotsIllisibles = Boolean(erreurLots || erreurCouvrantes || erreurDetentions);
 
   const afficherAcces = !estSaFiche && (estLocataire || locataireEnPreparation || (roles.length === 0 && (detentions ?? []).length === 0));
+  // Pièces demandables (lot T3, R19-A1 ; reprise T3R-2) : liste du décret ou nom libre, selon la place de la personne. Une
+  // lecture en échec affiche la liste des candidats (la plus étroite) ; l'action, elle, refuse alors la demande.
+  const regimeDesPieces = await lireRegimePieces(supabase, orgId, personId);
   const afficherMessages = !estSaFiche && (messages.length > 0 || Boolean(personne.account_id));
   // FL-08 (audit PR #264) : un locataire sans espace ne peut pas recevoir de
   // message. « Nouveau message » menait à sa fiche, où rien ne disait pourquoi
@@ -713,7 +720,7 @@ export default async function PagePersonne(
             <summary className="min-h-10 cursor-pointer py-2 text-sm font-medium">Ajouter ou demander un justificatif{demandesEnAttente > 0 ? ` · ${demandesEnAttente} en attente` : ""}</summary>
           <GestionJustificatifsPersonne
             depot={<FormulairePiece orgId={orgId} personId={personId} />}
-            demandes={!estSaFiche && (personne.account_id || estLocataire || locataireEnPreparation || (roles.length === 0 && (detentions ?? []).length === 0) || demandesPieces.length > 0) ? <CartePiecesDemandees orgId={orgId} personId={personId} demandes={demandesPieces} tronquees={demandesTronquees} aUnAcces={Boolean(personne.account_id)} /> : undefined}
+            demandes={!estSaFiche && (personne.account_id || estLocataire || locataireEnPreparation || (roles.length === 0 && (detentions ?? []).length === 0) || demandesPieces.length > 0) ? <CartePiecesDemandees orgId={orgId} personId={personId} demandes={demandesPieces} tronquees={demandesTronquees} aUnAcces={Boolean(personne.account_id)} annexes={"erreur" in regimeDesPieces ? ["I"] : regimeDesPieces.annexes} /> : undefined}
             enAttente={demandesPieces.filter(d=>!d.satisfaite_le).length}
           />
           </details>
@@ -806,9 +813,10 @@ export default async function PagePersonne(
                         </span>
                       )}
                       {/* En toutes lettres (24/09) : « Rapport le 10 · seuil 500 € »
-                          ne disait ni « du mois » ni de quoi était le seuil. */}
+                          ne disait ni « du mois » ni de quoi était le seuil.
+                          Reprise du lot 43 : « le 1er de chaque mois », comme le mandat imprimé (plus « le 1 »). */}
                       <span className="text-sm text-muted-foreground">
-                        Rapport de gestion le {m.date_rapport} de chaque mois · délégation
+                        Rapport de gestion le {jourDuMois(m.date_rapport)} de chaque mois · délégation
                         de travaux jusqu&apos;à{" "}
                         {m.seuil_delegation != null
                           ? `${Number(m.seuil_delegation).toLocaleString("fr-FR")}\u00A0€`
@@ -970,6 +978,7 @@ export default async function PagePersonne(
             historique={invitations ?? []}
             relances={relancesInvitation ?? []}
             erreurLecture={Boolean(erreurInvitations || erreurAccesLocataire || erreurRelances)}
+            rappelsAutomatiquesOuverts={(await lireEnvoisProposes(supabase)).relance_invitation}
           />
         </CardContent>
       </Card>

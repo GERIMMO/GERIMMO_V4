@@ -6,12 +6,15 @@
  * ne revalidait que les listes (journal, accueil, espaces, console) — jamais l'adresse de l'article ni le plan du
  * site. Même manque au retour : un article retiré puis republié gardait son 404 en cache.
  */
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ createClient: vi.fn(), revalidate: vi.fn(), facebook: vi.fn() }));
+const mocks = vi.hoisted(() => ({ createClient: vi.fn(), revalidate: vi.fn(), facebook: vi.fn(), page: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
 vi.mock("@/lib/facebook", () => ({ envoyerSurFacebook: mocks.facebook, RefusFacebookCertain: class extends Error {} }));
+// Lecture de la Page Facebook, la même que celle de l'écran (santeFacebook), simulée : aucun appel à Meta.
+vi.mock("@/lib/marketing-meta", () => ({ santeFacebook: mocks.page }));
+import { RAISON_DIFFUSION_MASQUEE } from "@/lib/diffusion-facebook";
 import { RefusFacebookCertain } from "@/lib/facebook";
 import { publierPublicationFacebook, publierPublication, retirerPublication } from "../src/app/actions/publications";
 
@@ -34,7 +37,7 @@ function client(slug: string | null, titre = "Réviser un loyer") {
     return q;
   });
   mocks.createClient.mockResolvedValue({ from, rpc });
-  return { ecritures };
+  return { ecritures, rpc };
 }
 
 const chemins = () => mocks.revalidate.mock.calls.map((c) => c[0] as string);
@@ -80,11 +83,37 @@ describe("retirer un article le fait disparaître tout de suite", () => {
 });
 
 describe("diffusion manuelle et réservation",()=>{
+  // Page « Relié » (reliée et lue) : le cas que décrit ce bloc ; les autres états ont le bloc suivant (décision du 25/11).
+  beforeEach(()=>{mocks.facebook.mockReset();mocks.page.mockReset();mocks.page.mockResolvedValue({configure:true,nom:"Page Gerimmo"});});
   it.each([["jeton expiré",true],["réponse perdue",false]] as const)("conserve la bonne issue après %s",async(message,refus)=>{
     const {ecritures}=client("article");
     mocks.facebook.mockImplementationOnce(async (_article,avantEffet)=>{await avantEffet();throw refus?new RefusFacebookCertain(message):new Error(message);});
     expect(await publierPublicationFacebook("id-1")).toMatchObject({erreur:message});
     if(refus) expect(ecritures).toContainEqual({facebook_erreur:message,facebook_envoi_demarre_le:null});
     else expect(ecritures).toContainEqual({facebook_erreur:message});
+  });
+});
+
+// Décision du dirigeant du 25/11/2026 : « la diffusion Facebook est masquée tant que la Page n'est pas vérifiée ». L'éditeur
+// masque « Publier sur Facebook » (commit 35331720) ; l'action serveur refuse aussi, avec la même lecture que l'écran, avant
+// toute réservation, toute ligne de journal et tout envoi.
+describe("diffusion manuelle refusée tant que la Page Facebook n'est pas « Relié » (décision du 25/11/2026)", () => {
+  beforeEach(() => {
+    mocks.facebook.mockReset();
+    mocks.page.mockReset();
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("Aucun appel réseau dans ce test."); }));
+  });
+  afterEach(() => { vi.unstubAllGlobals(); });
+  it.each([
+    ["« À relier »", { configure: false }, RAISON_DIFFUSION_MASQUEE.a_relier],
+    ["« À vérifier »", { configure: true, erreur: "Jeton de la Page expiré." }, RAISON_DIFFUSION_MASQUEE.a_verifier],
+  ] as const)("Page %s : rien n'est réservé, consigné ni envoyé, la raison est dite", async (_cas, sante, raison) => {
+    mocks.page.mockResolvedValue(sante);
+    const { ecritures, rpc } = client("article");
+    expect(await publierPublicationFacebook("id-1")).toEqual({ erreur: raison });
+    expect(mocks.facebook).not.toHaveBeenCalled();
+    expect(rpc.mock.calls.map((c) => (c as unknown[])[0])).toEqual(["is_permanent_super_admin"]);
+    expect(ecritures).toEqual([]);
+    expect(fetch).not.toHaveBeenCalled();
   });
 });

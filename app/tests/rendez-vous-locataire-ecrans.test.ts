@@ -94,40 +94,42 @@ describe("libellés, motifs et alertes", () => {
   );
 });
 
+// Lot 47 : ces dossiers sont ceux d'une agence (« Agence TEST ») ; l'interlocuteur nommé y est le gestionnaire. Le cas
+// d'un propriétaire qui gère lui-même est couvert par interlocuteur-locataire-lot47.test.ts.
 describe("ce que le locataire lit de sa demande", () => {
   it("en attente : le rendez-vous actuel reste valable, avec l'échéance", () => {
-    const e = etatDemandeLocataire(rv({ demande_id: "d", demande_type: "report", demande_statut: "en_attente", demandee_le: "2026-10-15T08:00:00Z", expire_le: "2026-10-17T08:00:00Z" }));
+    const e = etatDemandeLocataire(rv({ demande_id: "d", demande_type: "report", demande_statut: "en_attente", demandee_le: "2026-10-15T08:00:00Z", expire_le: "2026-10-17T08:00:00Z" }), { interlocuteur: "gestionnaire" });
     expect(e?.detail).toMatch(/reste valable tant que l'artisan n'a pas répondu/);
     expect(e?.detail).toMatch(/réponse attendue avant le samedi 17 octobre à 10 h/);
   });
 
   it("acceptée : la nouvelle date ; refusée : le motif de l'artisan et le rendez-vous maintenu", () => {
-    expect(etatDemandeLocataire(rv({ demande_id: "d", demande_type: "report", demande_statut: "acceptee", nouveau_debut: "2026-10-24T12:00:00Z", nouvelle_fin: "2026-10-24T16:00:00Z" }))?.titre)
+    expect(etatDemandeLocataire(rv({ demande_id: "d", demande_type: "report", demande_statut: "acceptee", nouveau_debut: "2026-10-24T12:00:00Z", nouvelle_fin: "2026-10-24T16:00:00Z" }), { interlocuteur: "gestionnaire" })?.titre)
       .toBe("L'artisan a accepté : nouveau rendez-vous le samedi 24 octobre, 14 h – 18 h");
-    const refus = etatDemandeLocataire(rv({ demande_id: "d", demande_type: "report", demande_statut: "refusee", reponse_motif: "Chantier ailleurs" }));
+    const refus = etatDemandeLocataire(rv({ demande_id: "d", demande_type: "report", demande_statut: "refusee", reponse_motif: "Chantier ailleurs" }), { interlocuteur: "gestionnaire" });
     expect(refus?.titre).toMatch(/votre gestionnaire va vous appeler/);
     expect(refus?.detail).toContain("« Chantier ailleurs »");
     expect(refus?.detail).toMatch(/maintenu/);
   });
 
   it("expirée : le rendez-vous est maintenu ; retirée : rien à dire", () => {
-    expect(etatDemandeLocataire(rv({ demande_id: "d", demande_type: "report", demande_statut: "expiree" }))?.detail).toMatch(/maintenu/);
-    expect(etatDemandeLocataire(rv({ demande_id: "d", demande_type: "report", demande_statut: "retiree" }))).toBeNull();
+    expect(etatDemandeLocataire(rv({ demande_id: "d", demande_type: "report", demande_statut: "expiree" }), { interlocuteur: "gestionnaire" })?.detail).toMatch(/maintenu/);
+    expect(etatDemandeLocataire(rv({ demande_id: "d", demande_type: "report", demande_statut: "retiree" }), { interlocuteur: "gestionnaire" })).toBeNull();
   });
 
   it("annulation : dite tant qu'aucun nouveau rendez-vous n'est fixé, sans un mot de sanction", () => {
-    const a = etatDemandeLocataire(rv({ statut_mission: "acceptee", demande_id: "d", demande_type: "annulation", demande_statut: "acceptee", demande_rdv_debut: "2026-10-22T07:00:00Z", demande_rdv_fin: "2026-10-22T09:00:00Z", tardive: true }));
+    const a = etatDemandeLocataire(rv({ statut_mission: "acceptee", demande_id: "d", demande_type: "annulation", demande_statut: "acceptee", demande_rdv_debut: "2026-10-22T07:00:00Z", demande_rdv_fin: "2026-10-22T09:00:00Z", tardive: true }), { interlocuteur: "gestionnaire" });
     expect(a?.titre).toMatch(/^Vous avez annulé le rendez-vous du jeudi 22 octobre, 0?9 h – 11 h$/);
     expect(`${a?.titre} ${a?.detail}`).not.toMatch(/pénalit|frais|sanction|tardi/i);
-    expect(etatDemandeLocataire(rv({ statut_mission: "planifiee", demande_id: "d", demande_type: "annulation", demande_statut: "acceptee" }))).toBeNull();
+    expect(etatDemandeLocataire(rv({ statut_mission: "planifiee", demande_id: "d", demande_type: "annulation", demande_statut: "acceptee" }), { interlocuteur: "gestionnaire" })).toBeNull();
   });
 
   it("report impossible : on dit pourquoi (plafond, ou moins de 24 h), jamais un bouton qui échouerait", () => {
-    expect(raisonSansReport(rv({ report_possible: false, reports_restants: 0 }))).toMatch(/déjà fait l'objet de 2 demandes de report/);
-    expect(raisonSansReport(rv({ report_possible: false, reports_restants: 1, annulation_tardive: true }))).toMatch(/moins de 24 heures/);
+    expect(raisonSansReport(rv({ report_possible: false, reports_restants: 0 }), "gestionnaire")).toMatch(/déjà fait l'objet de 2 demandes de report/);
+    expect(raisonSansReport(rv({ report_possible: false, reports_restants: 1, annulation_tardive: true }), "gestionnaire")).toMatch(/moins de 24 heures/);
     // La raison du délai n'est jamais devinée : sans le drapeau de la base, aucune phrase (ex. demande échue).
-    expect(raisonSansReport(rv({ report_possible: false, reports_restants: 1, demande_id: "d", demande_type: "report", demande_statut: "expiree" }))).toBeNull();
-    expect(raisonSansReport(rv())).toBeNull();
+    expect(raisonSansReport(rv({ report_possible: false, reports_restants: 1, demande_id: "d", demande_type: "report", demande_statut: "expiree" }), "gestionnaire")).toBeNull();
+    expect(raisonSansReport(rv(), "gestionnaire")).toBeNull();
   });
 });
 
@@ -154,9 +156,9 @@ describe("les courriers", () => {
   });
 
   it("la réponse au locataire : la nouvelle date, ou le refus avec le motif et le rendez-vous maintenu", () => {
-    const ok = messageReponseReportRdv({ emetteur: "Agence TEST", categorie: "plomberie_canalisation", reponse: { type: "acceptee", debut: "2026-10-24T12:00:00Z", fin: "2026-10-24T16:00:00Z" }, rdvDebut: base.rdvDebut, rdvFin: base.rdvFin, lien: null });
+    const ok = messageReponseReportRdv({ emetteur: "Agence TEST", categorie: "plomberie_canalisation", reponse: { type: "acceptee", debut: "2026-10-24T12:00:00Z", fin: "2026-10-24T16:00:00Z" }, rdvDebut: base.rdvDebut, rdvFin: base.rdvFin, lien: null, interlocuteur: "gestionnaire" });
     expect(ok.sujet).toContain("samedi 24 octobre");
-    const non = messageReponseReportRdv({ emetteur: "Agence TEST", categorie: "plomberie_canalisation", reponse: { type: "refusee", motif: "Chantier ailleurs" }, rdvDebut: base.rdvDebut, rdvFin: base.rdvFin, lien: null });
+    const non = messageReponseReportRdv({ emetteur: "Agence TEST", categorie: "plomberie_canalisation", reponse: { type: "refusee", motif: "Chantier ailleurs" }, rdvDebut: base.rdvDebut, rdvFin: base.rdvFin, lien: null, interlocuteur: "gestionnaire" });
     expect(non.html).toContain("Chantier ailleurs");
     expect(non.html).toMatch(/est maintenu/);
   });

@@ -11,6 +11,7 @@ import { decalerJour } from "@/lib/agenda-gestion";
 import { aujourdhuiParis } from "@/lib/ged";
 import {
   chargerFicheArtisan,
+  chargerMesLignesDevis,
   chargerPhotosDemande,
   chargerSollicitations,
   chargerVersionsDevis,
@@ -91,11 +92,13 @@ export default async function PageRepondreDevis(
 
   // D16 (14/10) : les photos jointes par le locataire, que la base ne rend que pour une demande encore vivante.
   // D18 (livraison 2) : l'historique des versions de son devis (les siennes seules).
-  const [{ fiche }, sollicitations, photos, versions] = await Promise.all([
+  // P2-04 : ses lignes de devis gardées, proposées dans le formulaire (`null` = lecture en échec, dite à l'écran).
+  const [{ fiche }, sollicitations, photos, versions, lignesGardees] = await Promise.all([
     chargerFicheArtisan(),
     chargerSollicitations(),
     chargerPhotosDemande(sollicitationId, null),
     chargerVersionsDevis(sollicitationId),
+    chargerMesLignesDevis(),
   ]);
   if (sollicitations.erreur) return <LectureImpossibleArtisan href={`/artisan/devis/${sollicitationId}`} />;
   const demande = sollicitations.lignes.find(
@@ -249,6 +252,7 @@ export default async function PageRepondreDevis(
             sollicitationId={sollicitationId}
             echeanceParDefaut={echeanceParDefaut}
             versionSuivante={enRevision ? versionSuivante : undefined}
+            lignesGardees={lignesGardees}
           />
         </>
       )}

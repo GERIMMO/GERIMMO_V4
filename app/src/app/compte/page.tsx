@@ -1,60 +1,23 @@
 import Link from "next/link";
-import { cache } from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { FormulaireDeconnexion } from "@/components/formulaire-deconnexion";
-import { PurgerCopiesAutresComptes } from "@/components/purger-copies-autres-comptes";
-import { MarqueGerimmo } from "@/components/marque-gerimmo";
-import { MarqueOrganisation } from "@/components/marque-organisation";
-import { nomMarque, styleMarque, type MarqueOrganisation as Marque } from "@/lib/marque-organisation";
-import { chargerMarque } from "@/lib/marque-organisation-serveur";
+import { nomMarque, styleMarque } from "@/lib/marque-organisation";
 import { formaterDateHeure } from "@/lib/ged";
 import { FormulaireMotDePasse } from "./formulaire-mot-de-passe";
 import { SecondFacteur } from "./second-facteur";
 import { ConditionsAcceptees } from "./conditions-acceptees";
-
-// LA MARQUE DU LOCATAIRE (25/09, D04). Cet écran est hors de tout espace, et
-// il affichait le logo GERIMMO — au locataire d'une agence en marque blanche,
-// qui ne doit jamais lire ce nom. Quand le compte n'a QUE des adhésions de
-// locataire, l'en-tête et l'onglet portent la marque de son organisation ; un
-// compte qui a aussi un espace agence ou propriétaire garde Gerimmo. Lu une
-// fois par requête : la page et son titre en ont besoin.
-const lireMarqueLocataire = cache(async function lireMarqueLocataire(): Promise<Marque | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data, error } = await supabase
-    .from("memberships")
-    .select("role, organization_id")
-    .eq("account_id", user.id)
-    .eq("status", "active");
-  const adhesions = (data ?? []) as { role: string; organization_id: string }[];
-  // Une lecture tombée ne décide rien : on garde l'en-tête neutre.
-  if (error || adhesions.length === 0 || adhesions.some((a) => a.role !== "locataire")) return null;
-  return chargerMarque(supabase, adhesions[0].organization_id);
-});
-
-// L'espace locataire de la personne, quand elle n'en a qu'un et n'est que
-// locataire (audit du 27/09) : « Mes espaces » lui coûtait un clic de plus
-// pour revenir chez elle.
-const lireEspaceLocataire = cache(async function lireEspaceLocataire(): Promise<string | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data, error } = await supabase
-    .from("memberships")
-    .select("role, organization_id")
-    .eq("account_id", user.id)
-    .eq("status", "active");
-  const adhesions = (data ?? []) as { role: string; organization_id: string }[];
-  if (error || adhesions.length !== 1 || adhesions[0].role !== "locataire") return null;
-  return adhesions[0].organization_id;
-});
+import { identiteContactLocataire, interlocuteurDeLIdentite } from "@/lib/identite-contact-locataire";
+// Phase 3, lot 61 : l'en-tête et les lectures du compte servent aussi à /compte/donnees (même bandeau, même renvoi vers
+// l'interlocuteur de la location) ; ils vivent dans bandeau-compte.tsx.
+import {
+  BandeauCompte,
+  RenvoiDonneesLocation,
+  lireContactCompteLocataire,
+  lireEspaceLocataire,
+  lireMarqueLocataire,
+  LIEN_CONFIDENTIALITE,
+} from "./bandeau-compte";
 
 export async function generateMetadata(): Promise<Metadata> {
   const marque = await lireMarqueLocataire();
@@ -99,39 +62,20 @@ export default async function PageCompte() {
   const { data: ficheArtisan } = await supabase.rpc("mon_artisan");
   const estArtisan = ((ficheArtisan ?? []) as unknown[]).length > 0;
   const espaceLocataire = await lireEspaceLocataire();
+  const contactLocataire = await lireContactCompteLocataire();
+  // « votre gestionnaire » / « votre bailleur » pour une seule adhésion de locataire ; pour plusieurs, ou des adhésions
+  // illisibles, la tournure de l'écran des espaces (« votre bailleur ou son gestionnaire »), vraie dans les deux cas.
+  const quiLocataire = contactLocataire
+    ? contactLocataire.identite
+      ? `votre ${interlocuteurDeLIdentite(contactLocataire.identite)}`
+      : "votre bailleur ou à son gestionnaire"
+    : null;
+  // L'espace unique du locataire : son titre et son interlocuteur viennent de la même identité (illisible : « bailleur »).
+  const identiteEspace = contactLocataire?.identite ?? identiteContactLocataire(null);
 
   return (
     <div className="flex min-h-full flex-1 flex-col" style={styleMarque(marque)}>
-      <header className="bandeau-appli">
-        {/* Les deux liens ne se coupent pas sur deux lignes à 390 px (25/09,
-            D28) : ils restent d'un tenant, c'est la marque qui cède la place. */}
-        <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-3 px-4 py-3 sm:px-7">
-          {/* overflow-hidden : à 390 px, la marque débordait de sa boîte et
-              touchait « Mes espaces » (audit du 27/09). */}
-          <div className="min-w-0 max-w-[180px] overflow-hidden">
-            {marque ? <MarqueOrganisation marque={marque} tuile /> : <MarqueGerimmo tuile />}
-          </div>
-          <div className="flex shrink-0 items-center gap-3">
-            {estArtisan ? (
-              <Link href="/artisan" className="lien-bandeau whitespace-nowrap">
-                ← Espace artisan
-              </Link>
-            ) : espaceLocataire ? (
-              <Link href={`/locataire/${espaceLocataire}`} className="lien-bandeau whitespace-nowrap">
-                ← Mon espace
-              </Link>
-            ) : (
-              <Link href="/espaces" className="lien-bandeau whitespace-nowrap">
-                Mes espaces
-              </Link>
-            )}
-            <PurgerCopiesAutresComptes compteId={user.id} />
-            <FormulaireDeconnexion className="lien-bandeau whitespace-nowrap">
-              Se déconnecter
-            </FormulaireDeconnexion>
-          </div>
-        </div>
-      </header>
+      <BandeauCompte compteId={user.id} marque={marque} estArtisan={estArtisan} espaceLocataire={espaceLocataire} />
 
       <main className="mx-auto w-full max-w-2xl flex-1 space-y-4 p-4 sm:p-7">
         <div>
@@ -146,7 +90,9 @@ export default async function PageCompte() {
           <dl className="grid gap-x-8 sm:grid-cols-2">
             <div className="ligne-info">
               <dt className="text-muted-foreground">Adresse de connexion</dt>
-              <dd className="font-medium break-all">{user.email}</dd>
+              {/* Lot 61 (E135) : `break-all` coupait l'adresse au milieu d'un mot (« examp / le.com ») alors que la carte
+                  avait la place ; la coupure n'intervient plus que si un mot ne tient vraiment pas sur la ligne. */}
+              <dd className="font-medium [overflow-wrap:anywhere]">{user.email}</dd>
             </div>
             <div className="ligne-info">
               <dt className="text-muted-foreground">Dernière connexion</dt>
@@ -156,7 +102,7 @@ export default async function PageCompte() {
           <p className="mesure-lecture mt-3 text-sm text-muted-foreground">
             {estArtisan
               ? "L’adresse de connexion ne se change pas depuis cet écran : elle identifie votre compte auprès de tous vos clients. Pour la modifier, écrivez-nous depuis Aide et retours."
-              : "L’adresse de connexion ne se change pas depuis cet écran : elle identifie votre compte dans toutes vos organisations. Demandez-la à votre gestionnaire, ou à l’assistance pour un compte propriétaire."}
+              : `L’adresse de connexion ne se change pas depuis cet écran : elle identifie votre compte dans toutes vos organisations. Demandez-la à ${quiLocataire ?? "votre gestionnaire"}, ou à l’assistance pour un compte propriétaire.`}
           </p>
         </div>
 
@@ -183,9 +129,9 @@ export default async function PageCompte() {
         {/* Mes données personnelles (audit du 27/09) : aucun chemin vers la
             politique de confidentialité ni vers l'exercice des droits depuis
             les espaces. [[RGPD]] : pour les données de gestion locative,
-            c'est le gestionnaire qui répond aux demandes et décide de
-            l'effacement (Gerimmo est son sous-traitant) ; pour le compte
-            lui-même, l'assistance. */}
+            c'est le gestionnaire (ou le bailleur qui gère lui-même) qui
+            répond aux demandes et décide de l'effacement (Gerimmo est son
+            sous-traitant) ; pour le compte lui-même, l'assistance. */}
         <div className="loc-carte" id="donnees-personnelles">
           <div className="entete-carte">
             <h2 className="titre-carte leading-[inherit]">Mes données personnelles</h2>
@@ -194,17 +140,11 @@ export default async function PageCompte() {
             Vous pouvez demander à consulter vos données, à les recevoir, à les faire
             corriger ou à faire effacer les pièces de votre dossier.{" "}
             {espaceLocataire ? (
-              <>
-                Pour tout ce qui concerne votre location, écrivez à votre gestionnaire
-                depuis{" "}
-                <Link href={`/locataire/${espaceLocataire}/contact`} className="lien-discret">
-                  Mon gestionnaire
-                </Link>{" "}
-                : c&apos;est lui qui y répond, sous un mois.
-              </>
+              <RenvoiDonneesLocation espace={espaceLocataire} identite={identiteEspace} />
             ) : (
               <>
-                Pour les données d&apos;une location, adressez-vous à son gestionnaire ;
+                Pour les données d&apos;une location, adressez-vous à son bailleur ou à
+                son gestionnaire ;
                 pour votre compte, écrivez-nous depuis{" "}
                 <Link href="/assistance" className="lien-discret">
                   Aide et retours
@@ -215,7 +155,8 @@ export default async function PageCompte() {
           </p>
           <p className="mt-3"><Link href="/compte/donnees" className="btn-secondaire">Gérer mes données et demander la fermeture de mon compte</Link></p>
           <p className="mt-2 text-sm">
-            <Link href="/confidentialite" className="lien-discret">
+            {/* Lot 61 (E139) : lien isolé de 14 px de haut ; souligné et haut de 24 px au moins. */}
+            <Link href="/confidentialite" className={LIEN_CONFIDENTIALITE}>
               Lire la politique de confidentialité
             </Link>
           </p>

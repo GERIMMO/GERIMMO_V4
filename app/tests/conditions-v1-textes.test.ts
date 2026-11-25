@@ -7,6 +7,10 @@
  *  3. cautionnement et état des lieux signés dans Gerimmo (article 4.7) ;
  *  4. remboursements protecteurs, signature comprise, espace artisan gratuit, violation « dans les meilleurs délais ».
  *
+ * Version du 24/11/2026 (reprise du lot D7, lot « textes » T4) : les points 1 et 2 ne sont plus ceux du 23/10 —
+ * l'article 17 est un seul texte qui renvoie aux mentions légales, médiateur désigné ou non ; les factures se gardent
+ * dix ans (loi n° 2026-534, article 36, lue dans le recueil du dirigeant). Les tests concernés le disent un par un.
+ *
  * Les pages sont rendues avec une identité fictive (aucune adresse réelle) ; le texte est comparé sans balises.
  */
 import { readFileSync } from "node:fs";
@@ -68,12 +72,13 @@ const article = (page: string, titre: string, suivant: string) => {
 };
 
 describe("V1 des conditions clients : articles clés", () => {
-  it("version et date du 15 novembre 2026, affichées en tête et à l'article 16", async () => {
-    expect(CONDITIONS_VERSION).toBe("2026-11-15");
-    expect(CONDITIONS_DATE).toBe("15 novembre 2026");
+  // Lot T4 (24/11/2026) : nouvelle version des conditions (article 17, annexe 1, conservation des factures).
+  it("version et date du 24 novembre 2026, affichées en tête et à l'article 16", async () => {
+    expect(CONDITIONS_VERSION).toBe("2026-11-24");
+    expect(CONDITIONS_DATE).toBe("24 novembre 2026");
     const page = await conditions();
-    expect(page).toContain("Version du 15 novembre 2026, en vigueur depuis cette date.");
-    expect(page).toContain("La version en vigueur est la version du 15 novembre 2026.");
+    expect(page).toContain("Version du 24 novembre 2026, en vigueur depuis cette date.");
+    expect(page).toContain("La version en vigueur est la version du 24 novembre 2026.");
   });
 
   it("contient la rétractation en ligne, le formulaire « Commandé le », 14 bis, 15.5 et l'annexe L. 215", async () => {
@@ -157,7 +162,9 @@ describe("V1 des conditions clients : articles clés", () => {
   it("n'appelle jamais l'Éditeur « la société » et ne décrit plus l'offre des agences", async () => {
     const page = await conditions();
     expect(page).not.toMatch(/la société/i);
-    expect(page).toContain("l'entrepreneur individuel identifié aux mentions légales");
+    // Reprise D7 (D7R-08) : « l'entrepreneur individuel » était écrit en dur ; une société peut être saisie plus tard.
+    expect(page).toContain("l'entreprise identifiée aux mentions légales");
+    expect(page).not.toContain("l'entrepreneur individuel identifié");
     for (const mot of ["agence de gestion", "honoraires", "mandant", "sous mandat", "hors taxes"]) {
       expect(page, mot).not.toContain(mot);
     }
@@ -177,14 +184,18 @@ describe("V1 des conditions clients : articles clés", () => {
     expect(page).toContain("L'Éditeur répond en revanche d'une erreur ou d'une omission propre à ses modèles de documents");
   });
 
-  it("conservation : factures six ans, preuve du contrat dix ans, compte supprimé après vingt-quatre mois et deux avertissements", async () => {
+  // Lot T4 (24/11/2026, écart R31-A1) : ce test affirmait « factures six ans » et interdisait « dix ans » (décision du
+  // 23/10 « je ne suis pas commerçant », fondée sur l'ancien délai de l'article L. 102 B du livre des procédures
+  // fiscales). Le recueil fourni par le dirigeant contient l'article 36 de la loi n° 2026-534, qui porte ce délai à dix
+  // ans pour les pièces dont la conservation expire après le 1er janvier 2027 : toutes les factures de Gerimmo.
+  it("conservation : factures dix ans, preuve du contrat dix ans, compte supprimé après vingt-quatre mois et deux avertissements", async () => {
     const page = await conditions();
     const art9 = article(page, "9. Réversibilité et conservation", "10. Disponibilité");
-    expect(art9).toContain("les factures qu'il a émises pendant au moins six ans à compter de leur émission");
+    expect(art9).toContain("les factures qu'il a émises pendant au moins dix ans à compter de leur émission");
+    expect(page).not.toMatch(/factures[^.;]*six ans/);
     expect(art9).toContain("la preuve de l'acceptation des conditions et de l'abonnement pendant dix ans après la fin du dernier abonnement payé");
     expect(art9).toContain("supprimés vingt-quatre mois après la plus tardive des dates suivantes");
     expect(art9).toContain("deux mois, puis quinze jours avant cette suppression");
-    expect(page).not.toMatch(/factures[^.,;]*dix ans/);
     expect(page).toContain("L'Éditeur conserve la preuve de l'acceptation et de l'abonnement pendant dix ans après la fin du dernier abonnement payé");
     // Intégration des textes du 24/10 : l'archive complète (export R49) est en production depuis le 24/10 (PR #246) :
     // l'article 9 la cite, réservée au titulaire qui confirme son identité.
@@ -241,23 +252,37 @@ describe("V1, article 4.7 : la caution et l'état des lieux signent dans Gerimmo
   });
 });
 
-describe("V1, article 17 : le médiateur, non bloquant (décision du 23/10)", () => {
-  it("sans médiateur saisi : la variante du plan ; la vente n'est jamais dite fermée", async () => {
+// Version du 24/11/2026 (reprise du lot D7, D7R-01 et D7R-02). Ces deux tests affirmaient l'article 17 de la V1 : sans
+// médiateur, « peut recourir gratuitement au médiateur de la consommation, qui sera désigné aux mentions légales dès
+// l'adhésion de l'Éditeur » (un recours au présent, une adhésion que rien n'établit) ; avec médiateur, ses coordonnées
+// imprimées dans le contrat. L'article est désormais un seul texte, vrai dans les deux cas.
+describe("article 17 : la médiation, un seul texte avec ou sans médiateur (version du 24/11/2026)", () => {
+  const PHRASES = [
+    "Le Client consommateur a le droit de recourir gratuitement à un médiateur de la consommation en vue de la résolution amiable d'un litige qui l'oppose à l'Éditeur, après une réclamation écrite restée sans solution.",
+    // Seconde reprise du 24/11/2026 (relecture T4R-07) : « rappelés dans la réponse de l'Éditeur à la réclamation » promettait
+    // plus que le code ne tient ; la promesse est bornée à la réponse qui clôt une réclamation faite dans l'application.
+    "Dès qu'un médiateur est désigné, son nom et ses coordonnées figurent aux mentions légales ; la réponse par laquelle l'Éditeur clôt une réclamation faite depuis la page « Aide et retours » les rappelle.",
+    "Tant qu'aucun médiateur n'est désigné, les mentions légales et cette réponse l'indiquent expressément ; le Client garde alors la réclamation écrite prévue ci-dessus et les voies de droit commun.",
+  ];
+
+  it("sans médiateur saisi : ni recours promis, ni adhésion annoncée ; la vente n'est jamais dite fermée", async () => {
     const art = article(await conditions(), "17. Droit applicable et litiges", "Annexe 1 —");
-    expect(art).toContain("peut recourir gratuitement au médiateur de la consommation, qui sera désigné aux mentions légales dès l'adhésion de l'Éditeur.");
+    for (const phrase of PHRASES) expect(art).toContain(phrase);
+    expect(art).not.toContain("adhésion");
+    expect(art).not.toContain("sera désigné");
     // Intégration du 24/10 : la nature de retour « Faire une réclamation » (lot 1B) est livrée (lib/retours.ts).
     expect(art).toContain("ou se fait depuis la page « Aide et retours » (« Faire une réclamation »).");
     expect(NATURES_RETOUR.reclamation).toBe("Faire une réclamation");
     expect(art).not.toMatch(/ferm/i);
   });
 
-  it("médiateur saisi : ses coordonnées, lues en base", async () => {
+  it("médiateur saisi : le même article, mot pour mot ; ses coordonnées ne sont pas dans le contrat", async () => {
+    const sans = article(await conditions(), "17. Droit applicable et litiges", "Annexe 1 —");
     lecture.valeurs = { ...IDENTITE, mediateurNom: "Médiateur fictif", mediateurAdresse: "2 rue Exemple, Paris", mediateurSite: "https://example.com/mediation" };
-    const art = article(await conditions(), "17. Droit applicable et litiges", "Annexe 1 —");
-    expect(art).toContain(
-      "au médiateur de la consommation dont relève l'Éditeur : Médiateur fictif, 2 rue Exemple, Paris, https://example.com/mediation."
-    );
-    expect(art).not.toContain("sera désigné");
+    const page = await conditions();
+    expect(article(page, "17. Droit applicable et litiges", "Annexe 1 —")).toBe(sans);
+    expect(page).not.toContain("Médiateur fictif");
+    expect(page).not.toContain("https://example.com/mediation");
   });
 });
 
@@ -269,8 +294,11 @@ describe("V1, annexe 1 : sous-traitants figés, violation dans les meilleurs dé
     for (const p of liste) expect(annexe, p.nom).toContain(p.nom);
     for (const absent of PRESTATAIRES.filter((p) => !p.sousTraitantClient)) expect(annexe, absent.nom).not.toContain(absent.nom);
     for (const nom of ["Stripe", "Yousign", "Base Adresse Nationale", "Meta"]) expect(annexe, nom).not.toContain(nom);
-    // Le rôle d'OpenAI pour le Client : les propositions de devis seulement.
-    expect(annexe).toContain("Propositions de devis artisans");
+    // Version du 24/11/2026 (écart R34-A1) : ce test attendait « les propositions de devis seulement », ce qui taisait
+    // deux envois que le code fait à la demande de l'utilisateur. L'annexe décrit les trois, tels que le code les fait.
+    expect(annexe).toContain(
+      "Aides par intelligence artificielle, déclenchées à la demande de l'utilisateur : assistant « Demander à Gerimmo » (le sujet choisi et les messages de la conversation, avec tout ce que l'utilisateur y écrit ; aucun dossier n'est joint) ; lecture assistée d'une facture ou d'une photo de compteur (le fichier choisi par l'utilisateur, transmis en entier avec tout ce qu'il contient) ; propositions de devis artisans (catégorie de la demande, symptômes techniques reconnus dans une liste fermée de mots et catalogue tarifaire, à l'exclusion des noms, adresses et descriptions libres des occupants)"
+    );
     expect(annexe).not.toContain("Assistance rédactionnelle de la supervision");
   });
 

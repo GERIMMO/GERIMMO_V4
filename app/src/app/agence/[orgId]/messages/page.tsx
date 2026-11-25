@@ -66,7 +66,8 @@ export default async function PageMessages(props: PageProps<"/agence/[orgId]/mes
       ? await supabase.rpc("messages_personne", { p_org: orgId, p_person: conversation.person_id })
       : { data: null, error: null };
     return <MessagerieProprietaire orgId={orgId}
-      assistant={<AssistantPrive key={`${orgId}:${user.id}`} orgId={orgId} compteId={user.id} lectureSeule={traverseeLectureSeule} />}
+      assistant={<AssistantPrive key={`${orgId}:${user.id}`} orgId={orgId} compteId={user.id} lectureSeule={traverseeLectureSeule}
+        aides={[{ href: `${base}/faq`, libelle: "Aide et questions fréquentes" }, { href: `${base}/regles`, libelle: "Les règles à connaître" }]} />}
       erreurContacts={contacts.erreur}
       fils={conversations.map((fil) => conversation?.person_id === fil.person_id && !erreurLecture ? { ...fil, non_lus: 0 } : fil)}
       selection={conversation?.person_id}

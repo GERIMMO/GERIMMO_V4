@@ -18,6 +18,16 @@
 //    vient du plan (R212-1 3°, R212-4, R212-5 du code de la consommation, non relus sur Légifrance). Elle s'applique ici
 //    à tout Client, sans chercher s'il est consommateur : la solution la plus protectrice (plan, § 0).
 
+// 3. L'ACCORD AU PROCHAIN ACTE (décision du dirigeant du 24/11/2026, Q15 : « nouvelle version des conditions, accord
+//    exprès du client »). Une version déclarée `accord_au_prochain_acte` s'adresse aussi au Client déjà abonné : il
+//    voit l'écran (rappel à chaque connexion), donne son accord par une case NON cochée par défaut, à côté du lien vers
+//    le texte ; la base garde la date, la version et l'empreinte du texte archivé (`acceptations_cgu`). Tant qu'il n'a
+//    pas répondu, RIEN n'est coupé et rien n'est programmé : jamais de non-reconduction pour une telle version. Son
+//    accord lui est redemandé au prochain acte qui touche son contrat : changement de formule, de capacité ou de
+//    périodicité, reprise après une résiliation (actions/abonnement.ts). C'est l'option la plus prudente : la version du
+//    24/11/2026 ne change ni le prix ni la durée, seuls cas pour lesquels son article 16 prévoit la non-reconduction.
+//    Question laissée au dirigeant : veut-il, pour une version future qui toucherait le prix ou la durée, la règle 2 ?
+
 import { dateEnLettres, versionDeclaree, type VersionDeclaree } from "@/lib/conditions-versions";
 import { CONDITIONS_DATE, CONDITIONS_VERSION } from "@/lib/editeur";
 import { dateParis } from "@/lib/heure-paris-calcul";
@@ -31,7 +41,16 @@ export const VERSIONS_SANS_ACCORD_EXPRES: readonly string[] = ["2026-09-30"];
 
 /** La version exige-t-elle l'accord exprès du Client, faute de quoi l'abonnement n'est pas reconduit ? */
 export function accordExpresRequis(version: string, declaree: VersionDeclaree | null): boolean {
-  return declaree?.nature === "substantielle" && !declaree.nouvelles_souscriptions_uniquement && !VERSIONS_SANS_ACCORD_EXPRES.includes(version);
+  return declaree?.nature === "substantielle" && !declaree.nouvelles_souscriptions_uniquement && !declaree.accord_au_prochain_acte && !VERSIONS_SANS_ACCORD_EXPRES.includes(version);
+}
+
+/**
+ * La version demande-t-elle l'accord exprès du Client déjà abonné par simple rappel, puis à son prochain acte
+ * contractuel, SANS non-reconduction (règle 3 de l'en-tête) ? Le drapeau « nouvelles souscriptions uniquement »
+ * l'emporte : une telle version ne s'adresse pas aux abonnés.
+ */
+export function accordAuProchainActe(declaree: VersionDeclaree | null): boolean {
+  return declaree?.nature === "substantielle" && declaree.accord_au_prochain_acte === true && !declaree.nouvelles_souscriptions_uniquement;
 }
 
 /**
@@ -39,17 +58,34 @@ export function accordExpresRequis(version: string, declaree: VersionDeclaree | 
  * (jour de Paris) d'une version qui exige l'accord exprès : sans lui, la tâche quotidienne reposerait la
  * non-reconduction le lendemain, sans un mot (relecture adverse du 24/10, défaut 3). Jamais pour une version publiée
  * avant cette règle (2026-09-30), une version technique ou non déclarée.
+ *
+ * Décision Q15 du 24/11/2026 : la même question vaut pour tout acte contractuel d'un Client déjà abonné (reprise,
+ * changement de formule, de capacité ou de périodicité), et la réponse est oui aussi pour une version qui demande
+ * l'accord « au prochain acte ».
  */
 export function repriseExigeAccord(params: { version?: string; declaree?: VersionDeclaree | null; aujourdhui: string }): boolean {
   const version = params.version ?? CONDITIONS_VERSION;
   const declaree = params.declaree === undefined ? versionDeclaree("conditions_clients", version) : params.declaree;
-  return Boolean(declaree) && accordExpresRequis(version, declaree) && params.aujourdhui >= declaree!.date_effet;
+  return Boolean(declaree) && (accordExpresRequis(version, declaree) || accordAuProchainActe(declaree)) && params.aujourdhui >= declaree!.date_effet;
 }
 
 /** Le refus de la reprise sans accord : la case apparaît sous le bouton, le même geste enregistre l'accord. */
 export function messageRepriseSansAccord(dateVersion: string): string {
   return `Pour poursuivre votre abonnement, acceptez la version du ${dateVersion} des conditions générales : cochez la case ci-dessous, puis validez de nouveau. Sans cet accord, votre abonnement n’est pas reconduit.`;
 }
+
+/**
+ * Le refus d'un acte contractuel sans accord, pour une version « au prochain acte » (Q15) : aucune menace de
+ * non-reconduction, puisqu'il n'y en a pas. La case apparaît sous le bouton ; le même geste enregistre l'accord.
+ */
+export function messageActeSansAccord(dateVersion: string): string {
+  return `Cette démarche modifie votre contrat : acceptez d’abord la version du ${dateVersion} des conditions générales. Cochez la case ci-dessous, puis validez de nouveau.`;
+}
+
+/** Q15 : l'accord exprès se donne par une case non cochée par défaut ; sans elle, rien n'est enregistré. */
+export const REFUS_CASE_NOUVELLE_VERSION = "Cochez la case « J’ai lu et j’accepte » pour donner votre accord à la nouvelle version.";
+/** Q15 : l'accord n'est enregistré que sur une version archivée — c'est l'archive qui porte le texte publié et son empreinte. */
+export const REFUS_VERSION_NON_ARCHIVEE = "Votre accord ne peut pas être enregistré pour le moment : cette version n’est pas encore archivée. Votre abonnement continue et vos données restent accessibles ; réessayez plus tard.";
 
 /** L'abonnement de l'espace, tel que `mon_abonnement` le rend au responsable ; `null` sans abonnement ou sans lecture. */
 export type AbonnementCourant = { souscrit: boolean; periode_fin: string | null; annulation_demandee: boolean } | null;
@@ -94,6 +130,25 @@ export function nouvelleVersionAAccepter(params: {
   const declaree = params.declaree === undefined ? versionDeclaree("conditions_clients", version) : params.declaree;
   if (!declaree || (params.abonnement?.souscrit && declaree.nouvelles_souscriptions_uniquement)) return null;
   const dateEffet = dateEnLettres(declaree.date_effet);
+  // Q15 : pour un Client déjà abonné et une version « au prochain acte », l'écran ne dit pas que la version s'applique
+  // déjà à lui (son accord est demandé), et il dit ce qui se passe sans réponse : rien n'est coupé.
+  if (params.abonnement?.souscrit && accordAuProchainActe(declaree)) {
+    return {
+      version,
+      dateVersion: params.dateVersion ?? CONDITIONS_DATE,
+      dateEffet,
+      paragraphes: [
+        `Une nouvelle version des conditions générales d’utilisation et de vente, datée du ${dateEffet}, est en ligne. ` +
+          `Résumé des changements : ${sansPointFinal(declaree.resume_modifications)}.`,
+        // Reprise D4 (relecture D4R-02) : l'écran ne dit plus « rien ne change ». L'article 16, second alinéa, fait
+        // s'appliquer à la date annoncée les changements autres que le prix, la durée ou les caractéristiques
+        // essentielles : l'écran renvoie à l'article, sans trancher ce qui en relève (question au juriste).
+        "Votre accord est demandé pour cette nouvelle version. Tant que vous ne l’avez pas donné, votre abonnement continue et vos données restent accessibles ; l’article 16 des conditions générales précise ce qui s’applique à la date annoncée. " +
+          "Il vous sera redemandé à votre prochaine démarche sur votre abonnement (changement de formule, de capacité ou de périodicité, reprise après une résiliation).",
+      ],
+      accordExpres: false,
+    };
+  }
   const paragraphes = [
     `Une nouvelle version des conditions générales d’utilisation et de vente s’applique à compter du ${dateEffet}. ` +
       `Résumé des changements : ${sansPointFinal(declaree.resume_modifications)}.`,

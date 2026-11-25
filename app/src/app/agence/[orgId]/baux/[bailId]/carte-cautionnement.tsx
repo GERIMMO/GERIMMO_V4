@@ -5,7 +5,7 @@ import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useBaseEspace } from "@/components/racine-espace-contexte";
-import { CERTIFICATION_SANS_GARANTIE_CUMULEE } from "@/lib/textes-signature-actes";
+import { CERTIFICATION_SANS_GARANTIE_CUMULEE, DECLARATION_ETUDIANT_NON_BOURSIER } from "@/lib/textes-signature-actes";
 
 // Génération de l'acte de cautionnement : un acte par garant du bail, avec
 // les choix du geste (forme solidaire ou simple, plafond garanti en euros).
@@ -27,6 +27,18 @@ export function CarteCautionnement({
         l&apos;imprime dans un encadré que la caution appose elle-même avant de
         signer. La forme solidaire permet de poursuivre la caution sans
         discuter d&apos;abord le locataire.
+      </p>
+      {/* Textes officiels, lot T2 (R03-A1) : la règle de l'article 22-1 de la loi du 6 juillet 1989, lue dans le recueil ; le
+          serveur refuse l'acte (assemblerCautionnement). L'ancien texte n'était qu'un rappel (« Gerimmo ne contrôle pas »). */}
+      <p className="rounded-lg border border-border bg-muted/30 p-3 text-sm" data-rappel-caution-societe>
+        <strong>Bailleur en société (SCI non familiale, autre personne morale) :</strong> la loi ne lui permet de
+        demander la caution d’une personne que si le logement est loué à un étudiant qui ne bénéficie pas d’une
+        bourse de l’enseignement supérieur. Hors de ce cas, Gerimmo ne prépare pas l’acte. Une SCI familiale
+        (constituée entre parents et alliés jusqu’au quatrième degré) n’est pas concernée.
+      </p>
+      <p className="text-xs text-muted-foreground" data-rappel-caution-colocation>
+        Bail à plusieurs locataires : l’acte nomme le locataire pour lequel la caution s’engage. Gerimmo ne le
+        prépare pas tant que le garant n’est pas rattaché à l’un d’eux (personnes du bail).
       </p>
       <div className="divide-y divide-border">
         {garants.map((g) => (
@@ -52,6 +64,8 @@ function LigneGarant({
   const [montantMax, setMontantMax] = useState("");
   // Constat R30 : sans cette case, le serveur refuse de préparer l'acte (assemblerCautionnement).
   const [sansGarantie, setSansGarantie] = useState(false);
+  // Lot T2 (R03-A1) : déclaration facultative ; elle ne compte que pour un bailleur en société non familiale.
+  const [etudiantNonBoursier, setEtudiantNonBoursier] = useState(false);
 
   return (
     <div className="space-y-2 py-3">
@@ -93,6 +107,15 @@ function LigneGarant({
           />
           <span>{CERTIFICATION_SANS_GARANTIE_CUMULEE}</span>
         </label>
+        <label className="flex items-start gap-2 text-xs sm:col-span-3">
+          <input
+            type="checkbox"
+            className="mt-0.5 size-4 shrink-0 accent-primary"
+            checked={etudiantNonBoursier}
+            onChange={(e) => setEtudiantNonBoursier(e.target.checked)}
+          />
+          <span>{DECLARATION_ETUDIANT_NON_BOURSIER} À laisser décochée dans les autres cas.</span>
+        </label>
         <div className="pb-0.5">
           <BoutonGenererDocument
             orgId={orgId}
@@ -105,6 +128,7 @@ function LigneGarant({
               forme,
               ...(montantMax.trim() ? { montant_max: montantMax.trim() } : {}),
               ...(sansGarantie ? { sans_garantie_cumulee: "oui" } : {}),
+              ...(etudiantNonBoursier ? { etudiant_non_boursier: "oui" } : {}),
             }}
           />
         </div>

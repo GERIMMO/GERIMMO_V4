@@ -1,18 +1,51 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { Fusion, assemblerPage, cadreSignature, blocSignatureEmetteur, cartouches, enTete, faitA, section, tableau, titre, eur } from "../gabarit";
+import { Fusion, assemblerPage, cadreSignature, blocSignatureEmetteur, cartouches, enTete, faitA, faitALaSignature, section, tableau, titre, eur, nombreFr, pointFinal, facultatif, ouNeant, echapper, formaterDateFr, moisEnToutesLettres } from "../gabarit";
 import { CATALOGUE_DOCUMENTS } from "../catalogue";
-import { signatureOrganisation, chargerContexteBail, expediteur, adresseLogement, nomsBailleurs, nomsLocataires, liensLocataires, referenceCourte } from "./communs";
+import { signatureOrganisation, chargerContexteBail, expediteur, adresseLogement, adressePostaleLogement, nomsBailleurs, nomsLocataires, nomPersonne, liensLocataires, referenceCourte, referenceAvenant, libellePeriodeTerme, interlocuteurLocataire, libelleSignataireBailleur, coordonneesBancaires, ibanLisible, demandeVirement } from "./communs";
+import { TYPES_DIAGNOSTIC } from "@/lib/parc";
+import { LIBELLE_ETAT_INVENTAIRE } from "@/lib/inventaire-meuble";
 import { modeSignatureDocument } from "@/lib/politique-signature";
 import type { Assemblage } from "./index";
 import { verifierCourrierDuBail } from "@/lib/rappels-loyers";
 import { aujourdhuiParis } from "@/lib/ged";
+import { loyerDuTermeEnCours, type RevisionDuLoyer } from "@/lib/baux";
+import { deElide } from "@/lib/elision";
 import { echeanceReglementaire } from "@/lib/documents-bail";
+import { exigerJustificatifsRetenues } from "./decompte-restitution";
+import { REFUS_AVENANT_REMPLACEMENT_EPOUX_PACS } from "@/lib/solidarite-colocation";
 
+// Reprise du lot 38 (S09, C40) : la liste des dossiers du catalogue (catalogue-cibles) écarte les mêmes cas, avec le même motif.
+// Inventaires : un logement meublé (case « meublé » du lot) ou un bail de type meublé.
+export const REFUS_INVENTAIRE_NON_MEUBLE = "L’inventaire du mobilier concerne un logement meublé.";
+// Phase 3, reprise du lot 45 (T17) puis lot 46 (reprise, T21) : le bordereau de remise des clés d'un état des lieux SIGNÉ sans
+// clé ne peut pas être préparé (l'état des lieux est figé). Partagé par l'assembleur et la liste du catalogue, qui ne le propose
+// plus (motifsDeRefus).
+export const REFUS_CLES_EDL_SIGNE = "Aucune clé n’a été enregistrée dans cet état des lieux avant sa signature. Un état des lieux signé ne se modifie plus : le bordereau, qui reprend ses clés, ne peut pas être préparé.";
+// Lot 46 (reprise, T21) : les clés d'un état des lieux EN PRÉPARATION restent à saisir ; le bordereau est alors incomplet.
+export const MANQUE_CLES_EDL = "clés et badges remis, à enregistrer dans l’état des lieux";
+export const REFUS_ACCUSE_APRES_SORTIE = "L’état des lieux de sortie est signé : la sortie du locataire est faite, l’accusé de réception du congé n’a plus lieu d’être.";
 export const CODES_COMPLEMENTS_BAIL = ["bordereau_ddt", "inventaire_entree", "inventaire_sortie", "avenant_remplacement", "liste_dossier", "attestation_loyer", "attestation_caf", "relance_simple", "seconde_relance", "mise_en_demeure", "situation_dette", "protocole_apurement", "accuse_conge", "decompte_retenues", "attestation_fin_bail", "autorisation_travaux"] as const;
 export type LigneDocument = Record<string, unknown>;
 export class RefusDocument extends Error {}
+/** Le plan d'apurement enregistré dont un protocole reprend les termes (C65, C66). */
+type PlanProtocole = { date_arrete: string; dette_initiale: number; acompte: number; conditions: string | null; tolerance_jours: number; seuil_caducite: number; tranches: { date: string; montant: number }[] };
+/** « À renseigner » d'un protocole sans plan enregistré : ou-renseigner.ts mène à la section du plan sur la fiche du bail. */
+export const LIBELLE_PLAN_A_ENREGISTRER = "plan d’apurement à enregistrer sur la fiche du bail";
 export const texte = (v: unknown) => v == null ? "" : String(v);
 export const montant = (v: unknown) => Number(v ?? 0);
+// Phase 3, lot 46 (T21) : les refus des courriers de recouvrement qui tiennent à l'état du bail. La liste du catalogue
+// (catalogue-cibles, motifsDeRefus) écarte les mêmes baux, avec le même motif et les mêmes calculs (termes échus, solde, plan).
+export const CODES_RECOUVREMENT = ["relance_simple", "seconde_relance", "mise_en_demeure", "situation_dette", "protocole_apurement"] as const;
+export const REFUS_SOLDE_DANS_DECOMPTE = "Le solde de ce bail figure dans le décompte de départ. Consultez ce document avant toute demande de règlement.";
+export const REFUS_AUCUNE_DETTE = "Aucune dette échue n’est constatée : ce courrier n’a pas lieu d’être généré.";
+export const REFUS_PLAN_SANS_TRANCHE = "Ce plan d’apurement n’a aucune tranche.";
+/** Les états d'un plan d'apurement sur lequel un protocole se prépare (plan « vivant »). */
+export const ETATS_PLAN_PROTOCOLE = ["propose", "actif", "en_defaut"];
+/** Les termes échus (avant `jour`) et non soldés d'un bail, lus par etat_loyers_bail. */
+export const termesEchus = (termes: LigneDocument[], jour: string) =>
+  termes.filter(l => texte(l.date_echeance).slice(0,10) < jour && montant(l.montant_du) > montant(l.montant_couvert));
+/** Le reste dû d'une échéance, au centime (jamais négatif). */
+export const resteCentimes = (l: LigneDocument) => Math.max(0, Math.round(montant(l.montant_du)*100) - Math.round(montant(l.montant_couvert)*100));
 export const MESSAGE_CHARGEMENT_IMPOSSIBLE = "Les données du dossier n’ont pas pu être chargées. Réessayez avant de générer ce document.";
 export async function lireLignes(requete: PromiseLike<{ data: unknown; error: unknown }>): Promise<LigneDocument[]> {
   const r = await requete;
@@ -20,9 +53,15 @@ export async function lireLignes(requete: PromiseLike<{ data: unknown; error: un
   if (r.error) throw new RefusDocument(MESSAGE_CHARGEMENT_IMPOSSIBLE);
   return (Array.isArray(r.data) ? r.data : r.data ? [r.data] : []) as LigneDocument[];
 }
-export function lignesTableau(f: Fusion, lignes: LigneDocument[], colonnes: [string, string, "texte" | "date" | "montant"][]): string {
-  return tableau(colonnes.map(([libelle,, type]) => ({ libelle, droite: type === "montant" })), lignes.map(l => colonnes.map(([libelle, cle, type]) => type === "montant" ? f.montant(l[cle] as string | number | null, libelle) : type === "date" ? f.date(texte(l[cle]) || null, libelle) : f.champ(texte(l[cle]) || null, libelle))));
+// « lignes » : un texte de plusieurs lignes (description d'un devis) garde ses sauts de ligne, posés APRÈS l'échappement (phase 3, C78).
+// « facultatif » : une cellule que l'écran de saisie dit facultative s'imprime « — » quand elle est vide, sans bloquer le PDF
+// (phase 3, C04 : une ligne d'inventaire sans observation refusait tout l'inventaire).
+export function lignesTableau(f: Fusion, lignes: LigneDocument[], colonnes: [string, string, "texte" | "lignes" | "date" | "montant" | "facultatif"][], fin = ""): string {
+  return tableau(colonnes.map(([libelle,, type]) => ({ libelle, droite: type === "montant" })), lignes.map(l => colonnes.map(([libelle, cle, type]) => type === "montant" ? f.montant(l[cle] as string | number | null, libelle) : type === "date" ? f.date(texte(l[cle]) || null, libelle) : type === "lignes" ? f.champ(texte(l[cle]).trim() || null, libelle).replace(/\r?\n/g, "<br>") : type === "facultatif" ? facultatif(texte(l[cle]).trim() || null) : f.champ(texte(l[cle]) || null, libelle))), fin);
 }
+// Reprise du lot 53 (W33) : la place de la clôture (« Fait à » et signature) du relevé de situation, dans la dernière section
+// de son tableau ; remplacée à l'assemblage final.
+const CLOTURE_DANS_TABLEAU = "<!--cloture-->";
 // L'année par défaut d'un document est celle du jour de PARIS : l'année du serveur (UTC) est encore la précédente le
 // 1er janvier entre minuit et 1 h (audit du 23/10, TST-5).
 export function anneeDocument(options?: Record<string,string>): number {
@@ -31,7 +70,6 @@ export function anneeDocument(options?: Record<string,string>): number {
   if (!Number.isInteger(n) || n < 1970 || n > anneeParis + 1) throw new RefusDocument("Choisissez une année valide.");
   return n;
 }
-function dateValide(v: string | undefined): boolean { return Boolean(v && /^\d{4}-\d{2}-\d{2}$/.test(v) && Number.isFinite(Date.parse(v)) && new Date(v).toISOString().slice(0,10) === v); }
 
 export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAIL[number], supabase: SupabaseClient, orgId: string, bailId: string, options: Record<string,string> = {}): Promise<Assemblage> {
   try {
@@ -40,7 +78,17 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
     const meta = CATALOGUE_DOCUMENTS.find(m => m.id === code)!;
     // Le jour à Paris (audit du 27/09) : toISOString donnait la veille entre 0 h et 2 h.
     const f = new Fusion(), exp = expediteur(ctx), aujourdhui = aujourdhuiParis();
-    let contenu = "", signatures = false;
+    // Phase 3 (C41, C70, C71) : « votre gestionnaire » seulement dans un espace d'agence ; ailleurs, le bailleur.
+    const interlocuteur = interlocuteurLocataire(ctx.organisation.type);
+    let contenu = "", signatures = false, dateALaSignature = false;
+    // Phase 3 (C21 à C25) : l'avenant de remplacement a sa propre référence (en-tête et pied), le contrat qu'il modifie avec sa
+    // date de prise d'effet, une date laissée à compléter à la signature et un cadre par partie.
+    let avenant: { reference: string; contrat: string; signatures: string } | null = null;
+    // S39 : l'adresse postale du destinataire d'un courrier de recouvrement, ligne par ligne (`undefined` : pas un courrier ;
+    // aucune ligne : inconnue).
+    let adresseDestinataire: string[] | undefined;
+    // La date d'arrêté de la dette du plan dont un protocole reprend les termes (titre de classement, W35).
+    let datePlanProtocole: string | null = null;
     const opt = (cle: string, libelle: string) => f.champ(options[cle]?.trim() || null, libelle);
     if (["attestation_loyer", "attestation_caf"].includes(code) && !["actif","preavis"].includes(ctx.bail.etat)) return { erreur: "Cette attestation concerne un contrat actuellement en cours." };
     if (["attestation_loyer", "attestation_caf", "relance_simple", "seconde_relance", "mise_en_demeure", "protocole_apurement"].includes(code) && ctx.bail.etat === "brouillon") return { erreur: "Ce document se prépare pour un bail engagé, après la signature du contrat." };
@@ -48,141 +96,329 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
     if (code === "bordereau_ddt") {
       // DOC-01 : la validité d'un DPE d'avant le 01/07/2021 est plafonnée (décret n° 2020-1610).
       const lignes = (await lireLignes(supabase.from("diagnostics").select("type, date_realisation, date_expiration, diagnostiqueur, document_id, classe_dpe").eq("organization_id", orgId).or(`lot_id.eq.${ctx.lot.id},bien_id.eq.${ctx.bien.id}`).is("archived_at", null).order("type")))
-        .map((l): LigneDocument => ({ ...l, date_expiration: echeanceReglementaire(String(l.type), l.date_realisation as string | null, l.date_expiration as string | null) }));
-      contenu = `${section("Diagnostics recensés")}${lignesTableau(f,lignes,[["Diagnostic","type","texte"],["Réalisé le","date_realisation","date"],["Validité","date_expiration","date"],["Diagnostiqueur","diagnostiqueur","texte"]])}
+        // C02 : le libellé de l'écran (TYPES_DIAGNOSTIC), pas le code de la base ; un type inconnu s'imprime tel quel.
+        // C05 : une échéance vide (amiante sans trace : validité illimitée, selon l'aide de la saisie) ou un diagnostiqueur non
+        // saisi ne bloquent plus le bordereau : ils s'impriment tels quels, sans date ni nom inventés.
+        // Reprise du lot 40 : seulement pour un diagnostic sans durée de validité fixée (amiante, plomb). Pour un DPE, un ERP, le
+        // gaz ou l'électricité, l'échéance est obligatoire à la saisie : vide, elle reste « à renseigner » et bloque le PDF, comme
+        // la fiche du bail dit « Date à compléter » (statutPieceDiagnostic, même règle).
+        .map((l): LigneDocument => {
+          const echeance = echeanceReglementaire(String(l.type), l.date_realisation as string | null, l.date_expiration as string | null);
+          const validiteFixee = TYPES_DIAGNOSTIC[String(l.type)]?.validite_mois != null;
+          return { ...l, libelle_type: TYPES_DIAGNOSTIC[String(l.type)]?.libelle ?? texte(l.type), date_expiration: echeance,
+            validite: echeance ? formaterDateFr(echeance) : validiteFixee ? null : "sans date de fin indiquée au rapport",
+            diagnostiqueur: texte(l.diagnostiqueur).trim() || "non renseigné" };
+        });
+      contenu = `${section("Diagnostics recensés")}${lignesTableau(f,lignes,[["Diagnostic","libelle_type","texte"],["Réalisé le","date_realisation","date"],["Validité","validite","texte"],["Diagnostiqueur","diagnostiqueur","texte"]])}
       <p>Pièces disponibles : ${lignes.filter(l=>l.document_id).length} sur ${lignes.length} diagnostics recensés.</p>
       ${lignes.some(l=>!l.document_id) ? `<p>${f.champ(null,"rapports de diagnostic à déposer avant remise du dossier")}</p>` : ""}
       <p>Ce bordereau décrit les pièces du dossier. Les rapports établis par les diagnostiqueurs doivent être joints ; il ne constitue pas un diagnostic du logement.</p>`;
       if (!lignes.length) f.champ(null,"diagnostics du logement et de l’immeuble");
     } else if (code === "inventaire_entree" || code === "inventaire_sortie") {
-      if (!ctx.lot.meuble && ctx.bail.type !== "meuble") return { erreur: "L’inventaire du mobilier concerne un logement meublé." };
-      const lignes = await lireLignes(supabase.from("inventaire_lignes").select("piece, designation, quantite, etat, observation").eq("bail_id",bailId).eq("organization_id",orgId).order("ordre"));
+      if (!ctx.lot.meuble && ctx.bail.type !== "meuble") return { erreur: REFUS_INVENTAIRE_NON_MEUBLE };
+      // C03 : l'état s'imprime comme dans l'annexe d'inventaire du bail meublé (LIBELLE_ETAT_INVENTAIRE : « Usagé », pas « usage »).
+      const lignes = (await lireLignes(supabase.from("inventaire_lignes").select("piece, designation, quantite, etat, observation").eq("bail_id",bailId).eq("organization_id",orgId).order("ordre")))
+        .map((l): LigneDocument => ({ ...l, etat: l.etat == null ? null : LIBELLE_ETAT_INVENTAIRE[String(l.etat)] ?? texte(l.etat) }));
       const sortie = code === "inventaire_sortie";
       if (sortie && !["preavis","termine"].includes(ctx.bail.etat)) return { erreur: "Préparez l’inventaire de sortie après l’enregistrement du congé." };
-      contenu = `${section(sortie ? "Mobilier de référence et constat de sortie" : "Mobilier mis à disposition")}
-        ${lignesTableau(f,lignes,[["Pièce","piece","texte"],["Désignation","designation","texte"],["Quantité","quantite","texte"],[sortie ? "État de référence" : "État","etat","texte"],["Observation","observation","texte"]])}
-        ${sortie ? `<p>Constat contradictoire de sortie : ${opt("constat","état et quantité du mobilier à la sortie")}</p>` : ""}
-        <p>Inventaire annexé au contrat, établi contradictoirement à la remise des clés. Date du constat : ${f.date(options.date_constat || null,"date du constat mobilier")}.</p>`;
+      // Reprise du lot 40 (S08) : une date de constat que les dates du contrat rendent impossible est refusée — un inventaire
+      // d'entrée après la fin du contrat, un inventaire de sortie avant sa prise d'effet. Les autres écarts restent possibles
+      // (clés remises avant l'entrée, départ effectif après la date de fin) : la date saisie s'imprime telle quelle.
+      const saisieConstat = options.date_constat?.trim() ?? "";
+      const dateConstat = /^\d{4}-\d{2}-\d{2}$/.test(saisieConstat) ? saisieConstat : null;
+      if (dateConstat && !sortie && ctx.bail.date_fin && dateConstat > ctx.bail.date_fin) return { erreur: `La date du constat (${formaterDateFr(dateConstat)}) tombe après la fin du contrat (${formaterDateFr(ctx.bail.date_fin)}) : l’inventaire d’entrée se fait à l’entrée dans les lieux. Vérifiez la date du constat.` };
+      if (dateConstat && sortie && ctx.bail.date_debut && dateConstat < ctx.bail.date_debut) return { erreur: `La date du constat (${formaterDateFr(dateConstat)}) précède la prise d’effet du contrat (${formaterDateFr(ctx.bail.date_debut)}) : l’inventaire de sortie se fait au départ du locataire. Vérifiez la date du constat.` };
+      // C04 : la pièce et l'observation sont facultatives à la saisie de l'inventaire : vides, elles s'impriment « — ».
+      // C07 : à la sortie, le tableau reprend l'inventaire ; le constat de sortie suit, sous son propre titre, tel qu'il a été
+      // saisi (aucun état par élément n'est inventé). Reprise du lot 40 : les lignes de l'inventaire restent modifiables pendant
+      // toute la location, sans date ni historique ; le tableau ne dit donc pas « à l'entrée » (une ligne modifiée à la sortie
+      // s'imprimait « État à l'entrée ») : il dit l'inventaire tel qu'il est inscrit au dossier ce jour-là.
+      contenu = `${section(sortie ? "Mobilier inscrit à l’inventaire du contrat" : "Mobilier mis à disposition")}
+        ${lignesTableau(f,lignes,[["Pièce","piece","facultatif"],["Désignation","designation","texte"],["Quantité","quantite","texte"],[sortie ? "État inscrit" : "État","etat","texte"],[sortie ? "Observation inscrite" : "Observation","observation","facultatif"]])}
+        ${sortie ? `<p>Ce tableau reprend l’inventaire tel qu’il est inscrit au dossier à la date d’établissement de ce document. Il ne constate pas l’état du mobilier à la sortie, qui suit.</p>${section("Constat de sortie")}<p>Constat contradictoire du mobilier à la sortie : ${opt("constat","état et quantité du mobilier à la sortie")}${pointFinal(options.constat)}</p>` : ""}
+        <p>${/* Phase 3, lot 43 (T04, C07) : la sortie reprenait la phrase de l'entrée (« annexé au contrat, établi à la remise des
+          clés »). Le constat de sortie se fait à la restitution des clés ; l'entrée garde sa phrase. */
+          sortie ? "Constat de sortie établi contradictoirement lors de la restitution des clés." : "Inventaire annexé au contrat, établi contradictoirement à la remise des clés."} Date du constat : ${f.date(options.date_constat || null,"date du constat mobilier")}.</p>`;
       if (!lignes.length) f.champ(null,"mobilier du contrat à inventorier");
       signatures = true;
+      // Reprise du lot 40 (C23, S08) : l'inventaire est un acte que les parties signent au constat ; il n'est plus daté du jour
+      // de sa génération, au-dessus de cadres vides (et parfois AVANT le constat qu'il consigne) : la date se porte à la signature.
+      dateALaSignature = true;
     } else if (code === "attestation_loyer" || code === "attestation_caf") {
+      // Phase 3, lot 52 (W31) : le dossier CAF se dit récapitulatif d'un bout à l'autre ; il reprenait les formules de
+      // l'attestation de loyer (« Le bailleur atteste », « Destinataire », « Cette attestation ») puis disait ne pas valoir
+      // formulaire. L'attestation de loyer ne change pas.
+      const caf = code === "attestation_caf";
+      // Lot 52 : dans ce paragraphe, le « € » passait seul à la ligne (« 40,00 » / « € (forfait) ») ; une espace insécable le
+      // garde avec le nombre, comme le plafond de l'acte de cautionnement (lot 51, W13). eur() n'est pas touché.
+      const montantInsecable = (n: number | null) => f.montant(n).replace(/ €</, "\u00a0€<");
+      // Reprise du lot D2 (24/11/2026) : le bail porte le loyer révisé dès l'enregistrement de la révision, avant son premier
+      // terme. Le document attestait ce loyer comme s'il était déjà appliqué : il dit le loyer du terme en cours, puis le
+      // loyer révisé avec le terme à partir duquel il s'applique (même fonction que l'espace du locataire).
+      // Seconde reprise du lot D2 : les révisions sont lues dans un ordre fixe (premier terme, puis date d'enregistrement,
+      // puis date d'effet), le même que `revisions_de_mon_loyer_locataire` ; un bail en préavis qui finit avant le premier
+      // terme révisé n'annonce rien (la date de fin est transmise).
+      const revisions = await lireLignes(supabase.from("revisions_loyer").select("ancien_loyer, nouveau_loyer, premier_terme").eq("organization_id", orgId).eq("bail_id", bailId).not("premier_terme", "is", null)
+        .order("premier_terme").order("created_at").order("date_effet"));
+      const duTerme = loyerDuTermeEnCours(ctx.bail.loyer_hc, revisions as unknown as RevisionDuLoyer[], aujourdhui, ctx.bail.date_fin);
+      const loyerAtteste = duTerme.aVenir
+        ? `${montantInsecable(duTerme.loyer)} jusqu’au terme ${deElide(moisEnToutesLettres(duTerme.aVenir.dernierTermeAvant))}, ${montantInsecable(duTerme.aVenir.loyer)} à compter du terme ${deElide(moisEnToutesLettres(duTerme.aVenir.premierTerme))} (révision annuelle du loyer)`
+        : montantInsecable(ctx.bail.loyer_hc);
       contenu = `${section("Situation locative")}
-        <p>Le bailleur atteste que le locataire désigné est titulaire du contrat relatif aux locaux désignés, prenant effet le ${f.date(ctx.bail.date_debut)}.
-        Loyer mensuel hors charges : ${f.montant(ctx.bail.loyer_hc)} ; charges mensuelles : ${f.montant(ctx.bail.charges)} (${ctx.bail.charges_mode === "forfait" ? "forfait" : "provisions"}).
+        <p>${caf ? "Le" : "Le bailleur atteste que le"} locataire désigné est titulaire du contrat relatif aux locaux désignés, prenant effet le ${f.date(ctx.bail.date_debut)}.
+        ${/* Phase 3 (C60, C61) : un bail en préavis a une fin connue ; l'attestation la dit (elle ne disait que la date d'effet). */
+          ctx.bail.etat === "preavis" ? `Un congé est enregistré : le contrat prend fin le ${f.date(ctx.bail.date_fin, "date de fin du contrat (congé enregistré)")}.` : ""}
+        Loyer mensuel hors charges : ${loyerAtteste} ; charges mensuelles : ${montantInsecable(ctx.bail.charges)} (${ctx.bail.charges_mode === "forfait" ? "forfait" : "provisions"}).
         ${ctx.chambre ? "Les montants concernent exclusivement la chambre et le droit d’usage des espaces partagés de ce contrat individuel." : ""}</p>
-        <p>Destinataire : ${opt("destinataire","organisme ou destinataire")}.</p>
-        <p>Cette attestation décrit les conditions du bail ; les paiements effectifs sont justifiés par les quittances ou reçus.</p>`;
+        <p>${caf ? "Caisse concernée" : "Destinataire"} : ${opt("destinataire","organisme ou destinataire")}${pointFinal(options.destinataire)}</p>
+        <p>${caf ? "Ce récapitulatif reprend" : "Cette attestation décrit"} les conditions du bail ; les paiements effectifs sont justifiés par les quittances ou reçus.</p>`;
       if (code === "attestation_caf") contenu += `${section("Informations pour l’attestation officielle")}
-        <p>Numéro allocataire : ${opt("allocataire","numéro allocataire CAF ou MSA")} ; nombre d’occupants du contrat : ${ctx.locataires.length}.
-        Logement ${ctx.lot.meuble ? "meublé" : "nu"} ; surface du logement : ${f.champ(ctx.lot.surface_m2,"surface du logement")} m².
-        ${ctx.chambre ? `Surface privative : ${f.champ(ctx.chambre.surface_m2,"surface privative")} m².` : ""}</p>
+        <p>Numéro allocataire : ${opt("allocataire","numéro allocataire CAF ou MSA")} ; ${/* Phase 3, lot 52 (W32) : le nombre compté est celui des
+        locataires titulaires du bail (principal et colocataires) ; Gerimmo ne connaît pas les autres personnes du foyer, que
+        « occupants » laissait entendre. */ ""}nombre de locataires titulaires du contrat : ${ctx.locataires.length}.
+        Logement ${ctx.lot.meuble ? "meublé" : "nu"} ; surface du logement : ${f.champ(ctx.lot.surface_m2 == null ? null : nombreFr(ctx.lot.surface_m2),"surface du logement")} m².
+        ${ctx.chambre ? `Surface privative : ${f.champ(ctx.chambre.surface_m2 == null ? null : nombreFr(ctx.chambre.surface_m2),"surface privative")} m².` : ""}</p>
         <p>Le formulaire officiel Cerfa 10842*07 reste à compléter et signer par le bailleur. Ce récapitulatif prépare la saisie ; il ne vaut pas formulaire CAF/MSA homologué.</p>`;
       signatures = true;
-    } else if (["relance_simple","seconde_relance","mise_en_demeure","situation_dette","protocole_apurement"].includes(code)) {
+    } else if ((CODES_RECOUVREMENT as readonly string[]).includes(code)) {
       const restitutions = await lireLignes(supabase.from("restitutions").select("id").eq("organization_id", orgId).eq("bail_id", bailId).eq("statut", "finalise"));
-      if (restitutions.length) return { erreur: "Le solde de ce bail figure dans le décompte de départ. Consultez ce document avant toute demande de règlement." };
+      if (restitutions.length) return { erreur: REFUS_SOLDE_DANS_DECOMPTE };
       const termes = await lireLignes(supabase.rpc("etat_loyers_bail", { p_bail: bailId }));
-      const echus = termes.filter(l => texte(l.date_echeance).slice(0,10) < aujourdhui && montant(l.montant_du) > montant(l.montant_couvert));
-      let detteCentimes = echus.reduce((s,l)=>s+Math.round((montant(l.montant_du)-montant(l.montant_couvert))*100),0);
-      // Un protocole peut s'appuyer sur un plan d'apurement enregistré : la dette est celle arrêtée en base à la
-      // proposition, les tranches sont celles du plan (jamais recalculées depuis l'écran).
-      let plan: { date_arrete: string; dette_initiale: number; acompte: number; conditions: string | null; tranches: { date: string; montant: number }[] } | null = null;
-      if (code === "protocole_apurement" && options.plan_id) {
-        const [lu] = await lireLignes(supabase.from("plans_apurement").select("id,bail_id,date_arrete,dette_initiale,acompte,conditions,etat").eq("id", options.plan_id).eq("organization_id", orgId));
-        if (!lu || texte(lu.bail_id) !== bailId) return { erreur: "Ce plan d’apurement n’appartient pas à ce bail." };
-        if (texte(lu.etat) === "annule") return { erreur: "Ce plan d’apurement est annulé." };
-        const tranches = await lireLignes(supabase.from("plan_apurement_tranches").select("rang,echeance,montant").eq("plan_id", options.plan_id).order("rang"));
-        plan = { date_arrete: texte(lu.date_arrete), dette_initiale: montant(lu.dette_initiale), acompte: montant(lu.acompte), conditions: lu.conditions ? texte(lu.conditions) : null,
-          tranches: tranches.map(t => ({ date: texte(t.echeance), montant: montant(t.montant) })) };
-        detteCentimes = Math.round(plan.dette_initiale * 100);
+      const echus = termesEchus(termes, aujourdhui);
+      // Phase 3 (C73) : le reste dû de chaque échéance, au centime (resteCentimes), et le solde échu qui en est la somme.
+      const soldeEchuCentimes = echus.reduce((s,l)=>s+resteCentimes(l),0);
+      // Phase 3 (C65, C66, C74) : le protocole s'appuie sur un plan d'apurement ENREGISTRÉ — celui désigné (plan_id, depuis
+      // l'écran du plan), à défaut le plan en cours du bail. Ses tranches, sa tolérance et son seuil de caducité sont ceux que
+      // suit Gerimmo (migration 20261102224000) : le document n'annonce que ce que fait l'application. Sans plan, plus
+      // d'échéancier calculé à l'écran ni de suspension promise : le PDF n'est pas produit, « À renseigner » mène au plan.
+      let plan: PlanProtocole | null = null;
+      if (code === "protocole_apurement") {
+        const champsPlan = "id,bail_id,etat,date_arrete,dette_initiale,acompte,tolerance_jours,seuil_caducite,conditions";
+        const [lu] = options.plan_id
+          ? await lireLignes(supabase.from("plans_apurement").select(champsPlan).eq("id", options.plan_id).eq("organization_id", orgId))
+          : await lireLignes(supabase.from("plans_apurement").select(champsPlan).eq("organization_id", orgId).eq("bail_id", bailId).in("etat", ETATS_PLAN_PROTOCOLE).order("created_at", { ascending: false }).limit(1));
+        if (options.plan_id && (!lu || texte(lu.bail_id) !== bailId)) return { erreur: "Ce plan d’apurement n’appartient pas à ce bail." };
+        if (lu) {
+          // Phase 3, lot 39 (reprise, C65) : un protocole ne se prépare que sur un plan vivant (proposé, actif ou en défaut), comme
+          // la recherche sans plan_id et comme le rattachement en base (« Ce plan est clos »). Sur un plan caduc ou soldé, il
+          // annonçait encore la suspension des relances, qui ne s'applique plus.
+          if (texte(lu.etat) === "annule") return { erreur: "Ce plan d’apurement est annulé." };
+          if (texte(lu.etat) === "caduc") return { erreur: "Ce plan d’apurement est caduc : un protocole ne se prépare plus sur ce plan." };
+          if (texte(lu.etat) === "solde") return { erreur: "Ce plan d’apurement est soldé : un protocole ne se prépare plus sur ce plan." };
+          if (!["propose", "actif", "en_defaut"].includes(texte(lu.etat))) return { erreur: "Ce plan d’apurement n’est plus en cours." };
+          const tranches = await lireLignes(supabase.from("plan_apurement_tranches").select("rang,echeance,montant").eq("organization_id", orgId).eq("plan_id", texte(lu.id)).order("rang"));
+          plan = { date_arrete: texte(lu.date_arrete), dette_initiale: montant(lu.dette_initiale), acompte: montant(lu.acompte), conditions: lu.conditions ? texte(lu.conditions) : null,
+            tolerance_jours: montant(lu.tolerance_jours), seuil_caducite: montant(lu.seuil_caducite),
+            tranches: tranches.map(t => ({ date: texte(t.echeance), montant: montant(t.montant) })) };
+        }
       }
-      if (code !== "situation_dette" && detteCentimes <= 0) return { erreur: "Aucune dette échue n’est constatée : ce courrier n’a pas lieu d’être généré." };
+      datePlanProtocole = plan?.date_arrete || null;
+      const detteCentimes = plan ? Math.round(plan.dette_initiale * 100) : soldeEchuCentimes;
+      if (code !== "situation_dette" && detteCentimes <= 0) return { erreur: REFUS_AUCUNE_DETTE };
+      // C67, C68 : la colonne « Période » écrit le mois (« novembre 2026 ») et signale un terme au prorata avec ses bornes réelles.
+      // L'indicateur vient de l'appel lui-même (appels_loyer.prorata), le calcul des termes ne le rendant pas.
+      const appelsAuProrata = new Set((await lireLignes(supabase.from("appels_loyer").select("id").eq("organization_id",orgId).eq("bail_id",bailId).eq("prorata",true))).map(a => texte(a.id)));
+      const avecPeriodeLisible = (lignes: LigneDocument[]) => lignes.map((l): LigneDocument => ({ ...l, periode: libellePeriodeTerme(texte(l.periode), appelsAuProrata.has(texte(l.appel_id)), ctx.bail.date_debut, ctx.bail.date_fin), reste: resteCentimes(l) / 100 }));
+      const lignesSituation = code === "situation_dette" ? termes : echus;
+      // C73 : ce qui reste dû sur les échéances du tableau qui ne sont pas encore échues (relevé de situation seulement) : la somme
+      // de la colonne « Reste dû » est le solde échu, plus ce montant.
+      const aVenirCentimes = lignesSituation.filter(l => !echus.includes(l)).reduce((s,l)=>s+resteCentimes(l),0);
+      const colonnesSituation: Parameters<typeof lignesTableau>[2] = [["Période","periode","texte"],["Échéance","date_echeance","date"],["Appelé","montant_du","montant"],["Couvert","montant_couvert","montant"],["Reste dû","reste","montant"]];
+      const solde = `<strong>Solde échu au ${f.date(aujourdhui)} : ${eur(soldeEchuCentimes/100)}.</strong> Les échéances à venir sont exclues de ce solde${aVenirCentimes > 0 ? ` : il reste ${eur(aVenirCentimes/100)} sur les échéances du tableau qui ne sont pas encore échues` : ""}.`;
       contenu = `${section(code === "situation_dette" ? "Situation des échéances" : "Échéances restant dues")}
-        ${lignesTableau(f,code === "situation_dette" ? termes : echus,[["Période","periode","texte"],["Échéance","date_echeance","date"],["Appelé","montant_du","montant"],["Couvert","montant_couvert","montant"]])}
-        <p><strong>${plan ? `Dette arrêtée au ${f.date(plan.date_arrete)} : ${eur(plan.dette_initiale)}.` : `Solde échu au ${f.date(aujourdhui)} : ${eur(detteCentimes/100)}.`}</strong> Les échéances à venir sont exclues de ce solde.</p>`;
-      if (code === "relance_simple") contenu += `<p>Sauf règlement intervenu depuis l’établissement de ce décompte, nous vous invitons à régulariser les sommes échues. En cas de difficulté ou de désaccord, contactez votre gestionnaire afin d’examiner votre situation.</p>`;
+        ${/* Phase 3, lot 53 (W33, même défaut que C45) puis sa reprise : le solde, qui tient lieu de total du tableau, est sa
+             dernière rangée, dans une dernière section insécable avec la dernière échéance (tableau(…, fin)). Un paragraphe
+             « gardé » sous le tableau (break-before:avoid) partait seul en tête de page dès que le tableau remplissait la page
+             (relevé de 40 lignes), et la clôture du relevé de situation se coupait (36 à 39 lignes : image de signature sans son
+             libellé, « Fait à » sans signature, clôture seule). Le relevé de situation, que la clôture suit directement, la
+             range aussi dans cette section : elle part avec la dernière échéance et le solde. Les courriers la gardent après
+             leurs paragraphes, entre lesquels la coupure se fait. Pas pour le protocole d'apurement, dont le HTML est
+             l'empreinte de son circuit de signature : son tableau et son paragraphe de solde ne changent pas. */ ""}${code === "protocole_apurement"
+          ? `${lignesTableau(f,avecPeriodeLisible(lignesSituation),colonnesSituation)}
+        <p>${solde}</p>`
+          : lignesTableau(f,avecPeriodeLisible(lignesSituation),colonnesSituation,`<tr><td colspan="${colonnesSituation.length}" style="padding:4pt 0 0;border-bottom:0">${solde}</td></tr>${code === "situation_dette" ? CLOTURE_DANS_TABLEAU : ""}`)}`;
+      if (code === "relance_simple") contenu += `<p>Sauf règlement intervenu depuis l’établissement de ce décompte, nous vous invitons à régulariser les sommes échues. En cas de difficulté ou de désaccord, contactez votre ${interlocuteur} afin d’examiner votre situation.</p>`;
       if (code === "mise_en_demeure" && (!/^\d+$/.test(options.delai ?? "") || Number(options.delai) < 1 || Number(options.delai) > 90)) return { erreur: "Indiquez un délai de règlement de 1 à 90 jours." };
       if (code === "relance_simple" || code === "seconde_relance" || code === "mise_en_demeure") {
         const niveau = code === "relance_simple" ? "relance_1" : code === "seconde_relance" ? "relance_2" : "recommande";
         const suivi = await verifierCourrierDuBail(supabase, orgId, bailId, echus, aujourdhui, niveau);
         if (suivi.erreur) return { erreur: suivi.erreur };
-        if (code === "seconde_relance") contenu += `<p>Notre précédent courrier du ${f.date(suivi.precedente)} reste sans régularisation complète à ce jour. Merci de régler ce solde ou de prendre contact avec votre gestionnaire.</p>`;
+        // S39 : ces trois courriers portent l'adresse postale du locataire. Tant qu'il occupe les lieux, c'est le logement loué,
+        // écrit comme une adresse postale (adressePostaleLogement : étage et porte, voie, code postal et commune en dernier) ;
+        // après sa sortie (bail terminé, ou état des lieux de sortie signé), l'adresse laissée à l'état des lieux de sortie si
+        // elle existe, telle que saisie (ses lignes conservées). Sinon, aucune adresse n'est inventée : le nom figure seul.
+        const [edlSortie] = await lireLignes(supabase.from("etats_des_lieux").select("etat,adresse_restitution_depot").eq("organization_id",orgId).eq("bail_id",bailId).eq("type","sortie").limit(1));
+        const sorti = ctx.bail.etat === "termine" || texte(edlSortie?.etat) === "signe";
+        adresseDestinataire = sorti
+          ? texte(edlSortie?.adresse_restitution_depot).split(/\r?\n/).map(l => l.trim()).filter(Boolean)
+          : adressePostaleLogement(ctx.lot,ctx.bien);
+        if (code === "seconde_relance") contenu += `<p>Notre précédent courrier du ${f.date(suivi.precedente)} reste sans régularisation complète à ce jour. Merci de régler ce solde ou de prendre contact avec votre ${interlocuteur}.</p>`;
       }
-      if (code === "mise_en_demeure") contenu += `<p>Par le présent courrier, nous vous mettons en demeure de régler les sommes échues détaillées ci-dessus dans un délai de ${opt("delai","délai de règlement à compter de la réception")} jours à compter de sa réception, sous réserve des règlements intervenus depuis son établissement.</p><p>Ce courrier est à notifier avec preuve de réception. Il ne constitue ni un commandement de payer ni une décision de résiliation du bail.</p>`;
-      if (code !== "situation_dette") contenu += `<p>Modalités de règlement : ${f.champ(ctx.bail.lieu_paiement,"modalités de règlement")} ; référence à rappeler : ${referenceCourte("BAIL",bailId)}.</p>`;
+      // Phase 3, lot 53 (W34) : « Ce courrier est à notifier avec preuve de réception » était une consigne pour l'expéditeur,
+      // imprimée dans la lettre adressée au locataire ; elle reste à l'écran (aide du délai : catalogue-options.ts, préparation
+      // du recommandé : rappels-loyers-interactifs.tsx). Aucun mode d'envoi n'est affirmé : Gerimmo ne le connaît pas.
+      if (code === "mise_en_demeure") contenu += `<p>Par le présent courrier, nous vous mettons en demeure de régler les sommes échues détaillées ci-dessus dans un délai de ${opt("delai","délai de règlement à compter de la réception")} jours à compter de sa réception, sous réserve des règlements intervenus depuis son établissement.</p><p>Ce courrier ne constitue ni un commandement de payer ni une décision de résiliation du bail.</p>`;
+      // C72 : un règlement demandé par virement donne le compte où verser, comme l'avis d'échéance (même source, même règle).
+      if (code !== "situation_dette") contenu += `<p>Modalités de règlement : ${f.champ(ctx.bail.lieu_paiement,"modalités de règlement")}${demandeVirement(ctx.bail.lieu_paiement) ? ` ; coordonnées bancaires : ${coordonneesBancaires(f, ctx.bail.lieu_paiement, ibanLisible(ctx.organisation.iban))}` : ""} ; référence à rappeler : ${referenceCourte("BAIL",bailId)}.</p>`;
       if (code === "protocole_apurement") {
-        let lignes: { date: string; montant: number }[];
-        if (plan) {
-          lignes = plan.tranches;
-          if (!lignes.length) return { erreur: "Ce plan d’apurement n’a aucune tranche." };
+        if (!plan) {
+          contenu += `${section("Échéancier convenu")}<p>Échéancier : ${f.champ(null, LIBELLE_PLAN_A_ENREGISTRER)}.</p>`;
         } else {
-          const n = Number(options.mensualites);
-          if (!Number.isInteger(n) || n < 1 || n > 60 || !dateValide(options.premiere_echeance)) return { erreur: "Précisez 1 à 60 mensualités et la date de première échéance de l’accord." };
-          const premiere = new Date(options.premiere_echeance+"T12:00:00Z");
-          const base = Math.floor(detteCentimes/n), reste = detteCentimes % n;
-          lignes = Array.from({length:n},(_,i)=>{
-            const date = new Date(Date.UTC(premiere.getUTCFullYear(),premiere.getUTCMonth()+i,1));
-            const max = new Date(Date.UTC(date.getUTCFullYear(),date.getUTCMonth()+1,0)).getUTCDate();
-            date.setUTCDate(Math.min(premiere.getUTCDate(),max));
-            return { date:date.toISOString().slice(0,10), montant:(base+(i<reste?1:0))/100 };
-          });
+          if (!plan.tranches.length) return { erreur: REFUS_PLAN_SANS_TRANCHE };
+          const n = plan.tranches.length, tolerance = plan.tolerance_jours, seuil = plan.seuil_caducite;
+          const pluriel = (k: number, mot: string) => `${k} ${mot}${k > 1 ? "s" : ""}`;
+          const conditions = (plan.conditions ?? options.conditions)?.trim() || null;
+          // Lot 39 (reprise, C65) : la suspension dure tant que le plan est actif ou en défaut (plan_apurement_suspend_relances) ;
+          // « tant qu'il n'est ni caduc ni annulé » oubliait le plan soldé, qui ne suspend plus rien.
+          contenu += `${section("Échéancier convenu")}
+            <p>Dette arrêtée au ${f.date(plan.date_arrete)} : ${eur(plan.dette_initiale)}.${plan.acompte > 0 ? ` Acompte versé ou à verser à la signature : ${eur(plan.acompte)}.` : ""}
+            Reste à étaler : ${eur(plan.dette_initiale - plan.acompte)}, en ${pluriel(n, "mensualité")}.</p>
+            ${lignesTableau(f,plan.tranches,[["Date","date","date"],["Montant","montant","montant"]])}
+            <p>Les mensualités d’apurement s’ajoutent au loyer et aux charges courants. Une mensualité est tenue pour réglée dès que la dette échue du bail, loyers courants compris, ne dépasse plus ce qui reste à étaler après elle : les règlements reçus depuis le ${f.date(plan.date_arrete)} sont pris en compte. Toute adaptation de l’accord est convenue par écrit entre les parties.</p>
+            <p>Une mensualité qui n’est pas réglée ${tolerance > 0 ? `${pluriel(tolerance, "jour")} après son échéance` : "à son échéance"} est constatée comme manquée. À ${pluriel(seuil, "mensualité")} manquée${seuil > 1 ? "s" : ""} et non rattrapée${seuil > 1 ? "s" : ""}, l’accord devient caduc et les sommes restantes sont immédiatement exigibles.</p>
+            <p>Les relances de loyer sont suspendues dès l’activation du plan, après l’accord du locataire, et jusqu’à sa fin : dette soldée, plan devenu caduc ou annulé. Après cette fin, toute somme impayée peut de nouveau être relancée. Le bailleur ne renonce à aucun droit, ni à la clause résolutoire du bail.</p>
+            <p>Conditions particulières de suivi : ${ouNeant(conditions)}${conditions ? pointFinal(conditions) : ""}</p>`;
         }
-        const conditions = plan?.conditions ?? options.conditions;
-        contenu += `${section("Échéancier convenu")}${plan && plan.acompte > 0 ? `<p>Acompte versé ou à verser à la signature : ${eur(plan.acompte)}.</p>` : ""}${lignesTableau(f,lignes,[["Date","date","date"],["Montant","montant","montant"]])}
-          <p>Les mensualités d’apurement s’ajoutent au loyer et aux charges courants. Les règlements déjà intervenus sont à déduire avant signature de cet accord. Toute adaptation de l’accord est convenue par écrit entre les parties.</p>
-          <p>Le bailleur suspend ses relances tant que l’accord est respecté ; il ne renonce à aucun droit, ni à la clause résolutoire du bail. Une mensualité non réglée à son échéance rend l’accord caduc et les sommes restantes immédiatement exigibles.</p>
-          <p>Conditions particulières de suivi : ${f.champ(conditions?.trim() || null, "conditions convenues pour le suivi de l’accord")}.</p>`;
         signatures = true;
+        // Phase 3, lot 43 (T07, reste du lot 40) : le protocole est un accord que les parties signent (circuit de signature
+        // électronique) ; comme les inventaires, il n'est plus daté du jour de sa génération au-dessus de cadres vides.
+        dateALaSignature = true;
       }
     } else if (code === "accuse_conge" || code === "attestation_fin_bail") {
       if (code === "attestation_fin_bail" && ctx.bail.etat !== "termine") return { erreur: "L’attestation de fin de bail se génère après la clôture du contrat." };
+      // Phase 3 (C40) : l'accusé de réception répond au congé reçu du locataire et annonce les étapes de sortie « à organiser » :
+      // il se prépare pendant le préavis, avant la sortie. Sur un bail terminé, ces étapes étaient faites depuis longtemps.
+      if (code === "accuse_conge" && ctx.bail.etat === "termine") return { erreur: "Ce bail est terminé : la sortie du locataire est faite, l’accusé de réception du congé n’a plus lieu d’être." };
+      if (code === "accuse_conge" && ctx.bail.etat !== "preavis") return { erreur: "Aucun congé en cours n’est enregistré pour ce contrat." };
       const conges = await lireLignes(supabase.from("conges").select("date_premiere_presentation,date_effet,preavis_mois,par").eq("organization_id",orgId).eq("bail_id",bailId).is("annule_le",null).order("created_at",{ascending:false}).limit(1));
       if (!conges.length) return { erreur: "Aucun congé en cours n’est enregistré pour ce contrat." };
       const c = conges[0];
+      // Phase 3, lot 51 (W18) : l'attestation date la fin du contrat (date de fin du bail, posée à l'enregistrement du congé) et,
+      // si elle est enregistrée, la sortie réelle des lieux (terminer_bail, décision D34) ; elle disait seulement « Le contrat est
+      // clôturé dans le dossier », sans date.
+      const sortieReelle = code === "attestation_fin_bail" ? texte((await lireLignes(supabase.from("baux").select("date_sortie_reelle").eq("organization_id",orgId).eq("id",bailId).limit(1)))[0]?.date_sortie_reelle) : "";
+      const finDuContrat = code === "attestation_fin_bail" ? `Le contrat a pris fin le ${f.date(ctx.bail.date_fin ?? (texte(c.date_effet) || null),"date de fin du bail")}.${sortieReelle ? ` Sortie des lieux enregistrée le ${f.date(sortieReelle)}.` : ""}` : "";
+      if (code === "accuse_conge") {
+        if (c.par !== "locataire") return { erreur: "Le congé enregistré a été donné par le bailleur : l’accusé de réception concerne un congé reçu du locataire." };
+        const edlSortie = await lireLignes(supabase.from("etats_des_lieux").select("id").eq("organization_id",orgId).eq("bail_id",bailId).eq("type","sortie").eq("etat","signe").limit(1));
+        if (edlSortie.length) return { erreur: REFUS_ACCUSE_APRES_SORTIE };
+      }
       contenu = `${section(code === "accuse_conge" ? "Congé reçu" : "Fin du contrat")}
         <p>Congé donné par ${c.par === "locataire" ? "le locataire" : "le bailleur"}, reçu le ${f.date(texte(c.date_premiere_presentation))}.
         Durée du préavis : ${f.champ(texte(c.preavis_mois),"durée du préavis")} mois ; date d’effet enregistrée : ${f.date(texte(c.date_effet))}.</p>
-        <p>${code === "accuse_conge" ? "L’état des lieux de sortie, la remise des clés et la transmission de la nouvelle adresse sont à organiser avec le gestionnaire." : "Le contrat est clôturé dans le dossier. Cette attestation ne constitue pas une quittance ni une renonciation au règlement des sommes restant dues."}</p>`;
+        <p>${code === "accuse_conge" ? `L’état des lieux de sortie, la remise des clés et la transmission de la nouvelle adresse sont à organiser avec le ${interlocuteur}.` : `${finDuContrat} Cette attestation ne constitue pas une quittance ni une renonciation au règlement des sommes restant dues.`}</p>`;
       signatures = code === "attestation_fin_bail";
     } else if (code === "decompte_retenues") {
       const rs = await lireLignes(supabase.from("restitutions").select("id,statut").eq("bail_id",bailId).eq("organization_id",orgId).limit(1));
       if (!rs.length) return { erreur: "Préparez d’abord la restitution du dépôt de ce contrat." };
-      const retenues = await lireLignes(supabase.from("retenues").select("libelle,cout,duree_vie_ans,age_ans,montant_retenu,justificatif_document").eq("restitution_id",rs[0].id).eq("organization_id",orgId));
-      contenu = `${section("Retenues enregistrées")}${lignesTableau(f,retenues,[["Motif","libelle","texte"],["Coût","cout","montant"],["Âge (ans)","age_ans","texte"],["Durée de vie (ans)","duree_vie_ans","texte"],["Retenue","montant_retenu","montant"]])}
+      const retenues = await lireLignes(supabase.from("retenues").select("libelle,cout,duree_vie_ans,age_ans,montant_retenu,justificatif_document,sans_justificatif,piece:documents!retenues_justificatif_document_fkey(purged_at)").eq("restitution_id",rs[0].id).eq("organization_id",orgId));
+      // Phase 3 (C37) : l'écran de restitution laisse l'âge et la durée de vie facultatifs (vides : coût retenu en intégralité, la
+      // base ne calcule alors aucune décote). Vides, ils s'impriment « — », comme dans le décompte de restitution, sans bloquer le PDF.
+      const sansDecote = retenues.some(l=>l.duree_vie_ans==null || l.age_ans==null);
+      // Phase 3, lot 53 (reprise du lot 51, W16) : la base (ajouter_retenue) n'applique la décote qu'avec une durée de vie
+      // supérieure à 0 et un âge saisis ; une durée de vie de 0 retient le coût entier, comme le dit le décompte de restitution
+      // (« Aucune — coût retenu en intégralité »). La règle de vétusté ne s'imprimait pas moins.
+      const decoteAppliquee = (l: LigneDocument) => Number(l.duree_vie_ans) > 0 && l.age_ans != null;
+      const dureeNulle = retenues.some(l=>l.duree_vie_ans!=null && !(Number(l.duree_vie_ans) > 0));
+      const lignesRetenues = retenues.map(l=>({...l,age_ans:l.age_ans==null?null:nombreFr(l.age_ans as number|string),duree_vie_ans:l.duree_vie_ans==null?null:nombreFr(l.duree_vie_ans as number|string)}));
+      // Phase 3 (C35) : comme le décompte de restitution, les justificatifs sont tenus à disposition (aucune pièce n'est jointe au PDF).
+      contenu = `${section("Retenues enregistrées")}${lignesTableau(f,lignesRetenues,[["Motif","libelle","texte"],["Coût","cout","montant"],["Âge (ans)","age_ans","facultatif"],["Durée de vie (ans)","duree_vie_ans","facultatif"],["Retenue","montant_retenu","montant"]])}
+        ${/* Phase 3, lot 51 (W16) : la décote appliquée est nommée et sa règle écrite (celle du calcul de la base et du décompte de
+             restitution) ; le coût devenait une retenue plus faible sans explication. */ ""}${retenues.some(decoteAppliquee) ? "<p>Vétusté : la retenue tient compte de l’âge de l’élément ; elle est égale au coût × (durée de vie − âge) / durée de vie.</p>" : ""}
+        ${sansDecote ? "<p>« — » : âge ou durée de vie non renseigné ; aucune décote de vétusté n’est appliquée, le coût est retenu en intégralité.</p>" : ""}
+        ${dureeNulle ? "<p>Durée de vie nulle : aucune décote de vétusté n’est appliquée, le coût est retenu en intégralité.</p>" : ""}
         <p>Total : ${eur(retenues.reduce((s,l)=>s+montant(l.montant_retenu),0))}. État du dossier : ${rs[0].statut === "finalise" ? "finalisé" : "en préparation"}.</p>
-        <p>Les justificatifs des retenues sont joints au décompte de restitution. Les sommes ci-dessus sont propres à ce contrat.</p>`;
-      if (retenues.some(l=>!l.justificatif_document)) f.champ(null,"justificatifs de retenues à joindre");
+        <p>Les justificatifs déposés (devis, facture, constat comparé des états des lieux) sont tenus à la disposition du locataire sur demande. Les sommes ci-dessus sont propres à ce contrat.</p>`;
+      // Décision du 24/11/2026 (Q49) : même règle que le décompte de restitution — une ligne « À renseigner » par retenue
+      // sans pièce (un devis suffit), qui mène à la restitution du dépôt.
+      exigerJustificatifsRetenues(f, retenues);
     } else if (code === "liste_dossier") {
-      if (!ctx.bail.locataire_principal) return { erreur: "Choisissez d’abord la personne du dossier." };
-      const pieces = await lireLignes(supabase.from("pieces_demandees").select("*").eq("organization_id",orgId).eq("person_id",ctx.bail.locataire_principal).order("demandee_le"));
+      // Phase 3, lot 46 (reprise, T21) : sans locataire principal, la liste est INCOMPLÈTE (« nom et prénom(s) du ou des
+      // locataires », qui mène à la fiche du bail), plus refusée (« Choisissez d’abord la personne du dossier », sans lien).
+      if (!ctx.bail.locataire_principal) f.champ(null,"nom et prénom(s) du ou des locataires");
+      const pieces = ctx.bail.locataire_principal ? await lireLignes(supabase.from("pieces_demandees").select("*").eq("organization_id",orgId).eq("person_id",ctx.bail.locataire_principal).order("demandee_le")) : [];
       for (const p of pieces) p.statut = p.satisfaite_le ? "Reçue" : p.document_id ? "Déposée, à vérifier" : "À fournir";
-      contenu = `${section("Pièces demandées dans le dossier")}${lignesTableau(f,pieces,[["Pièce","libelle","texte"],["Statut","statut","texte"]])}
+      // C17 : sans demande, plus de tableau vide (en-têtes sans ligne) : la phrase qui le dit vient sous le titre.
+      contenu = `${section("Pièces demandées dans le dossier")}${pieces.length ? lignesTableau(f,pieces,[["Pièce","libelle","texte"],["Statut","statut","texte"]]) : "<p>Aucune demande de pièce enregistrée à cette date.</p>"}
         <p>Les pièces déjà fournies restent consultables dans le dossier de la personne. Demandez uniquement les justificatifs nécessaires au dossier du locataire retenu et de son garant éventuel.</p>`;
-      if (!pieces.length) contenu += "<p>Aucune demande de pièce enregistrée à cette date.</p>";
     } else if (code === "avenant_remplacement") {
       if (ctx.bail.type !== "colocation" || ctx.bail.chambre_id) return { erreur: "L’avenant de remplacement concerne un contrat commun. En contrat individuel, clôturez le sortant et créez le contrat du nouvel occupant." };
+      // Phase 3 (C19) : l'avenant remplace un colocataire dans un contrat commun signé et en cours ; sur un brouillon, le contrat
+      // n'a jamais été conclu (« les autres clauses du contrat commun restent inchangées », « la solidarité cesse » étaient faux).
+      if (ctx.bail.etat === "brouillon") return { erreur: "Le contrat commun est encore en préparation : modifiez les colocataires directement dans le brouillon avant sa signature, ou activez d’abord la location s’il est déjà signé." };
+      if (ctx.bail.etat === "termine") return { erreur: "Ce contrat commun est terminé : aucun remplacement de colocataire n’est possible." };
+      if (ctx.bail.etat !== "actif") return { erreur: "Un congé est enregistré pour ce contrat commun (préavis en cours) : le remplacement d’un colocataire se prépare tant que la location est en cours." };
+      // Relecture de la fusion du 25/11/2026 (C-01) : bail coché « mariés ou pacsés » — l'avenant annoncerait la fin de la
+      // solidarité du sortant (article 8-1 VI) que le bail signé écarte et que la base n'enregistre pas. Il n'est pas
+      // préparé (le catalogue ne le propose pas pour ce bail : catalogue-cibles.ts).
+      if (ctx.bail.locataires_epoux_pacses === true) return { erreur: REFUS_AVENANT_REMPLACEMENT_EPOUX_PACS };
+      // C22 : le sortant est l'un des titulaires du contrat commun, choisi dans la liste de l'écran (son identifiant) ; une
+      // personne étrangère au contrat est refusée. Un colocataire dont le départ est déjà enregistré ne signe pas comme
+      // « restant ».
+      const sortantId = options.sortant?.trim() ?? "";
+      const sortant = sortantId ? ctx.locataires.find(p => p.id === sortantId) : undefined;
+      if (sortantId && !sortant) return { erreur: "Le colocataire sortant doit être l’un des titulaires du contrat commun : choisissez-le dans la liste." };
+      const partis = new Set((await lireLignes(supabase.from("bail_personnes").select("person_id,date_depart").eq("organization_id",orgId).eq("bail_id",bailId))).filter(p => p.date_depart).map(p => texte(p.person_id)));
+      const restants = ctx.locataires.filter(p => p.id !== sortant?.id && !partis.has(p.id));
+      const nomSortant = f.champ(nomPersonne(sortant), "identité du colocataire sortant");
+      const entrant = opt("entrant","identité, adresse et état civil de l’entrant");
+      // Phase 3, lot 50 (W08) : le cadre de signature de l'entrant porte son identité (première ligne saisie), comme celui du
+      // sortant porte son nom ; la saisie complète (état civil, adresse) reste dans la phrase des parties.
+      const identiteEntrant = options.entrant?.trim() ? f.champ(options.entrant.trim().split(/\r?\n/)[0], "identité, adresse et état civil de l’entrant") : entrant;
+      // C21 : un cadre par partie — le bailleur, le sortant, l'entrant (qui devient partie au contrat) et les colocataires
+      // qui restent ; C23 : la date est portée à la signature ; C25 : le contrat modifié, avec sa date de prise d'effet.
+      avenant = {
+        // Reprise du lot 40 (C18) : référence tirée du contenu du remplacement, la même à chaque génération de cet avenant.
+        reference: referenceAvenant(bailId, { sortant: sortant?.id, entrant: options.entrant, date_effet: options.date_effet, depot: options.depot }),
+        contrat: `Réf. ${referenceCourte("BAIL",bailId)} — prise d’effet le ${f.date(ctx.bail.date_debut, "date de prise d’effet du contrat")}`,
+        signatures: `<div class="signatures">${cadreSignature(libelleSignataireBailleur(ctx.organisation.type),nomsBailleurs(f,ctx.bailleurs))}${cadreSignature("Le colocataire sortant",nomSortant)}${cadreSignature("Le colocataire entrant",identiteEntrant)}${restants.length ? cadreSignature(restants.length > 1 ? "Les colocataires restants" : "Le colocataire restant",restants.map(p=>echapper(nomPersonne(p) ?? "")).join("<br/>")) : ""}</div>`,
+      };
       contenu = `${section("Parties et remplacement convenu")}
-        <p>Colocataire sortant : ${opt("sortant","identité du colocataire sortant")} ; colocataire entrant : ${opt("entrant","identité, adresse et état civil de l’entrant")}.</p>
+        <p>Colocataire sortant : ${nomSortant} ; colocataire entrant : ${entrant}${pointFinal(options.entrant)}</p>
         <p>Date d’effet convenue : ${f.date(options.date_effet || null,"date d’effet du remplacement")}.</p>
         <p>Les parties conviennent de remplacer le colocataire sortant par l’entrant désigné, sous réserve de la signature de cet avenant par les parties concernées. Les autres clauses du contrat commun restent inchangées.</p>
         <p>La solidarité du sortant et de sa caution cesse à la date prévue par l’article 8-1 VI de la loi du 6 juillet 1989 : à la date d’effet du congé régulièrement délivré lorsqu’un nouveau colocataire figure au bail, ou au plus tard six mois après cette date à défaut de remplacement.</p>
-        <p>Accord relatif au dépôt de garantie entre colocataires : ${opt("depot","modalités convenues concernant le dépôt de garantie")}.</p>`;
+        <p>Accord relatif au dépôt de garantie entre colocataires : ${opt("depot","modalités convenues concernant le dépôt de garantie")}${pointFinal(options.depot)}</p>`;
       signatures = true;
     } else if (code === "autorisation_travaux") {
       contenu = `${section("Travaux autorisés")}
-        <p>Nature et périmètre : ${opt("travaux","description précise des travaux")}.</p>
-        <p>Intervenant : ${opt("intervenant","entreprise ou personne chargée des travaux")} ; période convenue : ${opt("periode","dates ou période des travaux")}.</p>
+        <p>Nature et périmètre : ${opt("travaux","description précise des travaux")}${pointFinal(options.travaux)}</p>
+        <p>Intervenant : ${opt("intervenant","entreprise ou personne chargée des travaux")} ; période convenue : ${opt("periode","dates ou période des travaux")}${pointFinal(options.periode)}</p>
         ${section("Conditions de l’autorisation")}
-        <p>Prise en charge et plafond convenus : ${opt("prise_en_charge","répartition des coûts et plafond autorisé")}.</p>
-        <p>Conditions d’accès, assurances et remise en état : ${opt("conditions","conditions convenues pour l’exécution et la remise en état")}.</p>
+        <p>Prise en charge et plafond convenus : ${opt("prise_en_charge","répartition des coûts et plafond autorisé")}${pointFinal(options.prise_en_charge)}</p>
+        <p>Conditions d’accès, assurances et remise en état : ${opt("conditions","conditions convenues pour l’exécution et la remise en état")}${pointFinal(options.conditions)}</p>
         <p>L’autorisation porte uniquement sur les travaux décrits. Les autorisations administratives ou de copropriété éventuellement nécessaires doivent être obtenues avant leur réalisation. Tout changement de périmètre fait l’objet d’un accord écrit.</p>`;
       signatures = true;
+      // Phase 3, lot 43 (T07) : accord signé par les parties ; la date se porte à la signature, comme pour les inventaires.
+      dateALaSignature = true;
     }
     const signatureEmetteur = modeSignatureDocument(code)==="enregistree" ? blocSignatureEmetteur(exp.nom, await signatureOrganisation(supabase,orgId)) : null;
-    const reference = referenceCourte(code.toUpperCase().replaceAll("_","-"), bailId);
-    const corps = `${enTete(f,exp,{libelle:"Dossier",reference:referenceCourte("BAIL",bailId),etabliLe:aujourdhui})}${titre(meta.nom,"Dossier de location",[])}
-      ${cartouches([["Bailleur",nomsBailleurs(f,ctx.bailleurs)],["Locataire",nomsLocataires(f,ctx.locataires)],["Locaux concernés",f.champ(adresseLogement(ctx.lot,ctx.bien),"adresse du logement")],["Contrat",referenceCourte("BAIL",bailId)]])}
-      ${contenu}${faitA(f,exp.ville,aujourdhui)}${signatureEmetteur ?? (signatures ? `<div class="signatures">${cadreSignature("Le bailleur / mandataire",nomsBailleurs(f,ctx.bailleurs))}${cadreSignature("Le locataire",nomsLocataires(f,ctx.locataires))}</div>` : "")}`;
-    return { document:assemblerPage({f,titreDocument:meta.nom,nomPied:meta.nom,reference,corps:`<style>.bloc-titre{padding:10pt 0;margin-bottom:8pt}h1{font-size:19pt;letter-spacing:.2em}h2{margin:14pt 0 8pt}.cartouches{margin:10pt 0}p{margin:4pt 0}</style>${corps}`}),titreGed:meta.nom,nomFichier:`${code}-${bailId.slice(0,8)}`,liens:[{entite:"bail",entiteId:bailId},{entite:"lot",entiteId:ctx.lot.id},...liensLocataires(ctx)] };
+    const reference = avenant?.reference ?? referenceCourte(code.toUpperCase().replaceAll("_","-"), bailId);
+    // C24 : plusieurs locataires au bail → « Locataires », « Les locataires » (le singulier valait pour deux colocataires).
+    const plusieurs = ctx.locataires.length > 1;
+    // Phase 3, lot 51 (W19, même lacune que C25) : la case « Contrat » donne la date de prise d'effet avec la référence, comme
+    // l'avenant de remplacement et le congé du bailleur ; la référence seule ne disait rien au locataire ni à un tiers. Une date
+    // de début non saisie (dossier en préparation) n'est pas exigée ici : la case garde alors la référence seule.
+    const contratDesigne = `Réf. ${referenceCourte("BAIL",bailId)}${ctx.bail.date_debut ? ` — prise d’effet le ${f.date(ctx.bail.date_debut)}` : ""}`;
+    const caseLocataires = plusieurs ? "Locataires" : "Locataire";
+    // Phase 3, lot 52 (W30, reste de C24) : la référence BAIL-… de l'en-tête est celle du contrat, nommée « Contrat » comme dans
+    // la case du même nom (« Dossier n° » d'un côté, « Contrat » de l'autre). L'attestation de loyer et le dossier CAF ne sont pas
+    // un « dossier de location » (le dossier d'un candidat) : sans sous-titre (le CAF lisait « Dossier de préparation CAF / MSA »
+    // puis « Dossier de location »). Les autres documents du dossier gardent le leur.
+    const sousTitre = code === "attestation_loyer" || code === "attestation_caf" ? "" : "Dossier de location";
+    // Phase 3, lot 53 (W35, même défaut que C64) : deux courriers d'impayés du même modèle sur un même bail portaient le même
+    // titre de classement. Les relances, la mise en demeure et le relevé de situation portent leur date d'établissement (celle
+    // de l'en-tête et du solde), le protocole la date d'arrêté de la dette (celle de son plan) ; sans plan, il n'est pas
+    // produit. La GED détecte les doublons par l'empreinte du contenu du fichier, pas par le titre : rien n'y change.
+    const titreGed = code === "protocole_apurement" && datePlanProtocole ? `${meta.nom} — dette arrêtée au ${formaterDateFr(datePlanProtocole)}`
+      : (CODES_RECOUVREMENT as readonly string[]).includes(code) && code !== "protocole_apurement" ? `${meta.nom} — ${formaterDateFr(aujourdhui)}` : meta.nom;
+    // Évaluée à sa place dans le corps (après l'en-tête et les cartouches) : l'ordre des informations « À renseigner » ne change pas.
+    const cloture = () => avenant ? `${faitALaSignature(f,exp.ville)}${avenant.signatures}` : `${dateALaSignature ? faitALaSignature(f,exp.ville) : faitA(f,exp.ville,aujourdhui)}${signatureEmetteur ?? (signatures ? `<div class="signatures">${cadreSignature(libelleSignataireBailleur(ctx.organisation.type),nomsBailleurs(f,ctx.bailleurs))}${cadreSignature(plusieurs ? "Les locataires" : "Le locataire",nomsLocataires(f,ctx.locataires))}</div>` : "")}`;
+    // Reprise du lot 53 (W33) : la clôture du relevé de situation se range dans la dernière section de son tableau (cinq colonnes).
+    const clotureDansTableau = contenu.includes(CLOTURE_DANS_TABLEAU);
+    const corps = `${enTete(f,exp,avenant ? {libelle:"Avenant",reference:avenant.reference,etabliLe:aujourdhui} : {libelle:"Contrat",reference:referenceCourte("BAIL",bailId),etabliLe:aujourdhui})}${titre(meta.nom,avenant ? "Modification du contrat commun de location" : sousTitre,[])}
+      ${cartouches([["Bailleur",nomsBailleurs(f,ctx.bailleurs)],adresseDestinataire === undefined ? [caseLocataires,nomsLocataires(f,ctx.locataires)] : [`${caseLocataires} (${plusieurs ? "destinataires" : "destinataire"})`,`${nomsLocataires(f,ctx.locataires)}${adresseDestinataire.map(ligne => `<div>${facultatif(ligne)}</div>`).join("")}`],["Locaux concernés",f.champ(adresseLogement(ctx.lot,ctx.bien),"adresse du logement")],["Contrat",avenant?.contrat ?? contratDesigne]])}
+      ${clotureDansTableau ? contenu.replace(CLOTURE_DANS_TABLEAU, () => `<tr><td colspan="5" style="border-bottom:0;padding:0">${cloture()}</td></tr>`) : `${contenu}${cloture()}`}`;
+    return { document:assemblerPage({f,titreDocument:meta.nom,nomPied:meta.nom,reference,corps:`<style>.bloc-titre{padding:10pt 0;margin-bottom:8pt}h1{font-size:19pt;letter-spacing:.2em}h2{margin:14pt 0 8pt}.cartouches{margin:10pt 0}p{margin:4pt 0}</style>${corps}`}),titreGed,nomFichier:`${code}-${bailId.slice(0,8)}`,liens:[{entite:"bail",entiteId:bailId},{entite:"lot",entiteId:ctx.lot.id},...liensLocataires(ctx)] };
   } catch(e) { if(e instanceof RefusDocument) return {erreur:e.message}; throw e; }
 }

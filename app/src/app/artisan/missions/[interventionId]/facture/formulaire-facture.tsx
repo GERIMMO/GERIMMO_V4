@@ -86,6 +86,14 @@ export function FormulaireFacture({
           defaultValue={etat.valeurs?.numero}
           className={CLASSE_CHAMP}
         />
+        {/* Audit palier 1 (P0-11, 23/11/2026) : Gerimmo ne numérote pas et ne contrôle pas les mentions ; il le dit. */}
+        {creation && (
+          <p className={CLASSE_AIDE} data-aide-numero-facture>
+            Gerimmo ne numérote pas à votre place : il vérifie seulement que ce numéro n’est pas déjà utilisé ici.
+            Reprenez le numéro suivant de votre propre série de factures, et relisez les mentions de la facture avant
+            de l’envoyer : vous en restez responsable.
+          </p>
+        )}
       </div>
 
       {!creation && <div className="space-y-1.5">

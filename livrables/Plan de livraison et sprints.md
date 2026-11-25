@@ -368,6 +368,10 @@ manquants est remise dans la recette.
 - **États des lieux (14 entrée / 15 sortie)** *(ajout du 31/08)* : PDF généré
   depuis la grille réelle (pièces, états, commentaires, compteurs, clés ;
   en sortie : comparatif et retenues avec vétusté) — bouton sur la grille.
+  *(Mise à jour du 23/11/2026, phase 3, lot 41 : l'état des lieux de sortie
+  n'imprime plus les retenues chiffrées avec vétusté, arrêtées après sa
+  signature ; il garde la synthèse des écarts, pièce par pièce. Les retenues
+  figurent dans le décompte de restitution et le décompte des retenues.)*
 - **Identité des parties** *(ajout du 31/08 — les documents en ont besoin)* :
   formulaire d'**inscription du propriétaire** enrichi (adresse postale,
   téléphone, qualité personne physique/SCI) ; page **profil de

@@ -19,7 +19,7 @@ it('sans suivi durable aucun e-mail ne part même avec une clé configurée',asy
 it('un arrêt après lecture du jeton Facebook interdit encore la publication',async()=>{
   vi.stubEnv('VERCEL_ENV','production');vi.stubEnv('META_FACEBOOK_PAGE_ID','page-fictive');vi.stubEnv('META_FACEBOOK_PAGE_ACCESS_TOKEN','jeton-fictif');
   const reseau=vi.fn(async()=>new Response(JSON.stringify({data:[]})));vi.stubGlobal('fetch',reseau);
-  await expect(envoyerSurFacebook({titre:'TEST',slug:'test',chapo:null,facebookTexte:null,facebookImageUrl:null},async()=>{throw new ArretSupervision();})).rejects.toBeInstanceOf(ArretSupervision);
+  await expect(envoyerSurFacebook({titre:'TEST',slug:'test',chapo:null,facebookTexte:null,facebookImageUrl:null,origine:'ia'},async()=>{throw new ArretSupervision();})).rejects.toBeInstanceOf(ArretSupervision);
   expect(reseau).toHaveBeenCalledTimes(1);
   expect(reseau.mock.calls[0]).not.toEqual(expect.arrayContaining([expect.objectContaining({method:'POST'})]));
 });

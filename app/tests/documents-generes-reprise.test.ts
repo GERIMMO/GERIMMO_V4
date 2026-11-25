@@ -13,6 +13,7 @@ vi.mock("@/lib/documents/rendu", () => ({ rendrePdf: m.rendre, copieDeTravail: v
 vi.mock("@/lib/documents/completude", () => ({ refusDocumentIncomplet: vi.fn(() => null) }));
 vi.mock("@/lib/documents/modeles", () => ({ MODELES: { notice: { assembler: m.assembler, typeGed: "notice" } } }));
 import { genererDocument } from "../src/app/actions/documents-generes";
+import { refusDocumentIncomplet } from "@/lib/documents/completude";
 
 const liens = [{ entite: "bail", entiteId: "bail-1" }, { entite: "personne", entiteId: "personne-1" }];
 const generer = () => genererDocument("org-1", "notice", "bail-1", "/agence/org-1/baux/bail-1");
@@ -75,5 +76,44 @@ describe("reprise d'un PDF déjà rangé", () => {
     expect(m.assembler).not.toHaveBeenCalled();
     expect(m.depot).not.toHaveBeenCalled();
     expect(m.liens).not.toHaveBeenCalled();
+  });
+});
+
+// Phase 3, lot 46 (T19) : la liste « À renseigner » suit l'en-tête imprimé ; l'action transmet son origine avec les manquants.
+describe("document incomplet : l'origine de l'en-tête accompagne les manquants", () => {
+  it("rend l'émetteur du document assemblé, sans rendre ni ranger de PDF", async () => {
+    vi.mocked(refusDocumentIncomplet).mockReturnValueOnce({ erreur: "PDF non généré", manquants: ["commune"] });
+    m.assembler.mockResolvedValueOnce({ document: { emetteur: "detenteurs" }, liens: [], titreGed: "Notice", nomFichier: "notice" });
+    expect(await generer()).toEqual({ erreur: "PDF non généré", manquants: ["commune"], liens: [], emetteur: "detenteurs" });
+    expect(m.rendre).not.toHaveBeenCalled();
+    expect(m.depot).not.toHaveBeenCalled();
+  });
+  // Phase 3, lot 48 (U04) : les manquants vides dans l'en-tête seulement accompagnent aussi la liste.
+  it("rend les manquants de l'en-tête seul, pour que « domicile ou siège social » suive l'adresse qui manque", async () => {
+    vi.mocked(refusDocumentIncomplet).mockReturnValueOnce({ erreur: "PDF non généré", manquants: ["domicile ou siège social"] });
+    m.assembler.mockResolvedValueOnce({ document: { emetteur: "espace", seulementEnTete: ["domicile ou siège social"] }, liens: [], titreGed: "Notice", nomFichier: "notice" });
+    expect(await generer()).toEqual({ erreur: "PDF non généré", manquants: ["domicile ou siège social"], liens: [], emetteur: "espace", seulementEnTete: ["domicile ou siège social"] });
+  });
+  it("sans origine connue (en-tête construit hors expediteur), rien n'est ajouté", async () => {
+    vi.mocked(refusDocumentIncomplet).mockReturnValueOnce({ erreur: "PDF non généré", manquants: ["commune"] });
+    expect(await generer()).toEqual({ erreur: "PDF non généré", manquants: ["commune"], liens });
+  });
+});
+
+// Reprise du lot 53 (W35) : un titre de classement daté se lisait « Mise en demeure de payer — 24/11/2026 généré — tous les
+// champs… », le mot « généré » collé à la date. Le message sépare le titre de ce qui est arrivé au PDF.
+describe("message de génération après un titre daté", () => {
+  it("« <titre> : PDF généré — … », quel que soit le titre", async () => {
+    m.assembler.mockResolvedValue({ document: {}, liens, titreGed: "Mise en demeure de payer — 24/11/2026", nomFichier: "mise_en_demeure-b1" });
+    expect((await generer()).succes).toBe("Mise en demeure de payer — 24/11/2026 : PDF généré — tous les champs sont renseignés et le PDF est rangé dans Documents.");
+  });
+  it("un titre qui dit déjà « (généré, … ) » ne le redit pas (lot 50, reprise)", async () => {
+    m.assembler.mockResolvedValue({ document: {}, liens, titreGed: "Bail meublé (généré, à faire signer) — Leblanc Julie", nomFichier: "bail" });
+    expect((await generer()).succes).toBe("Bail meublé (généré, à faire signer) — Leblanc Julie : tous les champs sont renseignés et le PDF est rangé dans Documents.");
+  });
+  it("un PDF déjà rangé : « <titre> : déjà disponible… »", async () => {
+    m.assembler.mockResolvedValue({ document: {}, liens, titreGed: "Mise en demeure de payer — 24/11/2026", nomFichier: "mise_en_demeure-b1" });
+    m.depot.mockResolvedValue({ doublonId: "doc-1", erreur: "doublon" });
+    expect((await generer()).succes).toBe("Mise en demeure de payer — 24/11/2026 : déjà disponible, le PDF existant est rattaché à ce dossier.");
   });
 });

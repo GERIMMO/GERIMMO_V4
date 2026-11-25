@@ -11,6 +11,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formaterDateHeureParis, NOTE_FUSEAU } from "@/lib/heure-paris";
 import { faitsACompleter, faitsManquants } from "@/lib/editeur";
+import { etatVendeurPourLaSante } from "@/lib/garde-souscription";
 import { EQUIPES } from "@/lib/missions";
 import {
   adoptionAutomatique,
@@ -99,10 +100,14 @@ export default async function PageSante() {
     supabase.rpc("is_permanent_super_admin"),
   ]);
   const manquants = faitsManquants(identite.indisponible?{}:identite.editeur);
-  // 23/10 : le médiateur se complète plus tard, sans rien fermer (lib/editeur.ts, A_COMPLETER).
+  // Le médiateur se compte à part : il ne ferme que la première souscription d'un particulier (lib/editeur.ts, A_COMPLETER).
   // Relecture du 23/10 : lecture en échec, on ne sait rien du médiateur — il est compté non fourni, comme les
   // faits requis, et non plus « fourni » faute d'entrée dans une liste vide.
   const aCompleter = faitsACompleter(identite.indisponible ? {} : identite.editeur);
+  // Seconde reprise du 24/11/2026 (relecture T4R-05) : la même vérité que la garde de paiement. `horsFaits` : ce qui
+  // ferme la vente sans être un fait requis des pages légales (type de vendeur non choisi, mention « EI » absente).
+  const vendeur = etatVendeurPourLaSante(identite.indisponible ? {} : identite.editeur, { blocageIdentiteActif: regle.blocageIdentiteActif, venteSansMediateurDecidee: Boolean(regle.venteSansMediateurLe) });
+  const aFournir = manquants.length + vendeur.horsFaits.length;
   // Les adresses de l'alerte du relais (réglage du serveur), affichées masquées seulement.
   const relais = adressesRelaisDuServeur();
   // Le même calcul que /admin et /admin/brief (25/09) : une seule requête du
@@ -329,18 +334,18 @@ export default async function PageSante() {
       </ConsoleSection>
 
       {/* ── Documents légaux ──────────────────────────────────────────── */}
-      <ConsoleSection titre="Informations légales" description="Faits requis et informations à compléter." icone="documents" statut={identite.indisponible ? "Lecture indisponible" : manquants.length+aCompleter.length ? `${manquants.length+aCompleter.length} à compléter` : "Complètes"}>
+      <ConsoleSection titre="Informations légales" description="Faits requis et informations à compléter." icone="documents" statut={identite.indisponible ? "Lecture indisponible" : aFournir+aCompleter.length ? `${aFournir+aCompleter.length} à compléter` : "Complètes"}>
         <div className="entete-carte mb-3">
 
-          <span className={`puce ${manquants.length > 0 ? "puce-rouge" : aCompleter.length > 0 ? "puce-prep" : "puce-loue"}`}>
-            {manquants.length > 0
-              ? `${manquants.length} à fournir`
+          <span className={`puce ${aFournir > 0 ? "puce-rouge" : aCompleter.length > 0 ? "puce-prep" : "puce-loue"}`}>
+            {aFournir > 0
+              ? `${aFournir} à fournir`
               : aCompleter.length > 0
-                ? `${aCompleter.length} à compléter, non bloquant`
+                ? `${aCompleter.length} à compléter (médiateur)`
                 : "complets"}
           </span>
         </div>
-        {manquants.length === 0 && aCompleter.length === 0 ? (
+        {aFournir === 0 && aCompleter.length === 0 ? (
           <p className="text-sm text-[var(--texte-secondaire)]">
             L&apos;identité de l&apos;éditeur est complète : mentions légales,
             conditions et confidentialité sont publiables.
@@ -354,13 +359,7 @@ export default async function PageSante() {
             )}
             {/* Relecture du 23/10 : le paiement n'est dit fermé que si la règle de blocage est active
                 (lib/garde-souscription.ts : un `false` lu en base la lève ; une lecture impossible la garde). */}
-            <p>
-              {manquants.length === 0
-                ? "L’identité requise est complète : le paiement en ligne n’en dépend plus. Les faits « à compléter » s’affichent « à venir » sur les mentions légales, sans rien fermer."
-                : regle.blocageIdentiteActif
-                  ? "Tant qu’un fait « manquant » n’est pas fourni, les pages légales affichent l’encadré « Document en cours de finalisation » et le paiement en ligne reste fermé."
-                  : "Tant qu’un fait « manquant » n’est pas fourni, les pages légales affichent l’encadré « Document en cours de finalisation ». Le blocage des abonnements est levé dans les paramètres : ces manques ne ferment plus le paiement en ligne."}
-            </p>
+            <p>{vendeur.phrase}</p>
             <ul className="mt-3 divide-y divide-[var(--filet)]">
               {faitsExiges.map((fait) => {
                 const manque = manquants.includes(fait);
@@ -373,13 +372,19 @@ export default async function PageSante() {
                   </li>
                 );
               })}
+              {vendeur.horsFaits.map((manque) => (
+                <li key={manque} className="flex items-center justify-between gap-3 py-2.5">
+                  <span>{manque[0].toUpperCase() + manque.slice(1)}</span>
+                  <span className="puce puce-rouge">manquant</span>
+                </li>
+              ))}
               {faitsNonBloquants.map((fait) => {
                 const manque = aCompleter.includes(fait);
                 return (
                   <li key={fait} className="flex items-center justify-between gap-3 py-2.5">
                     <span>{fait[0].toUpperCase() + fait.slice(1)}</span>
                     <span className={`puce ${manque ? "puce-prep" : "puce-loue"}`}>
-                      {manque ? "à compléter, non bloquant" : "fourni"}
+                      {manque ? "à compléter" : "fourni"}
                     </span>
                   </li>
                 );
@@ -441,6 +446,6 @@ export default async function PageSante() {
           {" "}<Link href="/admin/clients" className="lien-discret">Voir les organisations →</Link>
         </p>
       </ConsoleSection>
-    <SuiviStripe controle={controleStripe.error ? null : controleStripe.data as ControleStripe}/><BudgetSignatures budget={budgetSignature.error ? null : budgetSignature.data as BudgetSignature} ouverture={ouverture}/></main>
+    <SuiviStripe controle={controleStripe.error ? null : controleStripe.data as ControleStripe} stripeRelie={!absentes.has("STRIPE_SECRET_KEY") && !absentes.has("STRIPE_WEBHOOK_SECRET")}/><BudgetSignatures budget={budgetSignature.error ? null : budgetSignature.data as BudgetSignature} ouverture={ouverture}/></main>
   );
 }

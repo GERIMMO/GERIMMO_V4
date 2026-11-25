@@ -1,6 +1,7 @@
 "use client";
 import { DOCUMENTS_ZOHO, type SelectionSignature } from "@/lib/politique-signature";
 import { OuvrirSignatureDocument } from "@/components/ouvrir-signature-document";
+import { PhraseVoiesSignature } from "@/components/voies-signature";
 import { lienPourManquant } from "@/lib/documents/ou-renseigner";
 import { useEffect, useState } from "react";
 import { useActionFormulaire } from "@/lib/use-action-formulaire";
@@ -8,14 +9,23 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { genererDepuisCatalogue, proposerInteretsEmprunt } from "@/app/actions/catalogue-documents";
 import type { EtatGeneration } from "@/app/actions/documents-generes";
-import { OPTIONS_CATALOGUE } from "@/lib/documents/catalogue-options";
+import { OPTIONS_CATALOGUE, champVisible, optionsDuFormulaire } from "@/lib/documents/catalogue-options";
 import type { ChoixDossier } from "@/lib/documents/catalogue-cibles";
 import { RACINE_AGENCE, baseDepuisRacine } from "@/lib/racine-espace";
 // `racine` : « /espace » chez le propriétaire direct, « /agence » sinon (décision D27) ; la page la transmet.
-export function FormulaireCatalogue({orgId,modeleId,choix,garants=[],racine=RACINE_AGENCE}:{orgId:string;modeleId:string;choix:ChoixDossier[];garants?:{id:string;libelle:string;bailId:string}[];racine?:string}) {
+// `titulaires` : les titulaires de chaque contrat commun, parmi lesquels se choisit le colocataire sortant (phase 3, C22).
+export function FormulaireCatalogue({orgId,modeleId,choix,garants=[],titulaires=[],racine=RACINE_AGENCE}:{orgId:string;modeleId:string;choix:ChoixDossier[];garants?:{id:string;libelle:string;bailId:string}[];titulaires?:{id:string;libelle:string;bailId:string}[];racine?:string}) {
   const base=baseDepuisRacine(orgId,racine);
   const [cible,setCible]=useState(choix.length===1?choix[0].id:"");
   const [annee,setAnnee]=useState(String(new Date().getFullYear()));
+  const champs=OPTIONS_CATALOGUE[modeleId]??[];
+  // Phase 3 (S18) : la valeur courante de chaque liste de choix (le motif du congé…) ; un champ « si » n'est affiché, exigé et envoyé
+  // que pour les valeurs qu'il cite. La liste n'a pas de choix vide : elle part sur sa première valeur, comme le navigateur.
+  const [choixSaisis,setChoixSaisis]=useState<Record<string,string>>(()=>Object.fromEntries(champs.filter(c=>c.choix?.length).map(c=>[c.cle,c.choix![0].valeur])));
+  const visibles=champs.filter(c=>champVisible(c,cle=>choixSaisis[cle]??""));
+  // Phase 3 (S25) : chaque montant a sa propre valeur, qui part vide. Les intérêts d'emprunt (ci-dessous) ont la leur : le plafond du
+  // cautionnement s'ouvrait à « 0 », la valeur prévue pour les intérêts, et un plafond de 0 € est refusé comme manquant.
+  const [montants,setMontants]=useState<Record<string,string>>({});
   // D37 : « intérêts d'emprunt » du récapitulatif location nue, prérempli avec le montant que le livre porte en ligne 250 pour le lot et
   // l'année choisis (modifiable). Le serveur compare la valeur envoyée à ce même montant et signale l'écart sur le PDF.
   // `proposition` garde la dernière réponse avec sa clé (lot + année) : tant qu'elle ne correspond pas au choix courant, le bouton attend.
@@ -40,38 +50,43 @@ export function FormulaireCatalogue({orgId,modeleId,choix,garants=[],racine=RACI
   const choixCourant=choix.find(c=>c.id===cible);
   const [signature,setSignature]=useState<SelectionSignature|null>(null);
   const {etat,soumettre,enCours}=useActionFormulaire<EtatGeneration>(async (_:EtatGeneration,data:FormData)=>{
-    const options=Object.fromEntries((OPTIONS_CATALOGUE[modeleId]??[]).map(c=>[c.cle,String(data.get(c.cle)??"").trim()]));
+    const options=optionsDuFormulaire(modeleId,cle=>String(data.get(cle)??""));
     const cibleSoumise=String(data.get("cible")??"");
     setSignature(null);
     const resultat = await genererDepuisCatalogue(orgId,modeleId,cibleSoumise,options);
     if(resultat.documentId && Object.hasOwn(DOCUMENTS_ZOHO,modeleId)) setSignature({code:modeleId as SelectionSignature["code"],cibleId:cibleSoumise,options});
     return resultat;
   });
-  const champs=OPTIONS_CATALOGUE[modeleId]??[];
   const style="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm";
   return <form data-saisie-confirmee onSubmit={soumettre} aria-busy={enCours} className="space-y-5">
     <label className="block space-y-2 text-sm font-medium"><span>Dossier concerné</span><select name="cible" required className={style} value={cible} onChange={e=>setCible(e.target.value)}><option value="">Choisir un dossier</option>{choix.map(c=><option key={c.id} value={c.id}>{c.libelle}</option>)}</select></label>
-    <div className="grid gap-4 sm:grid-cols-2">{champs.map(c=>c.type==="case"?<label key={c.cle} className="flex items-start gap-2 text-sm sm:col-span-2"><input name={c.cle} type="checkbox" value="oui" required className="mt-1 size-4 shrink-0 accent-primary"/><span>{c.libelle}</span></label>:<label key={c.cle} className={`block space-y-2 text-sm font-medium ${c.type==="textarea"?"sm:col-span-2":""}`}><span>{c.libelle}</span>
+    <div className="grid gap-4 sm:grid-cols-2">{visibles.map(c=>c.type==="case"?<label key={c.cle} className="flex items-start gap-2 text-sm sm:col-span-2"><input name={c.cle} type="checkbox" value="oui" required={!c.facultatif} className="mt-1 size-4 shrink-0 accent-primary"/><span>{c.libelle}</span></label>:<label key={c.cle} className={`block space-y-2 text-sm font-medium ${c.type==="textarea"?"sm:col-span-2":""}`}><span>{c.libelle}</span>
       {c.cle==="garant"?<select key={cible} name={c.cle} className={style} required defaultValue=""><option value="" disabled>Choisir un garant rattaché au dossier</option>{garants.filter(g=>g.bailId===cible).map(g=><option key={g.id} value={g.id}>{g.libelle}</option>)}</select>:
-      c.choix?<select name={c.cle} className={style} required>{c.choix.map(v=><option value={v.valeur} key={v.valeur}>{v.libelle}</option>)}</select>:
-      c.type==="textarea"?<textarea name={c.cle} rows={3} maxLength={6000} className={style} required={!(c.repli==="detail_enregistre"&&choixCourant?.detailEnregistre)}/>:
-      c.type==="montant"?<input name={c.cle} type="text" inputMode="decimal" maxLength={20} className={style} required value={interets} onChange={e=>setInterets(e.target.value)}/>:
+      c.cle==="sortant"&&modeleId==="avenant_remplacement"?<select key={cible} name={c.cle} className={style} required defaultValue=""><option value="" disabled>{cible?"Choisir un titulaire du contrat":"Choisissez d’abord le dossier"}</option>{titulaires.filter(t=>t.bailId===cible).map(t=><option key={t.id} value={t.id}>{t.libelle}</option>)}</select>:
+      c.choix?<select name={c.cle} className={style} required={!c.facultatif} value={choixSaisis[c.cle]??""} onChange={e=>{const valeur=e.target.value;setChoixSaisis(v=>({...v,[c.cle]:valeur}));}}>{c.choix.map(v=><option value={v.valeur} key={v.valeur}>{v.libelle}</option>)}</select>:
+      c.type==="textarea"?<textarea name={c.cle} rows={3} maxLength={6000} className={style} required={!c.facultatif&&!(c.repli==="detail_enregistre"&&choixCourant?.detailEnregistre)}/>:
+      c.type==="montant"?<input name={c.cle} type="text" inputMode="decimal" maxLength={20} className={style} required={!c.facultatif} value={c.cle==="interets_emprunt"?interets:montants[c.cle]??""} onChange={e=>{const valeur=e.target.value;if(c.cle==="interets_emprunt")setInterets(valeur);else setMontants(m=>({...m,[c.cle]:valeur}));}}/>:
       c.cle==="annee"?<input name={c.cle} type="number" step="any" maxLength={500} className={style} required value={annee} onChange={e=>setAnnee(e.target.value)}/>:
-      <input name={c.cle} type={c.type??"text"} step={c.type==="number"?"any":undefined} maxLength={500} className={style} required/>}
+      <input name={c.cle} type={c.type??"text"} step={c.type==="number"?"any":undefined} maxLength={500} className={style} required={!c.facultatif}/>}
       {c.aide&&<span className="block text-xs font-normal text-muted-foreground">{c.aide}</span>}
       {c.repli==="detail_enregistre"&&choixCourant?.detailEnregistre&&<span className="block text-xs font-normal text-muted-foreground">Cette régularisation porte déjà un détail : laissez vide pour le reprendre tel quel.</span>}
-      {c.type==="montant"&&infoInterets&&<span role="status" className="block text-xs font-medium">{infoInterets}</span>}</label>)}</div>
+      {c.cle==="interets_emprunt"&&infoInterets&&<span role="status" className="block text-xs font-medium">{infoInterets}</span>}</label>)}</div>
+    {/* Décision du 24/11/2026 (Q11) : voie électronique ouverte, elle est proposée avant le PDF à imprimer. Service
+        fermé ou agence (relecture B1, B2) : le bouton reste après le PDF, comme avant la décision. Un seul des deux
+        boutons s'affiche, selon l'état de la voie. */}
+    {signature&&<OuvrirSignatureDocument place="avant" enveloppe="" orgId={orgId} selection={signature}/>}
     <p className="text-sm text-muted-foreground">Le PDF sera enregistré dans Documents. Aucun envoi automatique.</p>
     <Button disabled={enCours||!cible||!choix.length||calcul} type="submit">{enCours?"Préparation du PDF…":"Générer le PDF"}</Button>
     {etat.erreur&&!etat.manquants?.length&&<p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}
     {etat.succes&&<p role="status" className="text-sm text-success">{etat.succes}</p>}
-    {signature&&<OuvrirSignatureDocument orgId={orgId} selection={signature}/>}
+    {signature&&<OuvrirSignatureDocument place="apres" orgId={orgId} selection={signature}/>}
+    {signature&&<PhraseVoiesSignature code={signature.code} papier="générez le PDF, imprimez-le et faites-le signer par les parties." />}
     {etat.documentId&&<Link className="block font-medium text-primary underline" href={`${base}/documents/${etat.documentId}/fichier`} target="_blank" rel="noopener">Ouvrir le PDF</Link>}
     {!!etat.manquants?.length&&<section aria-label="Informations à compléter" role="status" className="rounded-xl border border-[var(--or-filet)] bg-[var(--or-clair)] p-4">
       <h3 className="text-sm font-semibold">Encore {etat.manquants.length} {etat.manquants.length===1?"information":"informations"} à compléter</h3>
       <p className="mt-1 text-sm text-muted-foreground">Complétez le dossier, puis revenez générer le PDF.</p>
       <ul className="mt-3 divide-y divide-blue-100">{etat.manquants.map(m=>{
-        const destination=lienPourManquant(m,orgId,etat.liens??[],modeleId,racine);
+        const destination=lienPourManquant(m,orgId,etat.liens??[],modeleId,racine,etat.emetteur,etat.seulementEnTete,etat.videsBailleur);
         return <li key={m} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm"><span className="min-w-0 flex-1">{m}</span>{destination&&<Link className="font-medium text-primary underline underline-offset-4" href={destination.href} aria-label={`Compléter : ${m} (${destination.ecran})`}>Compléter →</Link>}</li>;
       })}</ul>
     </section>}

@@ -37,7 +37,9 @@ function Icone({ nom }: { nom: string }) {
 
 export function SidebarLocataire({
   orgId,
-  libelleContact = "Mon gestionnaire",
+  // Lot 47 : « Mon gestionnaire » ou « Mon bailleur » selon l'espace (identite.titre) ; sans réglage, le titre neutre
+  // de l'identité inconnue, jamais « gestionnaire » par défaut.
+  libelleContact = "Mon bailleur",
   badgeDocuments = 0,
   badgeDemandes = 0,
   badgeMessages = 0,

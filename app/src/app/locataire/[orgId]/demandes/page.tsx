@@ -2,13 +2,22 @@ import { RendezVousLocataireConfirme } from "@/components/rendez-vous-locataire-
 import { EchangesIntervention } from "@/components/echanges-intervention";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { IncidentsLocataire, type IncidentLocataire } from "../incidents-locataire";
+import { nomDemande } from "@/lib/incidents";
 import { aEchoue, PanneLecture } from "../panne-lecture";
 import { BORD_ETAT } from "../pastille-locataire";
 import type { CreneauPropose, SuiviIntervention } from "./suivi-intervention";
 import { signalementOuvert } from "../types";
-import type { RendezVousLocataire } from "@/lib/rendez-vous-locataire";
+import { lireIdentiteContact } from "../identite-contact";
+import { interlocuteurDeLIdentite } from "@/lib/identite-contact-locataire";
+import { auteurCoteEspace } from "@/lib/interlocuteur-locataire";
+import { lireEnvoisProposes } from "@/lib/envois-suspendus";
+import { instantRdv, type RendezVousLocataire } from "@/lib/rendez-vous-locataire";
+import { etiquetteNouveauxMessages, lireEchangesNonLus } from "@/lib/echanges-intervention";
+import { lireRetraitsDeMesNotes } from "@/lib/evaluation-retiree";
+import { phraseRendezVousManque, rendezVousManquesAffiches, type RendezVousManqueLocataire } from "@/lib/rendez-vous-manque";
 
 export const metadata = { title: "Mes demandes" };
 
@@ -30,6 +39,8 @@ export default async function PageDemandesLocataire(
 ) {
   const { orgId } = await props.params;
   const { supabase, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
+  // Lot 47 : « votre gestionnaire » seulement dans un espace d'agence ; chez un propriétaire, « votre bailleur ».
+  const interlocuteur = interlocuteurDeLIdentite(await lireIdentiteContact(orgId));
 
   const [
     { data: incidentsBruts, error: eIncidents },
@@ -37,6 +48,9 @@ export default async function PageDemandesLocataire(
     { data: creneauxBruts, error: eCreneaux },
     { data: baux },
     { data: rendezVousBruts, error: eRendezVous },
+    echangesNonLus,
+    { data: rdvManquesBruts },
+    retraitsDeMesNotes,
   ] = await Promise.all([
     supabase.rpc("mes_incidents_locataire", { p_org: orgId }),
     supabase.rpc("mon_suivi_intervention", { p_org: orgId }),
@@ -52,11 +66,26 @@ export default async function PageDemandesLocataire(
     adhesionActive
       ? supabase.rpc("mes_rendez_vous_locataire", { p_org: orgId })
       : Promise.resolve({ data: [], error: null }),
+    // Audit palier 1 (P1-05) : les discussions d'intervention qui portent un message qu'il n'a pas lu.
+    lireEchangesNonLus(supabase, orgId),
+    // Audit palier 1 (P2-04) : un rendez-vous confirmé manqué, et qui est dit absent. Lecture d'appoint : en échec,
+    // rien n'est affiché (l'absence reste consignée au dossier, chez le propriétaire).
+    supabase.rpc("mes_rdv_manques_locataire", { p_org: orgId }),
+    // Décision du 24/11/2026 (Q20, reprise M5) : le locataire lit le motif du retrait de SA note. La base ne rend que
+    // les notes retirées dont il est l'auteur.
+    lireRetraitsDeMesNotes(supabase, orgId),
   ]);
   const peutSignaler = adhesionActive && signalementOuvert(baux as { etat: string }[] | null);
+  // Audit palier 1 (P1-08) : le rappel de la veille est un envoi que le superviseur ouvre. Fermé (le défaut) ou
+  // illisible, l'écran ne le promet pas et dit de noter la date.
+  const rappelPromis = (await lireEnvoisProposes(supabase)).rappel_rendez_vous;
 
   const incidents = (incidentsBruts ?? []) as IncidentLocataire[];
-  const suivis = (suivisBruts ?? []) as SuiviIntervention[];
+  // Chaque suivi porte, s'il y a lieu, le retrait de la note que CE locataire a donnée (jamais celle d'un autre).
+  const suivis = ((suivisBruts ?? []) as SuiviIntervention[]).map((s) => ({
+    ...s,
+    retrait_de_ma_note: retraitsDeMesNotes.find((r) => r.source === "locataire" && r.intervention_id === s.intervention_id) ?? null,
+  }));
   const creneaux = (creneauxBruts ?? []) as CreneauPropose[];
   const { rendezvous: selection } = await props.searchParams;
   const rendezVous = (rendezVousBruts ?? []) as RendezVousLocataire[];
@@ -75,6 +104,35 @@ export default async function PageDemandesLocataire(
   const boutonSignaler = peutSignaler && (incidents.length > 0 || aEchoue(eIncidents));
   // La carte « Un rendez-vous attend votre choix » est affichée (présentation seule : même test que plus bas).
   const creneauAttendu = aChoisir > 0 && adhesionActive && Boolean(premiereAChoisir);
+  // Audit palier 1 (P1-05) : un message l'attend dans la discussion d'une intervention — dit en haut de page, avec
+  // un lien qui mène à la discussion (elle est plus bas, sous les demandes). Seulement pour une discussion affichée ici.
+  const discussionsAffichees = new Set(suivis.flatMap((s) => (s.intervention_id ? [s.intervention_id] : [])));
+  const messagesALire = echangesNonLus.lignes.filter((e) => discussionsAffichees.has(e.intervention_id));
+  const nombreALire = messagesALire.reduce((total, e) => total + Number(e.non_lus), 0);
+  // P2-04 : le dernier rendez-vous manqué de chaque demande, tant qu'aucun nouveau rendez-vous n'est fixé et que
+  // l'intervention n'est pas terminée. Le locataire lit qui est dit absent ; jamais la précision libre.
+  const rdvManques = rendezVousManquesAffiches((rdvManquesBruts ?? []) as RendezVousManqueLocataire[], suivis);
+
+  // Phase 3, lot 61 (E014, E131) : la « Discussion de l'intervention » était rendue après TOUTES les demandes, sans dire
+  // laquelle elle concernait ; avec deux demandes, elle se lisait sous la mauvaise. Chaque discussion est maintenant
+  // rendue juste sous la carte de SA demande, et son en-tête nomme cette demande. Une discussion dont la demande n'est
+  // pas dans la liste (lecture des demandes en échec) reste en bas de page, comme avant.
+  const demandesAffichees = new Map(aEchoue(eIncidents) ? [] : incidents.map((i) => [i.id, i] as const));
+  const discussions: Record<string, ReactNode> = {};
+  const discussionsSansCarte: string[] = [];
+  for (const id of discussionsAffichees) {
+    const demande = demandesAffichees.get(suivis.find((s) => s.intervention_id === id)!.incident_id);
+    if (!demande) {
+      discussionsSansCarte.push(id);
+      continue;
+    }
+    discussions[demande.id] = (
+      <>
+        {discussions[demande.id]}
+        <EchangesIntervention key={id} intervention={id} interlocuteur={interlocuteur} demande={nomDemande(demande)} demandeDUnAutre={!demande.est_declarant} />
+      </>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -105,11 +163,11 @@ export default async function PageDemandesLocataire(
       </div>
 
       {!eRendezVous && <RendezVousLocataireConfirme orgId={orgId} lignes={rendezVous} selection={typeof selection === "string" ? selection : undefined}/>}
-      {aEchoue(eIncidents) && <PanneLecture quoi="vos demandes" />}
+      {aEchoue(eIncidents) && <PanneLecture quoi="vos demandes" interlocuteur={interlocuteur} />}
       {/* Le suivi tombé ne doit pas faire croire qu'il ne se passe rien : sans
           lui, la carte n'affiche que l'état de l'incident, muet sur l'artisan. */}
       {!aEchoue(eIncidents) && aEchoue(eSuivis, eCreneaux, eRendezVous) && (
-        <PanneLecture quoi="l'avancement de vos demandes" />
+        <PanneLecture quoi="l'avancement de vos demandes" interlocuteur={interlocuteur} />
       )}
 
       {/* Le seul geste attendu passe en premier, et la carte entière mène à
@@ -132,6 +190,24 @@ export default async function PageDemandesLocataire(
         </a>
       )}
 
+      {messagesALire.length > 0 && (
+        <a href={`#discussion-${messagesALire[0].intervention_id}`} data-nouveaux-messages className={`loc-carte block ${BORD_ETAT.attention}`}>
+          <h2 className="titre-carte text-base font-medium">{etiquetteNouveauxMessages(nombreALire)} sur votre intervention</h2>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            {/* Lot 47 (reprise) : dans un espace d'agence, c'est le gestionnaire qui écrit dans la discussion. */}
+            {auteurCoteEspace(interlocuteur)} ou l&apos;artisan vous a écrit dans la discussion de l&apos;intervention.
+          </p>
+          <span className="btn-secondaire mt-3">Lire la discussion{"\u00a0"}→</span>
+        </a>
+      )}
+
+      {rdvManques.map((m) => (
+        <a key={m.intervention_id} href={`#demande-${m.incident_id}`} data-rdv-manque={m.absent} className={`loc-carte block ${BORD_ETAT.attention}`}>
+          <h2 className="titre-carte text-base font-medium">Rendez-vous manqué {instantRdv(m.rdv_debut)}</h2>
+          <p className="mt-1.5 text-sm text-muted-foreground">{phraseRendezVousManque(m, interlocuteur)}</p>
+        </a>
+      ))}
+
       {/* L’accès Urgence reste visible dans l’en-tête commun. */}
       {/* Chaque signalement porte sa propre carte, avec son fil d'étapes */}
       <IncidentsLocataire
@@ -143,8 +219,12 @@ export default async function PageDemandesLocataire(
         peutAgir={adhesionActive}
         peutSignaler={peutSignaler}
         lectureEnEchec={aEchoue(eIncidents)}
+        rappelPromis={rappelPromis}
+        interlocuteur={interlocuteur}
+        discussions={discussions}
       />
-      {!eSuivis && [...new Set(suivis.flatMap(s=>s.intervention_id?[s.intervention_id]:[]))].map(id=><EchangesIntervention key={id} intervention={id} />)}
+      {/* Lot 61 : seules les discussions qui n'ont pas pu être rangées sous leur demande restent ici. */}
+      {discussionsSansCarte.map(id=><EchangesIntervention key={id} intervention={id} interlocuteur={interlocuteur} />)}
     </div>
   );
 }

@@ -1,0 +1,16 @@
+-- RETOUR ARRIÈRE de 20261124180000_notice_information_deposee.sql (décision du 24/11/2026, Q46 : la notice
+-- d'information déposée par le bailleur).
+--
+-- À JOUER APRÈS le retour du code de l'application à la version précédente : l'ancien code ne dépose aucun document
+-- de ce type et ne le lit pas.
+--
+-- ATTENTION — AVANT de revenir au code précédent : ACTIVER OU ANNULER LES CIRCUITS DE SIGNATURE DE BAIL EN COURS.
+-- Un bail ENVOYÉ en signature électronique avec la notice déposée ne s'activerait plus sous l'ancien code : à
+-- l'activation, l'ancien code recalcule l'empreinte du dossier sans la notice, et elle ne correspond plus à celle du
+-- circuit envoyé. Les circuits déjà terminés et activés ne sont pas concernés.
+--
+-- PostgreSQL ne sait pas retirer une valeur d'un type énuméré : `notice_information` RESTE dans `document_type`.
+-- Inutilisée par l'ancien code, elle ne gêne rien. Les notices déjà déposées ne sont PAS supprimées : elles restent
+-- dans Documents, liées à leur bail ; l'ancien code les affiche parmi les documents, sans s'en servir.
+-- Ce retour ne retire donc que l'inscription de la migration. Rejouable.
+delete from supabase_migrations.schema_migrations where version = '20261124180000';

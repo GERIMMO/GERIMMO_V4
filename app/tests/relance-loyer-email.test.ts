@@ -13,6 +13,8 @@ const base = {
   dateEcheance: "2026-09-01",
   reste: 400,
   lien: "https://gerimmo.fr/locataire/org/loyers",
+  // Lot 47 : « Agence Alpha » est un espace d'agence ; l'interlocuteur nommé y est le gestionnaire.
+  interlocuteur: "gestionnaire",
 } as const;
 
 describe("le sujet dit le mois et le niveau", () => {

@@ -5,8 +5,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { aujourdhuiParis } from "@/lib/ged";
 import { Fusion, assemblerPage, blocSignatureEmetteur, cartouches, enTete, faitA, formaterDateFr, titre } from "../gabarit";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
-import { adresseOrganisation, nomPersonne, referenceCourte, signatureOrganisation } from "./communs";
+import { adresseLogement, chargerDetenteursLot, expediteur, nomPersonne, referenceCourte, signatureOrganisation } from "./communs";
 import type { Assemblage } from "./index";
+import { MANQUE_LOCATAIRE_ATTESTATION } from "../ou-renseigner";
 
 export type DonneesRappelAssurance = {
   reference: string;
@@ -16,7 +17,9 @@ export type DonneesRappelAssurance = {
   logementAdresse: string | null;
   referenceBail: string | null;
   canalReponse: string | null;
-  exp: { nom: string; adresse: string | null; email: string | null; telephone: string | null; ville: string | null };
+  /** C58 : le locataire a un espace locataire actif dans cet espace de travail (sinon le courrier n'en parle pas). */
+  espaceLocataire: boolean;
+  exp: ReturnType<typeof expediteur>;
   signatureImg?: string | null;
   f: Fusion;
 };
@@ -25,7 +28,9 @@ export function construireRappelAssurance(d: DonneesRappelAssurance) {
   const f = d.f;
   const corps = `
     ${enTete(f, d.exp, { libelle: "Contrat", reference: d.referenceBail, etabliLe: new Date().toISOString() })}
-    ${titre("Attestation d'assurance", `Rappel · échéance du ${f.date(d.echeance)}`, [
+    ${/* Phase 3 (C57) : le titre dit ce qu'est le document — une demande adressée au locataire, comme le pied de page et le
+       classement — et non « Attestation d'assurance », qu'un tiers pouvait prendre pour le justificatif lui-même. */
+      titre("Demande d'attestation d'assurance", `Rappel · échéance du ${f.date(d.echeance)}`, [
       "Article 7 g de la loi n° 89-462 du 6 juillet 1989",
     ])}
     ${cartouches([
@@ -41,13 +46,21 @@ export function construireRappelAssurance(d: DonneesRappelAssurance) {
            échéance le ${d.echeance ? formaterDateFr(d.echeance) : ""}.`
     }</p>
     <p>Nous vous remercions de nous faire parvenir, <b>dès son renouvellement</b>, votre nouvelle
-    attestation couvrant les risques locatifs (incendie, dégât des eaux, explosion), directement
-    depuis votre espace locataire Gerimmo ou à l'adresse suivante : ${f.champ(d.canalReponse, "adresse ou courriel")}.</p>
+    attestation couvrant les risques locatifs (incendie, dégât des eaux, explosion), ${
+      d.espaceLocataire ? "directement depuis votre espace locataire Gerimmo ou " : ""
+    }à l'adresse suivante : ${f.champ(d.canalReponse, "adresse ou courriel")}.</p>
+    ${/* Lot T3 (R16-A2) : l'ancien texte mêlait deux procédures de l'article 7 g (« après mise en demeure […] constitue un
+        motif de résiliation, ou permet […] de souscrire une assurance ») : la résiliation suppose une clause et un
+        COMMANDEMENT ; la mise en demeure ouvre l'assurance pour compte et vaut renoncement à la clause. */ ""}
     <div class="mentions">
       <p>L'assurance du logement est une obligation du locataire pendant toute la durée du bail
-      (article 7 g de la loi du 6 juillet 1989). Son défaut, après mise en demeure restée sans
-      effet, constitue un motif de résiliation, ou permet au bailleur de souscrire une assurance
-      pour le compte du locataire, récupérable par douzième avec le loyer.</p>
+      (article 7 g de la loi du 6 juillet 1989) : vous en justifiez à la remise des clés puis,
+      chaque année, à la demande du bailleur. À défaut, deux voies distinctes existent : la clause
+      du bail qui prévoit sa résiliation pour défaut d'assurance ne produit effet qu'un mois après
+      un commandement resté sans effet ; ou bien, un mois après une mise en demeure non suivie
+      d'effet, le bailleur peut souscrire une assurance pour le compte du locataire, dont la prime
+      est récupérable par douzième à chaque paiement du loyer. Cette mise en demeure vaut
+      renoncement à la clause de résiliation.</p>
     </div>
     ${faitA(f, d.exp.ville, new Date().toISOString())}
     ${blocSignatureEmetteur(d.exp.nom, d.signatureImg ?? null)}
@@ -67,7 +80,7 @@ export async function assemblerRappelAssurance(
   documentId: string
 ): Promise<Assemblage> {
   const CHAMPS_PERSONNE =
-    "id, nom, prenom, email, telephone, date_naissance, address_line1, postal_code, city, qualite";
+    "id, nom, prenom, email, telephone, date_naissance, address_line1, postal_code, city, qualite, account_id";
   const [{ data: doc }, { data: organisation }] = await Promise.all([
     supabase
       .from("documents")
@@ -87,7 +100,7 @@ export async function assemblerRappelAssurance(
   if (!organisation) return { erreur: "Organisation introuvable." };
 
   // document_liens est polymorphe (pas de FK vers persons) : deux temps
-  const { data: lien } = await supabase
+  const { data: lien, error: erreurLien } = await supabase
     .from("document_liens")
     .select("entite_id")
     .eq("document_id", documentId)
@@ -97,21 +110,63 @@ export async function assemblerRappelAssurance(
   const { data: personne } = lien
     ? await supabase.from("persons").select(CHAMPS_PERSONNE).eq("id", lien.entite_id).maybeSingle()
     : { data: null };
-  if (!personne) return { erreur: "L'attestation n'est rattachée à aucune personne." };
+  // Phase 3, lot 46 (reprise, T21) : une attestation rattachée à aucune personne rend la demande INCOMPLÈTE (« À renseigner » :
+  // le locataire, à rattacher à l'attestation dans Documents), plus refusée. Le catalogue la proposait (type et purge seulement)
+  // puis répondait « L'attestation n'est rattachée à aucune personne », sans dire où la rattacher. Sans personne, aucun bail
+  // n'est cherché : l'en-tête est celui de l'espace et le logement manque aussi, comme pour un locataire sans bail en cours.
+  // Une personne rattachée mais illisible n'est pas une donnée à compléter : refus, qui dit ce qui est.
+  if (erreurLien) return { erreur: "Les rattachements de l'attestation ne peuvent pas être lus. Réessayez." };
+  if (lien && !personne) return { erreur: "La fiche de la personne rattachée à l'attestation ne peut pas être lue. Réessayez." };
 
-  // Le logement : le bail vivant dont cette personne est locataire principal
-  const { data: bail } = await supabase
-    .from("baux")
-    .select(
-      "id, locataire_principal, lot:lots!baux_lot_meme_org_fk(nom, etage, bien:biens!lots_bien_id_fkey(address_line1, postal_code, city))"
-    )
-    .eq("organization_id", orgId)
-    .eq("locataire_principal", personne.id)
-    .in("etat", ["actif", "preavis"])
-    .limit(1)
-    .maybeSingle();
-  const lot = bail ? premier(bail.lot as UnOuPlusieurs<{ nom: string; etage: string | null; bien: UnOuPlusieurs<{ address_line1: string; postal_code: string; city: string }> }>) : null;
+  // Le logement : le bail vivant de cette personne, qu'elle en soit locataire principal ou colocataire. Reprise du lot 37 (C56) :
+  // seul le locataire principal était cherché ; pour un colocataire, le rappel perdait son logement et ses bailleurs, et
+  // repartait au nom de l'espace. Une lecture en échec refuse le document (elle passait pour « aucun bail en cours »).
+  const CHAMPS_BAIL =
+    "id, locataire_principal, chambre:lot_chambres!baux_chambre_meme_lot_fk(nom), lot:lots!baux_lot_meme_org_fk(id, nom, etage, bien:biens!lots_bien_id_fkey(address_line1, postal_code, city))";
+  const BAIL_ILLISIBLE = "Le bail de cette personne ne peut pas être vérifié. Réessayez.";
+  const bauxVivants = () => supabase.from("baux").select(CHAMPS_BAIL).eq("organization_id", orgId).in("etat", ["actif", "preavis"]);
+  const principal = personne ? await bauxVivants().eq("locataire_principal", personne.id).limit(1).maybeSingle() : { data: null, error: null };
+  if (principal.error) return { erreur: BAIL_ILLISIBLE };
+  let bail = principal.data;
+  if (!bail && personne) {
+    // Phase 3, lot 46 (T18, C56) : un colocataire PARTI (date de départ passée, après un avenant de remplacement par exemple)
+    // n'est plus locataire du bail, comme sur sa fiche (date_depart vide ou à venir, jour de Paris). Il recevait une demande
+    // émise par la bailleresse, avec le logement et la référence du bail ; il retombe sur l'en-tête de l'espace, sans logement.
+    const { data: colocations, error: erreurColocations } = await supabase
+      .from("bail_personnes")
+      .select("bail_id")
+      .eq("organization_id", orgId)
+      .eq("person_id", personne.id)
+      .eq("role", "colocataire")
+      .or(`date_depart.is.null,date_depart.gte.${aujourdhuiParis()}`);
+    if (erreurColocations) return { erreur: BAIL_ILLISIBLE };
+    const ids = ((colocations ?? []) as { bail_id: string }[]).map((c) => c.bail_id);
+    if (ids.length) {
+      const colocation = await bauxVivants().in("id", ids).limit(1).maybeSingle();
+      if (colocation.error) return { erreur: BAIL_ILLISIBLE };
+      bail = colocation.data;
+    }
+  }
+  const lot = bail ? premier(bail.lot as UnOuPlusieurs<{ id: string; nom: string; etage: string | null; bien: UnOuPlusieurs<{ address_line1: string; postal_code: string; city: string }> }>) : null;
   const bien = lot ? premier(lot.bien) : null;
+  // C59 : le logement loué s'imprime comme dans les autres documents du bail (adresseLogement : immeuble, lot, étage) ; un
+  // contrat individuel de colocation y ajoute sa chambre, comme chargerContexteBail.
+  const chambre = bail ? premier((bail as { chambre?: UnOuPlusieurs<{ nom: string }> }).chambre ?? null) : null;
+
+  // C56 : le rappel est émis et signé comme les autres documents du bail, par ses détenteurs hors espace d'agence (expediteur).
+  // Il l'était au nom de l'espace de travail, avec son téléphone. Sans bail en cours (aucun lot connu), l'organisation émet ;
+  // le logement manque alors et le document reste à compléter.
+  const detenteurs = lot && organisation.type !== "agence" ? await chargerDetenteursLot(supabase, lot.id) : [];
+  if (!detenteurs) return { erreur: "Les bailleurs du logement ne peuvent pas être vérifiés. Réessayez." };
+
+  // C58 : « votre espace locataire Gerimmo » seulement si le locataire en a un, ouvert (compte rattaché et accès actif, comme
+  // la fiche de la personne le lit). Sinon, ou si l'accès ne peut pas être vérifié, le courrier ne donne que l'adresse de dépôt.
+  let espaceLocataire = false;
+  if (personne?.account_id) {
+    const { data: acces, error: erreurAcces } = await supabase.rpc("statut_acces_locataire", { p_org: orgId, p_person_id: personne.id });
+    const statut = acces as { role?: string; status?: string } | null;
+    espaceLocataire = !erreurAcces && statut?.role === "locataire" && statut.status === "active";
+  }
 
   const f = new Fusion();
   const aujourdHui = aujourdhuiParis();
@@ -119,29 +174,23 @@ export async function assemblerRappelAssurance(
     reference: referenceCourte("ASSU", doc.id),
     echeance: doc.expire_le,
     expiree: Boolean(doc.expire_le && doc.expire_le < aujourdHui),
-    locataireNom: f.champ(nomPersonne(personne), "nom et prénom(s) du ou des locataires"),
-    logementAdresse: bien
-      ? [bien.address_line1, `${bien.postal_code} ${bien.city}`].filter(Boolean).join(", ")
-      : null,
+    locataireNom: personne ? f.champ(nomPersonne(personne), "nom et prénom(s) du ou des locataires") : f.champ(null, MANQUE_LOCATAIRE_ATTESTATION),
+    logementAdresse: lot && bien ? adresseLogement({ nom: chambre ? `${lot.nom} · ${chambre.nom}` : lot.nom, etage: lot.etage }, bien) : null,
     referenceBail: bail ? referenceCourte("BAIL", bail.id) : null,
     canalReponse: organisation.email_contact,
-    exp: {
-      nom: organisation.name,
-      adresse: adresseOrganisation(organisation),
-      email: organisation.email_contact,
-      telephone: organisation.telephone,
-      ville: organisation.city,
-    },
+    espaceLocataire,
+    exp: expediteur({ organisation, bailleurs: detenteurs }),
     signatureImg: await signatureOrganisation(supabase, orgId),
     f,
   });
 
   return {
     document,
-    titreGed: "Demande d'attestation d'assurance",
+    // Phase 3 (C64) : deux demandes classées le même jour se distinguent par le locataire concerné (« Nom Prénom »).
+    titreGed: `Demande d'attestation d'assurance — ${personne ? nomPersonne(personne) : "locataire à rattacher"}`,
     nomFichier: `rappel-assurance-${aujourdHui}`,
     liens: [
-      { entite: "personne", entiteId: personne.id },
+      ...(personne ? [{ entite: "personne" as const, entiteId: personne.id }] : []),
       ...(bail ? [{ entite: "bail" as const, entiteId: bail.id }] : []),
     ],
   };

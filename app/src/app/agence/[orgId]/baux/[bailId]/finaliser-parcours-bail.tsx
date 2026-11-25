@@ -13,6 +13,8 @@ import { LecteurDocument } from "@/components/lecteur-document";
 import { SignatureElectroniqueBail } from "@/components/signature-electronique-bail";
 import { OuvrirSignatureDocument } from "@/components/ouvrir-signature-document";
 import { useBaseEspace, useRacineEspace } from "@/components/racine-espace-contexte";
+import { PhraseVoiesSignature, useVoieSignature } from "@/components/voies-signature";
+import { phraseVoiesSignature } from "@/lib/voie-signature";
 import styles from "./finaliser-parcours-bail.module.css";
 
 type Controle = { manquants: string[]; erreur?: string } | null;
@@ -46,6 +48,7 @@ export function PointsManquantsFinalisation({ manquants, manquantsRecap, recapit
 
 function PdfEtatDesLieux({ orgId, edlId, retour, revision, lectureSeule, signe }: { orgId: string; edlId: string; retour: string; revision: number; lectureSeule: boolean; signe: boolean }) {
   const base = useBaseEspace(orgId);
+  const signable = !lectureSeule && !signe;
   const [generation, setGeneration] = useState<Generation | null>(null);
   const [enCours, demarrer] = useTransition();
   const courant = generation?.revision === revision;
@@ -66,8 +69,12 @@ function PdfEtatDesLieux({ orgId, edlId, retour, revision, lectureSeule, signe }
     {courant && generation?.resultat.erreur && <p className={styles.erreur} role="alert">{generation.resultat.erreur}</p>}
     {courant && Boolean(generation?.resultat.manquants?.length) && <p className={styles.message}>À compléter dans la grille : {generation!.resultat.manquants!.join(" · ")}.</p>}
     {generation?.resultat.documentId && !courant && <p className={styles.message} role="status">Le dossier a changé. Actualisez le PDF de l’état des lieux.</p>}
+    {/* Décision du 24/11/2026 (Q11) : voie électronique ouverte, elle vient d'abord ; la voie papier (dépôt de l'état des
+        lieux signé, depuis la grille) reste toujours offerte, juste en dessous. Service fermé ou agence : la grille d'abord. */}
+    {signable && <OuvrirSignatureDocument place="avant" enveloppe={styles.signatureEdl} orgId={orgId} selection={{ code: "edl", cibleId: edlId }}/>}
     <a className={styles.lien} href={`${retour}/edl/${edlId}`}>{lectureSeule || signe ? "Consulter la grille" : "Compléter la grille"} →</a>
-    {!lectureSeule && !signe && <div className={styles.signatureEdl}><OuvrirSignatureDocument orgId={orgId} selection={{ code: "edl", cibleId: edlId }}/></div>}
+    {signable && <OuvrirSignatureDocument place="apres" enveloppe={styles.signatureEdl} orgId={orgId} selection={{ code: "edl", cibleId: edlId }}/>}
+    {signable && <PhraseVoiesSignature code="edl" papier="déposez l’état des lieux signé depuis la grille." className={styles.message} />}
   </>;
 }
 
@@ -77,6 +84,11 @@ export function FinaliserParcoursBail({ orgId, bailId, code, edlId, edlSigne = f
   lectureSeule?: boolean; recapitulatifStructure?: boolean;
 }) {
   const base = useBaseEspace(orgId), racine = useRacineEspace(), titreId = useId();
+  // Relecture du 24/11/2026 (B2) : service fermé, le dépôt du bail signé sur papier passe AVANT le panneau de la
+  // signature électronique, et la phrase d'en-tête le dit. Voie ouverte : l'électronique d'abord (décision Q11).
+  const voieBail = useVoieSignature("bail");
+  const papierDabord = voieBail === "en_preparation" || voieBail === "suspendue";
+  const phraseVoies = phraseVoiesSignature(voieBail, "déposez le contrat signé dans la carte « Bail signé », plus bas.");
   const controle = useContext(CompletudeBail);
   const revision = useContext(EtapeComplementsBail)?.revision ?? 0;
   const [generation, setGeneration] = useState<Generation | null>(null);
@@ -100,7 +112,10 @@ export function FinaliserParcoursBail({ orgId, bailId, code, edlId, edlSigne = f
     });
   }
   return <section className={styles.finalisation} id="signature" aria-labelledby={titreId}>
-    <header className={styles.entete}><h3 id={titreId}>Documents et signatures</h3><p>{documentSigne ? "Le contrat signé est disponible. La location reste à activer." : "Relisez les documents avant de lancer les signatures."}</p></header>
+    <header className={styles.entete}><h3 id={titreId}>Documents et signatures</h3><p>{documentSigne ? "Le contrat signé est disponible. La location reste à activer." : "Relisez les documents avant de lancer les signatures."}
+      {/* Décision du 24/11/2026 (Q11). Seul le propriétaire direct a la signature électronique du bail : c'est à lui qu'on
+          annonce les deux voies, dans l'ordre où l'écran les présente (l'agence ne lit rien de plus qu'avant). */}
+      {!documentSigne && proprietaireDirect && !lectureSeule && phraseVoies && <span data-ordre-signatures={voieBail}> {phraseVoies}</span>}</p></header>
     {!documentSigne && <PointsManquantsFinalisation manquants={manquants} manquantsRecap={controle?.manquants ?? []} recapitulatifStructure={recapitulatifStructure} orgId={orgId} racine={racine}/>}
     <div className={styles.documents}>
       <section className={styles.carte} aria-labelledby={`${titreId}-contrat`}>
@@ -128,9 +143,11 @@ export function FinaliserParcoursBail({ orgId, bailId, code, edlId, edlSigne = f
       </section>
     </div>
     {lectureSeule && <p className={styles.message}>Consultation uniquement. Le propriétaire gère la signature et l’activation depuis son espace.</p>}
+    {/* G-01 : un bail signé hors de Gerimmo (papier, autre prestataire) se dépose dans la carte `signatureManuelle` ;
+        c'est aussi là que s'active un bail déjà signé. Les contrôles restent côté serveur (mentions obligatoires, dépôt
+        PDF, activation). Service de signature fermé : cette carte passe devant le panneau électronique. */}
+    {!lectureSeule && papierDabord && signatureManuelle}
     {proprietaireDirect && !lectureSeule && <SignatureElectroniqueBail orgId={orgId} bailId={bailId} manquantsDejaAffiches={recapitulatifStructure ? controle?.manquants : undefined}/>}
-    {/* G-01 : un bail signé hors de Gerimmo (papier, autre prestataire) se dépose ici ; c'est aussi là que s'active
-        un bail déjà signé. Les contrôles restent côté serveur (mentions obligatoires, dépôt PDF, activation). */}
-    {!lectureSeule && signatureManuelle}
+    {!lectureSeule && !papierDabord && signatureManuelle}
   </section>;
 }

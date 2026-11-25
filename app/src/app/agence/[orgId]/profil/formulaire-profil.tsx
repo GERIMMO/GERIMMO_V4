@@ -56,24 +56,38 @@ const COULEUR_FONCEE = CHARTE_GERIMMO.encre;
 // (marque, encre) ne distinguaient rien.
 const CASE = "size-5 shrink-0 accent-[var(--marque)]";
 
+/**
+ * Audit palier 1 (P1-08) : l'avis d'échéance et la relance automatique ne se proposent à un espace que si le
+ * superviseur a ouvert l'envoi. Fermé (le défaut) : l'écran affiche « suspendu », comme avant, et ne demande rien.
+ */
+// Lot T3 (R24-A1) : l'e-mail à la caution suit la seconde relance, que ce réglage peut placer après le mois de l'article
+// 2303 du code civil, et que d'autres attentes retardent (confirmation, plan d'apurement, seuil). L'écran le dit.
+const CAUTION_ET_RELANCES =
+  "Caution : Gerimmo ne l’informe par e-mail qu’avec la seconde relance. Réglée au-delà de 30 jours, ou retardée (confirmation attendue, plan d’apurement, dette sous le seuil, e-mail inconnu), cette information part plus d’un mois après l’échéance. L’article 2303 du code civil demande au créancier professionnel d’informer la caution personne physique du premier loyer resté impayé un mois : informez-la vous-même dans ce délai ; les loyers du bail affichent la date.";
+
+export type EnvoisProposesAuProfil = { avis: boolean; relances: boolean };
+const RIEN_DE_PROPOSE: EnvoisProposesAuProfil = { avis: false, relances: false };
+
 export function FormulaireProfilOrganisation({
   orgId,
   organisation,
   lectureSeule,
   estProprietaire,
+  envoisProposes = RIEN_DE_PROPOSE,
 }: {
   orgId: string;
   organisation: Organisation;
   lectureSeule: boolean;
   estProprietaire: boolean;
+  envoisProposes?: EnvoisProposesAuProfil;
 }) {
   // 24/09 : en lecture seule, une fiche à lire plutôt qu'un formulaire
   // désactivé — champs estompés à 50 %, sélecteur de fichier et couleurs
   // inutilisables, et des exemples qu'on prenait pour des valeurs.
   if (lectureSeule) {
-    return <FicheProfil organisation={organisation} estProprietaire={estProprietaire} />;
+    return <FicheProfil organisation={organisation} estProprietaire={estProprietaire} envoisProposes={envoisProposes} />;
   }
-  return <Formulaire orgId={orgId} organisation={organisation} estProprietaire={estProprietaire} />;
+  return <Formulaire orgId={orgId} organisation={organisation} estProprietaire={estProprietaire} envoisProposes={envoisProposes} />;
 }
 
 // 24/09 : les quatre sous-blocs du formulaire sont des sous-sections sans
@@ -103,10 +117,12 @@ function Formulaire({
   orgId,
   organisation,
   estProprietaire,
+  envoisProposes,
 }: {
   orgId: string;
   organisation: Organisation;
   estProprietaire: boolean;
+  envoisProposes: EnvoisProposesAuProfil;
 }) {
   const [modifie, setModifie] = useState(false);
   const [heureEnregistrement, setHeureEnregistrement] = useState("");
@@ -235,14 +251,18 @@ function Formulaire({
             </p>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="pr-garantie">Garantie financière (organisme, montant) *</Label>
+            <Label htmlFor="pr-garantie">Garantie financière (nom et adresse du garant, montant) *</Label>
             <Input
               id="pr-garantie"
               name="garantie_financiere"
               required
               defaultValue={valeur("garantie_financiere")}
-              placeholder="ex. Galian, 120 000 €"
+              placeholder="ex. nom du garant, son adresse, 120 000 €"
             />
+            {/* Textes officiels, lot T2 (R08-A1) : le contrat type du bail demande le nom ET l'adresse du garant. */}
+            <p className="text-sm text-muted-foreground">
+              Reportée sur le bail (le contrat type demande le nom et l’adresse du garant) et sur le mandat de gestion.
+            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="pr-tva">N&deg; de TVA intracommunautaire</Label>
@@ -333,7 +353,20 @@ function Formulaire({
       <div key="preferences" id={estProprietaire ? "envois" : undefined} className="space-y-4 scroll-mt-24">
 
       <SousSection titre="Avis d'échéance">
-        <p className="text-sm text-muted-foreground">L’envoi automatique des avis est suspendu. Les échéances restent consultables dans Loyers.</p>
+        {envoisProposes.avis ? <>
+          {/* Dit à l'enregistrement que la case a été proposée : décochée, elle est absente de l'envoi. Le serveur relit l'ouverture. */}
+          <input type="hidden" name="avis_echeance_propose" value="1" />
+          <label htmlFor="pr-avis-auto" className="flex min-h-12 items-center gap-3 text-sm">
+            <input id="pr-avis-auto" type="checkbox" name="appels_envoi_auto" defaultChecked={organisation.appels_envoi_auto} className={CASE} />
+            Annoncer chaque échéance au locataire par e-mail
+          </label>
+          <p className="text-sm text-muted-foreground">
+            Le locataire reçoit le montant et la date de chaque échéance, avec son solde antérieur s’il en a un. Une
+            échéance déjà réglée n’est jamais réclamée, et cocher la case n’envoie pas l’historique : seuls les appels
+            de moins de 45 jours partent. Vérifiez l’adresse e-mail de vos locataires avant de cocher. Décochée, rien
+            ne part.
+          </p>
+        </> : <p className="text-sm text-muted-foreground">L’envoi automatique des avis est suspendu. Les échéances restent consultables dans Loyers.</p>}
       </SousSection>
       <SousSection titre="Envoi des quittances" id="quittances">
         <label
@@ -361,7 +394,14 @@ function Formulaire({
         </p>}
       </SousSection>
       <SousSection titre="Relances d'impayé" id="relances">
-        <p className="text-sm text-muted-foreground">Les courriers de relance automatiques sont suspendus. Vos seuils de suivi restent enregistrés.</p>
+        {envoisProposes.relances ? <>
+          <input type="hidden" name="relance_loyer_propose" value="1" />
+          <label htmlFor="pr-relances-auto" className="flex min-h-12 items-center gap-3 text-sm">
+            <input id="pr-relances-auto" type="checkbox" name="relances_envoi_auto" defaultChecked={organisation.relances_envoi_auto} className={CASE} />
+            Relancer automatiquement les loyers impayés par e-mail
+          </label>
+          {estProprietaire && <p className="text-sm text-muted-foreground">Rien ne part sans vous : votre confirmation « Pas encore reçu » est demandée avant chaque relance, et le paiement est revérifié juste avant l’envoi. Décochée, aucune relance ne part ; la relance en PDF reste disponible.</p>}
+        </> : <p className="text-sm text-muted-foreground">Les courriers de relance automatiques sont suspendus. Vos seuils de suivi restent enregistrés.</p>}
         <div className="grid gap-3 sm:grid-cols-2">
           <label htmlFor="pr-relance-1" className="text-sm">
             <span className="block text-xs text-muted-foreground">Première relance, jours après l&apos;échéance</span>
@@ -399,7 +439,7 @@ function Formulaire({
             />
           </label>
         </div>
-        {estProprietaire ? <Fonctionnement titre="relances d’impayés"><p>Chaque matin, le loyer impayé le plus ancien de chaque bail est vérifié. La première relance suit le premier délai, puis la seconde le second : jamais deux le même jour. Les relances manuelles comptent aussi et chaque envoi est conservé dans le bail. Une dette totale inférieure au seuil n’est pas relancée.</p></Fonctionnement> : <p className="text-sm text-muted-foreground">
+        {estProprietaire ? <Fonctionnement titre="relances d’impayés"><p>Chaque matin, le loyer impayé le plus ancien de chaque bail est vérifié. La première relance suit le premier délai, puis la seconde le second : jamais deux le même jour. Les relances manuelles comptent aussi et chaque envoi est conservé dans le bail. Une dette totale inférieure au seuil n’est pas relancée.</p><p data-caution-relance>{CAUTION_ET_RELANCES}</p></Fonctionnement> : <p className="text-sm text-muted-foreground">
           Chaque matin, le terme impayé le plus ancien de chaque bail reçoit sa
           première relance passé le premier délai, puis la seconde passé le
           second — jamais deux courriers le même jour, et une relance que vous
@@ -407,7 +447,8 @@ function Formulaire({
           c&apos;est un recommandé. Chaque relance envoyée s&apos;inscrit sur
           le bail, comme si vous l&apos;aviez saisie. Une dette totale sous le
           seuil n&apos;est pas relancée ; à la seconde relance, la caution du
-          bail (si son e-mail est connu) est informée de l&apos;incident.
+          bail (si son e-mail est connu) est informée de l&apos;incident.{" "}
+          <span data-caution-relance>{CAUTION_ET_RELANCES}</span>
         </p>}
       </SousSection>
       </div>,
@@ -457,9 +498,11 @@ function Precision({ children }: { children: ReactNode }) {
 function FicheProfil({
   organisation: o,
   estProprietaire,
+  envoisProposes,
 }: {
   organisation: Organisation;
   estProprietaire: boolean;
+  envoisProposes: EnvoisProposesAuProfil;
 }) {
   return (
     <div className="space-y-5">
@@ -524,13 +567,13 @@ function FicheProfil({
         <h3 className="eyebrow sm:!text-[length:var(--pas-mention)]">Envois automatiques</h3>
         <dl>
           <Ligne libelle="Avis d'échéance par e-mail">
-            Envoi suspendu
+            {!envoisProposes.avis ? "Envoi suspendu" : o.appels_envoi_auto ? "Automatique" : "Manuel"}
           </Ligne>
           <Ligne libelle="Envoi des quittances">
             {o.quittances_envoi_auto ? "Automatique" : "Manuel"}
           </Ligne>
           <Ligne libelle="Relances d'impayé par e-mail">
-            Envoi suspendu
+            {!envoisProposes.relances ? "Envoi suspendu" : o.relances_envoi_auto ? "Automatique" : "Manuel"}
             {o.relances_envoi_auto && (
               <Precision>
                 à {o.relance_1_jours} puis {o.relance_2_jours} jours après

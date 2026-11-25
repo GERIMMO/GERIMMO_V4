@@ -75,7 +75,8 @@ describe("le formulaire de déconnexion", () => {
     expect(html).not.toContain('role="alert"');
   });
 
-  const SOURCES = ["src/components/menu-compte.tsx", "src/app/compte/page.tsx", "src/app/securite/page.tsx", "src/app/espaces/page.tsx"];
+  // Phase 3, lot 61 : l'en-tête de /compte (déconnexion, purge) est dans bandeau-compte.tsx, partagé avec /compte/donnees.
+  const SOURCES = ["src/components/menu-compte.tsx", "src/app/compte/bandeau-compte.tsx", "src/app/securite/page.tsx", "src/app/espaces/page.tsx"];
   it.each(SOURCES)("%s : plus de <form action={seDeconnecter}> nu, il passe par FormulaireDeconnexion", fichier => {
     const source = readFileSync(fichier, "utf8");
     expect(source).not.toMatch(/action=\{seDeconnecter\}/);

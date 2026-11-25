@@ -8,7 +8,17 @@
  * Ce fichier vérifie, sans base :
  *  - la page réellement servie par next start le 11/11/2026 avec une identité fictive :
  *    texte complet après
- *    reconstitution, identique au caractère près au rendu d'un seul tenant ;
+ *    reconstitution, identique au caractère près au rendu d'un seul tenant.
+ *    ATTENTION (lot T4, 24/11/2026) : pour la version du 24/11/2026 des conditions, cette page et sa variante dégradée
+ *    n'ont PAS été relevées de nouveau (aucun serveur n'était autorisé pour ce lot). Les passages modifiés du contrat
+ *    (date et version, articles 2, 9, 15.3 et 17, rôle d'OpenAI à l'annexe 1, réserve « adresse de l'éditeur ») ont été
+ *    remplacés dans le relevé du 11/11, dans le HTML et dans les données de navigation ; la structure du flux (marques,
+ *    segments, scripts) est celle du relevé. Le test « au caractère près » prouve que le texte est bien celui du rendu
+ *    d'aujourd'hui ; il ne prouve plus qu'un `next start` d'aujourd'hui sert ce flux. À RELEVER DE NOUVEAU sur le banc
+ *    (le parcours e2e/conditions-flux.spec.ts le vérifie sur le build).
+ *    Seconde reprise du même jour (relectures T4R-06, T4R-07, T4R-09) : même procédé pour les articles 15.3 et 17
+ *    corrigés, et pour l'empreinte d'identité posée par la page normale — l'identité porte une clé de plus, le type de
+ *    vendeur, vide dans l'identité fictive du banc. Toujours à relever de nouveau ;
  *  - un vrai flux de React (renderToReadableStream), passages imbriqués et frontière d'attente compris, sur une page
  *    simple puis sur la page /conditions elle-même, chaque article arrivant en retard : le texte reconstitué est,
  *    au caractère près, celui du rendu d'un seul tenant ;

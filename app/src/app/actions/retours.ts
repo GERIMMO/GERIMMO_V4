@@ -36,8 +36,8 @@ export async function deciderRetour(id:string,version:number,_etat:EtatRetour,fd
  if(acces||sa!==true)return{erreur:"Accès réservé à la supervision Gerimmo."};
  const decision=String(fd.get('etat')??'');
  let reponse=String(fd.get('reponse')??'');
- // Plan du 23/10 (R05) : la réponse qui clôt une réclamation renvoie au médiateur de la consommation (ou dit que
- // l'adhésion est en cours, tant que ses coordonnées ne sont pas saisies). La nature est relue en base.
+ // Plan du 23/10 (R05) : la réponse qui clôt une réclamation renvoie au médiateur de la consommation (ou dit
+ // qu'aucun n'est désigné, tant que ses coordonnées ne sont pas saisies : décision du 24/11/2026, Q7). La nature est relue en base.
  if(decision==='resolu'){
   const{data:lu,error:lecture}=await c.from('retours_utilisateurs').select('nature').eq('id',id).maybeSingle();
   if(lecture)return{erreur:"La demande n’a pas pu être relue. Réessayez."};
@@ -61,6 +61,26 @@ export async function regrouperRetours(id:string,_etat:EtatRetour,fd:FormData):P
  if(error)return{erreur:sansJargon(error.message)};
  await journaliserSupervision(c,'idees_regroupees',{source:id,cible:String(fd.get('cible')??'').slice(0,36)});
  revalidatePath('/admin/retours');return{succes:"Idées regroupées. Leurs textes restent dans leurs espaces d’origine."};
+}
+
+/** Bornes du motif de retrait, telles que la base les contrôle (`retirer_evaluation_contestee`). */
+const MOTIF_RETRAIT={min:10,max:1000};
+const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/**
+ * Audit palier 1 (P1-07) : la supervision retire une évaluation d'artisan dans le cadre d'une contestation
+ * (RM-11.4.4). La base tient les gardes, le journal, le suivi de l'artisan et l'alerte à l'organisation.
+ */
+export async function retirerEvaluationContestee(retourId:string,evaluationId:string,_etat:EtatRetour,fd:FormData):Promise<EtatRetour>{
+ const c=await createClient();const{data:sa,error:acces}=await c.rpc('is_super_admin');
+ if(acces||sa!==true)return{erreur:"Accès réservé à la supervision Gerimmo."};
+ if(!UUID.test(retourId)||!UUID.test(evaluationId))return{erreur:"Cette évaluation n’a pas pu être retrouvée. Rechargez la page."};
+ const motif=String(fd.get('motif')??'').trim();
+ if(motif.length<MOTIF_RETRAIT.min||motif.length>MOTIF_RETRAIT.max)return{erreur:`Précisez le motif du retrait (${MOTIF_RETRAIT.min} à ${MOTIF_RETRAIT.max.toLocaleString('fr-FR')} caractères).`};
+ if(fd.get('confirmation')!=='on')return{erreur:"Confirmez le retrait : il est définitif et l’organisation en est informée."};
+ const{error}=await c.rpc('retirer_evaluation_contestee',{p_retour:retourId,p_evaluation:evaluationId,p_motif:motif});
+ if(error)return{erreur:sansJargon(error.message)};
+ revalidatePath(`/admin/retours/${retourId}/evaluations`);revalidatePath('/admin/retours');revalidatePath('/assistance');revalidatePath('/artisan/note');
+ return{succes:"Évaluation retirée. La moyenne de l’artisan est recalculée ; l’artisan le lit dans le suivi de sa contestation et l’organisation reçoit une alerte."};
 }
 
 export async function cloreRevue(_etat:EtatRetour,fd:FormData):Promise<EtatRetour>{

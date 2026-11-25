@@ -21,6 +21,7 @@ import {
 } from "@/lib/rendez-vous-locataire";
 import { CRENEAUX_MINIMUM, DEMI_JOURNEES } from "./creneaux";
 import { BORD_ETAT } from "../pastille-locataire";
+import type { InterlocuteurLocataire } from "@/lib/interlocuteur-locataire";
 
 // ════════════════════════════════════════════════════════════════════════════
 // « JE NE PEUX PLUS ÊTRE LÀ » (décision D22 du 14/10/2026, option B)
@@ -39,7 +40,8 @@ import { BORD_ETAT } from "../pastille-locataire";
 // Gabarit : le téléphone, 390 px ; cibles de 44 px.
 // ════════════════════════════════════════════════════════════════════════════
 
-function ChampMotif({ id, valeurs }: { id: string; valeurs?: Record<string, string> }) {
+// Lot 47 : `interlocuteur` — « gestionnaire » dans un espace d'agence, « bailleur » chez un propriétaire.
+function ChampMotif({ id, valeurs, interlocuteur }: { id: string; valeurs?: Record<string, string>; interlocuteur: InterlocuteurLocataire }) {
   return (
     <>
       <Label htmlFor={`${id}-motif`} className="mb-1 text-xs">
@@ -62,7 +64,7 @@ function ChampMotif({ id, valeurs }: { id: string; valeurs?: Record<string, stri
         ))}
       </select>
       <Label htmlFor={`${id}-precision`} className="mt-2.5 mb-1 text-xs">
-        Une précision pour l&apos;artisan et votre gestionnaire (facultatif)
+        Une précision pour l&apos;artisan et votre {interlocuteur} (facultatif)
       </Label>
       <textarea
         id={`${id}-precision`}
@@ -81,11 +83,13 @@ function FormulaireReport({
   interventionId,
   rdvTexte,
   onRevenir,
+  interlocuteur,
 }: {
   orgId: string;
   interventionId: string;
   rdvTexte: string;
   onRevenir: () => void;
+  interlocuteur: InterlocuteurLocataire;
 }) {
   const id = useId();
   const [etat, action] = useActionState<EtatIncidentAction, FormData>(
@@ -105,7 +109,7 @@ function FormulaireReport({
       <p className="mb-2 text-sm">
         Votre rendez-vous du {rdvTexte} reste valable tant que l&apos;artisan n&apos;a pas répondu.
       </p>
-      <ChampMotif id={id} valeurs={etat.valeurs} />
+      <ChampMotif id={id} valeurs={etat.valeurs} interlocuteur={interlocuteur} />
       <fieldset className="mt-3 border-0 p-0">
         <legend className="text-sm font-medium">Vos nouvelles disponibilités</legend>
         <p className="mb-2 text-xs text-muted-foreground">
@@ -172,12 +176,14 @@ function FormulaireAnnulation({
   rdvTexte,
   tardive,
   onRevenir,
+  interlocuteur,
 }: {
   orgId: string;
   interventionId: string;
   rdvTexte: string;
   tardive: boolean;
   onRevenir: () => void;
+  interlocuteur: InterlocuteurLocataire;
 }) {
   const id = useId();
   const [etat, action] = useActionState<EtatIncidentAction, FormData>(
@@ -194,12 +200,12 @@ function FormulaireAnnulation({
       <CleEnvoi etat={etat} />
       <p className="mb-2 text-sm">
         L&apos;annulation prend effet tout de suite : l&apos;artisan ne viendra pas le {rdvTexte}. Il vous proposera
-        d&apos;autres créneaux ; votre gestionnaire est prévenu.
+        d&apos;autres créneaux ; votre {interlocuteur} est prévenu.
         {tardive
           ? ` Le rendez-vous est dans moins de ${REGLES_RDV_LOCATAIRE.delaiReportHeures} heures : l'annulation reste possible, elle sera notée au dossier.`
           : ""}
       </p>
-      <ChampMotif id={id} valeurs={etat.valeurs} />
+      <ChampMotif id={id} valeurs={etat.valeurs} interlocuteur={interlocuteur} />
       <div className="mt-3 flex items-start gap-2">
         <input
           type="checkbox"
@@ -257,17 +263,23 @@ export function GestesRendezVous({
   rendezVous,
   rdvTexte,
   peutAgir,
+  rappelPromis = false,
+  interlocuteur,
 }: {
   orgId: string;
   rendezVous: RendezVousLocataire;
   /** Le rendez-vous en toutes lettres (« jeudi 24 septembre, 8 h – 12 h »). */
   rdvTexte: string | null;
   peutAgir: boolean;
+  /** P1-08 : le rappel de la veille n'est promis que si le superviseur a ouvert cet envoi. */
+  rappelPromis?: boolean;
+  /** Lot 47 : « gestionnaire » dans un espace d'agence, « bailleur » chez un propriétaire. */
+  interlocuteur: InterlocuteurLocataire;
 }) {
   const [ouvert, setOuvert] = useState<"choix" | "report" | "annulation" | null>(null);
-  const etat = etatDemandeLocataire(rendezVous);
+  const etat = etatDemandeLocataire(rendezVous, { rappelPromis, interlocuteur });
   const enAttente = rendezVous.demande_statut === "en_attente" && rendezVous.demande_type === "report";
-  const raison = peutAgir ? raisonSansReport(rendezVous) : null;
+  const raison = peutAgir ? raisonSansReport(rendezVous, interlocuteur) : null;
   const gestes = peutAgir && rdvTexte && rendezVous.annulation_possible && !enAttente;
   // Annulation « tardive » : moins de 24 h avant le rendez-vous (tracée, jamais sanctionnée). La base le calcule avec la
   // règle d'`annuler_rdv_locataire` ; l'écran ne le déduit pas d'autres drapeaux (une demande échue le trompait).
@@ -337,6 +349,7 @@ export function GestesRendezVous({
           interventionId={rendezVous.intervention_id}
           rdvTexte={rdvTexte}
           onRevenir={() => setOuvert("choix")}
+          interlocuteur={interlocuteur}
         />
       )}
 
@@ -347,6 +360,7 @@ export function GestesRendezVous({
           rdvTexte={rdvTexte}
           tardive={tardive}
           onRevenir={() => setOuvert("choix")}
+          interlocuteur={interlocuteur}
         />
       )}
     </div>

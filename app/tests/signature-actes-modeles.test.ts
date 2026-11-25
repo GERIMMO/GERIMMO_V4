@@ -46,9 +46,9 @@ function edl(type: "entree" | "sortie"): DonneesEdl {
     adresseRestitutionDepot: "12 rue des Lilas, 69003 Lyon", observations: "Néant",
     lignes: [{ categorie: "piece", piece: "Séjour", libelle: "Sols", etat: "bon", commentaire: null }],
     compteurs: [{ type: "Électricité", numero: "E-1", releve: "100" }], cles: [{ libelle: "Clé", nombre: 2, reference: null }],
-    comparatif: [], retenues: [], bailleurNom: "Claire Moreau", locatairesNoms: "Julie Leblanc",
+    comparatif: [], bailleurNom: "Claire Moreau", locatairesNoms: "Julie Leblanc",
     logementAdresse: "12 rue des Lilas, 69003 Lyon", referenceBail: "BAIL-1",
-    exp: { nom: "Parc", adresse: "8 avenue des Tilleuls, 69006 Lyon", email: "c@example.invalid", telephone: null, ville: "Lyon" }, f,
+    exp: { nom: "Parc", adresse: "8 avenue des Tilleuls, 69006 Lyon", email: "c@example.invalid", telephone: null, ville: "Lyon" }, typeOrganisation: "proprietaire_direct", f,
   };
 }
 

@@ -6,7 +6,7 @@ import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
-import { proposerNature, type NatureCharge } from "@/lib/charges";
+import { type NatureCharge, natureDeNaissance } from "@/lib/charges";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { lireMontant } from "@/lib/saisie-montant";
 
@@ -83,8 +83,9 @@ export async function ajouterPosteCharge(
   if ("erreur" in montantLu) return { erreur: montantLu.erreur, valeurs };
   const montant = montantLu.montant;
 
-  // La grille décret 87-713 propose la nature ; l'agent corrigera si besoin.
-  const proposition = proposerNature(libelle);
+  // Audit palier 1 du 22/11/2026, P0-03 : un poste naît « à qualifier » (le fonds travaux ALUR seul garde sa nature).
+  // La grille ne fait plus que SUGGÉRER, à l'écran ; rien n'entre dans la régularisation sans le choix du gestionnaire.
+  const proposition = natureDeNaissance(libelle);
   const { error } = await supabase.from("appel_charges_postes").insert({
     organization_id: orgId,
     appel_id: appelId,

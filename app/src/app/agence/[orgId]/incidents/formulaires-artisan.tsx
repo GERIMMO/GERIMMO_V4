@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {
   annulerMission,
+  consignerRendezVousManque,
   deciderAvenant,
   demanderRevisionDevis,
   evaluerArtisan,
@@ -453,6 +454,48 @@ function DecisionMotivee({
           Annuler
         </Button>
       </div>
+    </form>
+  );
+}
+
+// P2-04 (RM-10.5.3) : le rendez-vous confirmé n'a pas eu lieu. On dit QUI était absent ; la date tombe et un nouveau
+// rendez-vous est à convenir. Proposé seulement une fois l'heure du rendez-vous passée (la base le revérifie).
+export function FormulaireRendezVousManque({
+  orgId,
+  interventionId,
+}: {
+  orgId: string;
+  interventionId: string;
+}) {
+  const actionLiee = consignerRendezVousManque.bind(null, orgId, interventionId);
+  const [etat, action] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
+  const idNote = useId();
+  return (
+    <form data-saisie-confirmee action={action} className="space-y-3" data-rdv-manque-gestionnaire>
+      <fieldset className="space-y-2">
+        <legend className="text-sm font-medium">Qui était absent ? *</legend>
+        <label className="flex min-h-11 items-center gap-3 text-sm">
+          <input type="radio" name="absent" value="locataire" required defaultChecked={etat.valeurs?.absent === "locataire"} />
+          Le locataire
+        </label>
+        <label className="flex min-h-11 items-center gap-3 text-sm">
+          <input type="radio" name="absent" value="artisan" required defaultChecked={etat.valeurs?.absent === "artisan"} />
+          L’artisan
+        </label>
+      </fieldset>
+      <div className="space-y-1.5">
+        <Label htmlFor={idNote}>Précision (facultative)</Label>
+        <Input id={idNote} name="note" maxLength={500} defaultValue={etat.valeurs?.note} placeholder="Ex. : personne à l’adresse à 9 h 30." />
+      </div>
+      <Retour etat={etat} />
+      <BoutonEnvoi variant="outline" enCoursTexte="Enregistrement…">
+        Consigner le rendez-vous manqué
+      </BoutonEnvoi>
+      <p className="text-sm text-muted-foreground">
+        Le rendez-vous tombe : un nouveau est à convenir. L’absence reste au dossier. La personne dite absente le lit
+        dans son espace ; votre précision n’est lue que par vous. Un artisan dit absent le voit compté dans ses
+        rendez-vous manqués, un repère visible de lui seul, qui n’entre pas dans sa note.
+      </p>
     </form>
   );
 }

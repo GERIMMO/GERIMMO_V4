@@ -5,6 +5,7 @@ import { deposerMaPiece, type EtatPieceDemandee } from "@/app/actions/pieces-dem
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { ChampFichier } from "@/components/champ-fichier";
 import { formaterDate } from "@/lib/ged";
+import type { InterlocuteurLocataire } from "@/lib/interlocuteur-locataire";
 
 export type DemandePiece = {
   id: string;
@@ -17,7 +18,8 @@ export type DemandePiece = {
 
 // Une pièce réclamée par le gestionnaire : la ligne porte son dépôt —
 // choisir le fichier, envoyer, c'est réglé (RM-0b.2.5).
-export function DepotPiece({ orgId, demande }: { orgId: string; demande: DemandePiece }) {
+// Lot 47 : `interlocuteur` — « gestionnaire » dans un espace d'agence, « bailleur » chez un propriétaire.
+export function DepotPiece({ orgId, demande, interlocuteur }: { orgId: string; demande: DemandePiece; interlocuteur: InterlocuteurLocataire }) {
   const [etat, action] = useActionState<EtatPieceDemandee, FormData>(
     deposerMaPiece.bind(null, orgId, demande.id),
     {}
@@ -29,7 +31,7 @@ export function DepotPiece({ orgId, demande }: { orgId: string; demande: Demande
         <span className="min-w-0 flex-1">
           <b className="font-medium">{demande.libelle}</b>
         </span>
-        <span className="loc-tag vert">✓ Déposée — votre gestionnaire est notifié</span>
+        <span className="loc-tag vert">✓ Déposée — votre {interlocuteur} est notifié</span>
       </div>
     );
   }

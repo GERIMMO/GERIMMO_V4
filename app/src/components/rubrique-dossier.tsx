@@ -11,11 +11,13 @@ export function RubriqueDossier({ id, titre, resume, ouverte = false, children }
 }) {
   const direct = useContext(RubriquesDirectes);
   const details = useRef<HTMLDetailsElement>(null);
+  // Dernière adresse dont l'ancre a été appliquée dans cette rubrique.
+  const ancreAppliquee = useRef<string | null>(null);
   useEffect(() => {
     const ouvrirCible = (hash: string, defiler: boolean) => {
       let cible: HTMLElement | null;
-      try { cible = document.getElementById(decodeURIComponent(hash.slice(1))); } catch { return; }
-      if (!cible || !details.current?.contains(cible)) return;
+      try { cible = document.getElementById(decodeURIComponent(hash.slice(1))); } catch { return false; }
+      if (!cible || !details.current?.contains(cible)) return false;
       // Une alerte peut viser un formulaire situé dans plusieurs rubriques.
       let parent: HTMLElement | null = cible;
       while (parent) {
@@ -23,8 +25,10 @@ export function RubriqueDossier({ id, titre, resume, ouverte = false, children }
         parent = parent.parentElement;
       }
       if (defiler) requestAnimationFrame(() => cible?.scrollIntoView({ block: "start" }));
+      return true;
     };
-    const hashChange = () => ouvrirCible(window.location.hash, true);
+    const adresse = () => window.location.pathname + window.location.search + window.location.hash;
+    const hashChange = () => { if (ouvrirCible(window.location.hash, true)) ancreAppliquee.current = adresse(); };
     const clic = (event: MouseEvent) => {
       if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       const lien = event.target instanceof Element ? event.target.closest("a[href]") : null;
@@ -33,7 +37,13 @@ export function RubriqueDossier({ id, titre, resume, ouverte = false, children }
       if (url.origin === location.origin && url.pathname === location.pathname && url.search === location.search && url.hash)
         ouvrirCible(url.hash, false);
     };
-    hashChange();
+    // L'effet suit chaque rendu (une navigation interne peut conserver le composant), mais l'ancre n'est
+    // appliquée qu'une fois par adresse. Sans cette garde, chaque rafraîchissement de la page (réponse d'une
+    // action serveur) rouvrait la rubrique et ramenait l'écran en haut de l'ancre : arrivé par
+    // /baux/<id>#loyers, l'écran remontait de plusieurs milliers de pixels sous le doigt et le geste en cours
+    // tombait sur un autre élément (parcours WebKit mobile, CI du 25/11). Une cible pas encore affichée reste
+    // cherchée aux rendus suivants.
+    if (ancreAppliquee.current !== adresse()) hashChange();
     window.addEventListener("hashchange", hashChange);
     // Ouvrir avant que le routeur intercepte le lien sans émettre hashchange.
     document.addEventListener("click", clic, true);

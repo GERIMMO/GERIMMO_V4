@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const m = vi.hoisted(() => ({ acces: vi.fn(), rpc: vi.fn(), single: vi.fn(), revalidate: vi.fn() }));
 vi.mock("@/lib/ged-acces", () => ({ verifierGerant: m.acces }));
 vi.mock("next/cache", () => ({ revalidatePath: m.revalidate }));
-import { annulerDemandeSignature, partagerDocument } from "@/app/actions/signature";
+import { partagerDocument } from "@/app/actions/signature";
 beforeEach(() => {
   vi.resetAllMocks();
   const q = { select: () => q, eq: () => q, single: m.single };
@@ -10,29 +10,13 @@ beforeEach(() => {
   m.rpc.mockResolvedValue({ data: true, error: null });
   m.single.mockResolvedValue({ data: { prestataire: "youtrust", external_request_id: "req", signee_le: null }, error: null });
 });
-const annulations = () => m.rpc.mock.calls.filter(c => c[0] === "annuler_demande_signature");
-describe("Archives de l’ancien prestataire", () => {
-  it("conserve une ancienne demande sans annoncer une annulation distante non vérifiée", async () => {
-    expect((await annulerDemandeSignature("org", "demande")).erreur).toContain("historique est conservé");
-    expect(annulations()).toHaveLength(0);
-    expect(m.revalidate).not.toHaveBeenCalled();
-  });
-  it("n’annule jamais un document déjà signé", async () => {
-    m.single.mockResolvedValue({ data: { prestataire: "youtrust", signee_le: "2026-10-18" }, error: null });
-    expect((await annulerDemandeSignature("org", "demande")).erreur).toContain("déjà été signée");
-    expect(annulations()).toHaveLength(0);
-  });
-  it("la demande manuelle reste annulable", async () => {
-    m.single.mockResolvedValue({ data: { prestataire: "manuel", signee_le: null }, error: null });
-    expect((await annulerDemandeSignature("org", "demande")).succes).toBeTruthy();
-    expect(annulations()).toHaveLength(1);
-    expect(m.revalidate).toHaveBeenCalledWith("/agence/org/documents");
-    expect(m.revalidate).toHaveBeenCalledWith("/espace/org/documents");
-  });
-  it("le superviseur sans rôle de gestion ne peut annuler", async () => {
-    m.rpc.mockResolvedValue({ data: false, error: null });
-    expect((await annulerDemandeSignature("org", "demande")).erreur).toBeTruthy();
-    expect(m.single).not.toHaveBeenCalled(); expect(annulations()).toHaveLength(0);
+// Décision Q21 du 24/11 (lot D5) : l'ancien parcours « télécharger, signer, redéposer » est retiré, et avec lui
+// l'action d'annulation d'une demande manuelle. Les quatre cas « Archives de l'ancien prestataire » qui l'exerçaient
+// sont retirés avec elle ; ce fichier garde le partage du document, et vérifie que l'action ne revient pas.
+describe("Ancien parcours de signature manuelle (retiré le 24/11)", () => {
+  it("le module des actions n'expose plus ni l'envoi ni l'annulation d'une demande manuelle", async () => {
+    const actions = await import("@/app/actions/signature");
+    expect(Object.keys(actions).sort()).toEqual(["enregistrerSignature", "partagerDocument", "retirerSignature"]);
   });
 });
 

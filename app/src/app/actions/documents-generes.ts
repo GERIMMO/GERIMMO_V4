@@ -9,6 +9,7 @@ import { appliquerMarqueDocument } from "@/lib/documents/marque";
 import { rendrePdf, copieDeTravail } from "@/lib/documents/rendu";
 import { MODELES, type CodeModele, type Modele } from "@/lib/documents/modeles";
 import { refusDocumentIncomplet } from "@/lib/documents/completude";
+import type { EmetteurEnTete } from "@/lib/documents/gabarit";
 import { versRouteAgence } from "@/lib/racine-espace";
 
 export type EtatGeneration = {
@@ -19,6 +20,13 @@ export type EtatGeneration = {
   manquants?: string[];
   // Les rattachements du document — le résolveur « où renseigner » s'en sert
   liens?: { entite: "bail" | "personne" | "lot" | "mandat"; entiteId: string }[];
+  // Phase 3, lot 46 (T19) : l'origine de l'en-tête imprimé (détenteurs du lot ou espace), pour que l'adresse et la commune
+  // manquantes mènent à l'écran qui les corrige.
+  emetteur?: EmetteurEnTete;
+  // Phase 3, lot 48 (U04) : les manquants vides dans l'en-tête seulement (même libellé qu'au corps d'un contrat).
+  seulementEnTete?: string[];
+  // Reprise du lot 48 (U04, U06) : les manquants vides dans le bloc du bailleur d'un contrat ou d'un acte.
+  videsBailleur?: string[];
 };
 
 // Les droits et l’assemblage sont vérifiés à chaque demande. Seul le rendu
@@ -66,6 +74,9 @@ export async function genererDocument(
       return {
         ...refus,
         liens: assemblage.liens,
+        ...(assemblage.document.emetteur ? { emetteur: assemblage.document.emetteur } : {}),
+        ...(assemblage.document.seulementEnTete ? { seulementEnTete: assemblage.document.seulementEnTete } : {}),
+        ...(assemblage.document.videsBailleur ? { videsBailleur: assemblage.document.videsBailleur } : {}),
       };
     }
 
@@ -121,8 +132,10 @@ export async function genererDocument(
       manquants: [],
       liens: assemblage.liens,
       succes: reutilise
-        ? `${assemblage.titreGed} déjà disponible : le PDF existant est rattaché à ce dossier.`
-        : `${assemblage.titreGed} généré — tous les champs sont renseignés et le PDF est rangé dans Documents.${
+        // Reprise du lot 53 (W35) : « <titre> : … ». Un titre de classement daté (« Mise en demeure de payer — 24/11/2026 »)
+        // se lisait « … — 24/11/2026 généré — … ». Un titre qui dit déjà « (généré, … » ne le redit pas (lot 50, reprise).
+        ? `${assemblage.titreGed} : déjà disponible, le PDF existant est rattaché à ce dossier.`
+        : `${assemblage.titreGed} : ${/\(généré/.test(assemblage.titreGed) ? "" : "PDF généré — "}tous les champs sont renseignés et le PDF est rangé dans Documents.${
         assemblage.avertissement ? ` Attention : ${assemblage.avertissement}` : ""
       }`,
     };

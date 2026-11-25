@@ -2,10 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import {
-  annulerDemandeSignature,
-  partagerDocument,
-} from "@/app/actions/signature";
+import { partagerDocument } from "@/app/actions/signature";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { afficherToast } from "@/components/ui/toast";
@@ -22,15 +19,13 @@ export type DemandeDuDocument = {
   preuve_document_id?: string | null;
 };
 
-// Partage et historique des anciennes demandes. Les nouveaux engagements
-// utilisent le circuit Zoho de leur fiche ; aucun nouveau retour manuel.
-// Ancien fonctionnement :
+// Partage et historique des anciennes demandes (lecture seule). Les engagements
+// utilisent le circuit de signature électronique de leur fiche.
 // — « Mettre à disposition » (RM-12 : la mise à disposition est un GESTE) rend
 //   une quittance ou un courrier visible dans « Mes documents » du locataire ;
-// — « Envoyer pour signature » (bail, courrier, quittance — jamais un EDL,
-//   RM-13.1.6) le place dans « À signer » de son espace : il télécharge,
-//   signe, dépose le signé, le retour vous alerte (Yousign : S10) ;
-// — chaque demande s'affiche (en attente / signée) et s'annule.
+// — une ancienne demande de signature encore en base s'affiche (en attente /
+//   signée), sans geste : l'ancien parcours « télécharger, signer, redéposer »
+//   est retiré (décision Q21 du 24/11), son annulation avec lui.
 const TYPES_PARTAGEABLES = ["quittance", "courrier"];
 
 export function peutPartagerDocument(type: string, nombrePersonnes: number) {
@@ -134,16 +129,6 @@ export function CircuitDocument({
                 En attente de {d.prestataire === "youtrust" ? "signature électronique" : "signature"} — {d.personNom}, demandée le{" "}
                 {formaterDate(d.demandee_le)}
               </span>
-              {d.prestataire !== "youtrust" && <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                disabled={enCours}
-                onClick={() => agir(() => annulerDemandeSignature(orgId, d.id))}
-              >
-                {enCours && <Spinner />}
-                Annuler
-              </Button>}
             </>
           )}
         </div>

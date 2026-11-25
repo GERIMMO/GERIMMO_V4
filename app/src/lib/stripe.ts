@@ -284,9 +284,14 @@ export function quantiteFacturee(s: Stripe.Subscription): number {
   return s.items?.data?.[0]?.quantity ?? 0;
 }
 
-/** La mention de facture exigée par le régime (franchise en base, art. 293 B). */
+/**
+ * La mention de facture exigée par le régime (franchise en base). Écart R29-A1 du 24/11/2026 : le libellé est celui de
+ * l'article 293 E du CGI tel que le donne le recueil fourni par le dirigeant (« TVA non applicable, article 293 B du
+ * CGI »), « article » en toutes lettres ; l'ancien pied écrivait « art. ». Un client Stripe qui porte l'ancien pied
+ * reçoit le nouveau à sa prochaine opération (`appliquerPiedDeFacture`).
+ */
 export function piedDeFacturePour(regime: RegimeTva): string | undefined {
-  return regime.nature === "franchise" ? "TVA non applicable, art. 293 B du CGI." : undefined;
+  return regime.nature === "franchise" ? "TVA non applicable, article 293 B du CGI." : undefined;
 }
 
 /**

@@ -7,12 +7,13 @@ import { useActionStateSuivi } from "@/lib/suivi-enregistrement";
 import { EtapeComplementsBail } from "@/lib/etape-complements-bail";
 import type { MentionsContrat } from "@/lib/mentions-contrat";
 import { MentionsContratFormulaire } from "./mentions-contrat";
-import { useContext, useState } from "react";
+import { Fragment, useContext, useState } from "react";
 import { modifierComplementsBail, type EtatBail } from "@/app/actions/baux";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { eur, formaterDate } from "@/lib/ged";
+import { RENVOI_SANS_TRAVAUX_PREMIERE_LOCATION, RENVOI_TRAVAUX_PREMIERE_LOCATION, travauxBailEtabli } from "@/lib/travaux-dernier-contrat";
 
 // Valeurs actuelles du bail — la page les lit dans son select `baux` et les
 // passe telles quelles.
@@ -94,7 +95,14 @@ export function FormulaireComplementsBail({
   // Le contrat signé fige ses conditions : passé le brouillon, lecture seule.
   if (!modifiable) {
     const montant = (v: number | null) => (v == null ? "—" : eur(v));
-    const lignes: [string, string][] = [
+    // Phase 3, lot 45 (T16) : la rubrique des travaux dit ce que le contrat imprime (« Sans objet — première location »,
+    // « Néant »), sans les travaux ni le montant saisis qu'il n'imprime pas. Reprise (T16) : le contrat de ce bail a pu être
+    // préparé avant les modèles actuels, qui imprimaient les travaux saisis (ou « Néant ») même pour une première location ;
+    // pour une première location, où les deux versions diffèrent, l'écran montre la saisie et renvoie au contrat signé
+    // (travauxBailEtabli ; lot 48, U03 : aussi sans travaux saisis).
+    const travaux = travauxBailEtabli(defauts);
+    // [libellé, valeur, précision affichée sous la rangée]
+    const lignes: [string, string, string?][] = [
       [
         "Fixation initiale du loyer",
         defauts.fixation_loyer ? FIXATIONS[defauts.fixation_loyer] ?? defauts.fixation_loyer : "—",
@@ -102,9 +110,11 @@ export function FormulaireComplementsBail({
       ["Paiement du loyer", defauts.paiement_echeance === "echu" ? "À terme échu" : "À échoir"],
       ["Lieu de paiement", defauts.lieu_paiement ?? "—"],
       ["Valeur de l'IRL de référence", defauts.irl_valeur == null ? "—" : String(defauts.irl_valeur)],
-      ["Événement justifiant une durée réduite", defauts.duree_reduite_evenement ?? "—"],
-      ["Travaux récents du bailleur", defauts.travaux_recents ?? "—"],
-      ["Montant des travaux récents", montant(defauts.travaux_recents_montant)],
+      // Lot T2 (R20-A1) : pas de durée réduite en location meublée.
+      ...(meuble ? [] : ([["Événement justifiant une durée réduite", defauts.duree_reduite_evenement ?? "—"]] as [string, string, string?][])),
+      // Lot 48 (U03) : une première location sans travaux saisis renvoie aussi au contrat signé, sous la rubrique elle-même.
+      ["Travaux récents du bailleur", travaux.travaux, travaux.renvoiContrat && !travaux.avecMontant ? RENVOI_SANS_TRAVAUX_PREMIERE_LOCATION : undefined],
+      ...(travaux.avecMontant ? ([["Montant des travaux récents", montant(defauts.travaux_recents_montant), travaux.renvoiContrat ? RENVOI_TRAVAUX_PREMIERE_LOCATION : undefined]] as [string, string, string?][]) : []),
       ["Travaux à la charge du locataire", defauts.travaux_locataire ?? "—"],
       ...(agence
         ? ([
@@ -138,11 +148,14 @@ export function FormulaireComplementsBail({
           Le contrat a avancé — ces conditions sont figées.
         </p>
         <div className="mt-2">
-          {lignes.map(([libelle, valeur]) => (
-            <div key={libelle} className="ligne-info">
-              <span>{libelle}</span>
-              <span className="min-w-0 text-right">{valeur}</span>
-            </div>
+          {lignes.map(([libelle, valeur, precision]) => (
+            <Fragment key={libelle}>
+              <div className="ligne-info">
+                <span>{libelle}</span>
+                <span className="min-w-0 text-right">{valeur}</span>
+              </div>
+              {precision ? <p data-renvoi-contrat-signe className="py-2 text-xs text-muted-foreground">{precision}</p> : null}
+            </Fragment>
           ))}
         </div>
       </div>
@@ -214,18 +227,23 @@ export function FormulaireComplementsBail({
             defaultValue={d("irl_valeur", defauts.irl_valeur)}
           />
         </div>
-        <div hidden={etape !== "tous" && etape !== "conditions"} data-complement="conditions" className="space-y-1.5 sm:col-span-2">
+        {/* Textes officiels, lot T2 (R20-A1, R17-A2) : pas de durée réduite en location meublée (champ absent : la valeur
+            enregistrée s'efface à l'enregistrement) ; en location nue, Gerimmo ne prépare pas encore ce contrat et le dit. */}
+        {!meuble && <div hidden={etape !== "tous" && etape !== "conditions"} data-complement="conditions" className="space-y-1.5 sm:col-span-2">
           <Label htmlFor="comp-duree-reduite">
-            Événement justifiant une durée réduite — Facultatif si durée normale
+            Événement justifiant une durée réduite — À laisser vide pour un bail de la durée normale
           </Label>
           <Input
             id="comp-duree-reduite"
             name="duree_reduite_evenement"
             maxLength={500}
-            placeholder="Raison familiale ou professionnelle précise du bailleur"
+            aria-describedby="comp-duree-reduite-aide"
             defaultValue={d("duree_reduite_evenement", defauts.duree_reduite_evenement)}
           />
-        </div>
+          <p id="comp-duree-reduite-aide" className="text-xs text-muted-foreground">
+            Gerimmo ne sait pas encore préparer un bail à durée réduite : si ce champ est rempli, le contrat n’est pas produit.
+          </p>
+        </div>}
         <div hidden={etape !== "tous" && etape !== "travaux"} data-complement="travaux" className="space-y-1.5 sm:col-span-2">
           <Label htmlFor="comp-travaux">Travaux récents du bailleur (nature) — Facultatif</Label>
           <textarea
@@ -237,9 +255,13 @@ export function FormulaireComplementsBail({
             defaultValue={d("travaux_recents", defauts.travaux_recents)}
             className={classeTextarea}
           />
+          {/* Phase 3 (C08) : pour une première location, le contrat n'imprime pas ces travaux (il n'y a pas de dernier
+              contrat) : l'écran le dit, plutôt que de perdre la saisie sans prévenir. */}
+          {situation === "premiere" && <p data-travaux-premiere-location className="text-xs text-muted-foreground">Vous avez indiqué une première location : le contrat imprime « Sans objet — première location » pour cette rubrique, qui porte sur les travaux faits depuis la fin du dernier contrat. Ce que vous saisissez ici n’y figure pas.</p>}
         </div>
         <div hidden={etape !== "tous" && etape !== "travaux"} data-complement="travaux" className="space-y-1.5">
-          <Label htmlFor="comp-travaux-montant">Montant des travaux récents (€) — Obligatoire si travaux renseignés</Label>
+          {/* Phase 3, reprise du lot 40 (C08) : en première location, le contrat n'imprime ni les travaux ni leur montant. */}
+          <Label htmlFor="comp-travaux-montant">Montant des travaux récents (€) — {situation === "premiere" ? "Sans objet pour une première location" : "Obligatoire si travaux renseignés"}</Label>
           <Input
             id="comp-travaux-montant"
             name="travaux_recents_montant"

@@ -38,6 +38,13 @@ const MIGRATION = readFileSync(`supabase/migrations/${NOM}.sql`, "utf8");
 const RETOUR = readFileSync(`supabase/retours-arriere/${NOM}.retour.sql`, "utf8");
 /** Le retour de la migration suivante (activation de l'inactivité, intégration des textes du 24/10). */
 const RETOUR_ACTIVATION = readFileSync("supabase/retours-arriere/20261024150000_activation_inactivite_v1.retour.sql", "utf8");
+/**
+ * Le retour de 20261125103000 (lot « textes » T4, 24/11/2026 : factures conservées dix ans et non plus six). Ce fichier
+ * éprouve 20261024140000 SEULE, avec le catalogue de son déploiement (factures : 72 mois) : les effets de la migration
+ * du lot T4 sont défaits dans la transaction annulée, comme ceux de 20261024150000. La règle des dix ans a son propre
+ * fichier : tests/factures-conservation-dix-ans-base.test.ts.
+ */
+const RETOUR_FACTURES_DIX_ANS = readFileSync("supabase/retours-arriere/20261125103000_factures_conservation_dix_ans.retour.sql", "utf8");
 const CONTACTS_2210 = readFileSync("supabase/migrations/20261022213731_conservation_preuves_et_invitations.sql", "utf8");
 const SOCLE = readFileSync("supabase/migrations/20261024090000_versions_conditions_et_archives_comptes.sql", "utf8");
 const VENTE = readFileSync("supabase/migrations/20261024110000_vente_et_impaye.sql", "utf8");
@@ -248,6 +255,11 @@ describe.skipIf(!url)("conservation et prospection (avec base)", () => {
     db = new Client({ connectionString: url });
     await db.connect();
     await db.query("begin");
+    // Lot T4 (24/11/2026) : la migration 20261125103000 (factures dix ans) est défaite d'abord, dans la transaction
+    // annulée, pour éprouver 20261024140000 seule. Son retour rend les fonctions mais ne raccourcit aucune durée (c'est
+    // voulu) : la durée du catalogue est donc remise ici à la main à celle du déploiement de 20261024140000.
+    await db.query(RETOUR_FACTURES_DIX_ANS);
+    await db.query("update public.retention_rules set duree_mois = 72, duree_initiale_mois = 72 where data_type = 'archive:facture'");
     await db.query(MIGRATION);
     // Intégration des textes du 24/10 : 20261024150000 (activation de la règle d'inactivité avec la V1) suit cette
     // migration. Ses effets sont défaits ici, dans la transaction annulée, pour éprouver 20261024140000 seule (catalogue

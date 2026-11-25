@@ -36,7 +36,10 @@ test("depuis une organisation, la fiche d'un compte dit son état, ses rôles et
   await expect(page.getByRole("heading", { name: "État du compte" })).toBeVisible();
   await expect(page.getByText("Dernière connexion")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Rôles et espaces" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Actions sur ce compte" })).toBeVisible();
+  // Défauts d'écran E070 = E180 : la section liste les gestes dont ce compte est l'AUTEUR ; « Actions sur ce compte »
+  // les faisait lire comme faits sur lui (un « role : artisan » donné par un administrateur d'agence, par exemple).
+  await expect(page.getByRole("heading", { name: "Actions faites par ce compte" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Actions sur ce compte" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Événements techniques" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Contrôler l’accès" })).toBeVisible();
   // L'entrée dans l'espace se fait avec l'identité de la supervision, jamais celle du compte.

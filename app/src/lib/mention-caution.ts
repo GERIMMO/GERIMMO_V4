@@ -1,9 +1,12 @@
 /** Un même texte sert à l'acte, à l'aide de saisie et au contrôle après signature.
  * La caution l'appose elle-même : jamais de valeur préremplie chez le prestataire.
  * Art. 2297 : engagement, défaillance, plafond en lettres et chiffres, renonciations.
+ * Textes officiels, lot T2 (R03-A3) : la mention ne parle plus de « pénalités de retard » (la notice d'information range
+ * parmi les clauses interdites celles qui prévoient des pénalités en cas de retard de paiement du loyer). Un acte déjà
+ * préparé garde sa mention : elle est enregistrée sur son circuit de signature et c'est à elle que la saisie est comparée.
  */
 export function texteMentionCaution(p: { caution: string; locataires: string; plafond: string; solidaire: boolean }) {
-  return `Je, soussigné(e) ${p.caution}, m'engage en qualité de caution${p.solidaire ? " solidaire" : ""} de ${p.locataires} envers le bailleur, à lui payer, en cas de défaillance du locataire, les sommes dues au titre du bail désigné dans le présent acte — loyers, charges, réparations locatives, intérêts et pénalités de retard —, pour la durée du bail et de ses renouvellements, dans la limite de la somme de ${p.plafond}, couvrant le principal et les accessoires.${p.solidaire ? " Je reconnais ne pouvoir exiger du bailleur qu'il poursuive d'abord le locataire, ni qu'il divise ses poursuites entre les cautions." : ""}`;
+  return `Je, soussigné(e) ${p.caution}, m'engage en qualité de caution${p.solidaire ? " solidaire" : ""} de ${p.locataires} envers le bailleur, à lui payer, en cas de défaillance du locataire, les sommes dues au titre du bail désigné dans le présent acte — loyers, charges, réparations locatives et intérêts de retard —, pour la durée du bail et de ses renouvellements, dans la limite de la somme de ${p.plafond}, couvrant le principal et les accessoires.${p.solidaire ? " Je reconnais ne pouvoir exiger du bailleur qu'il poursuive d'abord le locataire, ni qu'il divise ses poursuites entre les cautions." : ""}`;
 }
 
 export const ERREUR_MENTION_CAUTION = "La mention de la caution est absente ou incomplète. Ce cautionnement ne peut pas être validé : préparez un nouvel acte et faites recopier la mention complète par le garant. Une réponse « OK » ne suffit pas.";

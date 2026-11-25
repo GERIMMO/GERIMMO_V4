@@ -26,6 +26,8 @@ import { verifierHonorairesContrat } from "@/lib/mentions-contrat";
 vi.mock("@/lib/documents/modeles/communs", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   chargerContexteBail: vi.fn(),
+  // Phase 3, lot 54 (W39) : le courrier de régularisation porte le bloc de signature de l'émetteur ; aucune signature enregistrée ici.
+  signatureOrganisation: vi.fn(async () => null),
 }));
 
 const exp = { nom: "Agence Alpha", adresse: "5 place du Marché, 69001 Lyon", email: "a@b.fr", telephone: "04", ville: "Lyon" };
@@ -92,7 +94,8 @@ describe("révision IRL : la lettre nomme l'indice réellement utilisé", () => 
     expect(html).not.toContain("Indice de l'année précédente");
     expect(html).toContain("Indice de référence (dernière révision, à défaut indice figé au bail)");
     expect(html).toContain("Nouvel indice retenu");
-    expect(html).toContain("Provision sur charges (inchangé)");
+    // Phase 3 (C55) : « (inchangé) » s'accorde avec « provision » ; l'ancien texte attendu portait la faute d'accord.
+    expect(html).toContain("Provision sur charges (inchangée)");
   });
 });
 
@@ -197,6 +200,7 @@ describe("avis d'échéance PDF", () => {
       referenceBail: "BAIL-1",
       dateBail: "2026-09-15",
       exp,
+      typeOrganisation: "agence",
       f,
     }).html;
     expect(html).toContain("Solde antérieur restant dû : 400,00");
@@ -218,7 +222,9 @@ describe("décompte de restitution", () => {
     expect(finDelaiRestitution("2026-03-15", 2)).toBe("2026-05-15");
   });
   it("« sur demande » est réservé aux pièces déposées", () => {
-    expect(libelleJustificatifRetenue({ sans_justificatif: true, justificatif_document: null })).toBe("Non fourni");
+    // Décision du 24/11/2026 (Q49) : sans pièce, le décompte n'est plus imprimé avec « Non fourni » ; il est bloqué, et la
+    // cellule de l'épreuve dit « À déposer » (tests/decisions-24-11-d3.test.ts tient le blocage).
+    expect(libelleJustificatifRetenue({ sans_justificatif: true, justificatif_document: null })).toBe("À déposer");
     expect(libelleJustificatifRetenue({ sans_justificatif: false, justificatif_document: "doc" })).toBe("Déposé — sur demande");
   });
 });
@@ -232,6 +238,8 @@ describe("relance automatique", () => {
       niveau: "relance_1",
       prenom: "Claire",
       emetteur: "Agence",
+      // Lot 47 : l'interlocuteur nommé dépend du type de l'espace ; ce courrier est celui d'une agence.
+      interlocuteur: "gestionnaire",
       lot: "Lot 1",
       periode: "2026-07-01",
       dateEcheance: "2026-07-05",
@@ -301,6 +309,8 @@ vi.mock("@/lib/supabase/service", () => ({
       if (nom === "relance_loyer_consigner") envois.notes.push(String(args.p_note));
       return { data: "id", error: null };
     },
+    // Lot 47 : la passe lit le type de chaque espace pour nommer l'interlocuteur du locataire (ici, des agences).
+    from: () => ({ select: () => ({ in: async (_colonne: string, ids: string[]) => ({ data: ids.map((id) => ({ id, type: "agence" })), error: null }) }) }),
   }),
 }));
 

@@ -65,6 +65,7 @@ export function clientSurPg(db: Client, options: { transactionnel: boolean }) {
 
     from(table: string) {
       const filtres: [string, unknown][] = [];
+      const renseignees: string[] = [];
       let colonnes = "*";
       const requete = {
         select(cols = "*") {
@@ -75,8 +76,18 @@ export function clientSurPg(db: Client, options: { transactionnel: boolean }) {
           filtres.push([colonne, valeur]);
           return requete;
         },
+        /** Seule forme admise : `.not(colonne, "is", null)` (colonne renseignée). Toute autre lève : rien n'est deviné. */
+        not(colonne: string, operateur: string, valeur: unknown) {
+          if (operateur !== "is" || valeur !== null) throw new Error(`supabase-sur-pg : .not(${colonne}, ${operateur}) non pris en charge`);
+          renseignees.push(colonne);
+          return requete;
+        },
+        /** `maybeSingle` lit déjà au plus deux lignes. */
+        limit() {
+          return requete;
+        },
         async maybeSingle(): Promise<Retour> {
-          const where = filtres.map(([c], i) => `${c} = $${i + 1}`).join(" and ");
+          const where = [...filtres.map(([c], i) => `${c} = $${i + 1}`), ...renseignees.map((c) => `${c} is not null`)].join(" and ");
           const r = await jouer(() => db.query(`select ${colonnes} from public.${table}${where ? ` where ${where}` : ""} limit 2`, filtres.map(([, v]) => v)));
           if ("erreur" in r) return { data: null, error: r.erreur };
           if (r.ok.rows.length > 1) return { data: null, error: { code: "PGRST116", message: "plusieurs lignes", details: null, hint: null } };

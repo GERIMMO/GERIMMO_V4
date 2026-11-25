@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { estUuid } from "@/lib/identifiants";
 import type { FactureVueParArtisan } from "@/lib/reglement-facture";
 import type { DemandeRdvArtisan } from "@/lib/rendez-vous-locataire";
+import { lireEchangesNonLus, type EchangeNonLu } from "@/lib/echanges-intervention";
+import type { LigneGardee } from "@/lib/lignes-devis-gardees";
 
 /**
  * LE MODÈLE D'ACCÈS DU PORTAIL ARTISAN — pourquoi il est sûr.
@@ -31,6 +33,10 @@ import type { DemandeRdvArtisan } from "@/lib/rendez-vous-locataire";
  *    recevrait zéro ligne. Il n'y a pas de porte à mal fermer : il n'y a pas
  *    de porte. Les RPC SECURITY DEFINER sont la seule, et elles déduisent son
  *    identité de `auth.uid()` (`mon_artisan_id()`), jamais d'un paramètre.
+ *    Exception datée du 22/11/2026 (audit palier 1, P1-03) : `chargerFacturesRefusees`
+ *    lit la table `intervention_factures`. Sa politique de lecture admet l'artisan
+ *    pour les factures de SES interventions seulement (`artisan_possede_intervention`,
+ *    vérifié sous son rôle dans tests/facture-artisan-refus-base.test.ts).
  *
  * 3. LA GARDE CI-DESSOUS NE PROTÈGE QUE LA NAVIGATION. Elle vérifie qu'une
  *    fiche artisan existe pour ce compte, afin d'envoyer un visiteur sans
@@ -291,8 +297,96 @@ export const chargerCreneauxMission = cache(async function chargerCreneauxMissio
 export const chargerReglementsFactures = cache(async function chargerReglementsFactures() {
   const { supabase, fiche } = await chargerFicheArtisan();
   if (!fiche) return { lignes: [] as FactureVueParArtisan[], erreur: false };
-  const { data, error } = await supabase.rpc("mes_reglements_factures_artisan");
-  return { lignes: (data ?? []) as FactureVueParArtisan[], erreur: Boolean(error) };
+  // Audit palier 1 (P1-03) : une facture refusée par le client porte l'état « refusee ». La fonction de base ne le
+  // connaît pas (elle rendrait « déposée, en attente de contrôle ») : le refus se lit sur la facture elle-même. Si
+  // cette lecture échoue, l'ensemble est dit en échec — on n'affiche pas une facture refusée comme encore attendue.
+  const [{ data, error }, refusees] = await Promise.all([supabase.rpc("mes_reglements_factures_artisan"), chargerFacturesRefusees()]);
+  const refus = new Set(refusees.lignes.map((r) => r.id));
+  const lignes = ((data ?? []) as FactureVueParArtisan[]).map((l) => (refus.has(l.facture_id) ? { ...l, etat: "refusee" as const } : l));
+  return { lignes, erreur: Boolean(error) || refusees.erreur };
+});
+
+/** Une facture refusée par le client, telle que l'artisan la lit : ce qui a été refusé, quand, et pourquoi. */
+export type FactureRefusee = { id: string; intervention_id: string; numero: string; montant_ttc_cents: number; refusee_le: string; refus_motif: string };
+
+/**
+ * Audit palier 1 (P1-03) : SES factures refusées, avec le motif écrit par son client. Lues par la politique de la
+ * table (l'artisan ne lit que les factures de ses interventions) ; la plus récente d'abord. Un échec de lecture se
+ * distingue d'« aucun refus ».
+ */
+export const chargerFacturesRefusees = cache(async function chargerFacturesRefusees() {
+  const { supabase, fiche } = await chargerFicheArtisan();
+  if (!fiche) return { lignes: [] as FactureRefusee[], erreur: false };
+  const { data, error } = await supabase.from("intervention_factures")
+    .select("id, intervention_id, numero, montant_ttc_cents, refusee_le, refus_motif")
+    .eq("artisan_id", fiche.artisan_id).not("refusee_le", "is", null).order("refusee_le", { ascending: false });
+  return { lignes: (data ?? []) as FactureRefusee[], erreur: Boolean(error) };
+});
+
+/**
+ * Audit palier 1 (P2-04) : SES lignes de devis gardées (`mes_lignes_devis`). `lignes` vaut `null` quand la lecture
+ * échoue : le formulaire le dit et n'offre alors aucun geste, plutôt que de montrer une liste vide.
+ */
+export async function chargerMesLignesDevis(): Promise<LigneGardee[] | null> {
+  const { supabase, fiche } = await chargerFicheArtisan();
+  if (!fiche) return null;
+  const { data, error } = await supabase.rpc("mes_lignes_devis");
+  if (error || !Array.isArray(data)) return null;
+  return (data as { id: string; libelle: string; prix_unitaire_ht_cents: number | string | null; tva_bps: number | null }[])
+    .map((l) => ({ id: l.id, libelle: l.libelle, prix_unitaire_ht_cents: l.prix_unitaire_ht_cents === null ? null : Number(l.prix_unitaire_ht_cents), tva_bps: l.tva_bps }));
+}
+
+/** P2-04 : où en est la relance d'une de ses factures en vigueur, pas réglée en totalité. */
+export type RelanceFacture = {
+  facture_id: string; intervention_id: string; deposee_le: string; relancee_le: string | null;
+  relances: number; relance_possible_le: string; relancable: boolean;
+};
+
+/**
+ * Audit palier 1 (P2-04) : pour SES factures déposées et pas réglées en totalité, la dernière relance et le jour à
+ * partir duquel la suivante est possible (`mes_relances_factures`). Un échec de lecture se distingue d'« aucune ».
+ */
+export const chargerRelancesFactures = cache(async function chargerRelancesFactures() {
+  const { supabase, fiche } = await chargerFicheArtisan();
+  if (!fiche) return { lignes: [] as RelanceFacture[], erreur: false };
+  const { data, error } = await supabase.rpc("mes_relances_factures");
+  return { lignes: (data ?? []) as RelanceFacture[], erreur: Boolean(error) };
+});
+
+/** P2-04 : un rendez-vous manqué de sa mission — qui est dit absent, et qui le dit. */
+export type RendezVousManque = {
+  rdv_debut: string; absent: "locataire" | "artisan"; consigne_role: "artisan" | "gestionnaire";
+  consigne_le: string; note: string | null;
+};
+
+/** Audit palier 1 (P2-04) : les rendez-vous manqués d'UNE de ses missions (`rdv_manques_de_ma_mission`). */
+export async function chargerRendezVousManques(interventionId: string) {
+  const { supabase, fiche } = await chargerFicheArtisan();
+  if (!fiche) return { lignes: [] as RendezVousManque[], erreur: false };
+  const { data, error } = await supabase.rpc("rdv_manques_de_ma_mission", { p_intervention: interventionId });
+  return { lignes: (data ?? []) as RendezVousManque[], erreur: Boolean(error) };
+}
+
+/**
+ * Audit palier 1 (P2-04) : le nombre de rendez-vous où SES clients l'ont dit absent, sur douze mois
+ * (`mes_rdv_manques_artisan`). `null` = lecture en échec, jamais un zéro supposé.
+ */
+export async function chargerMesAbsencesAuxRendezVous(): Promise<number | null> {
+  const { supabase, fiche } = await chargerFicheArtisan();
+  if (!fiche) return null;
+  const { data, error } = await supabase.rpc("mes_rdv_manques_artisan");
+  return error || typeof data !== "number" ? null : data;
+}
+
+/**
+ * Audit palier 1 (P1-05) : les discussions de SES missions qui portent un message qu'il n'a pas lu (la base ne rend
+ * que ses missions encore vivantes : `echanges_intervention_non_lus`). Mémorisée à la requête : le gabarit en tire
+ * la pastille, les pages l'étiquette de chaque mission. Un échec de lecture se distingue de « rien à lire ».
+ */
+export const chargerEchangesNonLus = cache(async function chargerEchangesNonLus() {
+  const { supabase, fiche } = await chargerFicheArtisan();
+  if (!fiche) return { lignes: [] as EchangeNonLu[], erreur: false };
+  return lireEchangesNonLus(supabase, null);
 });
 
 /**

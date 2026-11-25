@@ -16,6 +16,14 @@ export const TYPES_BIEN: Record<string, string> = {
 // Types pour lesquels le DPE est obligatoire (habitation, RM-0.7.4)
 const TYPES_HABITATION = ["appartement", "maison", "immeuble"] as const;
 
+/**
+ * Le bien est-il un bien d'habitation ? Même distinction que le contrôle de mise en location de la base
+ * (`lot_blocages_location` : appartement, maison, immeuble). Un local, un parking, un terrain ou « autre » ne l'est pas.
+ */
+export function estBienHabitation(typeBien: string | null | undefined): boolean {
+  return (TYPES_HABITATION as readonly string[]).includes(typeBien ?? "");
+}
+
 // Types qui ne se découpent pas en lots (retour recette S2 : un appartement
 // EST déjà l'unité locative ; une place de parking ne se divise pas)
 export const TYPES_NON_DECOUPABLES = ["appartement", "parking"] as const;

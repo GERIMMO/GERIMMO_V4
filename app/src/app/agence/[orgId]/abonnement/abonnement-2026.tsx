@@ -16,6 +16,7 @@ import { DetailMontants, FormulaireSouscription } from "./formulaire-souscriptio
 import { REGIME_TVA } from "@/lib/editeur";
 import { nouvellesSouscriptionsFermees, MESSAGE_SOUSCRIPTIONS_FERMEES } from "@/lib/verrou-pilote";
 import { motifIdentiteEditeur } from "@/lib/garde-souscription";
+import { PHRASE_MEDIATEUR_NON_DESIGNE } from "@/lib/courriers-contrat";
 import { lireGardeSouscription, motifArchiveCommande } from "@/lib/garde-souscription-serveur";
 import { verifierAccesEspace } from "@/lib/espace";
 import { formaterDate } from "@/lib/ged";
@@ -164,7 +165,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
   // l'action (lib/garde-souscription.ts), bouton indisponible, pas de case.
   // « Votre essai continue » seulement si l'essai court encore : un essai
   // arrivé à son terme garde le statut « essai » mais ferme l'écriture.
-  const motifIdentite = motifIdentiteEditeur(garde.editeur, { enEssai: enEssai && !ferme, blocageIdentiteActif: garde.blocageIdentiteActif, nouvelleSouscriptionParticulier: !souscrit && publicTarif === "proprietaire_direct" });
+  const motifIdentite = motifIdentiteEditeur(garde.editeur, { enEssai: enEssai && !ferme, blocageIdentiteActif: garde.blocageIdentiteActif, venteSansMediateurDecidee: garde.venteSansMediateurDecidee, premiereSouscription: !souscrit, nouvelleSouscriptionParticulier: !souscrit && publicTarif === "proprietaire_direct" });
   const contactPaiement = enEssai
     ? "Écrivez-nous pour demander une prolongation de votre essai."
     : "Contactez Gerimmo si vous avez besoin d’aide pour votre contrat.";
@@ -172,7 +173,9 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
     ? `Le paiement en ligne n'est pas encore ouvert. ${contactPaiement}`
     : !REGIME_TVA
       ? `Le paiement en ligne n'est pas encore ouvert : le régime de TVA de l'éditeur doit d'abord être renseigné pour afficher les taxes exactes. ${contactPaiement}`
-      : motifIdentite ?? (!souscrit && publicTarif === "proprietaire_direct" && !nouvellesSouscriptionsFermees(garde.ventesOuvertes)
+      // Relecture de la fusion (E-01) : même comparaison avec l'identité archivée que le serveur, pour toute première
+      // souscription, agence comprise.
+      : motifIdentite ?? (!souscrit && !nouvellesSouscriptionsFermees(garde.ventesOuvertes)
           ? await motifArchiveCommande(supabase, garde.editeur) : null);
 
   const motifSouscription = !souscrit && reglages.pret && nouvellesSouscriptionsFermees(garde.ventesOuvertes)
@@ -545,7 +548,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
             {/* Plan de conformité du 23/10 (lot 4, constat R13) et décisions du dirigeant du 23/10 : la signature passe
                 dans ce qui est compris, sans supplément, essai compris, dans la limite du volume mensuel commun ; l'acte
                 de cautionnement et l'état des lieux se signent dans Gerimmo (article 4.7 des conditions générales). */}
-            <div><PenLine size={20} aria-hidden="true" /><strong>La signature électronique</strong><details className={styles.precisions}><summary>Disponibilité et documents concernés</summary><p>Vous pouvez déposer votre bail signé sur papier. Zoho Sign assure la signature électronique lorsque le service est ouvert pour le document concerné. Baux, accords, devis, actes de cautionnement et états des lieux sont concernés selon le dossier. Lorsqu’elle est ouverte, elle est sans supplément, essai compris. Selon le volume mensuel commun, elle peut être momentanément suspendue.</p></details></div>
+            <div><PenLine size={20} aria-hidden="true" /><strong>La signature électronique</strong><details className={styles.precisions}><summary>Disponibilité et documents concernés</summary><p>Zoho Sign assure la signature électronique lorsque le service est ouvert pour le document concerné. Baux, accords, devis, actes de cautionnement et états des lieux sont concernés selon le dossier. Lorsqu’elle est ouverte, elle est sans supplément, essai compris. Selon le volume mensuel commun, elle peut être momentanément suspendue. Vous pouvez toujours déposer votre bail signé sur papier.</p></details></div>
           </div>
           <details className={styles.precisions}>
             <summary>Services facturés à part ou non inclus</summary>
@@ -561,9 +564,14 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
             <h2 id="choisir-abonnement">{!estAgence && motifSouscription ? "Votre offre Gerimmo" : ferme ? "Reprendre avec un abonnement" : "Souscrire à Gerimmo"}</h2>
             {!estAgence && <p>Le montant dépend du nombre de biens que vous gérez dans cet espace et de la périodicité choisie.</p>}
           </div>
-          {!estAgence && garde.editeur.mediateurNom && garde.editeur.mediateurAdresse && garde.editeur.mediateurSite && (
+          {/* Sans médiateur saisi, le paiement d'un particulier est fermé par défaut (lib/garde-souscription.ts) ; si le
+              super admin a décidé de vendre quand même (décision datée), le particulier lit avant de payer qu'aucun médiateur n'est désigné — la
+              même phrase que dans le courriel de confirmation. */}
+          {!estAgence && (garde.editeur.mediateurNom && garde.editeur.mediateurAdresse && garde.editeur.mediateurSite ? (
             <p className="text-sm">Médiateur de la consommation : {garde.editeur.mediateurNom}, {garde.editeur.mediateurAdresse}. Site : {garde.editeur.mediateurSite}. <Link href="/conditions" className="lien-texte">Consulter les modalités de recours</Link>.</p>
-          )}
+          ) : (
+            <p className="text-sm">{PHRASE_MEDIATEUR_NON_DESIGNE}</p>
+          ))}
           <FormulaireSouscription
             orgId={orgId}
             publicTarif={publicTarif}

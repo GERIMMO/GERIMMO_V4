@@ -1,6 +1,8 @@
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
-import { NOTE_SIGNALEMENT_FERME, signalementOuvert } from "../types";
+import { noteSignalementFerme, signalementOuvert } from "../types";
+import { lireIdentiteContact } from "../identite-contact";
+import { interlocuteurDeLIdentite } from "@/lib/identite-contact-locataire";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { ReflexesUrgence } from "../reflexes-urgence";
 import { FormulaireIncidentLocataire } from "./formulaire-incident-locataire";
@@ -18,6 +20,8 @@ export default async function PageSignalerIncident(
 ) {
   const { orgId } = await props.params;
   const { supabase, adhesionActive, user } = await verifierAccesEspaceLocataire(orgId);
+  // Lot 47 : « votre gestionnaire » seulement dans un espace d'agence ; chez un propriétaire, « votre bailleur ».
+  const qui = interlocuteurDeLIdentite(await lireIdentiteContact(orgId));
 
   const { data: baux, error: erreurBail } = await supabase.rpc("mon_bail_locataire", { p_org: orgId });
   const bailActif = adhesionActive && !erreurBail && signalementOuvert(baux as { etat: string }[] | null);
@@ -42,30 +46,30 @@ export default async function PageSignalerIncident(
           fois, dans la carte d'urgence. */}
       <div className="entete-page">
         <TitreEcran rubrique="incidents">Signaler un problème</TitreEcran>
-        <Link href={`/locataire/${orgId}/demandes`} className="lien-discret">
+        <Link href={`/locataire/${orgId}/demandes`} className="lien-discret py-1.5">
           Suivre mes demandes{enCours > 0 ? ` (${enCours} en cours)` : ""}{"\u00a0"}→
         </Link>
       </div>
       {bailActif && (
         <p className="text-sm text-muted-foreground">
-          Vous saurez qui prend la réparation en charge après examen par votre
-          gestionnaire.
+          Vous saurez qui prend la réparation en charge après examen par votre{" "}
+          {qui}.
         </p>
       )}
 
-      <ReflexesUrgence surFormulaire={bailActif} />
+      <ReflexesUrgence surFormulaire={bailActif} interlocuteur={qui} />
       {bailActif ? (
         <>
-          <FormulaireIncidentLocataire compteId={user.id} orgId={orgId} />
+          <FormulaireIncidentLocataire compteId={user.id} orgId={orgId} interlocuteur={qui} />
         </>
       ) : (
         <div className="loc-carte">
           <p className="text-sm text-muted-foreground">
             {erreurBail
-              ? "Votre bail ne peut pas être vérifié pour le moment. Réessayez ou contactez votre gestionnaire."
+              ? `Votre bail ne peut pas être vérifié pour le moment. Réessayez ou contactez votre ${qui}.`
               : bailEnPreparation
-                ? `La déclaration nécessite un bail actif. ${NOTE_SIGNALEMENT_FERME}`
-                : "La déclaration nécessite un bail actif. Contactez votre gestionnaire pour vérifier votre dossier."}{" "}
+                ? `La déclaration nécessite un bail actif. ${noteSignalementFerme(qui)}`
+                : `La déclaration nécessite un bail actif. Contactez votre ${qui} pour vérifier votre dossier.`}{" "}
             Vos anciens signalements restent consultables dans{" "}
             <Link href={`/locataire/${orgId}/demandes`} className="lien-discret">
               Mes demandes

@@ -6,6 +6,7 @@ import { verifierAccesEspace } from "@/lib/espace";
 import { lotsDuPortefeuille, PortefeuilleIndisponible } from "@/lib/portefeuille";
 import { chargerAgendaGestion, type RendezVousGestion } from "@/app/actions/agenda-gestion";
 import { jourParis, TAILLE_PAGE_AGENDA } from "@/lib/agenda-gestion";
+import { chargerEcheancesAgenda } from "@/lib/echeances-agenda-lecture";
 import { premier } from "@/lib/postgrest";
 import { jourLong, creneauTexte, STATUTS_MISSION } from "@/app/artisan/libelles";
 import { EchecLecture } from "../documents/echec-lecture";
@@ -88,7 +89,7 @@ export default async function PageAgenda({ params, searchParams }: {
   const { orgId } = await params;
   // cache() : même lecture que le layout et que l'action, pour la mention
   // « Mon portefeuille » de l'agent (comme Loyers, Statistiques, Messages).
-  const { role, estProprietaire } = await verifierAccesEspace(orgId);
+  const { supabase, role, estProprietaire } = await verifierAccesEspace(orgId);
   // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
   const base = baseEspace(orgId, estProprietaire);
   const sp = await searchParams;
@@ -112,7 +113,11 @@ export default async function PageAgenda({ params, searchParams }: {
   const duJour = parJour.get(agenda.jour) ?? [];
 
   if (role === "proprietaire_direct") {
-    return <AgendaProprietaire agenda={agenda} comptesVues={comptesVues} base={base} aujourdhui={aujourdhui} />;
+    // Audit palier 1, P2-06 : le calendrier du propriétaire porte aussi ses échéances (lecture seule, mois affiché).
+    const echeances = agenda.vue === "mois" && !agenda.erreur
+      ? await chargerEcheancesAgenda(supabase, orgId, agenda.mois, base, aujourdhui)
+      : null;
+    return <AgendaProprietaire agenda={agenda} comptesVues={comptesVues} base={base} aujourdhui={aujourdhui} echeances={echeances} />;
   }
 
   return <main className="mx-auto w-full max-w-5xl space-y-5 p-4 sm:p-7">

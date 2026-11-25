@@ -36,6 +36,30 @@ describe("PRESTATAIRES", () => {
     }
   });
 
+  // Audit palier 1 du 22/11/2026 (P0-10) : deux envois à OpenAI, faits à la demande de l'utilisateur, n'étaient dits
+  // nulle part — l'assistant (messages écrits) et la lecture assistée (le fichier entier).
+  it("OpenAI : le rôle public et la page de confidentialité nomment l'assistant et la lecture assistée", () => {
+    for (const fichier of ["lib/conversation-privee-ia.ts", "lib/lecture-document-ia.ts", "lib/proposition-devis-ia.ts"]) {
+      expect(lire(fichier)).toContain("https://api.openai.com/");
+    }
+    const openai = PRESTATAIRES.find((p) => p.nom === "OpenAI")!;
+    expect(openai.role).toContain("assistant « Demander à Gerimmo »");
+    expect(openai.role).toContain("lecture assistée d’une facture ou d’une photo de compteur");
+    expect(openai.role).toContain("le fichier choisi par l’utilisateur");
+    expect(openai.role).toContain("propositions de devis artisans");
+    const page = lire("app/confidentialite/page.tsx").replace(/\s+/g, " ");
+    expect(page).toContain("L’assistant « Demander à Gerimmo » transmet le sujet choisi et les messages que vous écrivez");
+    expect(page).toContain("transmet le fichier que vous avez choisi, avec ce qu’il contient");
+    expect(page).toContain("L’écran le rappelle avant l’envoi.");
+    // La page ne promet que ce que le code fait : l'option « sans conservation » est bien envoyée, par les deux chemins.
+    expect(page).toContain("l’option qui demande à OpenAI de ne pas conserver l’échange");
+    for (const fichier of ["lib/conversation-privee-ia.ts", "lib/lecture-document-ia.ts"]) expect(lire(fichier)).toMatch(/store:\s*false/);
+    // Et l'écran le rappelle effectivement avant l'envoi, sur chacun des trois points d'entrée.
+    for (const composant of ["components/assistant-prive.tsx", "components/lecture-document-assistee.tsx", "components/depenses-simplifiees.tsx"]) {
+      expect(lire(composant)).toMatch(/OpenAI, le prestataire d’IA de Gerimmo, établi aux États-Unis/);
+    }
+  });
+
   it("nomme les transferts hors UE au lieu de les taire", () => {
     const openai = PRESTATAIRES.find((p) => p.nom === "OpenAI")!;
     expect(openai.localisation).toMatch(/États-Unis/);
@@ -74,7 +98,13 @@ describe("prestataires saisissables (19/10) : clés du formulaire et de la base"
     const sql = lireApp(`supabase/migrations/${MIGRATION}.sql`);
     const listes = [...sql.matchAll(/array\[([^\]]+)\]::text\[\]/g)].map((m) => [...m[1].matchAll(/'([A-Za-z]+)'/g)].map((c) => c[1]));
     expect(listes).toHaveLength(1);
-    expect(listes[0]).toEqual(Object.keys(CHAMPS_EDITEUR));
+    // Seconde reprise du 24/11/2026 (T4R-03) : le formulaire a une vingt-sixième clé, `typeVendeur`, ajoutée en dernier
+    // par la migration 20261125106000 ; celle du 19/10 ouvre toujours la liste aux vingt-cinq premières, dans l'ordre.
+    expect(Object.keys(CHAMPS_EDITEUR).at(-1)).toBe("typeVendeur");
+    expect(listes[0]).toEqual(Object.keys(CHAMPS_EDITEUR).slice(0, -1));
+    const suite = lireApp("supabase/migrations/20261125106000_type_vendeur_et_vente_sans_mediateur.sql");
+    const listesSuite = [...suite.matchAll(/array\[([^\]]+)\]::text\[\]/g)].map((m) => [...m[1].matchAll(/'([A-Za-z]+)'/g)].map((c) => c[1]));
+    expect(listesSuite).toEqual([Object.keys(CHAMPS_EDITEUR)]);
     expect(sql).toMatch(/octet_length\(valeurs::text\)\s*<\s*40000/);
     expect(sql).toMatch(/^select public\.fermer_fonctions_a_anon\(\);\s*$/m);
     expect(sql).toContain("lock_timeout");

@@ -7,6 +7,8 @@ vi.mock("@/app/artisan/acces", () => ({
   verifierAccesArtisan: async () => ({ fiche: { statut_plateforme: "valide" } }),
   chargerAgenda: agenda,
   chargerDemandesRdv: async () => ({ lignes: [], erreur: false }),
+  // Audit P1-05 : les discussions de mission portant un message à lire (aucune dans ces scénarios).
+  chargerEchangesNonLus: async () => ({ lignes: [], erreur: false }),
 }));
 vi.mock("@/app/artisan/clients/resumes", () => ({ ChantiersDansAgenda: () => null }));
 vi.mock("@/app/artisan/carte-mission", () => ({ CarteMission: ({ligne}: {ligne: {intervention_id:string}}) => ligne.intervention_id }));

@@ -1,4 +1,5 @@
 import { LienSectionIncident } from "@/components/lien-section-incident";
+import { lireRetraitsDeMesNotes, phraseNoteRetiree } from "@/lib/evaluation-retiree";
 import { PrioriteIncident, RubriqueIncident } from "@/components/navigation-incident";
 import { consigneMission } from "@/lib/consigne-incident";
 import { EchangesIntervention } from "@/components/echanges-intervention";
@@ -58,9 +59,11 @@ import {
   FormulaireDecisionAvenant,
   FormulaireEvaluation,
   FormulaireRendezVous,
+  FormulaireRendezVousManque,
   FormulaireRevisionImputation,
 } from "./formulaires-artisan";
 import { baseEspace } from "@/lib/racine-espace";
+import { REFERENCES_VERIFIEES_LE, reperesDuMetier } from "@/lib/references-prix-travaux";
 
 // LE VOLET ARTISAN DE LA FICHE D'INCIDENT — missionner, comparer, suivre.
 //
@@ -105,6 +108,50 @@ type Sollicitation = {
   revision_avant?: string | null;
 };
 
+// Audit palier 1 du 22/11/2026, P2-02 : la garantie que l'artisan a annoncée sur son devis, recopiée telle quelle.
+// Le gestionnaire la lit avant de choisir, puis au dossier quand un problème revient. C'est l'engagement de l'artisan :
+// l'écran le dit, pour que personne ne la prenne pour une garantie de Gerimmo.
+function GarantieAnnoncee({ texte }: { texte?: string | null }) {
+  const garantie = texte?.trim();
+  if (!garantie) return null;
+  return (
+    <div className="ligne-info" data-garantie-annoncee>
+      <span>Garantie annoncée par l’artisan</span>
+      <span>
+        {garantie}
+        <small className="block text-muted-foreground">Engagement de l’artisan, pas de Gerimmo.</small>
+      </span>
+    </div>
+  );
+}
+
+// Audit palier 1 du 22/11/2026, P2-07 : un repère de prix AVANT de solliciter un artisan. Ce sont les repères
+// sourcés qui aident déjà l'artisan à préparer son devis ; rien d'autre. Un métier sans repère n'affiche rien. Le
+// texte dit ce que le repère n'est pas : ni un tarif, ni un plafond, ni un engagement (formulation à faire relire :
+// JURISTE.md, partie 4).
+function ReperePrix({ metier }: { metier: string }) {
+  const reperes = reperesDuMetier(metier);
+  if (reperes.length === 0) return null;
+  return (
+    <aside className="rounded-lg border border-border p-3 text-sm" aria-label="Repère de prix" data-repere-prix>
+      <p className="libelle-champ">Repère de prix</p>
+      <ul className="mt-1 space-y-1">
+        {reperes.map((r) => (
+          <li key={r.code} className="min-w-0 break-words">
+            {r.libelle} : <b className="font-semibold">{r.fourchette}</b>{" "}
+            <a href={r.url} target="_blank" rel="noopener noreferrer" className="lien-texte whitespace-nowrap">source</a>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-xs text-muted-foreground">
+        Ordre de grandeur relevé le {formaterDate(REFERENCES_VERIFIEES_LE)}, hors déplacement, fournitures et
+        majorations. Ce n’est ni un tarif, ni un prix maximum, ni un engagement de Gerimmo ou de l’artisan : seul le
+        devis de l’artisan fixe le prix.
+      </p>
+    </aside>
+  );
+}
+
 type Devis = {
   id: string;
   sollicitation_id: string;
@@ -124,6 +171,8 @@ type Devis = {
   version?: number | null;
   devis_precedent_id?: string | null;
   note_revision?: string | null;
+  /** Audit palier 1, P2-02 : ce que l'artisan a annoncé comme garantie sur son devis. */
+  garantie_annoncee?: string | null;
 };
 
 type Intervention = {
@@ -275,6 +324,8 @@ export async function VoletArtisan({
 
   const supabase = await createClient();
   const aujourdhui = aujourdhuiParis();
+  // P2-04 : l'instant du rendu, pour ne proposer « rendez-vous manqué » qu'une fois l'heure du rendez-vous passée.
+  const maintenant = new Date().getTime();
 
   const [
     { data: consultationsBrutes, error: erreurConsultations },
@@ -299,7 +350,7 @@ export async function VoletArtisan({
     supabase
       .from("incident_devis")
       .select(
-        "id, sollicitation_id, artisan_id, montant_ttc_cents, description, lignes, valide_jusqu_au, document_id, statut, depose_le, decision, decision_motif, decide_le, version, devis_precedent_id, note_revision"
+        "id, sollicitation_id, artisan_id, montant_ttc_cents, description, lignes, valide_jusqu_au, document_id, statut, depose_le, decision, decision_motif, decide_le, version, devis_precedent_id, note_revision, garantie_annoncee"
       )
       .eq("organization_id", orgId)
       .eq("incident_id", incidentId)
@@ -452,6 +503,14 @@ export async function VoletArtisan({
     if (error) erreurCarnetBien = true;
     else carnetBien = (data ?? []) as ArtisanCarnetBien[];
   }
+  // Audit palier 1 du 22/11/2026, P2-03 : parmi les artisans proposables, ceux qui ont déclaré être absents aujourd'hui,
+  // et jusqu'à quand. Si cette lecture échoue, la liste reste proposée telle quelle : la base refuse de toute façon
+  // une demande envoyée pendant une absence, en donnant la date de retour.
+  const absentsJusquAu = new Map<string, string>();
+  if (affectables.length > 0) {
+    const { data } = await supabase.rpc("absences_artisans_en_cours", { p_org: orgId, p_artisans: affectables.map((a) => a.artisan_id) });
+    for (const absent of (data ?? []) as { artisan_id: string; au: string }[]) absentsJusquAu.set(absent.artisan_id, absent.au);
+  }
 
   const lecturesManquees = [
     erreurConsultations && "les mises en concurrence",
@@ -496,6 +555,11 @@ export async function VoletArtisan({
     ? (evaluations.find(
         (e) => e.intervention_id === mission.id && e.source === "gerant"
       ) ?? null)
+    : null;
+  // Décision du 24/11/2026 (Q20, reprise M5) : l'organisation lit le motif du retrait de SA note, et seulement de la
+  // sienne. La colonne n'est plus lisible directement : la base ne rend le motif qu'à l'auteur de la note.
+  const motifRetraitDeMaNote = mission && noteDuGerant?.retiree_le
+    ? ((await lireRetraitsDeMesNotes(supabase, orgId)).find((r) => r.intervention_id === mission.id && r.source === "gerant")?.retrait_motif ?? null)
     : null;
   // L'écart devis → réalisé, dit en clair. Le module 9 le veut « alerté sans
   // blocage » : l'artisan justifie, l'agent tranche. Faute de facture dans le
@@ -557,7 +621,7 @@ export async function VoletArtisan({
 
       {/* ─── La mission en cours, ou la dernière en date ─────────────────── */}
 
-      {mission && !estProprietaire && <EchangesIntervention intervention={mission.id} />}
+      {mission && !estProprietaire && <EchangesIntervention intervention={mission.id} interlocuteur="gestionnaire" />}
       {mission && (
         <RubriqueIncident rubrique="suivi"><Card id={`mission-${mission.id}`} className={estProprietaire ? "incident-carte-intervention" : undefined}>
           <CardHeader>
@@ -634,6 +698,7 @@ export async function VoletArtisan({
                   <span className="montant">{montant(devisRetenu.montant_ttc_cents)}</span>
                 </div>
               )}
+              <GarantieAnnoncee texte={devisRetenu?.garantie_annoncee} />
               <div className="ligne-info">
                 {/* shrink-0 / text-right : la valeur, plus longue depuis le
                     24/09, coupait le libellé en « Rendez- / vous ». */}
@@ -743,6 +808,18 @@ export async function VoletArtisan({
               </details>
             )}
 
+            {/* P2-04 (RM-10.5.3) : l'heure du rendez-vous confirmé est passée et la mission n'a pas démarré. */}
+            {mission.statut === "planifiee" && mission.debut_prevu && new Date(mission.debut_prevu).getTime() <= maintenant && (
+              <details className="border-t border-border pt-3" data-rdv-passe>
+                <summary className="min-h-11 cursor-pointer content-center text-sm font-medium">
+                  Le rendez-vous n’a pas eu lieu ? Consigner qui était absent
+                </summary>
+                <div className="pt-3">
+                  <FormulaireRendezVousManque orgId={orgId} interventionId={mission.id} />
+                </div>
+              </details>
+            )}
+
             {/* Le compte rendu — la pièce qui conditionne la facturation */}
             {compteRenduCourant ? (
               <div className="border-t border-border pt-3">
@@ -843,8 +920,9 @@ export async function VoletArtisan({
                     // l'agence — « l'agence est juge et partie ». Le retrait est
                     // la décision de la plateforme ; on l'annonce, on ne
                     // rouvre pas le formulaire (une note par acteur, retirée ou
-                    // non).
-                    `Votre note (${noteDuGerant.note_globale}/5) a été retirée par Gerimmo : elle ne compte plus dans la moyenne de l'artisan.`
+                    // non). Décision du 24/11/2026 (Q20) : le client lit aussi le
+                    // motif du retrait de SA note ; l'artisan ne le lit nulle part.
+                    phraseNoteRetiree({ note_globale: noteDuGerant.note_globale, retrait_motif: motifRetraitDeMaNote })
                   : `Vous avez noté cette intervention ${noteDuGerant.note_globale}/5`}
                 {!noteDuGerant.retiree_le &&
                   (evaluations.some(
@@ -875,7 +953,7 @@ export async function VoletArtisan({
       {mission && estProprietaire && <RubriqueIncident rubrique="echanges"><details open id={`messages-${mission.id}`} className="incident-messages"><summary>Échanges avec les participants</summary><EchangesIntervention intervention={mission.id}/></details></RubriqueIncident>}
 
       {/* ─── La mise en concurrence ouverte ──────────────────────────────── */}
-      {estProprietaire && devisRetenu && <RubriqueIncident rubrique="devis"><section className="rounded-xl border border-border bg-card p-4 space-y-2"><h3 className="font-semibold">Devis retenu — {montant(devisRetenu.montant_ttc_cents)}</h3><p className="text-sm">{nom(devisRetenu.artisan_id)}</p>{devisRetenu.document_id && <Link className="inline-flex min-h-11 items-center text-sm underline" href={`${base}/documents/${devisRetenu.document_id}/fichier`}>Consulter le devis retenu</Link>}</section></RubriqueIncident>}
+      {estProprietaire && devisRetenu && <RubriqueIncident rubrique="devis"><section className="rounded-xl border border-border bg-card p-4 space-y-2"><h3 className="font-semibold">Devis retenu — {montant(devisRetenu.montant_ttc_cents)}</h3><p className="text-sm">{nom(devisRetenu.artisan_id)}</p><GarantieAnnoncee texte={devisRetenu.garantie_annoncee} />{devisRetenu.document_id && <Link className="inline-flex min-h-11 items-center text-sm underline" href={`${base}/documents/${devisRetenu.document_id}/fichier`}>Consulter le devis retenu</Link>}</section></RubriqueIncident>}
       {consultationOuverte && (
         <RubriqueIncident rubrique="devis"><div id="devis-incident" className="space-y-3">
         {bienId && disponibiliteOuverte && <><MessageReseau orgId={orgId} bienId={bienId} disponibilite={disponibiliteOuverte} /><InteretReseau key={`${bienId}-${disponibiliteOuverte.metier}-${disponibiliteOuverte.nature}`} orgId={orgId} bienId={bienId} disponibilite={disponibiliteOuverte} /></>}
@@ -894,6 +972,7 @@ export async function VoletArtisan({
           commune={disponibiliteOuverte?.commune_nom ?? null}
           carnetBien={carnetBien}
           estProprietaire={estProprietaire}
+          absentsJusquAu={absentsJusquAu}
         />
         </div></RubriqueIncident>
       )}
@@ -947,6 +1026,8 @@ export async function VoletArtisan({
 
 // La mise en concurrence ouverte : qui a été sollicité, ce qu'ils ont répondu,
 // et les devis côte à côte.
+const AUCUN_ABSENT: ReadonlyMap<string, string> = new Map();
+
 export function ConsultationOuverte({
   orgId,
   base = baseEspace(orgId, false),
@@ -960,6 +1041,7 @@ export function ConsultationOuverte({
   commune,
   carnetBien = null,
   estProprietaire = false,
+  absentsJusquAu = AUCUN_ABSENT,
 }: {
   orgId: string;
   /** « /espace/<id> » chez le propriétaire direct, « /agence/<id> » chez une agence (décision D27). */
@@ -976,6 +1058,8 @@ export function ConsultationOuverte({
   carnetBien?: ArtisanCarnetBien[] | null;
   /** Un propriétaire direct n'enregistre pas d'entreprise (réservé aux agences) : il invite un artisan. */
   estProprietaire?: boolean;
+  /** Audit palier 1, P2-03 : les artisans proposables qui ont déclaré être absents aujourd'hui, et jusqu'à quand. */
+  absentsJusquAu?: ReadonlyMap<string, string>;
 }) {
   // RM-9.1.1 : deux au maximum EN PARALLÈLE — ce sont les sollicitations
   // vivantes qui comptent, pas celles qu'un artisan a déclinées. D18 (livraison 2) : une demande en révision
@@ -1134,6 +1218,7 @@ export function ConsultationOuverte({
                         <span>Valable jusqu&apos;au</span>
                         <span>{formaterDate(d.valide_jusqu_au)}</span>
                       </div>
+                      <GarantieAnnoncee texte={d.garantie_annoncee} />
                       {moinsDisant && (
                         <div className="ligne-info">
                           <span>Prix</span>
@@ -1304,6 +1389,7 @@ export function ConsultationOuverte({
                     <span>Valable jusqu&apos;au</span>
                     <span>{formaterDate(d.valide_jusqu_au)}</span>
                   </div>
+                  <GarantieAnnoncee texte={d.garantie_annoncee} />
                   <CorpsDevis base={base} d={d} />
                   <p className="text-sm text-destructive">
                     Expiré le {formaterDate(d.valide_jusqu_au)} — caduc. Demandez une proposition à jour.
@@ -1322,6 +1408,7 @@ export function ConsultationOuverte({
           </p>
         ) : (
           <div className="border-t border-border pt-3">
+            {estProprietaire && <div className="mb-3"><ReperePrix metier={consultation.metier} /></div>}
             <div className="entete-carte">
               <p className="libelle-champ">
                 Artisans proposables{commune ? ` à ${commune}` : ""}
@@ -1386,6 +1473,14 @@ export function ConsultationOuverte({
                         <span>coordonnées transmises avec votre demande</span>
                       )}
                     </span>
+                    {/* L'artisan a déclaré une absence : pas de bouton, et la date à laquelle il redevient joignable.
+                        Sous le nom, dans la colonne qui se replie : dans le groupe de droite (`shrink-0`), cette
+                        phrase ne passait pas à la ligne et sortait de la carte sur téléphone (capture du 22/11). */}
+                    {absentsJusquAu.has(a.artisan_id) && (
+                      <span className="mt-1 block text-xs break-words text-muted-foreground" data-artisan-absent>
+                        Absent jusqu’au {formaterDate(absentsJusquAu.get(a.artisan_id)!)} — aucune demande ne peut lui être envoyée d’ici là
+                      </span>
+                    )}
                   </span>
                   <span className="flex shrink-0 flex-wrap items-center justify-end gap-2">
                     {/* D'où il vient : de votre carnet, ou de l'annuaire de la
@@ -1394,12 +1489,14 @@ export function ConsultationOuverte({
                     <span className={COULEURS_SCOPE[scopeArtisan(a.rattache)]}>
                       {LIBELLES_SCOPE[scopeArtisan(a.rattache)]}
                     </span>
-                    <BoutonSolliciter
-                      orgId={orgId}
-                      consultationId={consultation.id}
-                      artisanId={a.artisan_id}
-                      raisonSociale={a.raison_sociale}
-                    />
+                    {!absentsJusquAu.has(a.artisan_id) && (
+                      <BoutonSolliciter
+                        orgId={orgId}
+                        consultationId={consultation.id}
+                        artisanId={a.artisan_id}
+                        raisonSociale={a.raison_sociale}
+                      />
+                    )}
                   </span>
                 </div>
               ))

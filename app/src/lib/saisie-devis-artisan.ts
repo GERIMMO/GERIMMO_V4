@@ -1,6 +1,7 @@
 import { decalerJour } from "./agenda-gestion";
 import { lireLignesDevis } from "./devis-structure";
 import { aujourdhuiParis } from "./ged";
+import { GARANTIE_ANNONCEE_MAX } from "./parcours-devis-artisan";
 
 /** L'aperçu et l'envoi valident les mêmes données et recalculent les prix. */
 export function lireSaisieDevisArtisan(formData: FormData) {
@@ -14,11 +15,16 @@ export function lireSaisieDevisArtisan(formData: FormData) {
   const validite = texte("valide_jusqu_au");
   // D18 (livraison 2) : « ce qui change » par rapport à la version précédente ; la base l'exige dès la version 2.
   const noteRevision = texte("note_revision");
+  // Audit palier 1, P2-02 : la garantie annoncée par l'artisan, facultative.
+  const garantie = texte("garantie");
   if (!diagnostic || !delai || !duree) {
     throw new Error("Complétez le diagnostic, le délai et la durée estimée.");
   }
   if (diagnostic.length > 4000 || delai.length > 240 || duree.length > 240 || contraintes.length > 3000 || observations.length > 3000) {
     throw new Error("Raccourcissez le diagnostic (4 000 caractères), le délai et la durée (240), ou les observations et contraintes (3 000).");
+  }
+  if (garantie.length > GARANTIE_ANNONCEE_MAX) {
+    throw new Error(`Raccourcissez la garantie annoncée (${GARANTIE_ANNONCEE_MAX} caractères au plus).`);
   }
   if (noteRevision.length > 4000) {
     throw new Error("Raccourcissez « ce qui change » (4 000 caractères au plus).");
@@ -33,7 +39,7 @@ export function lireSaisieDevisArtisan(formData: FormData) {
     throw new Error("La date de validité du devis est dépassée. Choisissez une date à partir de demain.");
   }
   return {
-    calcul, diagnostic, delai, duree, contraintes, observations, noteRevision,
+    calcul, diagnostic, delai, duree, contraintes, observations, noteRevision, garantie,
     prestations: calcul.lignes.map(l => l.libelle).join(" ; ").slice(0, 6000),
     valideJusquAu: validite || decalerJour(aujourdhui, 30),
   };

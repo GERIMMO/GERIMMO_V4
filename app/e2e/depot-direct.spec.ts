@@ -1,16 +1,40 @@
 import {test,expect} from '@playwright/test';
+import {Client} from 'pg';
 import {randomUUID} from 'node:crypto';
-import {entrerDansEspace,debordementHorizontal,sansSyntheseAlertes} from './aides';
+import {connecterVers,debordementHorizontal,sansSyntheseAlertes} from './aides';
+import {CONDITIONS_VERSION} from '../src/lib/editeur';
 
 import {pdfFictif} from './pdf-fictif';
 
 for(const largeur of [390,1440])test(`document de 6 Mo : transfert privé puis enregistrement à ${largeur}px`,async({browser},info)=>{
  test.skip(!/^http:\/\/(localhost|127\.0\.0\.1):/.test(process.env.NEXT_PUBLIC_SUPABASE_URL??''),'API fictive locale requise');
- const contexte=await browser.newContext({storageState:'e2e/.auth/proprietaire.json',viewport:{width:largeur,height:900}});
+ const base=process.env.SUPALOCAL_DB;
+ test.skip(!base||!/^postgres(?:ql)?:\/\/[^@]*@(?:localhost|127\.0\.0\.1):[0-9]{1,5}\/gerimmo_ci_[a-z_]+_api$/.test(base),'Base API fictive locale requise');
+ // Le transit est borné à 20 fichiers ou 100 Mo par heure et PAR COMPTE (support_interne.borner_depots_temporaires).
+ // Le compte de démonstration proprietaire@example.com dépose aussi dans d’autres parcours, et la CI enchaîne
+ // Chromium puis WebKit sur la même base dans l’heure : avec lui, ce parcours dépendait de ce que les autres
+ // avaient déjà déposé (refus « Vous avez envoyé beaucoup de fichiers… » sur WebKit, CI du 25/11).
+ // Il a donc son propre compte et son propre espace fictifs ; la limite elle-même reste vérifiée par
+ // tests/depot-direct-base.test.ts (20 dépôts acceptés, le suivant refusé).
+ const db=new Client({connectionString:base});await db.connect();
+ const org=randomUUID(),compte=randomUUID(),personne=randomUUID();
+ const email=`depot-direct-${org}@example.invalid`,motDePasse=randomUUID(),nom=`ESSAI dépôt direct ${org.slice(0,8)}`;
+ try{
+  await db.query('begin');
+  await db.query(`insert into auth.users(instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,confirmation_token,recovery_token,email_change,email_change_token_new,email_change_token_current)
+   values('00000000-0000-0000-0000-000000000000',$1,'authenticated','authenticated',$2,extensions.crypt($3,extensions.gen_salt('bf')),now(),'{"provider":"email","providers":["email"]}','{"prenom":"Propriétaire","nom":"Essai dépôt direct"}',now(),now(),'','','','','')`,[compte,email,motDePasse]);
+  await db.query("insert into acceptations_cgu(account_id,version,source,document) values($1,$2,'inscription','conditions_clients')",[compte,CONDITIONS_VERSION]);
+  await db.query("insert into organizations(id,name,type,status,address_line1,postal_code,city,email_contact) values($1,$2,'proprietaire_direct','active','1 rue des Essais','75001','Paris',$3)",[org,nom,email]);
+  await db.query("insert into memberships(account_id,organization_id,role) values($1,$2,'proprietaire_direct')",[compte,org]);
+  await db.query("insert into persons(id,organization_id,account_id,nom,prenom,email,qualite,address_line1,postal_code,city) values($1,$2,$3,'Essai dépôt direct','Propriétaire',$4,'Personne physique','1 rue des Essais','75001','Paris')",[personne,org,compte,email]);
+  await db.query('commit');
+ }catch(e){await db.query('rollback');await db.end();throw e;}
+ await db.end();
+ const contexte=await browser.newContext({viewport:{width:largeur,height:900}});
   const page=await contexte.newPage();
   try {
   await sansSyntheseAlertes(page);
-  const org=await entrerDansEspace(page,'espace');await page.goto(`/espace/${org}/documents?sel=depot`);
+  await connecterVers(page,email,motDePasse,`/espace/${org}/documents?sel=depot`);
   const titre=`ESSAI transfert ${largeur} ${randomUUID()}`;
   const form=page.locator('form').filter({has:page.getByRole('button',{name:'Déposer le document',exact:true})});
   await expect(form.getByLabel('Type de document',{exact:true})).toHaveValue('');
@@ -51,5 +75,6 @@ for(const largeur of [390,1440])test(`document de 6 Mo : transfert privé puis e
    await expect(apercu.getByRole('button',{name:'Télécharger',exact:true})).toBeVisible();
    expect(contexte.pages()).toHaveLength(1);
   }
+  // Les pièces restent dans cet espace fictif propre au parcours ; aucun document du parc de démonstration n’est touché.
  }finally{await contexte.close();}
 });

@@ -14,8 +14,9 @@
 import { createHash } from "node:crypto";
 import { CSS_POLICES } from "./polices";
 import { domaineDuSite } from "@/lib/site";
+import { jourDuMois } from "@/lib/jour-du-mois";
 
-export const VERSION_MODELES = "2026.11-g7";
+export const VERSION_MODELES = "2026.11-g8";
 
 // ------------------------------------------------------------------
 // La charte, en valeurs imprimables
@@ -54,6 +55,19 @@ const CHARTE = {
 // ------------------------------------------------------------------
 export class Fusion {
   manquants: string[] = [];
+  /** Phase 3, lot 46 (T19) : l'origine de l'en-tête imprimé (enTete), que la liste « À renseigner » suit. */
+  emetteur?: EmetteurEnTete;
+  // Phase 3, lot 48 (U04) : un même libellé sert à l'en-tête et au corps (« domicile ou siège social » : l'agence en en-tête, le
+  // bailleur au corps d'un contrat) et la liste n'en garde qu'une entrée. Les champs vides de l'en-tête sont notés à part
+  // (`enTeteEnCours`, posé par enTete), pour que le lien « renseigner » suive l'information qui manque vraiment.
+  enTeteEnCours = false;
+  private readonly videsEnTete = new Set<string>();
+  private readonly videsAilleurs = new Set<string>();
+  // Reprise du lot 48 (U04, U06) : « adresse électronique » sert aussi au bailleur ET au locataire d'un contrat, et la qualité
+  // d'un bailleur vide ne dit pas s'il existe. Les champs vides du bloc du BAILLEUR (corps d'un contrat ou d'un acte, rendu
+  // par `bailleur`) sont notés à part : le lien mène à la fiche du détenteur, ou à la détention du lot s'il n'y en a aucun.
+  private blocBailleurEnCours = false;
+  private readonly videsBailleur = new Set<string>();
 
   // Une valeur présente s'imprime ; absente, le libellé de l'épreuve reste
   // en réserve et le champ est compté manquant (une seule fois par libellé).
@@ -66,7 +80,23 @@ export class Fusion {
     if (v !== "") return `<span class="v">${echapper(v)}</span>`;
     const manquant = nom ?? libelle;
     if (!this.manquants.includes(manquant)) this.manquants.push(manquant);
+    (this.enTeteEnCours ? this.videsEnTete : this.videsAilleurs).add(manquant);
+    if (this.blocBailleurEnCours) this.videsBailleur.add(manquant);
     return `<span class="fusion">${echapper(libelle)}</span>`;
+  }
+
+  /**
+   * Le bloc du bailleur, rendu tel quel (même texte, mêmes champs, même ordre) : seuls ses manques sont notés à part
+   * (reprise du lot 48). Appelé dans le gabarit, à la place du bloc : l'ordre de la liste « À renseigner » ne change pas.
+   */
+  bailleur(rendu: () => string): string {
+    const avant = this.blocBailleurEnCours;
+    this.blocBailleurEnCours = true;
+    try {
+      return rendu();
+    } finally {
+      this.blocBailleurEnCours = avant;
+    }
   }
 
   date(iso: string | null | undefined, libelle = "jj/mm/aaaa"): string {
@@ -76,6 +106,16 @@ export class Fusion {
   montant(n: number | string | null | undefined, libelle = "montant"): string {
     if (n === null || n === undefined || n === "") return this.champ(null, libelle);
     return this.champ(eur(Number(n)), libelle);
+  }
+
+  /** Les manquants restés vides dans l'en-tête SEULEMENT (lot 48, U04) ; un libellé vide aussi ailleurs n'y figure pas. */
+  get seulementEnTete(): string[] {
+    return this.manquants.filter((m) => this.videsEnTete.has(m) && !this.videsAilleurs.has(m));
+  }
+
+  /** Les manquants restés vides dans le bloc du bailleur (reprise du lot 48), qu'ils manquent aussi ailleurs ou non. */
+  get auBailleur(): string[] {
+    return this.manquants.filter((m) => this.videsBailleur.has(m));
   }
 }
 
@@ -114,8 +154,90 @@ export function formaterDateFr(iso: string): string {
   return new Date(iso).toLocaleDateString("fr-FR", { ...options, timeZone: "Europe/Paris" });
 }
 
+// « septembre 2026 » pour un mois (AAAA-MM ou AAAA-MM-JJ). Né pour le rapport de gestion (catalogue-gestion), remonté ici en
+// phase 3 (lot 36) pour que le journal, les relances et les titres de classement écrivent le mois de la même façon.
+export function moisEnToutesLettres(mois: string): string {
+  const [a, m] = mois.slice(0, 7).split("-").map(Number);
+  if (!a || !m) return mois;
+  return new Date(Date.UTC(a, m - 1, 15)).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
+}
+
 export function eur(n: number): string {
   return `${n.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+}
+
+// Un nombre de la base (surface, volume, index de compteur) au format français : virgule décimale, milliers séparés par
+// une espace insécable, aucun zéro inutile (« 45 », « 24,5 », « 4 521,3 »). Imprimé tel que la base le rend (« 45.00 »,
+// 210.5), il sortait au format anglais au milieu de montants en euros français (phase 3 : C10, C27, C39, C62). Jusqu'à six
+// décimales : un index relevé n'est jamais arrondi en deçà de ce qui a été saisi.
+export function nombreFr(valeur: number | string): string {
+  const texte = String(valeur).trim();
+  const n = typeof valeur === "number" ? valeur : Number(texte);
+  if (texte === "" || !Number.isFinite(n)) return texte;
+  return n.toLocaleString("fr-FR", { maximumFractionDigits: 6 });
+}
+
+// Le point qui clôt une phrase après un texte saisi : rien quand la saisie finit déjà par une ponctuation finale. Le
+// modèle ajoutait toujours son point : « … à la signature de l'acte.. » (phase 3 : C38, C85).
+export function pointFinal(saisie: string | null | undefined): string {
+  return /[.!?…]$/.test((saisie ?? "").trim()) ? "" : ".";
+}
+
+// Le jour du mois d'une échéance tel qu'il s'écrit : « le 1er », puis « le 2 », « le 15 »… (phase 3 : S10). La règle vit dans
+// lib/jour-du-mois.ts (module sans dépendance, partagé avec les écrans depuis le lot 43) ; elle reste exportée ici.
+export { jourDuMois };
+
+// La typographie d'un contrat. Un bail préparé pour la signature avant la version g8 se relit, pour recalculer
+// l'empreinte de son circuit (`typographieArchivee`, ou `presentationArchivee` pour un bail d'avant #331 ; voir
+// communs.ts), avec la typographie d'alors : `TYPOGRAPHIE_ARCHIVEE` reproduit octet pour octet ce qu'il imprimait,
+// défauts compris. Elle ne sert jamais à un document remis.
+export type Typographie = {
+  archivee: boolean;
+  nombre: (valeur: number | string) => string;
+  jour: (jour: number | string | null | undefined) => number | string | null;
+  point: (saisie: string | null | undefined) => string;
+  classe: (nom: "annonce" | "fait-a") => string;
+  /**
+   * Petites reprises du lot T2 (T2R-2, T2R-3) : mise en page des baux, par un style porté par l'élément lui-même. La feuille
+   * commune n'est PAS touchée : elle entre dans le HTML, donc dans l'empreinte, de tous les documents signés en ligne
+   * (avenant, état des lieux, acte de cautionnement…), qui n'ont pas de rendu archivé. Rien sous la typographie archivée :
+   * le rendu d'un bail déjà préparé reste le même, octet pour octet.
+   *  - `insecable` : attribut d'un alinéa qui ne se coupe pas entre deux pages (clause de solidarité, liste des annexes) ;
+   *  - `finEnsemble` : ouverture et fermeture du bloc qui garde ensemble la rubrique des annexes et les signatures — le
+   *    bloc « Date et signatures » ne part plus seul sur une page. (Une consigne « pas de saut avant les signatures » ne
+   *    suffit pas : le moteur d'impression coupait alors entre deux rangées de cadres de signature.)
+   */
+  insecable: string;
+  finEnsemble: [string, string];
+  pourcent: string;
+};
+
+const STYLE_INSECABLE = "break-inside:avoid-page;page-break-inside:avoid";
+
+export const TYPOGRAPHIE: Typographie = {
+  archivee: false,
+  nombre: nombreFr,
+  jour: jourDuMois,
+  point: pointFinal,
+  classe: (nom) => ` class="${nom}"`,
+  insecable: ` style="${STYLE_INSECABLE}"`,
+  finEnsemble: [`<div data-fin-ensemble style="${STYLE_INSECABLE}">`, "</div>"],
+  pourcent: "\u00a0%",
+};
+
+const TYPOGRAPHIE_ARCHIVEE: Typographie = {
+  archivee: true,
+  nombre: (valeur) => String(valeur),
+  jour: (jour) => jour ?? null,
+  point: () => ".",
+  classe: () => "",
+  insecable: "",
+  finEnsemble: ["", ""],
+  pourcent: " %",
+};
+
+export function typographie(archivee: boolean | undefined): Typographie {
+  return archivee ? TYPOGRAPHIE_ARCHIVEE : TYPOGRAPHIE;
 }
 
 // Un montant dit en toutes lettres (dépôt de garantie du bail — exigence du
@@ -151,12 +273,19 @@ export function montantEnLettres(n: number): string {
 // ------------------------------------------------------------------
 // Briques HTML de l'épreuve
 // ------------------------------------------------------------------
+/**
+ * Phase 3, lot 46 (T19) : d'où vient l'en-tête imprimé. « detenteurs » : les détenteurs du lot (bailleurs), hors espace d'agence ;
+ * leur adresse et leur commune se complètent sur leur fiche. « espace » : l'espace de travail ; elles se complètent sur son profil.
+ */
+export type EmetteurEnTete = "detenteurs" | "espace";
+
 export type EnTeteExpediteur = {
   nom: string | null | undefined;
   adresse: string | null | undefined;
   email: string | null | undefined;
   telephone?: string | null;
   contactGestion?: boolean;
+  emetteur?: EmetteurEnTete;
 };
 
 // Bloc expéditeur + cartouche référence, sous filet (page 1 de chaque épreuve)
@@ -165,18 +294,30 @@ export function enTete(
   exp: EnTeteExpediteur,
   cartouche: { libelle: string; reference: string | null | undefined; etabliLe: string }
 ): string {
-  return `<header class="entete">
+  if (exp.emetteur) f.emetteur = exp.emetteur;
+  // Lot 48 (U04) : mêmes champs, dans le même ordre ; seuls leurs manques sont notés comme venant de l'en-tête.
+  f.enTeteEnCours = true;
+  try {
+    const nom = f.champ(exp.nom, "nom et prénom(s), ou dénomination");
+    const adresse = f.champ(exp.adresse, "domicile ou siège social");
+    const email = f.champ(exp.email, "adresse électronique");
+    const reference = f.champ(cartouche.reference, "référence");
+    const etabli = f.date(cartouche.etabliLe);
+    return `<header class="entete">
     <div class="exp">
-      <div class="exp-nom">${f.champ(exp.nom, "nom et prénom(s), ou dénomination")}</div>
-      <div>${f.champ(exp.adresse, "domicile ou siège social")}</div>
-      <div>${exp.contactGestion ? "Contact de gestion : " : ""}${f.champ(exp.email, "adresse électronique")}&nbsp;&nbsp;·&nbsp;&nbsp;${facultatif(exp.telephone)}</div>
+      <div class="exp-nom">${nom}</div>
+      <div>${adresse}</div>
+      <div>${exp.contactGestion ? "Contact de gestion : " : ""}${email}&nbsp;&nbsp;·&nbsp;&nbsp;${facultatif(exp.telephone)}</div>
     </div>
     <div class="cartouche-ref">
       <div>${echapper(cartouche.libelle)} <span class="mini">n°</span></div>
-      <div class="exp-nom">${f.champ(cartouche.reference, "référence")}</div>
-      <div>Établi le ${f.date(cartouche.etabliLe)}</div>
+      <div class="exp-nom">${reference}</div>
+      <div>Établi le ${etabli}</div>
     </div>
   </header>`;
+  } finally {
+    f.enTeteEnCours = false;
+  }
 }
 
 // Titre du document entre deux filets encre + sous-titre laiton + base légale.
@@ -207,14 +348,20 @@ export function cartouches(paires: [string, string][]): string {
   return `<div class="cartouches">${cases}</div>`;
 }
 
-export function tableau(colonnes: { libelle: string; droite?: boolean }[], lignes: string[][]): string {
+// `fin` (phase 3, reprise du lot 53, W33) : des rangées déjà assemblées (un solde, une clôture) posées après la dernière ligne,
+// avec elle, dans une dernière section insécable. Chrome ne revient pas dans un tableau terminé pour y couper plus tôt : ce
+// qui suivait le tableau en le « gardant avec lui » (break-before:avoid) partait quand même seul en tête de page, ou se
+// coupait (« Fait à » sans signature, image sans son libellé). Dans le tableau, la coupure se fait entre ses sections.
+// Sans `fin`, le HTML est inchangé.
+export function tableau(colonnes: { libelle: string; droite?: boolean }[], lignes: string[][], fin = ""): string {
   const tetes = colonnes
     .map((c) => `<th${c.droite ? ' class="d"' : ""}>${echapper(c.libelle)}</th>`)
     .join("");
-  const corps = lignes
+  const rangees = (ls: string[][]) => ls
     .map((l) => `<tr>${l.map((cell, i) => `<td${colonnes[i]?.droite ? ' class="d"' : ""}>${cell}</td>`).join("")}</tr>`)
     .join("");
-  return `<table><thead><tr>${tetes}</tr></thead><tbody>${corps}</tbody></table>`;
+  if (!fin) return `<table><thead><tr>${tetes}</tr></thead><tbody>${rangees(lignes)}</tbody></table>`;
+  return `<table><thead><tr>${tetes}</tr></thead><tbody>${rangees(lignes.slice(0, -1))}</tbody><tbody style="break-inside:avoid-page;page-break-inside:avoid">${rangees(lignes.slice(-1))}${fin}</tbody></table>`;
 }
 
 // Cartouche de signature à bandeau encre
@@ -235,8 +382,23 @@ export function blocSignatureEmetteur(nom: string | null | undefined, img: strin
   </div>`;
 }
 
+// La ligne « Fait à … le … » porte la classe `fait-a` : la feuille la garde avec ce qui précède et avec la signature
+// qui suit (phase 3 : un avis d'échéance laissait la signature seule en page 2).
 export function faitA(f: Fusion, ville: string | null | undefined, dateIso: string, suite = "."): string {
-  return `<p>Fait à ${f.champ(ville, "commune")}, le ${f.date(dateIso)}${suite}</p>`;
+  return `<p class="fait-a">Fait à ${f.champ(ville, "commune")}, le ${f.date(dateIso)}${suite}</p>`;
+}
+
+// « Fait à …, le » d'un acte que les parties datent en le signant (avenants, inventaires du mobilier) : la date reste à compléter, comme dans les
+// baux, au lieu du jour de génération imprimé au-dessus de cadres vides (phase 3, C23). Ce n'est pas une donnée manquante.
+export function faitALaSignature(f: Fusion, ville: string | null | undefined, suite = "."): string {
+  return `<p class="fait-a">Fait à ${f.champ(ville, "commune")}, le <span class="fusion">date effective à compléter lors de la signature</span>${suite}</p>`;
+}
+
+// La ligne de total posée sous un tableau, dans son propre tableau : la feuille ne la laisse jamais seule en haut d'une
+// page (phase 3 : « Total des retenues après vétusté » imprimé seul en tête de la page 5 d'un état des lieux de sortie).
+// `montant` est du HTML déjà assemblé (souvent un `f.montant(...)`).
+export function ligneTotal(libelle: string, montant: string): string {
+  return `<table class="ligne-total"><tbody><tr class="total"><td><b>${echapper(libelle)}</b></td><td class="d"><b>${montant}</b></td></tr></tbody></table>`;
 }
 
 // ------------------------------------------------------------------
@@ -250,6 +412,12 @@ export type DocumentAssemble = {
   reference: string;
   empreinte: string;
   manquants: string[];
+  /** L'origine de l'en-tête imprimé, quand il vient d'`expediteur` (lot 46, T19). */
+  emetteur?: EmetteurEnTete;
+  /** Les manquants vides dans l'en-tête seulement (Fusion.seulementEnTete, lot 48, U04). */
+  seulementEnTete?: string[];
+  /** Les manquants vides dans le bloc du bailleur d'un contrat ou d'un acte (Fusion.auBailleur, reprise du lot 48). */
+  videsBailleur?: string[];
 };
 
 export function assemblerPage(params: {
@@ -258,11 +426,13 @@ export function assemblerPage(params: {
   nomPied: string;
   reference: string;
   corps: string;
+  /** Feuille g7, sans les correctifs g8 : réservée au recalcul de l'empreinte d'un circuit de signature déjà enregistré. */
+  feuilleArchivee?: boolean;
 }): DocumentAssemble {
   const empreinte = createHash("sha256").update(params.corps).digest("hex").slice(0, 16);
   const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"/>
 <title>${echapper(params.titreDocument)}</title>
-<style>${CSS_POLICES}${CSS_DOCUMENT}</style></head>
+<style>${CSS_POLICES}${params.feuilleArchivee ? CSS_DOCUMENT_G7 : CSS_DOCUMENT}</style></head>
 <body>${params.corps}</body></html>`;
   const piedHtml = piedDePage(params.nomPied, params.reference, empreinte);
   return {
@@ -272,6 +442,9 @@ export function assemblerPage(params: {
     reference: params.reference,
     empreinte,
     manquants: params.f.manquants,
+    ...(params.f.emetteur ? { emetteur: params.f.emetteur } : {}),
+    ...(params.f.seulementEnTete.length ? { seulementEnTete: params.f.seulementEnTete } : {}),
+    ...(params.f.auBailleur.length ? { videsBailleur: params.f.auBailleur } : {}),
   };
 }
 
@@ -300,7 +473,10 @@ function piedDePage(nom: string, reference: string, empreinte: string): string {
 
 // La charte de l'application, en CSS d'impression. Une seule source de
 // valeurs : CHARTE, tout en haut du fichier.
-const CSS_DOCUMENT = `
+//
+// La feuille g7 reste écrite telle quelle : un contrat préparé pour la signature avant la version g8 se relit avec elle
+// pour recalculer son empreinte (`feuilleArchivee`). Les correctifs g8 viennent après elle et l'emportent.
+const CSS_DOCUMENT_G7 = `
   :root { --encre:${CHARTE.encre}; --sur-encre:${CHARTE.surEncre};
           --laiton:${CHARTE.laiton}; --laiton-filet:${CHARTE.laitonFilet};
           --texte:${CHARTE.corps}; --texte-secondaire:${CHARTE.texteSecondaire};
@@ -388,3 +564,24 @@ const CSS_DOCUMENT = `
   .saut { break-before:page; page-break-before:always; }
   .centre { text-align:center; }
 `;
+
+// Correctifs g8 (phase 3 de la mission palier 1, lot 35 : mise en forme et mise en page des documents).
+const CSS_CORRECTIFS_G8 = `
+  /* Un long paragraphe peut se couper entre deux pages, trois lignes au moins de chaque côté. Insécable, il partait
+     entier à la page suivante : la page 1 du bail nu restait blanche aux deux cinquièmes, le titre « II — Objet du
+     contrat » seul en bas (C11, C28). Un paragraphe de cinq lignes ou moins ne se coupe donc toujours pas. */
+  p { break-inside:auto; page-break-inside:auto; }
+  /* Le paragraphe qui annonce la suite (« … ainsi déterminé : », « … les pièces suivantes : ») reste avec elle. */
+  .annonce { break-after:avoid-page; page-break-after:avoid; }
+  /* « Fait à … le … » ne quitte ni ce qui précède ni la signature qui suit : jamais de signature seule sur une page
+     (C51, C53, C69). */
+  .fait-a { break-before:avoid-page; page-break-before:avoid; break-after:avoid-page; page-break-after:avoid; }
+  /* Sans marge intérieure : elle laissait un blanc visible avant la ponctuation (« Lyon , le 23/11/2026 . », C75). */
+  .v { padding:0; }
+  /* Une colonne chiffrée ne coupe jamais un montant : « 520,00 » d'un côté, « € » à la ligne (C44, C87). */
+  td.d { white-space:nowrap; }
+  /* La ligne de total reste sous son tableau, jamais seule en haut d'une page (C45). */
+  table.ligne-total { break-before:avoid-page; page-break-before:avoid; }
+`;
+
+const CSS_DOCUMENT = CSS_DOCUMENT_G7 + CSS_CORRECTIFS_G8;

@@ -35,12 +35,18 @@
 .evenement { display: flex; align-items: center; gap: 4px; width: 100%; min-width: 0; color: var(--success-soft-foreground); font-size: 12px; white-space: nowrap; }
 .pointEvenement { flex: 0 0 5px; height: 5px; border-radius: 50%; background: var(--success); }
 .nombreEvenements { margin-left: auto; font-size: 9px; }
+/* Audit palier 1, P2-06 : les échéances (loyers, états des lieux, fins de bail) dans la case du jour. */
+.repereEcheances { display: flex; align-items: center; gap: 4px; width: 100%; min-width: 0; color: var(--prestige-champagne-texte); font-size: 12px; white-space: nowrap; }
+.pointEcheance { flex: 0 0 5px; height: 5px; border-radius: 1px; background: var(--prestige-champagne); }
+.nombreEcheances { font-size: 11px; font-weight: 600; }
 .legende { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 16px; border-top: 1px solid var(--filet-leger); padding: 15px 20px; font-size: 12px; color: var(--texte-secondaire); }
 .legende > span { display: inline-flex; align-items: center; gap: 6px; }
 .legende i { width: 8px; height: 8px; border-radius: 3px; }
 .repereAujourdhui { background: var(--marque); }
 .repereSelection { border: 1px solid var(--prestige-champagne); background: var(--or-clair); }
 .repereRendezVous { background: var(--success); }
+.repereEcheance { background: var(--prestige-champagne); }
+.echeancesIllisibles { margin: 0; padding: 12px 20px; border-top: 1px solid var(--filet-leger); color: var(--texte-secondaire); font-size: 13px; line-height: 1.6; }
 .fuseau { margin-left: auto; }
 .journee { overflow: hidden; }
 .enteteJournee { display: flex; gap: 14px; align-items: center; padding: 21px 20px; border-bottom: 1px solid var(--filet-leger); background: var(--carte); }
@@ -61,6 +67,19 @@
 .conseil > svg { flex-shrink: 0; margin-top: 2px; }
 .conseil p { font-size: 12px; line-height: 1.7; }
 .rendezVousDuJour { display: grid; gap: 12px; padding: 16px; }
+.echeancesDuJour { padding: 16px 16px 4px; }
+.echeancesDuJour h3 { margin-bottom: 8px; font-family: var(--font-interface), sans-serif; font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--prestige-champagne-texte); }
+.echeancesDuJour ul { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.echeance { display: flex; align-items: flex-start; gap: 11px; min-width: 0; min-height: var(--cible-tactile); padding: 11px 12px; border: 1px solid var(--filet-leger); border-radius: var(--rayon-bouton); background: var(--carte); color: var(--encre); transition: background-color var(--duree-rapide) ease, border-color var(--duree-rapide) ease; }
+.echeance:hover { background: var(--survol); border-color: var(--filet); }
+.echeance[data-a-faire="true"] { border-color: var(--or-filet); background: var(--or-clair); }
+.iconeEcheance { display: grid; place-items: center; flex: 0 0 32px; height: 32px; border-radius: var(--rayon-bouton); background: var(--filet-leger); color: var(--encre); }
+.texteEcheance { display: grid; gap: 2px; min-width: 0; flex: 1; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.texteEcheance strong { font-weight: 600; }
+.texteEcheance > span { color: var(--texte-secondaire); }
+.texteEcheance .etatEcheance { color: var(--encre); font-weight: 500; }
+.flecheEcheance { flex-shrink: 0; margin-top: 8px; color: var(--texte-secondaire); }
+.sansRendezVous { margin: 0; padding: 14px 18px 18px; color: var(--texte-secondaire); font-size: 13px; }
 .rendezVous { display: grid; justify-items: start; gap: 9px; min-width: 0; padding: 17px; border: 1px solid var(--filet); border-radius: var(--rayon-carte); background: var(--carte); box-shadow: var(--ombre-1); transition: background-color var(--duree-rapide) ease; }
 .rendezVous:hover { background: var(--survol); }
 /* Seul un rendez-vous terminé porte un bord coloré : c'est un état. */
@@ -103,6 +122,8 @@
   .evenement { gap: 3px; }
   .heureEvenement { display: none; }
   .nombreEvenements { font-size: 8px; }
+  .motEcheance { display: none; }
+  .nombreEcheances { font-size: 10px; }
   .legende { padding: 12px; gap: 9px 12px; font-size: 12px; }
   .fuseau { flex-basis: 100%; }
   .enteteJournee { padding: 18px; }
@@ -111,4 +132,4 @@
   .listeSuivi { padding: 16px; }
   .suiviVide { padding: 28px 18px; }
 }
-@media (prefers-reduced-motion: reduce) { .vues > a, .jour, .rendezVous, .lienAction, .navigationMois a { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .vues > a, .jour, .rendezVous, .echeance, .lienAction, .navigationMois a { transition: none; } }

@@ -29,7 +29,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { libelleActionAudit } from "@/lib/libelles-journaux";
 import { offreParticulier } from "@/lib/tarifs";
 
-const PIED = "TVA non applicable, art. 293 B du CGI.";
+const PIED = "TVA non applicable, article 293 B du CGI.";
 const ORG = "org-1";
 
 type Session = {
@@ -72,6 +72,8 @@ vi.mock("@/lib/supabase/server", () => ({
       const q = {
         select: () => q,
         eq: () => q,
+        // Reprise D4 (D4R-01) : la preuve d'accord filtre les lignes à empreinte ; ce faux client les tient pour telles.
+        not: () => q,
         order: () => q,
         limit: () => q,
         maybeSingle: async () =>
@@ -89,7 +91,7 @@ vi.mock("@/lib/supabase/server", () => ({
 vi.mock("@/lib/editeur-serveur", () => ({
   lireEditeur: async () => ({
     editeur: {
-      denomination: "Éditeur de test", forme: "SAS", capital: null, siege: "1 rue de l'Essai, 75000 Paris",
+      denomination: "Éditeur de test", forme: "SAS", typeVendeur: "personne_morale", capital: null, siege: "1 rue de l'Essai, 75000 Paris",
       rcs: "RCS Paris 000 000 000", siret: "00000000000000", tvaIntracommunautaire: null,
       directeurPublication: "Personne de test", email: "contact@example.invalid", telephone: "01 00 00 00 00",
       mediateurNom: "Médiateur de test", mediateurAdresse: "1 rue Exemple, Paris", mediateurSite: "https://example.invalid/mediateur",

@@ -1,4 +1,4 @@
-import { presentationArchivee, type OptionsContrat } from "./communs";
+import { presentationArchivee, typographieArchivee, type OptionsContrat } from "./communs";
 // 02 — Contrat de location, logement meublé, résidence principale.
 // Fidèle à l'épreuve (sections I → XII, contrat type de l'annexe 2 du décret
 // 2015-587 ; régime du titre Ier bis de la loi de 1989, art. 25-3 à 25-11).
@@ -24,6 +24,7 @@ import {
   sousSection,
   tableau,
   titre,
+  typographie,
 } from "../gabarit";
 import {
   chargerContexteBail,
@@ -35,8 +36,9 @@ import {
   type ContexteBail,
   type PersonneDocument,
   liensLocataires,
+  coordonneesBancaires,
 } from "./communs";
-import { periodeConstruction, mentionsEnergie, destinationServitude, clauseResolutoire, honorairesLocation, encadrementLocation, fixationLoyer, dateConclusion } from "./mentions-location";
+import { periodeConstruction, mentionsEnergie, destinationServitude, clauseResolutoire, honorairesLocation, encadrementLocation, fixationLoyer, dateConclusion, dureeReduiteSansObjet, travauxDepuisDernierContrat, premiereEcheanceLocation, mandataireLocation, reconductionEtConges, clauseSolidarite, refusEpouxPacs } from "./mentions-location";
 import { designationIndividuelle } from "./designation-individuelle";
 import type { Assemblage } from "./index";
 import { mentionCadreCautionBail } from "@/lib/textes-signature-actes";
@@ -64,6 +66,7 @@ function blocLocataire(f: Fusion, p: PersonneDocument): string {
   ${facultatif(p.telephone)}.</p>`;
 }
 
+// Textes officiels, lot T2 (R08-A3) : ne sert plus qu'à relire un bail déjà préparé pour la signature (voir bail-nu.ts).
 // Montant dû à la première échéance : loyer + charges, proratisés lorsque le
 // bail ne démarre pas un 1er du mois (jours restants inclus / jours du mois).
 function montantPremiereEcheance(f: Fusion, bail: ContexteBail["bail"]): string {
@@ -82,15 +85,22 @@ function montantPremiereEcheance(f: Fusion, bail: ContexteBail["bail"]): string 
 
 export function construireBailMeuble(
   ctx: ContexteBail,
-  options: { dpeClasse: string | null; inventaire: LigneInventaire[]; f: Fusion; presentationAncienne?: boolean }
+  // `presentationAncienne`, `typographieArchivee` : recalcul de l'empreinte d'un circuit déjà préparé (voir bail-nu.ts).
+  options: { dpeClasse: string | null; inventaire: LigneInventaire[]; f: Fusion; presentationAncienne?: boolean; typographieArchivee?: boolean }
 ) {
   const f = options.f;
+  const t = typographie(options.presentationAncienne || options.typographieArchivee);
   const exp = expediteur(options.presentationAncienne ? { organisation: ctx.organisation } : ctx);
   const referenceBail = referenceCourte("BAIL", ctx.bail.id);
   const bailleurPrincipal = ctx.bailleurs[0] ?? null;
   const indivision = ctx.bailleurs.length > 1;
   const individuel = Boolean(ctx.chambre);
-  const colocation = ctx.bail.type === "colocation" && !individuel;
+  // Case « mariés ou pacsés » (décision du 24/11/2026) : une location consentie exclusivement à deux époux ou partenaires de
+  // PACS n'est pas une colocation (article 8-1, I) : le contrat porte alors le titre, le pied et les cadres de signature d'un
+  // contrat de location, et non « colocation » (la clause de solidarité le dit : clauseSolidarite). Le rendu archivé, qui
+  // recalcule l'empreinte d'un circuit déjà préparé, n'en tient pas compte.
+  const epouxPacs = Boolean(ctx.bail.locataires_epoux_pacses) && !(options.presentationAncienne || options.typographieArchivee);
+  const colocation = ctx.bail.type === "colocation" && !individuel && !epouxPacs;
   const plusieursLocataires = ctx.locataires.length > 1;
   const copro = ctx.bien.copropriete;
   const depot = ctx.bail.depot_garantie === null ? null : Number(ctx.bail.depot_garantie);
@@ -103,7 +113,6 @@ export function construireBailMeuble(
     ? "neuf mois — bail étudiant, non reconductible tacitement (art. 25-7)"
     : "un an, reconduit tacitement";
   const echeanceLibelle = ctx.bail.paiement_echeance === "echu" ? "à terme échu" : "à échoir";
-  const estAgence = ctx.organisation.type === "agence";
 
   const tableauInventaire =
     options.inventaire.length > 0
@@ -125,6 +134,7 @@ export function construireBailMeuble(
         )
       : `<p>${f.champ(null, "inventaire du mobilier — au moins les 11 éléments du décret")}</p>`;
 
+  // Reprise du lot 48 (U04, U06) : le bloc du bailleur passe par `f.bailleur` (même texte, empreinte inchangée), comme au bail nu.
   const corps = `
     ${enTete(f, exp, { libelle: "Contrat", reference: referenceBail, etabliLe: new Date().toISOString() })}
     ${titre(individuel ? "Contrat individuel de colocation" : colocation ? "Contrat commun de colocation" : "Contrat de location", "Logement meublé · résidence principale", [
@@ -136,29 +146,23 @@ export function construireBailMeuble(
     intégrante.</p>
 
     ${section("I — Désignation des parties")}
-    <p>Le présent contrat est conclu entre les soussignés :</p>
+    <p${t.classe("annonce")}>Le présent contrat est conclu entre les soussignés :</p>
     ${sousSection("Le bailleur")}
-    <p>Nom et prénom(s) ou dénomination : ${f.champ(nomPersonne(bailleurPrincipal), "nom et prénom(s), ou dénomination")}
+    ${f.bailleur(() => `<p>Nom et prénom(s) ou dénomination : ${f.champ(nomPersonne(bailleurPrincipal), "nom et prénom(s), ou dénomination")}
     — Qualité : ${f.champ(bailleurPrincipal?.qualite, "personne physique, SCI, indivision…")}<br/>
     ${!options.presentationAncienne && bailleurPrincipal?.siren ? `SIREN : ${echapper(bailleurPrincipal.siren)}<br/>` : ""}Domicile ou siège social : ${f.champ(adressePersonne(bailleurPrincipal), "domicile ou siège social")}<br/>
     Adresse électronique : ${f.champ(bailleurPrincipal?.email, "adresse électronique")} — Numéro de
-    téléphone portable : ${facultatif(bailleurPrincipal?.telephone)}</p>
+    téléphone portable : ${facultatif(bailleurPrincipal?.telephone)}</p>`)}
     ${
       indivision
         ? `<p>Le logement étant détenu en indivision, sont également parties au présent contrat :
            ${ctx.bailleurs
              .slice(1)
-             .map((b) => `${echapper(nomPersonne(b) ?? "")}${!options.presentationAncienne && b.siren ? ` · SIREN ${echapper(b.siren)}` : ""} (${b.quote_part.toLocaleString("fr-FR")} %)`)
+             .map((b) => `${echapper(nomPersonne(b) ?? "")}${!options.presentationAncienne && b.siren ? ` · SIREN ${echapper(b.siren)}` : ""} (${b.quote_part.toLocaleString("fr-FR")}${t.pourcent})`)
              .join(" ; ")}.</p>`
         : ""
     }
-    ${
-      estAgence
-        ? `<p>Le bailleur est représenté par son mandataire : ${echapper(ctx.organisation.name)},
-           ${f.champ(exp.adresse, "adresse du mandataire")} — carte professionnelle :
-           ${f.champ(ctx.organisation.carte_pro, "numéro de carte et CCI de délivrance")}.</p>`
-        : ""
-    }
+    ${mandataireLocation(ctx, f, exp.adresse, t)}
     ${sousSection(plusieursLocataires ? "Les locataires" : "Le locataire")}
     ${
       ctx.locataires.length > 0
@@ -180,25 +184,27 @@ export function construireBailMeuble(
     <p>Ci-après dénommé${plusieursLocataires ? "s" : ""} « le locataire ».</p>
 
     ${section("II — Objet du contrat")}
-    <p>${individuel ? 'Le présent contrat porte exclusivement sur la chambre privative meublée et le droit d’usage des espaces partagés désignés ci-dessous. Il ne loue pas le logement entier.' : "Le présent contrat a pour objet la location d'un logement meublé, ainsi déterminé :"}</p>
-    ${designationIndividuelle(ctx, f)}
+    <p${t.classe("annonce")}>${individuel ? 'Le présent contrat porte exclusivement sur la chambre privative meublée et le droit d’usage des espaces partagés désignés ci-dessous. Il ne loue pas le logement entier.' : "Le présent contrat a pour objet la location d'un logement meublé, ainsi déterminé :"}</p>
+    ${designationIndividuelle(ctx, f, t)}
     ${sousSection("A. Consistance du logement")}
-    <p>Localisation du logement : ${f.champ(adresseLogement(ctx.lot, ctx.bien), "adresse complète, étage, porte")}<br/>
+    <p>Localisation du logement : ${f.champ(adresseLogement(ctx.lot, ctx.bien, t.archivee), "adresse complète, étage, porte")}<br/>
     Identifiant fiscal du logement : ${f.champ(ctx.lot.identifiant_fiscal, "le cas échéant", "identifiant fiscal du logement")}<br/>
     Type d'habitat : ${f.champ(
       ctx.bien.type === "appartement" || ctx.bien.type === "immeuble" ? "immeuble collectif" : "individuel",
       "immeuble collectif ou individuel"
-    )} — Régime juridique de l'immeuble : ${f.champ(copro ? "copropriété" : "monopropriété", "monopropriété ou copropriété")} —
-    Période de construction : ${f.champ(periodeConstruction(ctx.bien.annee_construction), "avant 1949, 1949-1974, 1975-1989, 1990-2005, depuis 2006")}<br/>
+    )} — Régime juridique de l'immeuble : ${f.champ(copro ? "copropriété" : "monopropriété", "monopropriété ou copropriété")}${
+      // Phase 3, lot 50 (W05) : « Période de construction » sur sa propre ligne. En fin d'une ligne trop longue, le libellé
+      // restait en bas de page et sa valeur passait seule à la page suivante. Typographie archivée : rendu d'avant.
+      t.archivee ? " —\n    " : "<br/>\n    "}Période de construction : ${f.champ(periodeConstruction(ctx.bien.annee_construction), "avant 1949, 1949-1974, 1975-1989, 1990-2005, depuis 2006")}<br/>
     Surface habitable ${individuel ? "du logement entier" : ""} : ${f.champ(
-      ctx.lot.surface_m2 !== null ? `${ctx.lot.surface_m2} m²` : null,
+      ctx.lot.surface_m2 !== null ? `${t.nombre(ctx.lot.surface_m2)} m²` : null,
       "en m²"
     )} — Nombre de pièces principales : ${f.champ(ctx.lot.pieces, "nombre")}<br/>
     Autres parties du logement : ${f.champ(ctx.lot.description, "cave, grenier, balcon, terrasse, jardin…", "autres parties du logement")}<br/>
     Éléments d'équipement du logement : ${f.champ(ctx.lot.equipements.join(", "), "cuisine équipée, sanitaires, placards…", "équipements du logement")}<br/>
     Modalité de production de chauffage : ${f.champ(ctx.lot.chauffage, "individuel ou collectif, énergie", "chauffage du logement")} — Modalité de
     production d'eau chaude sanitaire : ${f.champ(ctx.lot.eau_chaude, "individuel ou collectif, énergie", "eau chaude du logement")}</p>
-    ${mentionsEnergie(ctx, options.dpeClasse, f)}
+    ${mentionsEnergie(ctx, options.dpeClasse, f, t)}
     ${sousSection("B. Destination des locaux")}
     <p>Le logement, loué meublé, est à usage exclusif d'habitation, à titre de résidence principale
     du locataire. Le mobilier mis à disposition est décrit dans l'inventaire annexé au présent contrat.</p>
@@ -211,7 +217,9 @@ export function construireBailMeuble(
       copro
         ? `<p>L'immeuble étant soumis au statut de la copropriété, le locataire est tenu de respecter le
            règlement de copropriété, dont les extraits relatifs à la destination de l'immeuble, à la
-           jouissance et à l'usage des parties privatives et communes lui sont remis en annexe.</p>`
+           jouissance et à l'usage des parties privatives et communes${
+             // Lot T2 (R05-A1) : les extraits précisent aussi la quote-part du lot (article 3 de la loi, annexe du contrat type).
+             t.archivee ? "" : ", et précisant la quote-part afférente au lot loué dans chacune des catégories de charges,"} lui sont remis en annexe.</p>`
         : ""
     }
 
@@ -219,21 +227,26 @@ export function construireBailMeuble(
     ${dateConclusion(ctx, f)}
     <p>Date de prise d'effet : ${f.date(ctx.bail.date_debut, "Date d’entrée")}.<br/>
     Durée du contrat : ${f.champ(dureeContrat, "durée applicable au régime du bail")}.</p>
-    ${
+    ${/* Textes officiels, lot T2 (R20-A1, R08-A6, R08-A5). La durée réduite pour un événement précis (article 11 de la loi du
+         6 juillet 1989) ne s'applique pas à la location meublée : l'article 25-3 ne le rend pas applicable et l'annexe 2 du
+         contrat type n'a pas cette rubrique. Un nouveau contrat meublé ne lit plus le champ et n'imprime plus la rubrique,
+         même « sans objet » ; il imprime les phrases de la rubrique III. L'ancien rendu ne sert qu'à relire un bail déjà
+         préparé pour la signature. */
+      !t.archivee ? reconductionEtConges(ctx, true) :
       ctx.bail.duree_reduite_evenement
         ? `<p class="mentions">Un contrat d'une durée réduite n'est possible que si un événement précis
            justifie la reprise du logement par le bailleur : ${f.champ(
              ctx.bail.duree_reduite_evenement,
              "événement précis justifiant la durée réduite"
            )}.</p>`
-        : `<p class="mentions">Sans objet — le contrat est conclu pour la durée de droit commun.</p>`
+        : dureeReduiteSansObjet(ctx.bail.meuble_etudiant ? "le contrat est un bail étudiant de neuf mois" : null, t)
     }
 
     ${section("IV — Conditions financières")}
     ${sousSection("A. Loyer")}
     <p>Montant du loyer mensuel hors charges : ${f.montant(ctx.bail.loyer_hc, "montant mensuel")}.<br/>
     Modalité de fixation du loyer : ${f.champ(fixationLoyer(ctx.bail.fixation_loyer), "libre, plafonnement, réévaluation après travaux…")}.</p>
-    ${encadrementLocation(ctx, f)}
+    ${encadrementLocation(ctx, f, t)}
     ${
       ctx.bail.revision_irl
         ? `<p>Le loyer est révisé chaque année à la date anniversaire du contrat, dans la limite de la
@@ -254,15 +267,18 @@ export function construireBailMeuble(
     Montant mensuel : ${f.montant(ctx.bail.charges, "montant mensuel")}.</p>
     ${sousSection("C. Modalités de paiement")}
     <p>Périodicité : ${f.champ("mensuelle", "mensuelle, trimestrielle…")} — paiement ${f.champ(echeanceLibelle, "à échoir ou échu")}
-    le ${f.champ(ctx.bail.jour_echeance, "jour du mois")} de chaque mois.<br/>
+    le ${f.champ(t.jour(ctx.bail.jour_echeance), "jour du mois")} de chaque mois.<br/>
     Lieu de paiement : ${f.champ(ctx.bail.lieu_paiement, "domicile du bailleur, virement…")} — Coordonnées bancaires :
-    ${facultatif(ctx.organisation.iban)}.<br/>
-    Montant total dû à la première échéance : ${montantPremiereEcheance(f, ctx.bail)}.</p>
+    ${/* Phase 3, lot 50 (W01, W02, W06) : le contrat qui fixe un paiement par virement donne le compte où verser, comme l'avis
+      d'échéance (C50, C72) ; inconnu, l'IBAN du profil de l'espace est à renseigner. Un bail déjà préparé pour la signature
+      garde son rendu (typographie archivée : « — »). */
+      t.archivee ? facultatif(ctx.organisation.iban) : coordonneesBancaires(f, ctx.bail.lieu_paiement, ctx.organisation.iban)}.<br/>
+    ${t.archivee ? `Montant total dû à la première échéance : ${montantPremiereEcheance(f, ctx.bail)}.` : premiereEcheanceLocation(ctx, f)}</p>
 
     ${section("V — Travaux")}
     <p>Travaux d'amélioration ou de mise en conformité effectués depuis la fin du dernier contrat :
-    ${ouNeant(ctx.bail.travaux_recents)} — montant :
-    ${ctx.bail.travaux_recents ? f.montant(ctx.bail.travaux_recents_montant, "montant") : "—"}.<br/>
+    ${t.archivee ? `${ouNeant(ctx.bail.travaux_recents)} — montant :
+    ${ctx.bail.travaux_recents ? f.montant(ctx.bail.travaux_recents_montant, "montant") : "—"}.` : travauxDepuisDernierContrat(ctx, f)}<br/>
     Travaux que le locataire est autorisé à réaliser et contreparties : ${ouNeant(
       ctx.bail.travaux_locataire
     )}</p>
@@ -275,47 +291,46 @@ export function construireBailMeuble(
     }, soit au plus deux mois de loyer hors charges (article 25-6 de la loi du 6 juillet 1989).</p>
 
     ${plusieursLocataires ? `${section("VII — Clause de solidarité")}
-    <p>Les locataires sont tenus solidairement et indivisiblement de l'exécution du présent contrat.
-    En cas de congé de l'un d'eux, la solidarité s'éteint six mois après la date d'effet du congé, ou
-    dès qu'un nouveau locataire le remplace au bail.</p>` : ""}
+    ${clauseSolidarite(ctx, t)}` : ""}
 
     ${section(`${plusieursLocataires ? "VIII" : "VII"} — Clause résolutoire`)}
-    ${clauseResolutoire(ctx)}
+    ${clauseResolutoire(ctx, t)}
 
     ${section(`${plusieursLocataires ? "IX" : "VIII"} — Honoraires de location`)}
-    ${honorairesLocation(ctx, f)}
+    ${honorairesLocation(ctx, f, t)}
 
     ${section(`${plusieursLocataires ? "X" : "IX"} — Autres conditions particulières`)}
     <p>${ouNeant(ctx.bail.clauses_particulieres)}</p>
 
-    ${section(`${plusieursLocataires ? "XI" : "X"} — Annexes`)}
-    <p>Sont annexées et jointes au contrat les pièces suivantes :</p>
-    <p class="mentions">☐ L'inventaire et l'état détaillé du mobilier (ci-après annexé)<br/>
+    ${/* Reprises du lot T2 (T2R-2) : annexes et signatures forment un ensemble qui ne se coupe pas — plus de page ne
+         portant que les signatures. Rien n'est ajouté au rendu archivé (empreinte d'un bail déjà préparé). */ ""}${t.finEnsemble[0]}${section(`${plusieursLocataires ? "XI" : "X"} — Annexes`)}
+    <p${t.classe("annonce")}>Sont annexées et jointes au contrat les pièces suivantes :</p>
+    <p class="mentions"${t.insecable}>☐ L'inventaire et l'état détaillé du mobilier (ci-après annexé)<br/>
     ☐ Le dossier de diagnostic technique (DPE, ERP, et selon l'ancienneté du
     logement : plomb, amiante, électricité, gaz)<br/>
     ☐ La notice d'information relative aux droits et obligations des locataires et des bailleurs<br/>
     ☐ L'état des lieux d'entrée<br/>
-    ${copro ? "☐ Les extraits du règlement de copropriété<br/>" : ""}
+    ${copro ? `☐ Les extraits du règlement de copropriété${t.archivee ? "" : " (destination de l'immeuble, jouissance et usage des parties privatives et communes, quote-part afférente au lot loué dans chacune des catégories de charges)"}<br/>` : ""}
     ${ctx.garants.length > 0 ? "☐ L'acte de cautionnement<br/>" : ""}
     ☐ Le cas échéant, l'attestation d'assurance contre les risques locatifs<br/>
     ☐ Le cas échéant, la grille de vétusté applicable</p>
 
     <div class="bloc-signataires">
     ${section(`${plusieursLocataires ? "XII" : "XI"} — Date et signatures`)}
-    <p>Fait à ${f.champ(exp.ville, "commune")}, le <span class="fusion">date effective à compléter lors de la signature</span>, en autant
+    <p${t.classe("fait-a")}>Fait à ${f.champ(exp.ville, "commune")}, le <span class="fusion">date effective à compléter lors de la signature</span>, en autant
     d'exemplaires originaux que de parties.</p>
     <div class="signatures">
       ${options.presentationAncienne || !indivision
         ? cadreSignature("Le bailleur", f.champ(nomPersonne(bailleurPrincipal), "nom et prénom(s), ou dénomination"))
         : ctx.bailleurs.map((p, i) => cadreSignature(`Bailleur ${i + 1}`, f.champ(nomPersonne(p), "nom et prénom(s), ou dénomination"))).join("")}
-      ${colocation ? ctx.locataires.map((l, i) => cadreSignature(`Colocataire ${i + 1}`, f.champ(nomPersonne(l), `nom du colocataire ${i + 1}`))).join("") : cadreSignature(
+      ${colocation || (epouxPacs && plusieursLocataires) ? ctx.locataires.map((l, i) => cadreSignature(`${colocation ? "Colocataire" : "Locataire"} ${i + 1}`, f.champ(nomPersonne(l), `nom du colocataire ${i + 1}`))).join("") : cadreSignature(
         plusieursLocataires ? "Les locataires" : "Le locataire",
         ctx.locataires.map((l) => echapper(nomPersonne(l) ?? "")).join("<br/>") ||
           f.champ(null, "nom et prénom(s) du ou des locataires")
       )}
       ${ctx.garants.length > 0 ? cadreSignature("La caution", `${ctx.garants.map((g) => echapper(nomPersonne(g) ?? "")).join("<br/>")}<br/>${mentionCadreCautionBail(ctx.garants.length)}`) : ""}
     </div>
-    </div>
+    </div>${t.finEnsemble[1]}
 
     <div class="saut">
       ${section("Annexe — Inventaire du mobilier")}
@@ -337,6 +352,7 @@ export function construireBailMeuble(
     nomPied: individuel ? "Colocation — contrat individuel meublé" : colocation ? "Colocation — bail commun meublé" : "Contrat de location — logement meublé",
     reference: referenceBail,
     corps,
+    feuilleArchivee: t.archivee,
   });
 }
 
@@ -352,9 +368,15 @@ export async function assemblerBailMeuble(
     return { erreur: "Ce modèle couvre le bail meublé — pour un logement nu, utilisez le modèle bail nu." };
   }
   if (ctx.bail.etat !== "brouillon") return { erreur: "Le contrat initial se prépare sur un brouillon. Pour un bail déjà engagé, utilisez un avenant." };
-  if (!ctx.bail.locataire_principal) {
-    return { erreur: "Renseignez d'abord le locataire principal du bail." };
-  }
+  // Case « mariés ou pacsés » cochée sur un bail qui n'a pas deux locataires : contrat non produit (refusEpouxPacs).
+  const refusEpoux = refusEpouxPacs(ctx, Boolean(format[presentationArchivee] || format[typographieArchivee]));
+  if (refusEpoux) return refusEpoux;
+  // Phase 3, lot 46 (reprise, T21) : sans locataire principal, le contrat est INCOMPLET, plus refusé. Le catalogue proposait le
+  // brouillon puis répondait « Renseignez d'abord le locataire principal du bail », sans lien ; « nom et prénom(s) » (le libellé
+  // du contrôle du brouillon et du bloc du locataire) rejoint la liste « À renseigner », qui mène à la fiche du bail. Le PDF reste
+  // bloqué tant qu'il manque (refusDocumentIncomplet) : aucun contrat n'est produit sans son locataire.
+  const f = new Fusion();
+  if (!ctx.bail.locataire_principal) f.champ(null, "nom et prénom(s)");
 
   const [{ data: dpe, error: erreurDpe }, { data: lignesInventaire, error: erreurInventaire }] = await Promise.all([
     supabase
@@ -374,9 +396,9 @@ export async function assemblerBailMeuble(
   ]);
 
   if (erreurDpe || erreurInventaire) return { erreur: "Le diagnostic ou l’inventaire n’a pas pu être chargé. Réessayez avant de générer le contrat." };
-  const f = new Fusion();
   const document = construireBailMeuble(ctx, {
     presentationAncienne: format[presentationArchivee],
+    typographieArchivee: format[typographieArchivee],
     dpeClasse: dpe?.classe_dpe ?? null,
     inventaire: (lignesInventaire ?? []) as LigneInventaire[],
     f,
@@ -384,8 +406,12 @@ export async function assemblerBailMeuble(
 
   return {
     document,
-    titreGed: `Bail meublé — ${nomPersonne(ctx.locataires[0]) ?? ctx.lot.nom}`,
+    // Phase 3, lot 50 (W03) : le projet se dit « à faire signer », comme le bail nu, la colocation et le contrat individuel.
+    titreGed: `Bail meublé (généré, à faire signer) — ${nomPersonne(ctx.locataires[0]) ?? ctx.lot.nom}`,
     nomFichier: `bail-meuble-${referenceCourte("BAIL", ctx.bail.id).toLowerCase()}`,
-    liens: [{ entite: "bail", entiteId: ctx.bail.id }, ...liensLocataires(ctx)],
+    // Phase 3, lot 46 (reprise, T19) : le lot, comme le bail nu, la colocation et le contrat individuel. Sans lui, « domicile ou
+    // siège social » et « ou dénomination » (lot sans détenteur) menaient à la fiche du bail au lieu de la détention du lot, et
+    // le contrat meublé n'était pas rangé avec les documents du lot.
+    liens: [{ entite: "bail", entiteId: ctx.bail.id }, { entite: "lot", entiteId: ctx.lot.id }, ...liensLocataires(ctx)],
   };
 }

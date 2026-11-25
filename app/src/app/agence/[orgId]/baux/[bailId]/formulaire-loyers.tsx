@@ -2,7 +2,7 @@
 import { InputDateJour } from "@/components/input-date-jour";
 
 import Link from "next/link";
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {
   genererAppels,
@@ -22,22 +22,33 @@ import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { aujourdhuiParis, eur, formaterDate } from "@/lib/ged";
+import { deElide } from "@/lib/elision";
 import {
   STATUTS_APPEL_LOYER,
   COULEURS_STATUT_APPEL_LOYER,
   datesRevisionIrl,
+  dateLimiteRevision,
+  premierTermeRevise,
+  indicePrecedentExige,
   numeroTrimestreIrl,
   exerciceRegularisationParDefaut,
   exerciceNonTermine,
+  exerciceDePlusDeTroisAns,
+  avertissementExerciceAncien,
+  LIBELLE_CONFIRMATION_EXERCICE_ANCIEN,
   avertissementExerciceNonTermine,
   aideSoldeNonAppele,
   LIBELLE_CONFIRMATION_EXERCICE_NON_TERMINE,
   type EtatDecompteSortie,
 } from "@/lib/baux";
+import { anneeTrimestreIrl, indiceAttendu } from "@/lib/indice-revision";
 import { ChampFichier } from "@/components/champ-fichier";
+import { relancesSuspenduesDepuis } from "@/lib/paliers-reception-loyer";
+import { LIMITES_INFORMATION_CAUTION, TEXTE_ARTICLE_2303, rappelInformationCaution } from "@/lib/information-caution";
 import { RACINE_AGENCE, baseDepuisRacine } from "@/lib/racine-espace";
 import { CleEnvoi } from "@/components/cle-envoi";
 import { ConfirmationEncaissement } from "@/components/confirmation-encaissement";
+import { IndicePropose } from "./indice-propose";
 import { RegularisationFournitures } from "@/components/regularisation-fournitures";
 
 // Les modes de règlement qu'une agence rencontre vraiment. « autre » évite de
@@ -82,11 +93,15 @@ export type Revision = {
   /** Anniversaire de rattachement et date de la demande (audit 29/09) — null avant. */
   date_echeance?: string | null;
   date_demande?: string | null;
+  /** Décision Q43 du 24/11 : premier terme appelé au loyer révisé (1er du mois) — null pour une révision d'avant. */
+  premier_terme?: string | null;
   irl_trimestre?: string | null;
   ancien_loyer: number;
   nouveau_loyer: number;
   irl_reference: number;
   irl_nouveau: number;
+  /** Reprise D2 : trimestre de l'indice de référence quand c'est celui de l'année précédente (révision d'une année non faite). */
+  irl_reference_trimestre?: string | null;
 };
 export type RelanceLigne = {
   id: string;
@@ -244,7 +259,14 @@ export function FormulaireLoyers({
   copropriete = false,
   aujourdhui = aujourdhuiParis(),
   decompteSortie = "non_finalise",
+  planApurement = null,
+  avertissementDpe = null,
+  cautionAuBail = false,
 }: {
+  /** Décision du 24/11/2026 (Q28) : avertissement « plusieurs DPE », affiché près de la révision (refusée en classe F ou G). */
+  avertissementDpe?: React.ReactNode;
+  /** Lot T3 (R24-A1) : vrai quand le bail a au moins une caution (garant rattaché, non parti). */
+  cautionAuBail?: boolean;
   orgId: string;
   bailId: string;
   echeancier: LigneEcheance[];
@@ -270,6 +292,11 @@ export function FormulaireLoyers({
   aujourdhui?: string;
   /** État du décompte de sortie du bail (D40) : « repris au décompte de sortie » ne se dit que s'il n'est pas finalisé. */
   decompteSortie?: EtatDecompteSortie;
+  /**
+   * Phase 3, lot 44 (reprise, C65) : le plan d'apurement en cours du bail (actif ou en défaut), `depuis` étant le jour de son
+   * activation ; null s'il n'y en a pas (ou s'il n'a pas pu être lu : l'action le relit et refuse alors d'enregistrer).
+   */
+  planApurement?: { depuis: string | null } | null;
   /** « /espace » chez le propriétaire direct, « /agence » sinon (décision D27) ; la page du bail la transmet. */
   racine?: string;
 }) {
@@ -293,6 +320,7 @@ export function FormulaireLoyers({
   const idNumeroRecommande = useId();
   const recouvrementOuvert = decompteSortie === "non_finalise";
   const impaye = recouvrementOuvert && echeancier.some((l) => l.statut === "impaye");
+  const rappelCaution = rappelInformationCaution(echeancier, cautionAuBail, aujourdhui);
   // Audit du 27/09 : l'exercice proposé est couvert par le bail.
   // Date de bascule (20/11/2026) : pour un bail repris en cours, on ne propose pas un exercice que la base refusera
   // (commencé avant le premier mois suivi) dès lors qu'un exercice régularisable a commencé.
@@ -304,12 +332,66 @@ export function FormulaireLoyers({
   const [anneeReg, setAnneeReg] = useState(String(anneeDefaut));
   const exerciceReg = Number(anneeReg);
   const exerciceEnCours = /^\d{4}$/.test(anneeReg) && exerciceNonTermine(exerciceReg, aujourdhui);
+  const exerciceAncien = /^\d{4}$/.test(anneeReg) && exerciceDePlusDeTroisAns(exerciceReg, aujourdhui);
   // Révision IRL : l'indice de référence est celui de la dernière révision,
-  // à défaut celui figé au bail (RM-3.8.7). Audit 29/09 : l'effet vaut
-  // max(anniversaire, date de la demande) — jamais rétroactif (art. 17-1 I).
+  // à défaut celui figé au bail (RM-3.8.7). Décisions du 24/11/2026 : le loyer révisé s'applique au premier terme
+  // qui suit la demande (Q43) ; la révision d'une année se demande au plus tard un an après sa date (Q23).
   const derniereRevision = [...revisions].sort((a, b) => b.date_effet.localeCompare(a.date_effet))[0];
+  // Audit palier 1, P1-13 : l'indice cherché chez l'Insee est reporté dans ces trois champs, où il reste modifiable.
+  // L'événement « input » prévient la protection de saisie qu'un champ a changé, comme une frappe au clavier.
+  const champIndice = useRef<HTMLInputElement>(null);
+  const champTrimestre = useRef<HTMLSelectElement>(null);
+  const champAnnee = useRef<HTMLInputElement>(null);
+  // L'année de l'indice en cours de saisie ; tant que rien n'a été tapé, celle d'une saisie refusée et reposée.
+  const [anneeIndice, setAnneeIndice] = useState<string | null>(null);
+  const anneeTapee = anneeIndice ?? etatRev.valeurs?.irl_trimestre_annee ?? "";
+  const anneeSaisie = /^\d{4}$/.test(anneeTapee) ? Number(anneeTapee) : NaN;
+  const anneeReference = anneeTrimestreIrl(derniereRevision ? derniereRevision.irl_trimestre : irlTrimestre);
+  // L'indice de l'année précédente proposé par l'Insee : le champ se réaffiche avec lui (il reste modifiable).
+  const [precedentPropose, setPrecedentPropose] = useState<string | null>(null);
+  // Aperçu : la date de la demande en cours de saisie (posée à aujourd'hui par défaut).
+  const [dateDemandeSaisie, setDateDemandeSaisie] = useState("");
+  const demandeApercu = /^\d{4}-\d{2}-\d{2}$/.test(dateDemandeSaisie) ? dateDemandeSaisie : aujourdhui;
+  // Reprise du lot D2 (24/11/2026) : quand la révision d'une année n'a pas été faite, elle n'est pas rattrapée : la base
+  // calcule sur un an et exige l'indice du même trimestre de l'année précédente. Le champ de cet indice n'apparaît que
+  // dans ce cas. Seconde reprise : ce cas se reconnaît comme dans la base (`reviser_loyer`, migration 20261124150000) —
+  // d'abord à l'année de bail (aucune révision pour l'année de bail précédente, d'après la date de la demande saisie),
+  // ou à l'année de l'indice saisi quand elle dépasse de plus d'un an celle, lisible, de l'indice de référence.
+  // Troisième reprise (migration 20261124170000) : l'indice attendu est celui de la date de révision à laquelle la
+  // demande est rattachée (`indiceAttendu`, règle B). Quand le bail porte son indice d'origine, la base n'accepte que
+  // cette année-là : c'est elle qui dit si l'indice précédent sera exigé, quelle que soit l'année saisie. Sinon, c'est
+  // l'année saisie, et à défaut l'année attendue. L'indice précédent n'est pas exigé quand l'indice du bail est déjà
+  // celui de l'année précédente (bail repris en cours, révisé ailleurs l'an dernier : règle C3).
+  const attendu = indiceAttendu({ dateDebut, irlTrimestreBail: irlTrimestre, revisions, dateDemande: demandeApercu });
+  const anneeIndiceRetenue = attendu?.exact ? attendu.annee : Number.isFinite(anneeSaisie) ? anneeSaisie : attendu?.annee ?? NaN;
+  const anneeSautee =
+    indicePrecedentExige(dateDebut, demandeApercu, revisions, {
+      anneeIndice: Number.isFinite(anneeIndiceRetenue) ? anneeIndiceRetenue : null,
+      anneeIndiceBail: anneeTrimestreIrl(irlTrimestre),
+    }) ||
+    (anneeReference !== null && Number.isFinite(anneeIndiceRetenue) && anneeIndiceRetenue > anneeReference + 1);
+  const reporterIndice = (p: { valeur: number; trimestre: number; annee: number; precedent: number | null }) => {
+    const poser = (champ: HTMLInputElement | HTMLSelectElement | null, valeur: string) => {
+      if (!champ) return;
+      champ.value = valeur;
+      champ.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+    poser(champIndice.current, String(p.valeur).replace(".", ","));
+    poser(champTrimestre.current, String(p.trimestre));
+    poser(champAnnee.current, String(p.annee));
+    setAnneeIndice(String(p.annee));
+    setPrecedentPropose(p.precedent === null ? "" : String(p.precedent).replace(".", ","));
+  };
   const irlReferenceCourante = derniereRevision ? Number(derniereRevision.irl_nouveau) : irlReference;
-  const datesDuJour = aujourdhui ? datesRevisionIrl(dateDebut, aujourdhui) : null;
+  // Reprise du lot D2 : l'aperçu suit la date de demande saisie et calcule comme la base — date de révision et date limite
+  // d'après la date de la demande ; premier terme révisé d'après le plus tardif entre cette date et aujourd'hui, et après
+  // le dernier terme déjà appelé (`premierTermeRevise`).
+  const datesDuJour = aujourdhui ? datesRevisionIrl(dateDebut, demandeApercu) : null;
+  const limiteDuJour = datesDuJour ? dateLimiteRevision(dateDebut, datesDuJour.echeance) : null;
+  const dernierTermeAppele = echeancier.reduce<string | null>((max, l) => (max === null || l.periode > max ? l.periode : max), null);
+  const premierTermeApercu = premierTermeRevise(demandeApercu, aujourdhui, dernierTermeAppele);
+  const moisDuTerme = (terme: string) =>
+    new Date(`${terme.slice(0, 10)}T12:00:00Z`).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
   const trimestreReference =
     numeroTrimestreIrl(irlTrimestre) ??
     numeroTrimestreIrl([...revisions].sort((a, b) => a.date_effet.localeCompare(b.date_effet))[0]?.irl_trimestre);
@@ -518,15 +600,18 @@ export function FormulaireLoyers({
                           />
                         </>
                       )}
-                      {/* Documents-0 : avis d'échéance (17), prorata (21) */}
-                      <BoutonGenererDocument
-                        orgId={orgId}
-                        code="avis_echeance"
-                        cibleId={l.appel_id}
-                        cheminRetour={`${base}/baux/${bailId}`}
-                        libelle="Avis d'échéance (PDF)"
-                        variant="ghost"
-                      />
+                      {/* Documents-0 : avis d'échéance (17), prorata (21). Phase 3 (C49) : l'avis réclame le terme ; il n'est
+                          proposé que pour un terme restant à régler (le document d'un terme soldé est sa quittance). */}
+                      {Number(l.montant_couvert) < Number(l.montant_du) && (
+                        <BoutonGenererDocument
+                          orgId={orgId}
+                          code="avis_echeance"
+                          cibleId={l.appel_id}
+                          cheminRetour={`${base}/baux/${bailId}`}
+                          libelle="Avis d'échéance (PDF)"
+                          variant="ghost"
+                        />
+                      )}
                       {Number(l.montant_du) > 0 && l.prorata && (
                         <BoutonGenererDocument
                           orgId={orgId}
@@ -574,8 +659,9 @@ export function FormulaireLoyers({
 
       {/* Révision IRL */}
       {revisionIrl && (
-        <div className="space-y-2 border-t border-border pt-4">
+        <div id="revision-loyer" className="scroll-mt-24 space-y-2 border-t border-border pt-4">
           <p className="text-sm font-medium">Révision annuelle du loyer (IRL)</p>
+          {avertissementDpe}
           {revisions.length > 0 && (
             <ul className="text-xs text-muted-foreground">
               {revisions.map((r) => (
@@ -586,6 +672,11 @@ export function FormulaireLoyers({
                   {r.date_demande && r.date_echeance && r.date_demande > r.date_echeance
                     ? ` · demandée le ${formaterDate(r.date_demande)}, après l'échéance du ${formaterDate(r.date_echeance)}`
                     : ""}
+                  {/* Seconde reprise du lot D2 : la ligne ne dit plus « révision de l'année précédente non faite ». Cet indice est
+                      aussi demandé quand aucune révision n'est ENREGISTRÉE pour l'année précédente (bail repris en cours) : on
+                      dit seulement ce qui a servi au calcul. */}
+                  {r.irl_reference_trimestre ? ` · calcul sur un an, avec l'indice du ${r.irl_reference_trimestre} (même trimestre, année précédente)` : ""}
+                  {r.premier_terme ? ` · loyer révisé appliqué à partir du terme ${deElide(moisDuTerme(r.premier_terme))}` : ""}
                   {/* Documents-0 : la lettre de révision (23) */}
                   <BoutonGenererDocument
                     orgId={orgId}
@@ -601,6 +692,7 @@ export function FormulaireLoyers({
           )}
           {/* En erreur, la saisie est reposée via etatRev.valeurs (recette 22/08) */}
           <form data-saisie-confirmee action={formRev} className="flex flex-wrap items-end gap-2">
+            <IndicePropose orgId={orgId} bailId={bailId} dateDemande={demandeApercu} surProposition={reporterIndice} />
             <div className="space-y-1">
               <p className="text-xs">
                 {derniereRevision ? "IRL de référence (dernière révision)" : "IRL de référence (figé au bail)"}
@@ -616,13 +708,14 @@ export function FormulaireLoyers({
             </div>
             <div className="space-y-1">
               <Label htmlFor="irl-nouv" className="text-sm">IRL nouveau</Label>
-              <Input id="irl-nouv" name="irl_nouveau" type="text" inputMode="decimal" placeholder="ex. 145,17" defaultValue={etatRev.valeurs?.irl_nouveau} className="h-9 w-28" />
+              <Input ref={champIndice} id="irl-nouv" name="irl_nouveau" type="text" inputMode="decimal" placeholder="ex. 145,17" defaultValue={etatRev.valeurs?.irl_nouveau} className="h-9 w-28" />
             </div>
             {/* Constat 21 : l'indice nouveau est celui du MÊME trimestre que
                 l'indice de référence du bail, publié pour l'année suivante. */}
             <div className="space-y-1">
               <Label htmlFor="irl-trim" className="text-sm">Trimestre</Label>
               <select
+                ref={champTrimestre}
                 id="irl-trim"
                 name="irl_trimestre_numero"
                 defaultValue={etatRev.valeurs?.irl_trimestre_numero ?? (trimestreReference ? String(trimestreReference) : "")}
@@ -641,6 +734,7 @@ export function FormulaireLoyers({
             <div className="space-y-1">
               <Label htmlFor="irl-annee" className="text-sm">Année de l&apos;indice</Label>
               <Input
+                ref={champAnnee}
                 id="irl-annee"
                 name="irl_trimestre_annee"
                 type="number"
@@ -648,18 +742,47 @@ export function FormulaireLoyers({
                 max="2100"
                 step="1"
                 defaultValue={etatRev.valeurs?.irl_trimestre_annee}
+                onChange={(e) => setAnneeIndice(e.target.value)}
                 className="h-9 w-24"
               />
             </div>
+            {anneeSautee && (
+              <div className="space-y-1" data-irl-precedent>
+                <Label htmlFor="irl-precedent" className="text-sm">
+                  {/* Seconde reprise du lot D2 : le champ peut paraître avant que l'année de l'indice soit saisie. */}
+                  IRL du {trimestreReference ? `T${trimestreReference} ` : "même trimestre "}
+                  {Number.isFinite(anneeIndiceRetenue) ? anneeIndiceRetenue - 1 : "de l’année précédente"}
+                </Label>
+                <Input key={precedentPropose ?? "saisie"} id="irl-precedent" name="irl_precedent" type="text" inputMode="decimal" placeholder="ex. 144,05" defaultValue={precedentPropose ?? etatRev.valeurs?.irl_precedent} className="h-9 w-28" />
+              </div>
+            )}
             {/* Audit 29/09 : on date la DEMANDE (par défaut aujourd'hui) ; la
                 date d'effet s'en déduit, jamais avant la demande. */}
             <div className="space-y-1">
               <Label htmlFor="irl-demande" className="text-sm">Demandée le</Label>
-              <InputDateJour id="irl-demande" name="date_demande" className="h-9" valeurSoumise={etatRev.valeurs?.date_demande} />
+              <InputDateJour id="irl-demande" name="date_demande" className="h-9" valeurSoumise={etatRev.valeurs?.date_demande} surChangement={setDateDemandeSaisie} />
             </div>
             <BoutonEnvoi size="sm" variant="outline">
               Réviser le loyer
             </BoutonEnvoi>
+            {anneeSautee && (
+              <p className="w-full text-sm text-warning-soft-foreground" data-revision-annee-sautee>
+                Aucune révision n&apos;est enregistrée pour l&apos;année de bail précédente, ou l&apos;indice de référence de ce
+                bail est plus ancien. Une révision qui n&apos;a pas été faite n&apos;est pas rattrapée : le loyer se révise sur un an, avec l&apos;indice du même trimestre de
+                l&apos;année précédente{Number.isFinite(anneeIndiceRetenue) ? ` (${anneeIndiceRetenue - 1})` : ""}, à saisir ci-dessus.
+                {Number.isFinite(anneeIndiceRetenue) ? ` Le calcul devient : loyer actuel × IRL ${anneeIndiceRetenue} / IRL ${anneeIndiceRetenue - 1}.` : ""}
+              </p>
+            )}
+            {/* Troisième reprise du lot D2 : l'indice attendu pour la date de révision, dit avant la saisie. La base
+                n'accepte que lui quand le bail porte son indice d'origine (`attendu.exact`). Rien n'est dit quand le
+                loyer porte déjà cet indice (révision de cette date déjà enregistrée). */}
+            {attendu?.exact && (anneeReference === null || attendu.annee > anneeReference) && (
+              <p className="w-full text-sm text-muted-foreground" data-indice-attendu>
+                Pour la révision prévue le {formaterDate(attendu.echeance)}, l&apos;indice attendu est celui du{" "}
+                <span className="font-medium text-foreground">T{attendu.trimestre} {attendu.annee}</span> : le trimestre de
+                l&apos;indice du bail, une année de plus par année de bail écoulée. Un indice d&apos;une autre année est refusé.
+              </p>
+            )}
             {etatRev.erreur && <p className="w-full text-sm text-destructive">{etatRev.erreur}</p>}
             {etatRev.succes && <p className="w-full text-sm text-success-soft-foreground">{etatRev.succes}</p>}
           </form>
@@ -667,18 +790,40 @@ export function FormulaireLoyers({
             Nouveau loyer = loyer actuel × IRL nouveau / IRL de référence. L&apos;indice de
             référence est celui de la dernière révision, à défaut celui figé au bail à sa
             signature {/* RM-3.8.2, RM-3.8.7 */} ; il ne se saisit pas ici. Le nouvel indice est
-            celui du même trimestre{trimestreReference ? ` (T${trimestreReference})` : ""}. La
-            révision prend effet à la date anniversaire si elle est demandée ce jour-là ; demandée
-            après, elle prend effet à la date de la demande, sans rétroactivité, et au plus tard
-            un an après l&apos;anniversaire (art. 17-1 de la loi du 6 juillet 1989). Une seule
+            celui du même trimestre{trimestreReference ? ` (T${trimestreReference})` : ""}. Si la révision d&apos;une
+            année n&apos;a pas été faite, elle n&apos;est pas rattrapée : le calcul se fait sur un an, avec l&apos;indice du
+            même trimestre de l&apos;année précédente, qui vous est alors demandé. Le
+            loyer révisé ne s&apos;applique jamais à des jours antérieurs à la demande : il s&apos;applique au
+            premier terme dont la période commence après la date de la demande et après le jour où vous
+            l&apos;enregistrez ici ; un terme déjà appelé n&apos;est pas modifié. La révision d&apos;une année se demande au plus tard un an après sa date
+            de révision ; passé ce délai, elle est refusée (selon la fiche officielle Service-Public
+            consultée le 24/11/2026). Une seule
             révision par année de bail ; interdite si DPE F/G ; le dépôt et les provisions ne
             changent pas.
           </p>
           {datesDuJour && (
-            <p className="text-sm text-muted-foreground">
-              Demandée aujourd&apos;hui, la révision de l&apos;échéance du{" "}
-              {formaterDate(datesDuJour.echeance)} prendrait effet le{" "}
-              <span className="font-medium text-foreground">{formaterDate(datesDuJour.dateEffet)}</span>.
+            <p className="text-sm text-muted-foreground" data-revision-dates>
+              {demandeApercu > aujourdhui ? (
+                <>Une demande datée du {formaterDate(demandeApercu)} n&apos;a pas encore eu lieu : elle serait refusée.</>
+              ) : limiteDuJour && aujourdhui > limiteDuJour ? (
+                <>
+                  La révision prévue le {formaterDate(datesDuJour.echeance)} pouvait être demandée jusqu&apos;au{" "}
+                  <span className="font-medium text-foreground" data-revision-limite>{formaterDate(limiteDuJour)}</span> : ce délai
+                  est passé, elle serait refusée.
+                </>
+              ) : (
+                <>
+                  {demandeApercu === aujourdhui ? "Demandée aujourd'hui" : `Demandée le ${formaterDate(demandeApercu)} et enregistrée aujourd'hui`},
+                  la révision prévue le {formaterDate(datesDuJour.echeance)} s&apos;appliquerait à partir du{" "}
+                  <span className="font-medium text-foreground">terme {deElide(moisDuTerme(premierTermeApercu))}</span>.
+                  {limiteDuJour && (
+                    <>
+                      {" "}Date limite pour la demander :{" "}
+                      <span className="font-medium text-foreground" data-revision-limite>{formaterDate(limiteDuJour)}</span>.
+                    </>
+                  )}
+                </>
+              )}
             </p>
           )}
         </div>
@@ -689,6 +834,18 @@ export function FormulaireLoyers({
         <p className="text-sm font-medium">
           Relances{impaye && <span className="ml-2 text-sm text-destructive">impayé en cours</span>}
         </p>
+        {/* Lot T3 (R24-A1) : bail avec caution et terme échu impayé — la date à ne pas dépasser pour informer la caution
+            (article 2303 du code civil), et ce que Gerimmo ne fait pas. Affichage seul : aucun envoi, aucun calcul d'argent. */}
+        {recouvrementOuvert && rappelCaution && (
+          <div role="note" data-information-caution className="space-y-1 rounded-lg border border-[var(--or-filet)] bg-[var(--or-clair)] p-3 text-sm">
+            <p className="font-medium">
+              {rappelCaution.depassee
+                ? `Ce bail a une caution : le loyer exigible le ${formaterDate(rappelCaution.echeance)} est impayé depuis plus d’un mois. Si elle n’a pas été informée, informez-la sans attendre.`
+                : `Ce bail a une caution : par prudence, informez-la du loyer impayé exigible le ${formaterDate(rappelCaution.echeance)} au plus tard le ${formaterDate(rappelCaution.limite)} (un mois après l’échéance).`}
+            </p>
+            <p className="text-xs text-muted-foreground">{TEXTE_ARTICLE_2303} {LIMITES_INFORMATION_CAUTION}</p>
+          </div>
+        )}
         {relances.length > 0 && (
           <ul className="divide-y divide-border">
             {relances.map((r) => (
@@ -704,6 +861,15 @@ export function FormulaireLoyers({
               </li>
             ))}
           </ul>
+        )}
+        {/* Phase 3, lot 44 (reprise, C65) : sous plan d'apurement, le formulaire proposait toujours d'enregistrer une relance ou
+            une mise en demeure, que le serveur refusait ensuite à chaque fois — même envoyée avant le plan. Il reste, pour
+            consigner un envoi ANTÉRIEUR à l'activation (seul moyen de saisir le numéro et la date de première présentation
+            d'une mise en demeure), et dit ce que le serveur accepte. */}
+        {recouvrementOuvert && planApurement && (
+          <p className="text-sm text-muted-foreground" data-relances-sous-plan>
+            {relancesSuspenduesDepuis(planApurement.depuis)}
+          </p>
         )}
         {/* En erreur, la saisie est reposée via etatRel.valeurs (recette 22/08) */}
         {recouvrementOuvert && <form data-saisie-confirmee action={formRel} className="flex flex-wrap items-end gap-2">
@@ -730,7 +896,7 @@ export function FormulaireLoyers({
             <Input id={idNumeroRecommande} name="numero_recommande" placeholder="N° recommandé" defaultValue={etatRel.valeurs?.numero_recommande} className="h-9 w-full sm:w-32" />
           </div>
           <BoutonEnvoi size="sm" variant="outline">
-            Enregistrer la relance
+            {planApurement ? "Enregistrer une relance antérieure au plan" : "Enregistrer la relance"}
           </BoutonEnvoi>
           {etatRel.erreur && <p className="w-full text-sm text-destructive">{etatRel.erreur}</p>}
           {etatRel.succes && <p className="w-full text-sm text-success-soft-foreground" role="status">{etatRel.succes}</p>}
@@ -752,10 +918,13 @@ export function FormulaireLoyers({
             Les exercices commencés avant se régularisent en dehors de Gerimmo, qui ne connaît pas les provisions versées jusque-là.
           </p>
         )}
+        {/* Audit palier 1 du 22/11/2026, P1-10 (relevé C14) : l'écran citait « loi 89-462, art. 23-1 », référence
+            relevée comme fausse et que je n'ai pas pu vérifier à la source. Aucun numéro d'article n'est affiché tant
+            que le texte n'a pas été relu (JURISTE.md) ; la règle, elle, vient du cahier (RM-3.9.8). */}
         {chargesForfait && (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground" data-charges-forfait>
             Charges au forfait : aucune régularisation n&apos;est possible, le forfait est
-            définitif (loi 89-462, art. 23-1).
+            définitif.
           </p>
         )}
         {regularisations.length > 0 && (
@@ -836,6 +1005,24 @@ export function FormulaireLoyers({
               </label>
             </div>
           )}
+          {/* Lot T3 (R16-A1) : exercice clos depuis plus de trois ans = avertissement + confirmation explicite ; la base ne
+              refuse plus (elle disait « prescrit » en comptant depuis la fin de l'exercice). Le serveur refuse sans la case. */}
+          {exerciceAncien && (
+            <div role="alert" data-exercice-ancien className="w-full space-y-2 rounded-lg border border-[var(--or-filet)] bg-[var(--or-clair)] p-3 text-sm">
+              <p className="font-medium">{avertissementExerciceAncien(exerciceReg)}</p>
+              <label className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  name="confirmer_exercice_ancien"
+                  value="oui"
+                  required
+                  className="mt-0.5 size-4"
+                  defaultChecked={etatReg.valeurs?.confirmer_exercice_ancien === "oui"}
+                />
+                <span>{LIBELLE_CONFIRMATION_EXERCICE_ANCIEN}</span>
+              </label>
+            </div>
+          )}
           <BoutonEnvoi size="sm" variant="outline">
             Régulariser
           </BoutonEnvoi>
@@ -850,7 +1037,9 @@ export function FormulaireLoyers({
             part déjà proratisée). Provisions calculées depuis les appels de l&apos;année ;
             justificatif obligatoire, joint au décompte du locataire. Contrat individuel de
             colocation : seule la part de la chambre (sa surface sur celle des chambres) est
-            imputée. Un complément ne se réclame plus au-delà de trois ans (art. 7-1).
+            imputée. Un complément se prescrit par trois ans à compter du jour où le bailleur a connu
+            les dépenses (art. 7-1) : pour un exercice de plus de trois ans, Gerimmo avertit et demande
+            une confirmation.
             {aideSoldeNonAppele(decompteSortie)}
           </p>
         )}

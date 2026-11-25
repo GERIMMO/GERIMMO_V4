@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { chargerFicheArtisan } from "../acces";
 import { CLASSE_BOUTON_PRINCIPAL, EnteteSousPage, Erreur } from "../ui";
 
 export const metadata = { title: "Lecture impossible" };
@@ -13,8 +15,18 @@ export const metadata = { title: "Lecture impossible" };
  * annonçait au locataire que sa pièce n'existait pas, alors qu'on n'avait
  * simplement pas pu la chercher. Dire « on n'a pas pu lire » n'est jamais
  * équivalent à dire « il n'y a rien ».
+ *
+ * Phase 3, lot 60 (E001, E122) : la page annonçait cet échec sans rien vérifier.
+ * Ouverte par un favori, par l'historique ou en rechargeant une fois la panne
+ * passée, elle affirmait un incident qui n'existait plus (et le menu y menait
+ * sous le nom « Aide en cas de problème »). Elle refait donc la lecture : si la
+ * fiche se lit, l'artisan repart vers son espace, dont la garde l'oriente comme
+ * d'habitude (connexion, inscription ou accueil) ; le message ne s'affiche que
+ * si la lecture échoue encore.
  */
-export default function PagePanneArtisan() {
+export default async function PagePanneArtisan() {
+  const { erreur } = await chargerFicheArtisan();
+  if (!erreur) redirect("/artisan");
   return (
     <div className="space-y-5">
       <EnteteSousPage rubrique="aide" titre="Lecture momentanément impossible" />

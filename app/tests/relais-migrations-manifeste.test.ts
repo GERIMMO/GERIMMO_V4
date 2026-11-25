@@ -222,6 +222,118 @@ const MISSION_OCTOBRE = [
   "20261122090000_bail_repris_dpe_g_et_edl_entree.sql",
   // 22/11 : les inscriptions (espaces de propriétaires) dans l'e-mail de 5 h du relais.
   "20261122100000_relais_point_inscriptions.sql",
+  // 22/11, audit palier 1 (P0-02) : le décompte de sortie retranche ce qui a été reçu par un échéancier de charges.
+  "20261122110000_decompte_sortie_echeancier_charges.sql",
+  // 22/11, mission palier 1 : l'interrupteur « IA activée / désactivée » (les deux gardes rendent « desactive »).
+  "20261122120000_interrupteur_ia.sql",
+  // 22/11, audit palier 1 (P1-01) : le lien de confirmation du mobile envoyé au garant est admis parmi les e-mails.
+  "20261122130000_lien_garant_admis.sql",
+  // 22/11, audit palier 1 (P1-04) : le gestionnaire corrige l'urgence d'un incident, motif tracé au fil du dossier.
+  "20261122140000_incident_urgence_corrigee.sql",
+  // 22/11, audit palier 1 (P1-07) : la supervision examine (accès tracé) et retire une évaluation d'artisan contestée.
+  "20261122150000_evaluation_contestee.sql",
+  // 22/11, audit palier 1 (P1-06) : le locataire lit l'état des signatures électroniques où il est signataire (lecture seule).
+  "20261122160000_signatures_electroniques_locataire.sql",
+  // 22/11, audit palier 1 (P1-03) : le gestionnaire refuse une facture d'artisan avec un motif, l'artisan en dépose une autre.
+  "20261122170000_facture_artisan_refus.sql",
+  // 22/11, audit palier 1 (P1-05) : un nouveau message de la discussion d'une intervention est signalé (marqueur de
+  // lecture par compte, alerte du gestionnaire). Aucun e-mail.
+  "20261122180000_echanges_intervention_non_lus.sql",
+  // 22/11, audit palier 1 (P1-14) : l'avenant signé s'enregistre et modifie le loyer et les charges du bail, à partir
+  // du premier loyer non encore appelé.
+  "20261122190000_avenants_bail.sql",
+  "20261122200000_envois_automatiques_reglage.sql",
+  "20261122210000_decision_artisan_notifiee.sql",
+  // 22/11, audit palier 1 (P1-19) : la déclaration d'incident depuis la fiche du bien reçoit la catégorie et l'urgence.
+  "20261122220000_incident_bien_categorie_urgence.sql",
+  // 22/11, audit palier 1 (P0-03) : un poste de charges « récupérable » par proposition doit être confirmé avant la validation.
+  "20261122230000_charges_proposees_a_confirmer.sql",
+  // 22/11, audit palier 1 (P2-02) : le locataire indique ses disponibilités dès le signalement d'un incident.
+  "20261122233000_disponibilites_locataire_incident.sql",
+  // 22/11, audit palier 1 (P2-01) : la photo d'un élément d'état des lieux est un document du même espace.
+  "20261122234000_edl_photos_par_element.sql",
+  "20261122235000_devis_garantie_annoncee.sql",
+  "20261122235500_artisan_absences_semaine_type.sql",
+  // 22/11, audit palier 1 (P2-04) : relance d'une facture par l'artisan, rendez-vous manqué consigné.
+  "20261122235800_artisan_relance_facture_rdv_manque.sql",
+  // 22/11, audit palier 1 (P2-04) : les lignes de devis que l'artisan garde pour les reprendre.
+  "20261122235900_artisan_lignes_devis.sql",
+  // 22/11, audit palier 1 (P2-05) : un loyer pointé à partir d'une ligne de relevé de banque.
+  "20261122235950_pointage_loyer_releve.sql",
+  // 22/11, audit palier 1 (P2-08) : droits de table sans politique retirés, exception de la vue du portail consignée.
+  "20261122235959_menage_droits_sans_politique.sql",
+  // 23/11, audit palier 1 (P2-09) : plafond et abattement du micro-foncier sortis du code (réglage du superviseur).
+  "20261123090000_reperes_fiscaux_reglage.sql",
+  // 23/11, phase 3 de la mission palier 1 (lot 42, C77) : la première mensualité d'une régularisation étalée tombe au moins un
+  // mois après l'émission.
+  "20261123150000_regularisation_premiere_mensualite.sql",
+  // 23/11, phase 3 de la mission palier 1 (reprise du lot 40, C30) : le refus d'activer un contrat individuel sans plafond nomme
+  // le « loyer maximal applicable au logement entier », comme l'écran et le contrat.
+  "20261123170000_contrat_individuel_message_plafond.sql",
+  // 24/11, décisions du dirigeant (lot D2, Q23 et Q43) : la révision du loyer d'une année est refusée passé un an après sa date
+  // de révision ; le loyer révisé s'applique au premier terme qui suit la demande.
+  "20261124100000_revision_loyer_delai_et_premier_terme.sql",
+  // 24/11, décisions du dirigeant (lot D1, reprise) : origine d'un article du Journal (Q13, la mention « Rédigé avec l'aide de
+  // l'IA » ne s'affiche que pour l'origine « ia ») ; motif du retrait d'une note lu par son seul auteur (Q20).
+  "20261124110000_publications_origine.sql",
+  "20261124120000_motif_retrait_reserve_a_l_auteur.sql",
+  // 24/11, décisions du dirigeant (lot D2, reprise après relecture) : une révision non faite n'est plus rattrapée l'année
+  // suivante (calcul sur un an, indice de l'année précédente exigé) ; terme rattrapé après un avenant ; demande antidatée ;
+  // bail terminé ; le locataire lit les révisions de son bail.
+  "20261124130000_revision_loyer_reprise_d2.sql",
+  // 24/11, décisions du dirigeant (lot D1, seconde reprise, C1) : l'export complet d'un espace retrouve la table des notes
+  // d'artisans (droit de lecture par colonne), sans le motif du retrait.
+  "20261124140000_export_droits_par_colonne.sql",
+  // 24/11, décisions du dirigeant (lot D2, seconde reprise après relecture) : année non faite reconnue à l'année de bail,
+  // indices invraisemblables et indice de la révision suivante refusés, terme appelé en retard autour d'un avenant.
+  "20261124150000_revision_loyer_seconde_reprise_d2.sql",
+  // 24/11, décisions du dirigeant (lot D2, troisième reprise après relecture) : l'indice attendu est celui de l'échéance
+  // (ni celui de la révision suivante, ni un plus ancien) ; bail repris révisé ailleurs l'an dernier : indice du bail en référence.
+  "20261124170000_revision_loyer_troisieme_reprise_d2.sql",
+  // 24/11, décisions du dirigeant (lot D3, Q46) : type de document « notice_information », la notice déposée par le bailleur.
+  "20261124180000_notice_information_deposee.sql",
+  // 24/11, décisions du dirigeant (lot D3, Q38) : la source du contrôle des repères fiscaux, enregistrée avec sa date.
+  "20261124190000_reperes_fiscaux_source.sql",
+  // 24/11, reprise du lot D3 (B1, Q49) : garde-fou sur la pièce d'une retenue (même espace, lisible par l'appelant, pas le dossier d'un autre bail).
+  "20261124200000_justificatif_retenue_piece_existante.sql",
+  // 24/11, reprise du lot D3 (M2, Q38) : l'ancien réglage des repères fiscaux vide la source au lieu de garder celle d'avant.
+  "20261124210000_reperes_fiscaux_ancien_reglage_sans_source.sql",
+  // 24/11, seconde reprise du lot D3 (Q49) : la pièce d'une retenue ne vient pas du dossier d'une autre personne, d'un autre bail ou d'un autre logement ; une pièce purgée se remplace.
+  "20261124220000_justificatif_retenue_dossier_du_bail.sql",
+  // 24/11, seconde reprise du lot D3 (Q38) : le journal de l'ancien réglage des repères fiscaux dit quelle source il a effacée.
+  "20261124230000_reperes_fiscaux_ancien_reglage_journal_source.sql",
+  // 25/11, textes officiels, lot T1 (congés) : date limite du congé du bailleur comptée jusqu'au dernier jour du bail, préavis
+  // d'un mois en zone tendue seulement s'il est demandé, reprise refusée à une société non familiale (location nue).
+  "20261125101500_conge_textes_officiels_t1.sql",
+  // 24/11, textes officiels, lot T4 (R31-A1) : factures d'abonnement conservées dix ans (loi n° 2026-534, article 36).
+  "20261125103000_factures_conservation_dix_ans.sql",
+  // 24/11, textes officiels, lot T4 : le courrier d'impayé part aussi pour un contrat conclu sous la version du 24/11/2026 des conditions.
+  "20261125104000_courrier_impaye_conditions_du_24_novembre.sql",
+  // 24/11, lot T4, seconde reprise (T4R-01) : l'archive d'un compte fermé attend la suppression de la fiche du client chez le prestataire de paiement.
+  "20261125105000_archive_compte_apres_client_stripe.sql",
+  // 24/11, lot D7 et textes T4, seconde reprise (T4R-02 à T4R-04) : type de vendeur choisi ; vente aux particuliers sans médiateur décidée à part, datée.
+  "20261125106000_type_vendeur_et_vente_sans_mediateur.sql",
+  // 24/11, décisions du dirigeant, lot D4 (Q37, Q24) : cinquième envoi automatique (relance d'une demande de report) avec son interrupteur fermé ; relance de loyer à la main admise sous l'interrupteur de la relance.
+  "20261125110000_relance_report_rdv_et_relance_a_la_main.sql",
+  // 25/11, textes officiels, lot T3 : complément de charges d'un exercice de plus de trois ans plus refusé comme « prescrit »
+  // (l'application avertit et fait confirmer) ; terme d'un bail commencé un 29 février (reprise T1R-2).
+  "20261125111000_textes_officiels_t3.sql",
+  // 24/11, décisions du dirigeant, lot D5 (Q21) : ancien parcours « télécharger, signer, redéposer » retiré ; les trois fonctions qui y écrivaient ne sont plus appelables par un compte connecté (rien n'est supprimé).
+  "20261125140000_ancien_parcours_signature_manuelle_droits_retires.sql",
+  // 24/11, lot D4 (reprise, relecture D4R-01 et D4R-03) : l'accord d'un compte aux conditions clients exige une version archivée ; la relance de loyer à la main n'est jamais reprise d'elle-même.
+  "20261125150000_accord_conditions_version_archivee.sql",
+  // 25/11, reprise du lot T3 (T3R-1) : la confirmation d'un complément de charges d'un exercice de plus de trois ans est
+  // exigée par la base (`p_exercice_ancien`, seconde signature des deux fonctions et de leurs enveloppes).
+  "20261125151000_textes_t3_reprise_exercice_ancien.sql",
+  // 25/11, décision du dirigeant du 24/11 : case « mariés ou pacsés » au bail (colonne de `baux`) ; pas de fin de solidarité à
+  // six mois au départ de l'un des époux ou partenaires de PACS (`enregistrer_depart_colocataire`).
+  "20261125152000_bail_locataires_epoux_pacses.sql",
+  // 25/11, relecture de la fusion (A-01) : sur un bail coché « mariés ou pacsés », la fin de solidarité vide ne vaut que pour
+  // les deux personnes présentes à la signature ; troisième locataire refusé au brouillon coché, activation à deux exactement.
+  "20261125153000_bail_epoux_pacses_personnes_a_la_signature.sql",
+  // 25/11, reprise de la relecture de la fusion (X-01) : la marque « entrée après la signature » est remise à faux, à la sortie
+  // du brouillon, pour les personnes présentes à cette signature (« Corriger » puis nouveau bail signé).
+  "20261125154000_bail_epoux_pacses_marque_a_la_nouvelle_signature.sql",
 
 
 ];

@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { aujourdhuiParis, formaterDate } from "@/lib/ged";
 import { METIERS, PIECES_ARTISAN } from "@/app/artisan/libelles";
 import { DecisionArtisan } from "@/app/admin/artisans/decision-artisan";
+import { RenvoiMotifsArtisan } from "@/app/admin/artisans/renvoi-motifs";
 import { RetourDecisionsArtisan } from "@/app/admin/artisans/retour-decisions";
 import { BoutonEntrerSession } from "./bouton-entrer";
 import { LIBELLES_STATUT_ORGANISATION } from "@/lib/libelles";
@@ -101,9 +102,10 @@ export default async function PageFicheArtisan(
       .is("retiree_le", null),
     supabase
       .from("artisan_validations")
-      .select("id, decision, motif, created_at")
+      .select("id, decision, motif, created_at, notifie_le")
       .eq("artisan_id", artisanId)
-      .order("created_at", { ascending: false }),
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false }),
     supabase
       .from("artisan_agences")
       .select("organization:organizations(id, name, status)")
@@ -334,7 +336,7 @@ export default async function PageFicheArtisan(
         {validations.data && validations.data.length > 0 && (
           <ConsoleSection titre="Historique des décisions" description="Validations, refus et leurs motifs." icone="historique">
             <ul className="space-y-3">
-              {validations.data.map((v) => (
+              {validations.data.map((v, rang) => (
                 <li key={v.id} className="border-t border-[var(--filet)] pt-3 text-sm first:border-t-0 first:pt-0">
                   <p>
                     <b>{LIBELLES_DECISION_ARTISAN[v.decision] ?? LIBELLES_STATUT_ARTISAN[v.decision] ?? "Décision enregistrée"}</b>
@@ -345,6 +347,16 @@ export default async function PageFicheArtisan(
                       {v.motif}
                     </p>
                   )}
+                  {/* Audit palier 1 (P1-16) : les motifs d'un refus ou d'une suspension partent par e-mail. Seule la
+                      DERNIÈRE décision peut encore être notifiée : une plus ancienne est remplacée. */}
+                  {(v.decision === "refus" || v.decision === "suspension") && (v.notifie_le
+                    ? <p className="mt-1 text-[var(--texte-secondaire)]" data-motifs-notifies="oui">Motifs envoyés à l’artisan par e-mail le {formaterDate(v.notifie_le)}.</p>
+                    : rang === 0
+                      ? <div data-motifs-notifies="non">
+                          <p className="mt-1 text-[var(--texte-secondaire)]">{artisan.email ? "L’e-mail des motifs n’est pas encore parti. L’artisan lit ce motif dans son espace." : "Aucun e-mail des motifs : la fiche de l’artisan n’a pas d’adresse e-mail. Il lit ce motif dans son espace."}</p>
+                          {artisan.email && <RenvoiMotifsArtisan artisanId={artisanId} />}
+                        </div>
+                      : null)}
                 </li>
               ))}
             </ul>

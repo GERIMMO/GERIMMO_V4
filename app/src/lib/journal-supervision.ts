@@ -25,6 +25,7 @@ export const ACTIONS_SUPERVISION = {
   veille_ecartee: "Information réglementaire écartée ou retirée",
   publications_proposees: "Sujets d’articles proposés",
   publication_redigee: "Article rédigé avec l’assistant",
+  publication_brouillon_cree: "Brouillon d’article créé à la main",
   publication_modifiee: "Article modifié",
   publication_parue: "Article paru dans le journal",
   publication_retiree: "Article retiré du journal",

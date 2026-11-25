@@ -4,6 +4,8 @@ export type DevisArtisanDocument = {
   artisan_adresse?: string; artisan_mentions?: string; artisan_logo?: string | null;
   id: string; description: string; lignes: LigneDevisCalculee[]; montant_ht_cents: number | null; montant_tva_cents: number | null; montant_ttc_cents: number;
   diagnostic: string | null; delai_intervention: string | null; duree_estimee: string | null; contraintes: string | null; observations: string | null;
+  /** Audit palier 1, P2-02 : la garantie que l'artisan annonce, imprimée telle quelle. */
+  garantie_annoncee?: string | null;
   statut: string; depose_le: string; valide_jusqu_au: string; artisan_nom: string; artisan_siret: string; artisan_telephone: string | null; artisan_email: string | null;
   agence_nom: string; incident_numero: string; commune: string | null; code_postal: string | null;
 };
@@ -30,6 +32,7 @@ export function assemblerDevisArtisan(d: DevisArtisanDocument) {
   const organisation = [
     d.delai_intervention ? `<p><strong>Délai d’intervention :</strong> ${echapper(d.delai_intervention)}</p>` : "",
     d.duree_estimee ? `<p><strong>Durée estimée :</strong> ${echapper(d.duree_estimee)}</p>` : "",
+    d.garantie_annoncee?.trim() ? `<p data-garantie-annoncee><strong>Garantie annoncée par l’entreprise :</strong> ${echapper(d.garantie_annoncee.trim())}</p>` : "",
     d.contraintes ? section("Contraintes et accès") + paragraphes(d.contraintes) : "",
     d.observations ? section("Observations") + paragraphes(d.observations) : "",
   ].join("");

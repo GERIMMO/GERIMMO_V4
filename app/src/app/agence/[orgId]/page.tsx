@@ -19,6 +19,8 @@ import { IndicateurLien } from "@/components/ui/indicateur-lien";
 import { Donut, LegendeDonut, BarresDouble } from "@/components/graphes";
 import { FilActivite } from "./fil-activite";
 import { AccueilProprietaire } from "./accueil-proprietaire";
+import { LiensTableauDeBord } from "@/components/liens-tableau-de-bord";
+import { baseEspace } from "@/lib/racine-espace";
 import { ParcoursDemarrage } from "@/components/parcours-demarrage";
 import { envoisEteints as listerEnvoisEteints } from "@/lib/envois-automatiques";
 import { IconeTrait } from "@/components/icone-trait";
@@ -374,6 +376,9 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   const finDeMiseEnPlace = etapesRestantes.length
     ? FIN_DE_MISE_EN_PLACE[etapesRestantes[0].etape]
     : undefined;
+
+  // L'adresse de l'espace, composée par la fonction commune (jamais écrite à la main) : elle sert aux liens du pied de page.
+  const base = baseEspace(orgId, estProprietaire);
 
   return (
     // max-w-5xl : la même largeur que le parc, les personnes, les loyers —
@@ -804,6 +809,11 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
           </Card>
         </div>
       </details>
+
+      {/* Décision du 24/11/2026 (Q18) : Statistiques et Journal s'ouvrent aussi d'ici (le Journal n'avait aucun lien). */}
+      <div className="mt-6">
+        <LiensTableauDeBord base={base} agence={!estProprietaire} />
+      </div>
     </main>
   );
 }

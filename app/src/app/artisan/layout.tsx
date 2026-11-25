@@ -11,11 +11,14 @@ import {
   chargerFicheArtisan,
   chargerPieces,
   chargerAgenda,
+  chargerEchangesNonLus,
   chargerSollicitations,
 } from "./acces";
 import { degreEcheance, demandeAChiffrer } from "./libelles";
 import { AcceptationConditionsArtisans } from "./acceptation-conditions-artisans";
 import { conditionsArtisansAAccepter } from "@/lib/conditions-acceptation-serveur";
+import { FournisseurEtatIA } from "@/components/etat-ia";
+import { etatIA } from "@/lib/etat-ia";
 
 // Un seul suffixe pour tout l'espace (audit du 13/10, DES-B-07) : les pages ne
 // donnent que le nom de l'écran, le gabarit y ajoute « — Gerimmo ». Il ne
@@ -74,14 +77,17 @@ export default async function LayoutArtisan({
     );
   }
 
+  // Interrupteur IA (22/11/2026) : lu une fois ici, offert aux composants de l'espace.
+  const etatDeLIA = await etatIA(supabase);
+
   // Plan de conformité du 23/10 (R10) : dès que les conditions de l'espace artisan sont publiées
   // (CONDITIONS_ARTISANS_VERSION), le compte qui ne les a pas acceptées voit leur case à la place de la page demandée.
   // D'ici là, rien n'est exigé ni lu. La garde est de parcours : les données restent protégées en base. Elle se tait
   // pendant un diagnostic du super-administrateur (lecture seule), comme la coquille agence en traversée.
-  const [[agenda, sollicitations, pieces], autresEspaces, conditionsAAccepter] = await Promise.all([
+  const [[agenda, sollicitations, pieces, echanges], autresEspaces, conditionsAAccepter] = await Promise.all([
     fiche
-      ? Promise.all([chargerAgenda(), chargerSollicitations(), chargerPieces()])
-      : Promise.resolve([null, null, null] as const),
+      ? Promise.all([chargerAgenda(), chargerSollicitations(), chargerPieces(), chargerEchangesNonLus()])
+      : Promise.resolve([null, null, null, null] as const),
     lireAutresEspaces(user.id),
     conditionsArtisansAAccepter(supabase, user.id),
   ]);
@@ -108,10 +114,13 @@ export default async function LayoutArtisan({
   // Un seul compte pour l'onglet d'arrivée : ce qui attend un geste. Une
   // mission à accepter et un compte rendu non déposé sont deux urgences de
   // nature différente, mais la question de l'artisan est la même.
+  // Audit palier 1 (P1-05) : une mission dont la discussion porte un message à lire attend aussi un geste — elle
+  // compte une fois, même si elle est déjà à accepter ou à clore.
+  const discussionsALire = new Set((echanges?.lignes ?? []).map((e) => e.intervention_id));
   const aFaireMaintenant =
     agenda?.lignes.filter(
       (l) =>
-        l.statut === "proposee" || (l.statut === "en_cours" && !l.compte_rendu_depose)
+        l.statut === "proposee" || (l.statut === "en_cours" && !l.compte_rendu_depose) || discussionsALire.has(l.intervention_id)
     ).length ?? 0;
   // D18 (livraison 2) : une révision demandée compte comme un devis à chiffrer.
   const devisAChiffrer =
@@ -140,7 +149,7 @@ export default async function LayoutArtisan({
   const nom = fiche?.raison_sociale ?? "Espace artisan";
   const initiales = nom.split(/\s+/).filter(Boolean).slice(0, 2).map((mot) => mot[0]).join("");
   const compteLiens = [
-    ...(fiche ? [{ href: "/artisan/entreprise", libelle: "Mon entreprise" }] : []),
+    ...(fiche ? [{ href: "/artisan/entreprise", libelle: "Ma fiche entreprise" }] : []),
     { href: "/compte", libelle: "Sécurité du compte" },
     ...(autresEspaces ? [{ href: "/espaces", libelle: "Mes espaces" }] : []),
   ];
@@ -194,7 +203,9 @@ export default async function LayoutArtisan({
             </p>
           )}
           <main id="contenu-espace" tabIndex={-1} className={`artisan-corps ${styles.content}`}>
+            <FournisseurEtatIA etat={etatDeLIA}>
             {conditionsAAccepter ? <AcceptationConditionsArtisans version={conditionsAAccepter.version} date={conditionsAAccepter.date} /> : children}
+            </FournisseurEtatIA>
           </main>
         </div>
       </div>

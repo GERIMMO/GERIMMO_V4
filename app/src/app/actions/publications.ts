@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { sansJargon } from "@/lib/erreurs";
 import { envoyerSurFacebook, RefusFacebookCertain, retrouverPostFacebook } from "@/lib/facebook";
+import { santeFacebook } from "@/lib/marketing-meta";
+import { etatPageFacebook, RAISON_DIFFUSION_MASQUEE } from "@/lib/diffusion-facebook";
 import { journaliserSupervision, JOURNAL_A_VERIFIER } from "@/lib/journal-supervision";
 import { TACHES_SQL } from "@/lib/nom-arret-supervision";
 
@@ -138,12 +140,17 @@ export async function publierPublicationFacebook(id: string): Promise<EtatPublic
 
   const { data: article, error: erreurLecture } = await supabase
     .from("publications")
-    .select("titre, chapo, slug, statut, marketing_jour, image_empreinte, facebook_texte, facebook_image_url, facebook_post_id")
+    .select("titre, chapo, slug, statut, marketing_jour, image_empreinte, facebook_texte, facebook_image_url, facebook_post_id, origine")
     .eq("id", id)
     .maybeSingle();
   if (erreurLecture || !article) return { erreur: "Article introuvable." };
   if (article.statut !== "publiee" || !article.slug) return { erreur: "Faites d’abord paraître l’article dans le Journal Gerimmo." };
   if (article.facebook_post_id) return { succes: "Cet article est déjà publié sur Facebook." };
+  // Décision du dirigeant du 25/11/2026 : « la diffusion Facebook est masquée tant que la Page n'est pas vérifiée ».
+  // L'éditeur masque « Publier sur Facebook » hors Page « Relié » ; l'action refuse aussi, avec la même lecture que
+  // l'écran (etatPageFacebook de santeFacebook), avant toute réservation, ligne de journal ou envoi.
+  const page = etatPageFacebook(await santeFacebook());
+  if (page !== "relie") return { erreur: RAISON_DIFFUSION_MASQUEE[page] };
 
   let reserve = false;
   const reserver = async () => {
@@ -162,6 +169,7 @@ export async function publierPublicationFacebook(id: string): Promise<EtatPublic
       slug: article.slug,
       facebookTexte: article.facebook_texte,
       facebookImageUrl: article.facebook_image_url,
+      origine: article.origine,
       ...(article.marketing_jour ? {afficheMarketing:{empreinte:article.image_empreinte}} : {}),
     }, reserver);
     const { error } = await supabase.from("publications").update({
@@ -189,11 +197,11 @@ export async function publierPublicationFacebook(id: string): Promise<EtatPublic
 export async function resoudreDiffusionFacebook(id: string, tentative: string, formulaire: FormData): Promise<EtatPublication> {
   const {supabase, autorise} = await garderSuperAdmin();
   if (!autorise) return {erreur:"Accès refusé."};
-  const {data:a,error} = await supabase.from("publications").select("titre,chapo,slug,facebook_texte,facebook_image_url,facebook_envoi_demarre_le").eq("id",id).maybeSingle();
+  const {data:a,error} = await supabase.from("publications").select("titre,chapo,slug,facebook_texte,facebook_image_url,facebook_envoi_demarre_le,origine").eq("id",id).maybeSingle();
   if (error || !a || !a.slug || a.facebook_envoi_demarre_le !== tentative) return {erreur:"La tentative a changé. Rechargez la fiche."};
   let preuve: string | null;
   try {
-    preuve = await retrouverPostFacebook({id,titre:a.titre,chapo:a.chapo,slug:a.slug,facebookTexte:a.facebook_texte,facebookImageUrl:a.facebook_image_url},tentative);
+    preuve = await retrouverPostFacebook({id,titre:a.titre,chapo:a.chapo,slug:a.slug,facebookTexte:a.facebook_texte,facebookImageUrl:a.facebook_image_url,origine:a.origine},tentative);
   } catch { return {erreur:"La Page Facebook est inaccessible. La tentative reste en vérification."}; }
   const absence = formulaire.get("absence") === "on";
   if (!preuve && !absence) return {erreur:"Aucune preuve certaine trouvée. Vérifiez la publication sur la Page Gerimmo."};

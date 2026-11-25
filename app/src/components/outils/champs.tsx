@@ -74,6 +74,10 @@ export function Champ({
   );
 }
 
+/**
+ * Une liste déroulante. Avec `vide`, elle commence par un choix sans valeur (son texte, indicatif, s'affiche tant que
+ * rien n'est choisi) : rien n'est présélectionné à la place de l'utilisateur (décision du 25/11/2026, outil IRL).
+ */
 export function Choix<T extends string>({
   id,
   libelle,
@@ -81,6 +85,7 @@ export function Choix<T extends string>({
   onChange,
   options,
   aide,
+  vide,
 }: {
   id: string;
   libelle: ReactNode;
@@ -88,6 +93,8 @@ export function Choix<T extends string>({
   onChange: (v: T) => void;
   options: { valeur: T; libelle: string }[];
   aide?: ReactNode;
+  /** Le texte du choix sans valeur (`""`), placé en tête : `T` doit alors admettre la chaîne vide. */
+  vide?: string;
 }) {
   const idAide = aide ? `${id}-aide` : undefined;
   return (
@@ -102,6 +109,7 @@ export function Choix<T extends string>({
         aria-describedby={idAide}
         className={`${CLASSE_CHAMP} outil-liste`}
       >
+        {vide != null && <option value="">{vide}</option>}
         {options.map((o) => (
           <option key={o.valeur} value={o.valeur}>
             {o.libelle}
@@ -115,7 +123,8 @@ export function Choix<T extends string>({
 
 /**
  * Un choix court en segments : des radios natives (clavier, lecteurs
- * d'écran), dans un fieldset dont la légende est le libellé.
+ * d'écran), dans un fieldset dont la légende est le libellé. `valeur` nulle :
+ * aucun segment coché, tant que l'utilisateur n'a pas choisi.
  */
 export function Segments<T extends string>({
   nom,
@@ -128,7 +137,7 @@ export function Segments<T extends string>({
 }: {
   nom: string;
   libelle: ReactNode;
-  valeur: T;
+  valeur: T | null;
   onChange: (v: T) => void;
   options: { valeur: T; libelle: string }[];
   aide?: ReactNode;

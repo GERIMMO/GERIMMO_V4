@@ -13,6 +13,7 @@ import { cibleChampBail } from "@/lib/documents/champs-bail-parcours";
 import { lienPourManquant } from "@/lib/documents/ou-renseigner";
 import { DOCUMENTS_ZOHO, type ModeleSignature } from "@/lib/politique-signature";
 import { OuvrirSignatureDocument } from "@/components/ouvrir-signature-document";
+import { PhraseVoiesSignature } from "@/components/voies-signature";
 import { useRacineEspace } from "@/components/racine-espace-contexte";
 
 // Bouton commun du sprint « Documents-0 » : génère le PDF, toast à la
@@ -30,6 +31,7 @@ export function BoutonGenererDocument({
   options,
   completionSurPlace = false,
   proposerSignature = true,
+  voiePapier = "imprimez le PDF et faites-le signer par les parties.",
 }: {
   orgId: string;
   code: CodeModele;
@@ -41,6 +43,8 @@ export function BoutonGenererDocument({
   options?: Record<string, string>;
   completionSurPlace?: boolean;
   proposerSignature?: boolean;
+  /** Comment signer ce document sur papier, à cet endroit (fin de la phrase qui présente les deux voies). */
+  voiePapier?: string;
 }) {
   const LienCompletion = completionSurPlace ? "a" : Link;
   // Décision D27 : les liens de cet espace vivent sous /espace/<id> chez le propriétaire direct.
@@ -52,6 +56,9 @@ export function BoutonGenererDocument({
   const controle = useContext(CompletudeBail);
   const affichage = completionSurPlace ? actualiserControleGeneration(resultat, controle) : resultat;
   const [montrerTous, setMontrerTous] = useState(false);
+
+  // Le modèle de ce document, s'il peut partir en signature électronique.
+  const modeleSignature = proposerSignature && Object.hasOwn(DOCUMENTS_ZOHO, code) ? (code as ModeleSignature) : null;
 
   function generer() {
     setMontrerTous(false);
@@ -69,10 +76,15 @@ export function BoutonGenererDocument({
 
   return (
     <span className="inline-flex flex-wrap items-center gap-2">
+      {/* Décision du 24/11/2026 (Q11) : voie électronique ouverte, elle est proposée en premier ; le PDF à imprimer et
+          à faire signer sur papier reste là, juste après. Relecture (B1, B2) : service fermé ou agence, le PDF d'abord
+          (un seul des deux boutons s'affiche, selon l'état de la voie). */}
+      {modeleSignature && <OuvrirSignatureDocument place="avant" orgId={orgId} selection={{code:modeleSignature,cibleId,options}}/>}
       <Button type="button" size={size} variant={variant} disabled={enCours} onClick={generer}>
         {enCours ? <><Spinner /> Génération…</> : libelle}
       </Button>
-      {proposerSignature && Object.hasOwn(DOCUMENTS_ZOHO,code) && <OuvrirSignatureDocument orgId={orgId} selection={{code:code as ModeleSignature,cibleId,options}}/>}
+      {modeleSignature && <OuvrirSignatureDocument place="apres" orgId={orgId} selection={{code:modeleSignature,cibleId,options}}/>}
+      {modeleSignature && <PhraseVoiesSignature code={modeleSignature} papier={voiePapier} className="w-full text-xs text-muted-foreground" />}
       {affichage?.documentId && (
         <a
           href={`${base}/documents/${affichage.documentId}/fichier`}
@@ -90,7 +102,7 @@ export function BoutonGenererDocument({
           {affichage.manquants!.slice(0, montrerTous ? undefined : 5).map((m, i) => {
             const cible = code === "edl" && /état de |neuf, bon|compteur|index/i.test(m)
               ? { href: `${cheminRetour}#${/compteur|index/i.test(m) ? "edl-compteurs" : "edl-pieces"}`, ecran: /compteur|index/i.test(m) ? "compteurs de l’état des lieux" : "pièces de l’état des lieux" }
-              : lienPourManquant(m, orgId, affichage.liens ?? [], code, racine);
+              : lienPourManquant(m, orgId, affichage.liens ?? [], code, racine, affichage.emetteur, affichage.seulementEnTete, affichage.videsBailleur);
             return (
               <span key={m}>
                 {i > 0 && " · "}

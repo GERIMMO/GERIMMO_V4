@@ -1,4 +1,5 @@
 import { assemblerPage, Fusion, echapper, eur, formaterDateFr, tableau, titre, section } from "./documents/gabarit";
+import { interlocuteurLocataire } from "./documents/modeles/communs";
 
 export type EtatLigneDecompte = { id: string; bail_id: string; annee: number; avis_le: string | null };
 
@@ -8,7 +9,11 @@ export type BrouillonRegularisationFourniture = {
     provisions: number; charges_reelles: number; ecart: number;
     factures: { methode?: string; index?: { debut: number; fin: number; unite: string; periode_debut: string; periode_fin: string }[]; repartition_id: string; document_id: string; facture_id: string; reference: string; fournisseur: string; debut: string; fin: string; montant_cents: number }[] };
 };
-export function documentRegularisationFournitures(d: BrouillonRegularisationFourniture, etaler: boolean) {
+// Reprise du lot 37 (même cause que C41, C52, C70, C71) : le décompte renvoie le locataire vers son interlocuteur réel, le
+// « gestionnaire » seulement dans un espace d'agence, ailleurs le bailleur, qui gère lui-même (`interlocuteurLocataire`). Le
+// texte fixe disait « auprès du gestionnaire » aussi chez un propriétaire sans gestionnaire. `typeOrganisation` : le type de
+// l'espace qui émet le décompte.
+export function documentRegularisationFournitures(d: BrouillonRegularisationFourniture, etaler: boolean, typeOrganisation: string | null) {
   const f = new Fusion(); const s = d.source;
   const corps = titre("Décompte annuel de charges", `Exercice ${d.annee}`, []) +
     `<p>Bailleur : ${f.champ(s.bailleur ?? "", "Nom du bailleur ou de la SCI")}<br>Locataire : ${f.champ(s.locataire, "Nom du locataire")}<br>Logement : ${f.champ(s.logement, "Nom du logement")}<br>${f.champ(s.adresse, "Adresse du logement")}</p>` +
@@ -18,6 +23,6 @@ export function documentRegularisationFournitures(d: BrouillonRegularisationFour
     tableau([{ libelle: "Récapitulatif" }, { libelle: "Montant", droite: true }], [["Charges réelles affectées", eur(Number(s.charges_reelles))], ["Provisions appelées sur l’exercice", eur(Number(s.provisions))], [Number(s.ecart) >= 0 ? "Solde en faveur du locataire" : "Complément de charges", eur(Math.abs(Number(s.ecart)))]]) +
     `<p>Les éventuels loyers ou provisions impayés restent suivis séparément dans le compte locataire. Ce décompte ne constitue ni une quittance ni une preuve de remboursement.</p>` +
     (etaler ? "<p>Le complément de cette régularisation tardive est enregistré en douze mensualités, conformément à la demande du locataire.</p>" : "") +
-    `<p>Pièces de référence : ${s.factures.map(x => echapper(x.reference)).join(", ")}. Les justificatifs peuvent être consultés auprès du gestionnaire.</p>`;
+    `<p>Pièces de référence : ${s.factures.map(x => echapper(x.reference)).join(", ")}. Les justificatifs peuvent être consultés auprès du ${interlocuteurLocataire(typeOrganisation)}.</p>`;
   return assemblerPage({ f, titreDocument: `Décompte de charges ${d.annee}`, nomPied: "Régularisation des charges", reference: `REG-${d.id}`, corps });
 }

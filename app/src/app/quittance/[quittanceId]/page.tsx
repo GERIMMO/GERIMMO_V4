@@ -17,6 +17,7 @@ import {
 import { DocumentQuittance } from "./document-quittance";
 import { htmlQuittancePourEcran } from "./ecran";
 import { racineEspace } from "@/lib/racine-espace";
+import { interlocuteurLocataire } from "@/lib/interlocuteur-locataire";
 
 // Un seul appel base pour la page et son titre (React déduplique via cache).
 // `quittance_document` porte les mêmes contrôles d'accès que l'ancienne
@@ -69,13 +70,14 @@ export default async function PageQuittance(props: {
     year: "numeric",
   });
 
-  const titre = (
-    <>
-      {nature} — <span className="capitalize">{mois}</span>
-    </>
-  );
+  // Phase 3, lot 61 (E018) : une classe « capitalize » mettait une majuscule au mois au milieu du titre (« Reçu de
+  // paiement partiel — Novembre 2026 »), contre l'usage français et contre le nom du même document dans Mes documents.
+  const titre = `${nature} — ${mois}`;
   const delivre = manquants.length === 0;
-  const direct = q.organisation.type === "proprietaire_direct";
+  // Lot 47 : à qui le locataire demande de compléter le document — « gestionnaire » seulement dans un espace d'agence,
+  // « bailleur » ailleurs (la règle des documents, `interlocuteurLocataire`). La phrase disait « Votre gestionnaire »
+  // dans tous les espaces, le bouton seul suivait le type.
+  const interlocuteur = interlocuteurLocataire(q.organisation.type);
 
   // HABILLAGE D'ÉCRAN (Design System « Maison », 20/11), le même que celui de
   // l'attestation de bon paiement : bandeau à la marque de l'émetteur, retour
@@ -140,7 +142,7 @@ export default async function PageQuittance(props: {
             </p>
             <ul className="list-disc space-y-1 pl-5">
               {manquants.map((m) => {
-                const lien = lienPourManquant(m, q.organization_id, [{ entite: "bail", entiteId: q.bail_id }], "quittance", racineEspace(q.organisation.type === "proprietaire_direct"));
+                const lien = lienPourManquant(m, q.organization_id, [{ entite: "bail", entiteId: q.bail_id }], "quittance", racineEspace(q.organisation.type === "proprietaire_direct"), document.emetteur);
                 return (
                   <li key={m}>
                     {m}
@@ -171,13 +173,13 @@ export default async function PageQuittance(props: {
             </p>
             <p className="explication">
               Paiement enregistré&nbsp;: <span className="montant">{eur(Number(q.montant))}</span>.
-              Votre gestionnaire doit d&apos;abord compléter les informations
+              Votre {interlocuteur} doit d&apos;abord compléter les informations
               obligatoires du document (son identité, son adresse…). Vous pouvez
               le lui demander depuis votre espace.
             </p>
             <div className="geste">
               <Link href={`/locataire/${q.organization_id}/contact`} className="btn-or">
-                Écrire à {direct ? "mon bailleur" : "mon gestionnaire"}
+                Écrire à mon {interlocuteur}
               </Link>
             </div>
           </div>

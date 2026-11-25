@@ -6,12 +6,14 @@ import { CONDITIONS_DATE, CONDITIONS_VERSION } from "@/lib/editeur";
 import { estUuid } from "@/lib/identifiants";
 import { CASE_CONDITIONS_ARTISANS, versionArtisansPubliee } from "@/lib/conditions-acceptation";
 import { ERREUR_ACCEPTATION_CONDITIONS, ERREUR_CONDITIONS_PERIMEES } from "@/lib/garde-souscription";
-import { abonnementCourant } from "@/lib/conditions-acceptation-serveur";
-import { messageAccordEnregistre } from "@/lib/nouvelle-version-conditions";
+import { abonnementCourant, versionArchivee } from "@/lib/conditions-acceptation-serveur";
+import { messageAccordEnregistre, REFUS_CASE_NOUVELLE_VERSION, REFUS_VERSION_NON_ARCHIVEE } from "@/lib/nouvelle-version-conditions";
 
 // Les deux acceptations qui se donnent APRÈS l'inscription (plan de conformité du 23/10/2026, lot 1A) :
 //  · la nouvelle version des conditions clients, depuis l'écran « Nos conditions générales évoluent » (R19) ;
 //  · les conditions de l'espace artisan, depuis la garde de l'espace artisan, une fois publiées (R10).
+// Décision du dirigeant du 24/11/2026 (Q15, accord exprès) : la nouvelle version s'accepte par une case non cochée par
+// défaut (refus sans elle), et seulement si la version est archivée (l'archive porte l'empreinte recopiée sur l'accord).
 // La version acceptée est celle que l'écran a AFFICHÉE (champ `cgu_version`) : si elle n'est plus celle du serveur (page
 // restée ouverte pendant un déploiement), on refuse plutôt que d'enregistrer l'accord sur un texte que la personne n'a
 // pas lu. `accepter_cgu` écrit à l'heure du serveur, pour le compte connecté, en ajout seul.
@@ -28,11 +30,14 @@ export async function accepterNouvelleVersionConditions(
 ): Promise<EtatAcceptationConditions> {
   if (!estUuid(orgId)) return { erreur: "Espace introuvable." };
   if (formData.get("cgu_version") !== CONDITIONS_VERSION) return { erreur: ERREUR_CONDITIONS_PERIMEES };
+  if (formData.get("cgu") !== "oui") return { erreur: REFUS_CASE_NOUVELLE_VERSION };
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { erreur: RECONNEXION };
+  // La preuve : la base recopie sur l'acceptation l'empreinte du texte archivé. Sans archive, pas d'empreinte : on refuse.
+  if (!(await versionArchivee(supabase, "conditions_clients", CONDITIONS_VERSION))) return { erreur: REFUS_VERSION_NON_ARCHIVEE };
   const { error } = await supabase.rpc("accepter_cgu", {
     p_version: CONDITIONS_VERSION,
     p_source: "compte",

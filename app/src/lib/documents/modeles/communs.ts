@@ -2,14 +2,21 @@
 // le bailleur (les détenteurs du lot), le locataire et le logement — les
 // mêmes cartouches reviennent d'une épreuve à l'autre.
 
+import { createHash } from "node:crypto";
 import type { MentionsContrat } from "@/lib/mentions-contrat";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
-import { Fusion, type EnTeteExpediteur } from "../gabarit";
+import { mentionEtage } from "@/lib/etage";
+import { Fusion, facultatif, formaterDateFr, moisEnToutesLettres, type EnTeteExpediteur } from "../gabarit";
 
-// Réservé au recalcul de l’empreinte d’un circuit de signature déjà enregistré.
+// Réservés au recalcul de l’empreinte d’un circuit de signature déjà enregistré. Deux époques distinctes :
+// - `presentationArchivee` : la présentation d’avant #331 (expéditeur = l’espace, ni SIREN ni signatures d’indivision),
+//   avec la mise en forme d’alors (feuille g7, typographie archivée) ;
+// - `typographieArchivee` : la présentation d’aujourd’hui avec la seule mise en forme d’avant la version g8 (feuille g7,
+//   typographie archivée) — un bail préparé entre la mise en ligne de #331 et celle de la version g8 (reprise du lot 35).
 export const presentationArchivee = Symbol("presentationArchivee");
-export type OptionsContrat = Record<string, string> & { [presentationArchivee]?: true };
+export const typographieArchivee = Symbol("typographieArchivee");
+export type OptionsContrat = Record<string, string> & { [presentationArchivee]?: true; [typographieArchivee]?: true };
 
 export type PersonneDocument = {
   id: string;
@@ -82,6 +89,8 @@ export type ContexteBail = {
     precedente_location?: string | null;
     precedent_loyer_revise?: boolean | null;
     meuble_etudiant: boolean;
+    /** Case « mariés ou pacsés » (décision du 24/11/2026) : absente ou fausse, la clause de solidarité est celle d'avant. */
+    locataires_epoux_pacses?: boolean | null;
   };
   lot: {
     id: string;
@@ -117,14 +126,17 @@ export type ContexteBail = {
   garants: (PersonneDocument & { garant_de: string | null })[];
 };
 
+// Les colonnes d'une personne que lisent les documents (bailleurs, occupants, garants).
+// Reprise du lot 43 : les selects la citent directement. L'alias local `const CHAMPS_PERSONNE = CHAMPS_PERSONNE_DOCUMENT`
+// (lot 37) les rendait illisibles par tests/embeds-ambigus.test.ts, qui ne résout que les constantes littérales du fichier.
+const CHAMPS_PERSONNE_DOCUMENT =
+  "id, nom, prenom, email, telephone, date_naissance, commune_naissance, address_line1, postal_code, city, qualite, siren";
+
 export async function chargerContexteBail(
   supabase: SupabaseClient,
   orgId: string,
   bailId: string
 ): Promise<ContexteBail | { erreur: string }> {
-  const CHAMPS_PERSONNE =
-    "id, nom, prenom, email, telephone, date_naissance, commune_naissance, address_line1, postal_code, city, qualite, siren";
-
   const [{ data: organisation, error: erreurOrganisation }, { data: bail, error: erreurBail }] = await Promise.all([
     supabase
       .from("organizations")
@@ -146,7 +158,7 @@ export async function chargerContexteBail(
          dernier_loyer_versement, dernier_loyer_revision, precedente_location, precedent_loyer_revise, meuble_etudiant,
          date_conclusion_prevue, servitude_residence_principale, encadrement_loyer, zone_honoraires,
          honoraires_edl_bailleur, honoraires_edl_locataire, dpe_depenses_min, dpe_depenses_max, dpe_annees_reference,
-         clause_resolutoire_assurance, clause_resolutoire_troubles, clause_resolutoire_servitude,
+         clause_resolutoire_assurance, clause_resolutoire_troubles, clause_resolutoire_servitude, locataires_epoux_pacses,
          lot:lots!baux_lot_meme_org_fk(id, nom, surface_m2, pieces, etage, meuble,
            identifiant_fiscal, description, chauffage, eau_chaude, locaux_privatifs,
            bien:biens!lots_bien_id_fkey(id, nom, type, address_line1, postal_code, city,
@@ -196,15 +208,15 @@ export async function chargerContexteBail(
   const [{ data: detentions, error: erreurDetentions }, { data: bailPersonnes, error: erreurPersonnes }, { data: principal, error: erreurPrincipal }] = await Promise.all([
     supabase
       .from("detentions")
-      .select(`quote_part, person:persons!detentions_person_id_fkey(${CHAMPS_PERSONNE})`)
+      .select(`quote_part, person:persons!detentions_person_id_fkey(${CHAMPS_PERSONNE_DOCUMENT})`)
       .eq("lot_id", lot.id)
       .is("date_fin", null),
     supabase
       .from("bail_personnes")
-      .select(`role, garant_de, person:persons!bail_personnes_person_meme_org_fk(${CHAMPS_PERSONNE})`)
+      .select(`role, garant_de, person:persons!bail_personnes_person_meme_org_fk(${CHAMPS_PERSONNE_DOCUMENT})`)
       .eq("bail_id", bailId),
     bail.locataire_principal
-      ? supabase.from("persons").select(CHAMPS_PERSONNE).eq("id", bail.locataire_principal).maybeSingle()
+      ? supabase.from("persons").select(CHAMPS_PERSONNE_DOCUMENT).eq("id", bail.locataire_principal).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
   ]);
   if (erreurDetentions || erreurPersonnes || erreurPrincipal) return { erreur: "Les bailleurs et les occupants ne peuvent pas être vérifiés. Réessayez." };
@@ -265,13 +277,39 @@ export function adresseOrganisation(o: {
     .join(", ");
 }
 
-export function adresseLogement(lot: ContexteBail["lot"], bien: ContexteBail["bien"]): string {
-  const complement = [lot.nom !== "Lot unique" ? lot.nom : null, lot.etage ? `étage ${lot.etage}` : null]
+// L'étage du lot tel qu'il s'imprime dans une adresse : la règle vit dans lib/etage.ts, partagée avec les écrans.
+export { mentionEtage } from "@/lib/etage";
+
+// `archivee` : l'adresse telle que l'imprimait un bail préparé pour la signature avant la version g8 (recalcul de
+// l'empreinte de son circuit, voir `typographie` dans gabarit.ts) : « étage » toujours ajouté.
+// Phase 3 (C59) : seules les colonnes imprimées sont exigées, pour qu'un modèle qui lit le lot sans passer par
+// `chargerContexteBail` (rappel d'assurance) imprime le logement complet comme les autres documents du bail.
+export function adresseLogement(
+  lot: Pick<ContexteBail["lot"], "nom" | "etage">,
+  bien: Pick<ContexteBail["bien"], "address_line1" | "postal_code" | "city">,
+  archivee = false
+): string {
+  const nom = lot.nom !== "Lot unique" ? lot.nom : null;
+  const etage = archivee ? (lot.etage ? `étage ${lot.etage}` : null) : mentionEtage(lot.etage, nom);
+  const complement = [nom, etage]
     .filter(Boolean)
     .join(", ");
   return [bien.address_line1, `${bien.postal_code ?? ""} ${bien.city ?? ""}`.trim(), complement]
     .filter(Boolean)
     .join(", ");
+}
+
+// S39 (reprise du lot 37) : le logement comme ADRESSE POSTALE, ligne par ligne, pour le bloc destinataire d'un courrier :
+// l'étage et la porte (complément de distribution), puis la voie, puis le code postal et la commune, en dernière ligne. Le nom
+// du lot (« T3 — 4e étage », « Studio meublé ») est un libellé de gestion, pas un élément d'adresse : il reste dans « Locaux
+// concernés ». Le bloc reprenait `adresseLogement`, la commune au milieu de l'adresse et suivie du nom du lot.
+export function adressePostaleLogement(
+  lot: Pick<ContexteBail["lot"], "etage">,
+  bien: Pick<ContexteBail["bien"], "address_line1" | "postal_code" | "city">
+): string[] {
+  return [mentionEtage(lot.etage), bien.address_line1, `${bien.postal_code ?? ""} ${bien.city ?? ""}`.trim()]
+    .map((ligne) => ligne?.trim() ?? "")
+    .filter(Boolean);
 }
 
 // L'expéditeur de l'en-tête : l'organisation qui génère (agence ou parc du
@@ -291,9 +329,67 @@ export function expediteur(ctx: {
       adresse:ctx.bailleurs.every(p=>adressePersonne(p))?uniques(ctx.bailleurs.map(adressePersonne)):null,
       email:emailBailleurs ?? contactGestion, ...(!emailBailleurs && contactGestion ? { contactGestion: true } : {}),
       telephone:uniques(ctx.bailleurs.map(p=>p.telephone)),
-      ville:ctx.bailleurs[0]?.city??null};
+      ville:ctx.bailleurs[0]?.city??null, emetteur:"detenteurs"};
   }
-  return {nom:ctx.organisation.name,adresse:adresseOrganisation(ctx.organisation),email:ctx.organisation.email_contact,telephone:ctx.organisation.telephone,ville:ctx.organisation.city};
+  return {nom:ctx.organisation.name,adresse:adresseOrganisation(ctx.organisation),email:ctx.organisation.email_contact,telephone:ctx.organisation.telephone,ville:ctx.organisation.city,emetteur:"espace"};
+}
+
+// Les détenteurs actuels d'un lot (détention sans date de fin), lus comme dans le contexte d'un bail. Pour un document
+// rattaché au lot sans passer par un bail (rappel d'assurance, compte rendu d'intervention) : ce sont eux que `expediteur`
+// retient hors espace d'agence. `null` si la lecture échoue : l'appelant refuse alors le document plutôt que de
+// revenir au nom de l'espace.
+export async function chargerDetenteursLot(
+  supabase: SupabaseClient,
+  lotId: string
+): Promise<ContexteBail["bailleurs"] | null> {
+  const { data, error } = await supabase
+    .from("detentions")
+    .select(`quote_part, person:persons!detentions_person_id_fkey(${CHAMPS_PERSONNE_DOCUMENT})`)
+    .eq("lot_id", lotId)
+    .is("date_fin", null);
+  if (error) return null;
+  return ((data ?? []) as { quote_part: unknown; person: UnOuPlusieurs<PersonneDocument> }[])
+    .map((d) => {
+      const p = premier(d.person);
+      return p ? { ...p, quote_part: Number(d.quote_part) } : null;
+    })
+    .filter((p): p is PersonneDocument & { quote_part: number } => p !== null);
+}
+
+// Phase 3 (C82) : un document des parties communes (incident sans lot) n'a pas de lot dont lire les détenteurs ; ce sont ceux
+// des logements de l'immeuble, chacun une fois. `null` si une lecture échoue, comme `chargerDetenteursLot`.
+export async function chargerDetenteursBien(
+  supabase: SupabaseClient,
+  bienId: string
+): Promise<ContexteBail["bailleurs"] | null> {
+  const lots = await supabase.from("lots").select("id").eq("bien_id", bienId);
+  if (lots.error) return null;
+  const ids = ((lots.data ?? []) as { id: string }[]).map((l) => l.id);
+  if (!ids.length) return [];
+  const { data, error } = await supabase
+    .from("detentions")
+    .select(`quote_part, person:persons!detentions_person_id_fkey(${CHAMPS_PERSONNE_DOCUMENT})`)
+    .in("lot_id", ids)
+    .is("date_fin", null);
+  if (error) return null;
+  const parPersonne = new Map<string, PersonneDocument & { quote_part: number }>();
+  for (const d of (data ?? []) as { quote_part: unknown; person: UnOuPlusieurs<PersonneDocument> }[]) {
+    const p = premier(d.person);
+    if (p && !parPersonne.has(p.id)) parPersonne.set(p.id, { ...p, quote_part: Number(d.quote_part) });
+  }
+  return [...parPersonne.values()];
+}
+
+// Phase 3 (C41, C52, C70, C71) : l'interlocuteur vers lequel un document renvoie le locataire. Il n'y a de « gestionnaire »
+// que dans un espace d'agence ; ailleurs le bailleur gère lui-même, et c'est lui que le locataire contacte. Le modèle garde
+// son article (« votre gestionnaire », « avec le bailleur »). Lot 47 : la règle vit dans un module pur, partagé avec les
+// e-mails et les écrans du locataire (composants client compris) ; les modèles la reprennent d'ici, sans changement.
+export { interlocuteurLocataire } from "@/lib/interlocuteur-locataire";
+
+// Phase 3 (C16, C24) : le cadre où signe le bailleur d'un document du bail. « ou son mandataire » seulement dans un espace
+// d'agence ; un propriétaire qui gère lui-même n'a pas de mandataire.
+export function libelleSignataireBailleur(typeOrganisation: string | null | undefined): string {
+  return typeOrganisation === "agence" ? "Le bailleur ou son mandataire" : "Le bailleur";
 }
 
 // Le nom du bailleur tel que les épreuves l'affichent : les détenteurs joints
@@ -328,6 +424,29 @@ export function referenceCourte(prefixe: string, id: string): string {
   return `${prefixe}-${id.slice(0, 8).toUpperCase()}`;
 }
 
+// Phase 3 (C18, C24) : la référence d'un avenant le distingue des autres avenants du même bail. Tirée du seul bail, elle était
+// la même pour tous ses avenants.
+// Reprise du lot 40 : elle se tire du bail ET du contenu de l'avenant (`contenu` : objet et modifications, ou parties, date
+// d'effet et accord du remplacement), et non plus de l'heure de génération : « AVT-2DFB98CB-3F9A1C07 ». Le même avenant garde donc
+// la même référence d'une génération à l'autre — copie rangée en GED, PDF préparé pour la signature électronique, PDF relu
+// avant l'envoi —, deux avenants différents du même bail en ont deux. L'heure changeait la référence à chaque minute ; or
+// les pages de signature l'impriment (« Référence : … ») et l'empreinte du circuit la lit : un avenant préparé ne
+// correspondait plus à lui-même au moment de l'envoi.
+export function referenceAvenant(bailId: string, contenu: Record<string, string | null | undefined>): string {
+  return referenceDuContenu("AVT", bailId, contenu);
+}
+
+// La même règle pour un autre acte (phase 3, lot 51, W12 : acte de cautionnement) : « CAUT-<garant>-<empreinte du contenu> ».
+// Tirée du seul garant, la référence était la même pour l'acte solidaire et l'acte simple, ou pour deux plafonds différents.
+export function referenceDuContenu(prefixe: string, id: string, contenu: Record<string, string | null | undefined>): string {
+  const canonique = JSON.stringify(
+    Object.keys(contenu)
+      .sort()
+      .map((cle) => [cle, (contenu[cle] ?? "").replace(/\r\n?/g, "\n").trim()])
+  );
+  return `${referenceCourte(prefixe, id)}-${createHash("sha256").update(canonique).digest("hex").slice(0, 8).toUpperCase()}`;
+}
+
 // La signature préenregistrée de l'organisation, en data-URI prête à
 // s'imprimer — null si aucune n'est déposée (profil de l'organisation).
 export async function signatureOrganisation(
@@ -359,6 +478,51 @@ export function libelleCharges(mode: string | null | undefined): string {
   return "Provision ou forfait de charges";
 }
 
+// Phase 3 (C50, C72) : un document qui demande un règlement par virement donne le compte où verser. La source est celle de
+// l'avis d'échéance : l'IBAN du profil de l'espace (organizations.iban). Connu, il s'imprime ; inconnu, l'information est à
+// renseigner (le PDF n'est pas produit, la liste « À renseigner » mène au profil — ou-renseigner.ts). Il s'imprimait « — »,
+// et le locataire recevait une demande de virement sans compte. Un autre mode de paiement ne l'exige pas (« — » s'il manque).
+// Reprise du lot 52 (W23) : la mise en page resserrée des courriers de loyer qui tiennent sur une page avec leur clôture
+// (décompte de prorata, avis d'échéance) — celle du catalogue (lot 51, W14 : titre à 19 pt, marges réduites), plus en-tête,
+// intertitres, cartouches, tableaux, bloc de signature et interligne resserrés. Elle se pose dans le corps de ces seuls
+// documents : la feuille commune, les règles de coupure (p{break-inside:auto}, .fait-a) et la taille de l'image de
+// signature ne changent pas.
+export const CSS_COURRIER_RESSERRE =
+  ".bloc-titre{padding:7pt 0;margin-bottom:8pt}h1{font-size:19pt;letter-spacing:.2em}h2{margin:10pt 0 6pt}" +
+  ".entete{margin-bottom:10pt}.cartouches{margin:10pt 0}.cartouches .case{padding:4pt 0 5pt}p{margin:4pt 0}" +
+  ".base-legale{margin:2pt 0 8pt}table{margin:4pt 0}td{padding-top:3pt;padding-bottom:3pt}.sig-emetteur{margin-top:8pt}" +
+  "body{line-height:1.45}";
+export const LIBELLE_COORDONNEES_BANCAIRES = "coordonnées bancaires (IBAN) du compte qui reçoit les loyers";
+export function demandeVirement(lieuPaiement: string | null | undefined): boolean {
+  return /virement/i.test(lieuPaiement ?? "");
+}
+// Phase 3, lot 52 (W24) : l'IBAN d'un courrier qui demande un virement s'imprime comme sur le portail du locataire (page
+// « Loyers ») : sans espace saisie, en majuscules, par groupes de quatre — il sortait d'un bloc de 27 caractères, difficile à
+// recopier. Les groupes sont liés par des espaces insécables : l'IBAN ne se coupe pas en fin de ligne. Vide : null (le manque
+// reste signalé par coordonneesBancaires). Les baux ne l'emploient pas : leur texte entre dans l'empreinte d'un circuit de
+// signature déjà préparé, recalculée à l'activation.
+// Reprise du lot 52 : seul un IBAN se regroupe (deux lettres, deux chiffres, puis 11 à 30 lettres ou chiffres). Une autre
+// saisie (« FR76… BIC AGRIFRPP », un libellé) était collée et recoupée par quatre : un IBAN faux s'imprimait. Elle s'imprime
+// alors telle quelle.
+export function ibanLisible(iban: string | null | undefined): string | null {
+  const saisie = String(iban ?? "").trim();
+  if (!saisie) return null;
+  const brut = saisie.replace(/\s+/g, "").toUpperCase();
+  return /^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(brut) && cleIbanValide(brut) ? brut.replace(/(.{4})(?=.)/g, "$1\u00a0") : saisie;
+}
+// Relecture des reprises 52-53 : la forme seule laissait passer « FR76… 189 LCL » (un IBAN suivi du nom de la banque), recoupé
+// en un IBAN faux. La clé de contrôle (reste 1 modulo 97, norme ISO 13616) départage : une saisie dont la clé ne tombe pas juste
+// s'imprime telle quelle.
+function cleIbanValide(brut: string): boolean {
+  const chiffres = (brut.slice(4) + brut.slice(0, 4)).replace(/[A-Z]/g, (l) => String(l.charCodeAt(0) - 55));
+  let reste = 0;
+  for (const c of chiffres) reste = (reste * 10 + Number(c)) % 97;
+  return reste === 1;
+}
+export function coordonneesBancaires(f: Fusion, lieuPaiement: string | null | undefined, iban: string | null | undefined): string {
+  return demandeVirement(lieuPaiement) ? f.champ(iban, LIBELLE_COORDONNEES_BANCAIRES) : facultatif(iban);
+}
+
 // Bornes d'un terme de loyer (audit du 27/09) : du 1er au dernier jour du
 // mois, sauf terme au prorata, borné à l'entrée et/ou à la sortie du bail —
 // la période imprimée doit être celle que le montant rémunère.
@@ -379,4 +543,23 @@ export function bornesTerme(
     if (fin && fin < au && fin >= du) au = fin;
   }
   return { du, au };
+}
+
+// La période d'un terme dans un tableau d'échéances (phase 3, C67 et C68) : le mois en toutes lettres (« novembre 2026 »), pas
+// la date technique « 2026-11-01 ». Un terme au prorata le dit, avec les bornes que son montant rémunère (bornesTerme) :
+// « février 2025 — prorata du 15/02 au 28/02 ». Si les dates du bail ne bornent pas le mois, il le dit sans inventer de dates.
+export function libellePeriodeTerme(
+  periodeIso: string | null | undefined,
+  prorata: boolean,
+  dateDebut: string | null | undefined,
+  dateFin: string | null | undefined
+): string {
+  if (!periodeIso || !/^\d{4}-\d{2}/.test(periodeIso)) return periodeIso ?? "";
+  const mois = moisEnToutesLettres(periodeIso);
+  if (!prorata) return mois;
+  const entier = bornesTerme(periodeIso, false, null, null);
+  const { du, au } = bornesTerme(periodeIso, true, dateDebut, dateFin);
+  if (du === entier.du && au === entier.au) return `${mois} — au prorata`;
+  const jourMois = (iso: string) => formaterDateFr(iso).slice(0, 5);
+  return `${mois} — prorata du ${jourMois(du)} au ${jourMois(au)}`;
 }

@@ -3,6 +3,8 @@ import { lireAnneeExercice } from "@/lib/annee-exercice";
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
 import { estUuid } from "@/lib/identifiants";
+import { avertissementExerciceAncien, exerciceDePlusDeTroisAns } from "@/lib/baux";
+import { aujourdhuiParis } from "@/lib/ged";
 import { sansJargon } from "@/lib/erreurs";
 import { documentRegularisationFournitures, type BrouillonRegularisationFourniture } from "@/lib/regularisation-fournitures";
 import { rendrePdf } from "@/lib/documents/rendu";
@@ -45,12 +47,21 @@ export async function emettreRegularisationFournitures(orgId: string, bailId: st
   if (f.get("empreinte") !== d.empreinte) return { erreur: "Le brouillon a changé. Recalculez-le puis vérifiez les nouveaux montants." };
   if (f.get("complet") !== "on") return { erreur: "Confirmez que toutes les charges de l’exercice sont présentes." };
   const etaler = f.get("etaler") === "on";
+  // Lot T3 (R16-A1) : complément d'un exercice clos depuis plus de trois ans — la base ne le refuse plus comme « prescrit » ;
+  // il s'enregistre sur confirmation explicite, vérifiée ici (le solde du brouillon est connu : seul un complément est visé).
+  // Reprise T3R-1 : la base l'exige aussi (migration 20261125151000) ; la case cochée lui est transmise (`p_exercice_ancien`).
+  const exerciceAncienConfirme = f.get("exercice_ancien") === "on";
+  if (Number(d.source.ecart) < 0 && exerciceDePlusDeTroisAns(d.annee, aujourdhuiParis()) && !exerciceAncienConfirme)
+    return { erreur: `${avertissementExerciceAncien(d.annee)} Cochez la confirmation pour l’enregistrer malgré tout.` };
+  // Reprise du lot 37 : le décompte renvoie le locataire au gestionnaire en agence, au bailleur ailleurs (type de l'espace).
+  const organisation = await supabase.from("organizations").select("type").eq("id", orgId).maybeSingle();
+  if (organisation.error || !organisation.data) return { erreur: "L’espace de gestion ne peut pas être vérifié. Réessayez." };
   try {
-    const pdf = await rendrePdf(documentRegularisationFournitures(d, etaler));
+    const pdf = await rendrePdf(documentRegularisationFournitures(d, etaler, organisation.data.type));
     const prep = await preparerFichierGed(supabase, orgId, new File([new Uint8Array(pdf)], `decompte-charges-${d.annee}.pdf`, { type: "application/pdf" }), false, true);
     if (!prep.fichier) return { erreur: prep.erreur ?? "Le décompte n’a pas pu être conservé." };
     const piece = prep.fichier;
-    const r = await supabase.rpc("emettre_regularisation_fourniture", { p_org: orgId, p_brouillon: id, p_empreinte: d.empreinte, p_complet: true, p_exercice_en_cours: f.get("exercice_en_cours") === "on", p_etaler: etaler, p_storage_path: piece.chemin, p_mime: piece.mime, p_taille: piece.taille, p_fichier_empreinte: piece.empreinte });
+    const r = await supabase.rpc("emettre_regularisation_fourniture", { p_org: orgId, p_brouillon: id, p_empreinte: d.empreinte, p_complet: true, p_exercice_en_cours: f.get("exercice_en_cours") === "on", p_etaler: etaler, p_storage_path: piece.chemin, p_mime: piece.mime, p_taille: piece.taille, p_fichier_empreinte: piece.empreinte, p_exercice_ancien: exerciceAncienConfirme });
     if (r.error || !r.data) { await abandonnerPieceGed(supabase, piece); return { erreur: sansJargon(r.error?.message ?? "La régularisation n’a pas été enregistrée.") }; }
     const lecture = await supabase.from("regularisations_charges").select("justificatif_document,documents!regularisations_charges_justificatif_document_fkey(storage_path)").eq("id", r.data).eq("organization_id", orgId).single();
     // Un double clic peut préparer deux fichiers : seule la pièce liée à la

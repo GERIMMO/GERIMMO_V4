@@ -6,10 +6,12 @@ import { Sparkles, CheckCircle2, Save, CircleDashed, Send, FileDown } from "luci
 import { EtapesSaisie } from "@/components/etapes-saisie";
 import { contenuDevisLocal, sauverDevisLocal, effacerDevisLocal, type BrouillonDevisLocal } from "@/lib/brouillon-devis-local";
 import { calculerDevis, libelleQuantite, libelleTauxTva } from "@/lib/devis-structure";
-import type { PreparationDevis } from "@/lib/parcours-devis-artisan";
+import { GARANTIE_ANNONCEE_MAX, type PreparationDevis } from "@/lib/parcours-devis-artisan";
 import { declinerMaSollicitation } from "@/app/actions/artisan";
 import { preparerPropositionDevis, enregistrerBrouillonDevis, envoyerDevisValide } from "../actions-preparation";
 import { LignesDevis } from "../../lignes-devis";
+import { garderMaLigneDevis, retirerMaLigneDevis } from "@/app/actions/lignes-devis-artisan";
+import type { LigneGardee } from "@/lib/lignes-devis-gardees";
 import { euros } from "../../libelles";
 import { ApercuDevis } from "./apercu-devis";
 import styles from "./devis.module.css";
@@ -20,12 +22,16 @@ function Envoyer({valide, versionSuivante}: {valide:boolean; versionSuivante?: n
 // Le sélecteur d’étape mobile n’est pas une modification du devis.
 function estSaisieDevis(cible: EventTarget) {
   if (!(cible instanceof HTMLInputElement || cible instanceof HTMLSelectElement || cible instanceof HTMLTextAreaElement)) return false;
-  return ["diagnostic", "delai", "duree", "contraintes", "observations", "valide_jusqu_au", "note_revision"].includes(cible.name) || Boolean(cible.closest("[data-lignes-devis]"));
+  return ["diagnostic", "delai", "duree", "contraintes", "observations", "valide_jusqu_au", "note_revision", "garantie"].includes(cible.name) || Boolean(cible.closest("[data-lignes-devis]"));
 }
-export function FormulaireDevis({sollicitationId,echeanceParDefaut,initiale,erreurPreparation,cleLocale,copieInitiale,versionSuivante}: {sollicitationId:string;echeanceParDefaut:string;initiale?:PreparationDevis|null;erreurPreparation?:string;cleLocale:string;copieInitiale?:BrouillonDevisLocal;versionSuivante?:number}) {
+export function FormulaireDevis({sollicitationId,echeanceParDefaut,initiale,erreurPreparation,cleLocale,copieInitiale,versionSuivante,lignesGardees}: {sollicitationId:string;echeanceParDefaut:string;initiale?:PreparationDevis|null;erreurPreparation?:string;cleLocale:string;copieInitiale?:BrouillonDevisLocal;versionSuivante?:number;
+  /** P2-04 : les lignes que l'artisan a gardées (`null` = lecture en échec) ; non fournies, le bloc ne les propose pas. */
+  lignesGardees?:LigneGardee[]|null}) {
   const [etat,action]=useActionState(envoyerDevisValide.bind(null,sollicitationId),{});
   const [refus,actionRefus]=useActionState(declinerMaSollicitation.bind(null,sollicitationId),{});
   const [refusOuvert,setRefusOuvert]=useState(false);
+  // P2-04 : la liste des lignes gardées vit ici, pas dans le bloc des lignes, que « Repartir d'un devis vierge » remonte.
+  const [gardees,setGardees]=useState(lignesGardees);
   const [preparation,setPreparation]=useState(initiale??null);
   const [revision,setRevision]=useState(initiale?.revision??0);
   const [valide,setValide]=useState(!copieInitiale && initiale?.statut==="valide");
@@ -34,6 +40,8 @@ export function FormulaireDevis({sollicitationId,echeanceParDefaut,initiale,erre
   const [sauvegarde,setSauvegarde]=useState(copieInitiale ? "Modifications non enregistrées" : "");
   const [enregistrement,setEnregistrement]=useState(false);
   const [cle,setCle]=useState(0);
+  // Interrupteur IA (22/11/2026) : l'équivalent manuel de la proposition — repartir d'un devis vide, à tout moment.
+  const [vierge,setVierge]=useState(false);
   const form=useRef<HTMLFormElement>(null);const modifie=useRef(Boolean(copieInitiale));const demarre=useRef(false);
   const revisionCourante = useRef(copieInitiale?.revision ?? initiale?.revision ?? 0);
   const versionSaisie = useRef(0);
@@ -108,12 +116,19 @@ export function FormulaireDevis({sollicitationId,echeanceParDefaut,initiale,erre
     } catch { setErreur("La réponse n’est pas arrivée. Votre saisie reste conservée sur cet appareil si la copie locale est disponible. Rouvrez le devis pour vérifier la version Gerimmo."); }
     finally {occupation.current=false;setEnregistrement(false);}
   }
-  const saisie=copieInitiale ? {...copieInitiale.contenu, valideJusquAu:copieInitiale.contenu.valide_jusqu_au, lignes:undefined} : preparation?.saisie;
+  function repartirVierge() {
+    // Seule l'étape « Proposition » est remontée (sa clé change) : les conditions déjà saisies ne bougent pas. Les
+    // champs sont vidés au prochain rendu ; la copie locale et l'état « non enregistré » suivent, comme pour toute saisie.
+    setVierge(true);
+    modification();
+  }
+  const saisieConnue=copieInitiale ? {...copieInitiale.contenu, valideJusquAu:copieInitiale.contenu.valide_jusqu_au, lignes:undefined} : preparation?.saisie;
+  const saisie=vierge&&saisieConnue ? {...saisieConnue, diagnostic:"", lignes:undefined} : saisieConnue;
   const proposition=preparation?.proposition;
   const texteSauvegarde = sauvegarde || (valide ? "PDF validé et enregistré" : initiale ? "Brouillon enregistré" : "Enregistrez pour reprendre plus tard");
   const nonEnregistre = sauvegarde === "Modifications non enregistrées" || sauvegarde === "Modifications à valider";
   return <div className={styles.editeur}>
-    <form data-protection-saisie="locale" ref={form} action={action} onReset={e=>e.preventDefault()} onChange={e=>{if(estSaisieDevis(e.target))modification();}} onClick={e=>{const button=(e.target as HTMLElement).closest("button");if(button&&/Ajouter une prestation|Retirer cette ligne/.test(button.textContent??""))modification();}}>
+    <form data-protection-saisie="locale" ref={form} action={action} onReset={e=>e.preventDefault()} onChange={e=>{if(estSaisieDevis(e.target))modification();}} onClick={e=>{const button=(e.target as HTMLElement).closest("button");if(button&&/Ajouter une prestation|Retirer cette ligne|Ajouter au devis/.test(button.textContent??""))modification();}}>
       <input type="hidden" name="revision" value={revision}/>
       <EtapesSaisie titre={versionSuivante?`Préparer la version ${versionSuivante}`:"Préparer mon devis"} etapes={[
         {titre:"Proposition",statut:valide?"complet":undefined,statutLibelle:valide?"Validée":"À relire",detail:versionSuivante?"Votre version précédente est reprise ici. Ajustez-la et dites ce qui change.":"Gerimmo prépare une base de devis. Ajustez les prestations, les quantités et les prix."},
@@ -121,16 +136,18 @@ export function FormulaireDevis({sollicitationId,echeanceParDefaut,initiale,erre
         {titre:"Validation",statut:valide?"complet":undefined,statutLibelle:valide?"PDF enregistré":"Votre accord",detail:"Relisez puis validez le devis pour générer votre PDF."},
         {titre:"Envoi",statutLibelle:valide?"Prêt à envoyer":"Après validation",detail:"Transmettez le PDF à la personne qui vous a sollicité."},
       ]} conclusion={<Envoyer valide={valide&&!enregistrement&&!chargement} versionSuivante={versionSuivante}/>} contenus={[
-        <div key={`prestations-${cle}`} className="space-y-5">
+        <div key={`prestations-${cle}-${vierge?"vierge":"base"}`} className="space-y-5">
           {/* D18 (livraison 2) : « ce qui change » est obligatoire pour une version suivante ; la base le lit dans la préparation envoyée. */}
           {versionSuivante&&<label className="block space-y-1.5"><span className={CLASSE_LIBELLE}>Ce qui change dans la version {versionSuivante}</span><textarea name="note_revision" required maxLength={4000} rows={3} defaultValue={copieInitiale ? copieInitiale.contenu.note_revision : preparation?.saisie?.noteRevision} placeholder="Ex. : main-d’œuvre détaillée par heure, prix du joint ramené au tarif fournisseur." className={CLASSE_ZONE_TEXTE}/><span className={CLASSE_AIDE}>Transmis au client avec la nouvelle version : il lit ce qui a été revu.</span></label>}
           <div className={styles.aideProposition}>
-            <h3><Sparkles size={19} aria-hidden/>{chargement?"Gerimmo prépare votre proposition…":proposition?.moteur==="ia"?"Proposition préparée avec l’IA":"Proposition Gerimmo"}</h3>
-            <p>Ajustez cette base selon votre diagnostic. Vous décidez des prestations et de vos prix.</p>
-            {proposition&&<details className="mt-1 text-sm"><summary className="cursor-pointer font-semibold">Origine des prix et points à vérifier</summary><ul className="mt-2 list-disc space-y-1 pl-5">{proposition.a_verifier.map((p,i)=><li key={i}>{p}</li>)}</ul>{proposition.sources.map((s,i)=><p key={i} className="mt-3"><strong>{s.origine==="gerimmo"?"Moyenne Gerimmo":"Référence de marché"} · {s.libelle}</strong><br/>{s.detail} {s.url&&<a href={s.url} target="_blank" rel="noreferrer" className="underline">Source consultée le 12/10/2026</a>}</p>)}</details>}
+            <h3><Sparkles size={19} aria-hidden/>{chargement?"Gerimmo prépare votre proposition…":vierge?"Devis vierge":proposition?.moteur==="ia"?"Proposition préparée avec l’IA":"Proposition Gerimmo"}</h3>
+            <p>{vierge?"Vous partez d’un devis vide : décrivez votre diagnostic, puis ajoutez vos prestations et vos prix.":"Ajustez cette base selon votre diagnostic. Vous décidez des prestations et de vos prix."}</p>
+            {/* Phase 3, lot 60 (E004) : sans soulignement (il ne venait qu'au survol, absent au doigt), ce bouton se lisait comme une phrase ; souligné comme « Je ne peux pas chiffrer cette demande ». */}
+            {!chargement&&!vierge&&!versionSuivante&&<button type="button" className="lien-discret inline-flex min-h-11 items-center text-sm underline underline-offset-4" onClick={repartirVierge}>Repartir d’un devis vierge</button>}
+            {proposition&&!vierge&&<details className="mt-1 text-sm"><summary className="cursor-pointer font-semibold">Origine des prix et points à vérifier</summary><ul className="mt-2 list-disc space-y-1 pl-5">{proposition.a_verifier.map((p,i)=><li key={i}>{p}</li>)}</ul>{proposition.sources.map((s,i)=><p key={i} className="mt-3"><strong>{s.origine==="gerimmo"?"Moyenne Gerimmo":"Référence de marché"} · {s.libelle}</strong><br/>{s.detail} {s.url&&<a href={s.url} target="_blank" rel="noreferrer" className="underline">Source consultée le 12/10/2026</a>}</p>)}</details>}
           </div>
           <label className="block space-y-1.5"><span className={CLASSE_LIBELLE}>Votre diagnostic</span><textarea name="diagnostic" required maxLength={4000} rows={2} defaultValue={saisie?.diagnostic} placeholder="Décrivez le problème constaté et les travaux que vous proposez." className={CLASSE_ZONE_TEXTE}/></label>
-          <LignesDevis afficherHtIncomplet initiales={saisie?.lignes} saisieInitiale={copieInitiale?.contenu.lignes}/>
+          <LignesDevis afficherHtIncomplet initiales={saisie?.lignes} saisieInitiale={vierge?undefined:copieInitiale?.contenu.lignes} mesLignes={gardees===undefined?undefined:{lignes:gardees,definir:setGardees,garder:garderMaLigneDevis,retirer:retirerMaLigneDevis}}/>
         </div>,
         <div key={`conditions-${cle}`} className="space-y-5">
           <ResumeDevis compact/>
@@ -142,6 +159,13 @@ export function FormulaireDevis({sollicitationId,echeanceParDefaut,initiale,erre
           <div className={styles.complements}>
             <label className="block space-y-1.5"><span className={CLASSE_LIBELLE}>Contraintes et accès <span className={styles.facultatif}>Facultatif</span></span><textarea name="contraintes" rows={3} maxLength={3000} defaultValue={saisie?.contraintes} placeholder="Accès au logement, matériel à prévoir…" className={CLASSE_ZONE_TEXTE}/></label>
             <label className="block space-y-1.5"><span className={CLASSE_LIBELLE}>Observations et conditions <span className={styles.facultatif}>Facultatif</span></span><textarea name="observations" rows={3} maxLength={3000} defaultValue={saisie?.observations} placeholder="Précisions sur la prestation, les fournitures…" className={CLASSE_ZONE_TEXTE}/></label>
+          </div>
+          {/* Audit palier 1, P2-02 : la garantie que l'artisan annonce. Facultative ; reprise telle quelle sur son devis et
+              montrée au demandeur. C'est son engagement : Gerimmo ne la vérifie pas et ne garantit rien. */}
+          <div className="space-y-1.5">
+            <label htmlFor="garantie-annoncee" className={CLASSE_LIBELLE}>Garantie que vous annoncez <span className={styles.facultatif}>Facultatif</span></label>
+            <input id="garantie-annoncee" name="garantie" maxLength={GARANTIE_ANNONCEE_MAX} defaultValue={saisie?.garantie ?? ""} aria-describedby="garantie-annoncee-aide" placeholder="Ex. : un an, pièces et main-d’œuvre" className={CLASSE_CHAMP}/>
+            <p id="garantie-annoncee-aide" className={CLASSE_AIDE}>Reprise telle quelle sur votre devis et montrée au demandeur. C’est votre engagement : Gerimmo ne garantit rien à votre place.</p>
           </div>
         </div>,
         <div key="validation" className={styles.validation}><ResumeDevis/><div className={styles.validationAction}><ApercuDevis sollicitationId={sollicitationId} valide={valide} bloque={enregistrement||chargement} onGeneration={actif=>{occupation.current=actif;setEnregistrement(actif);if(actif)conserver();}} onValide={r=>{revisionRecue(Math.abs(r),r>0);setValide(r>0);setSauvegarde(r>0?"PDF validé et enregistré":"Modifications à valider");}}/><p className={CLASSE_AIDE}>Vos coordonnées et votre logo proviennent de <Link href="/artisan/entreprise#entreprise-devis" target="_blank" className="underline">Ma fiche entreprise</Link>.</p></div></div>,
@@ -161,7 +185,7 @@ export function FormulaireDevis({sollicitationId,echeanceParDefaut,initiale,erre
 
 function ResumeDevis({compact = false}: {compact?: boolean}) {
   const bloc = useRef<HTMLDivElement>(null);
-  const [resume, setResume] = useState({ diagnostic:"", delai:"", duree:"", validite:"", contraintes:"", observations:"", total:null as number | null, prestations:[] as string[] });
+  const [resume, setResume] = useState({ diagnostic:"", delai:"", duree:"", validite:"", contraintes:"", observations:"", garantie:"", total:null as number | null, prestations:[] as string[] });
   useEffect(() => {
     const form = bloc.current?.closest("form");
     if (!form) return;
@@ -176,7 +200,7 @@ function ResumeDevis({compact = false}: {compact?: boolean}) {
           total = calculerDevis(lignes).montant_ttc_cents;
           prestations = lignes.map((l: {libelle:string;quantite:number;prix_unitaire_ht_cents:number;tva_bps:number}) => `${libelleQuantite(l.quantite)} × ${l.libelle} · ${euros(l.prix_unitaire_ht_cents)} HT · TVA ${libelleTauxTva(l.tva_bps)}`);
         } catch { /* Les validations des lignes restent applicables avant l’envoi. */ }
-        setResume({diagnostic:String(data.get("diagnostic") || ""), delai:String(data.get("delai") || ""), duree:String(data.get("duree") || ""), validite:String(data.get("valide_jusqu_au") || ""), contraintes:String(data.get("contraintes")||""), observations:String(data.get("observations")||""), total, prestations});
+        setResume({diagnostic:String(data.get("diagnostic") || ""), delai:String(data.get("delai") || ""), duree:String(data.get("duree") || ""), validite:String(data.get("valide_jusqu_au") || ""), contraintes:String(data.get("contraintes")||""), observations:String(data.get("observations")||""), garantie:String(data.get("garantie")||"").trim(), total, prestations});
       });
     }
     lire(); form.addEventListener("input", lire); form.addEventListener("change", lire); form.addEventListener("click", lire);
@@ -192,6 +216,7 @@ function ResumeDevis({compact = false}: {compact?: boolean}) {
       <dl><div><dt>Intervention</dt><dd>{resume.delai || "À compléter"}</dd></div><div><dt>Durée estimée</dt><dd>{resume.duree || "À compléter"}</dd></div><div><dt>Valable jusqu’au</dt><dd>{resume.validite ? new Date(`${resume.validite}T12:00:00`).toLocaleDateString("fr-FR") : "Non précisée"}</dd></div></dl>
       {resume.contraintes&&<p className="mt-4 whitespace-pre-wrap"><strong>Contraintes et accès :</strong> {resume.contraintes}</p>}
       {resume.observations&&<p className="mt-4 whitespace-pre-wrap"><strong>Observations et conditions :</strong> {resume.observations}</p>}
+      {resume.garantie&&<p className="mt-4 whitespace-pre-wrap" data-garantie-annoncee><strong>Garantie annoncée :</strong> {resume.garantie}</p>}
     </div>
     <div className={styles.resumeTotal}><span>Total TTC</span><strong>{resume.total === null ? "À compléter" : euros(resume.total)}</strong></div>
   </div>;

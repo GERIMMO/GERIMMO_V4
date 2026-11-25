@@ -214,7 +214,10 @@ it("signale avant finalisation le montant des retenues sans pièce, y compris av
   const ligne = { id:"r1", libelle:"Peinture", cout:150, montant_retenu:90, duree_vie_ans:10, age_ans:4, sans_justificatif:false, justificatif_document:null };
   expect(ecran(restitution(), [], [ligne])).toContain("Justificatif manquant pour Peinture");
   expect(ecran(restitution(), [], [{ ...ligne, justificatif_document:"piece-fictive" }])).not.toContain("Justificatif manquant pour");
-  expect(ecran(restitution(), [], [{ ...ligne, montant_retenu:0 }])).not.toContain("Justificatif manquant pour");
+  // Reprise du lot D3 (M1, décision Q49 du 24/11/2026) : ce test affirmait qu'une retenue de montant nul sans pièce n'était
+  // PAS signalée. Depuis le lot D3, toute retenue sans pièce bloque les deux décomptes, quel que soit son montant : la
+  // fenêtre de finalisation la signale donc aussi.
+  expect(ecran(restitution(), [], [{ ...ligne, montant_retenu:0 }])).toContain("Justificatif manquant pour Peinture");
 });
 
 it("un paiement reçu depuis le dernier arrêté propose de revoir le solde avant toute finalisation", () => {

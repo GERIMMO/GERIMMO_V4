@@ -14,6 +14,8 @@ const schemaPersonne = z.object({
 });
 const schemaIncident = z.object({
   commande: z.string().uuid(), categorie: court, piece: court, description: z.string().max(20000), anciennete: court, urgence: z.enum(["normale", "urgente"]), photos: z.array(fichier).max(5),
+  // Audit palier 1, P2-02 : disponibilités du locataire pour une intervention. Facultatif : une copie locale d'avant ce champ reste valable.
+  disponibilites: z.string().max(300).optional(),
   envoye: z.boolean(), bilan: z.object({ succes: court.optional(), erreur: court.optional(), avertissement: court.optional() }),
 });
 export type BrouillonPersonne = z.infer<typeof schemaPersonne>;
@@ -24,6 +26,7 @@ export function validerBrouillonIncident(donnees: unknown): BrouillonIncident | 
 export function declarationDuBrouillon(b: BrouillonIncident): FormData {
   const f = new FormData();
   for (const nom of ["commande", "categorie", "piece", "description", "anciennete", "urgence"] as const) f.set(nom, b[nom]);
+  if (b.disponibilites?.trim()) f.set("disponibilites", b.disponibilites.trim());
   for (const photo of b.photos) f.append("photos", photo);
   return f;
 }

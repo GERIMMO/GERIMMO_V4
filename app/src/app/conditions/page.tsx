@@ -84,17 +84,21 @@ const CLAUSES: Record<
       : `Les prix s'entendent toutes taxes comprises, TVA de ${REGIME_TVA.tauxPourcent} % incluse.`,
   // Décision du porteur, 28/09/2026 : un mois.
   preavisTarif: "au moins un mois",
-  // V1 (plan du 23/10, R14 et R39 ; décision du dirigeant du 23/10 « je ne suis pas commerçant ») : le compte n'est
-  // plus gardé sans limite (24 mois sans connexion ni abonnement, deux avertissements) ; les factures émises par
-  // Gerimmo se gardent SIX ans (livre des procédures fiscales, art. L. 102 B — et non dix ans, durée du code de commerce
-  // propre aux commerçants) ; la preuve du contrat DIX ans après la fin du dernier abonnement payé (code de la
-  // consommation, art. L. 213-1). Sources non ouvertes le 23/10/2026 : à recomparer sur Légifrance avant publication.
-  // « au moins six ans » (relecture du lot 3) : les factures sont émises chez le prestataire de paiement, qui ne
-  // supprime pas une facture finalisée, et le client chez ce prestataire n'est jamais supprimé (plan, lot 1E) ; la
-  // page confidentialité décrit ce que ce prestataire garde. Les préavis de suppression ne visent que les deux
-  // alertes du lot 1E (J-30 par bail, J-15 par personne sans bail) : aucune autre pièce n'est promise d'un préavis.
+  // V1 (plan du 23/10, R14 et R39) : le compte n'est plus gardé sans limite (24 mois sans connexion ni abonnement,
+  // deux avertissements) ; la preuve du contrat se garde DIX ans après la fin du dernier abonnement payé (code de la
+  // consommation, art. L. 213-1).
+  // Version du 24/11/2026 (écart R31-A1) : les factures émises par Gerimmo se gardent DIX ans, et non plus six. Texte lu
+  // dans le recueil fourni par le dirigeant le 24/11/2026 (non recontrôlé par nous) : loi n° 2026-534 du 25 juin 2026,
+  // article 36 — à l'article L. 102 B du livre des procédures fiscales, « doivent être conservés pendant un délai de
+  // six » devient « sont conservés pendant un délai de dix » ; « Le présent article s'applique aux documents et aux
+  // pièces dont le délai de conservation expire après le 1er janvier 2027 ». Aucune facture de Gerimmo n'a six ans
+  // avant cette date : toutes sont concernées. Le délai court « de la date à laquelle les documents ou pièces ont été
+  // établis » (L. 102 B, I) : « à compter de leur émission ».
+  // « au moins dix ans » : les factures sont émises chez le prestataire de paiement, qui ne supprime pas une facture
+  // finalisée ; la page confidentialité décrit ce que ce prestataire garde. Les préavis de suppression ne visent que
+  // les deux alertes du lot 1E (J-30 par bail, J-15 par personne sans bail) : aucune autre pièce n'est promise d'un préavis.
   conservation:
-    "tant que le compte est utilisé. À la fin de l'essai ou de l'abonnement, elles restent consultables et exportables en lecture seule ; cette fin n'entraîne pas à elle seule leur suppression. Le compte et les données de gestion sont supprimés vingt-quatre mois après la plus tardive des dates suivantes : la dernière connexion d'un utilisateur du compte, la fin du dernier abonnement payé. L'Éditeur prévient le Client par courriel deux mois, puis quinze jours avant cette suppression ; une connexion d'un utilisateur du compte avant l'échéance l'annule. Certaines pièces suivent leur durée de conservation propre, décrite dans la page confidentialité (par exemple les pièces du dossier locataire, supprimées trois ans après la fin du dernier bail et la clôture de ses comptes, sauf litige signalé) ; le Client est prévenu trente jours avant la suppression des pièces rattachées à un bail, et quinze jours avant celle des pièces d'une personne rattachée à aucun bail. Le Client peut demander à tout moment la fermeture de son compte et la suppression de ses données, après avoir exporté ce qu'il souhaite garder ; si un abonnement payé est en cours, il choisit une fermeture à la fin de la période payée ou quatorze jours après sa confirmation, avec le remboursement de la part non utilisée de cette période. Il lui appartient de conserver lui-même les documents qu'il est tenu de garder. L'Éditeur conserve, pour ses seules obligations, les factures qu'il a émises pendant au moins six ans à compter de leur émission, et la preuve de l'acceptation des conditions et de l'abonnement pendant dix ans après la fin du dernier abonnement payé (article 3.3)",
+    "tant que le compte est utilisé. À la fin de l'essai ou de l'abonnement, elles restent consultables et exportables en lecture seule ; cette fin n'entraîne pas à elle seule leur suppression. Le compte et les données de gestion sont supprimés vingt-quatre mois après la plus tardive des dates suivantes : la dernière connexion d'un utilisateur du compte, la fin du dernier abonnement payé. L'Éditeur prévient le Client par courriel deux mois, puis quinze jours avant cette suppression ; une connexion d'un utilisateur du compte avant l'échéance l'annule. Certaines pièces suivent leur durée de conservation propre, décrite dans la page confidentialité (par exemple les pièces du dossier locataire, supprimées trois ans après la fin du dernier bail et la clôture de ses comptes, sauf litige signalé) ; le Client est prévenu trente jours avant la suppression des pièces rattachées à un bail, et quinze jours avant celle des pièces d'une personne rattachée à aucun bail. Le Client peut demander à tout moment la fermeture de son compte et la suppression de ses données, après avoir exporté ce qu'il souhaite garder ; si un abonnement payé est en cours, il choisit une fermeture à la fin de la période payée ou quatorze jours après sa confirmation, avec le remboursement de la part non utilisée de cette période. Il lui appartient de conserver lui-même les documents qu'il est tenu de garder. L'Éditeur conserve, pour ses seules obligations, les factures qu'il a émises pendant au moins dix ans à compter de leur émission, et la preuve de l'acceptation des conditions et de l'abonnement pendant dix ans après la fin du dernier abonnement payé (article 3.3)",
   disponibilite:
     "L'Éditeur ne garantit pas une disponibilité ininterrompue. Les opérations de maintenance programmées sont annoncées à l'avance lorsque c'est possible, de préférence en dehors des heures ouvrées. Le support est assuré par écrit depuis la page « Aide et retours » de l'application ; l'Éditeur y répond dans les meilleurs délais.",
   // V1 (plan du 23/10, R08) : aucun plafond n'est opposé au consommateur ni au non-professionnel (art. R. 212-1 du
@@ -170,8 +174,10 @@ export default async function PageConditions() {
 
       <Article titre="2. Définitions">
         <p>
-          <b className="font-semibold">Éditeur</b> : l&apos;entrepreneur
-          individuel identifié aux{" "}
+          {/* Version du 24/11/2026 (relecture D7R-08) : « l'entrepreneur individuel » était écrit en dur ; la console
+              permet de saisir une société. « L'entreprise » vaut pour les deux, et les mentions légales disent sa forme. */}
+          <b className="font-semibold">Éditeur</b> : l&apos;entreprise
+          identifiée aux{" "}
           <Link href="/mentions-legales" className="lien-texte">
             mentions légales
           </Link>
@@ -614,7 +620,8 @@ export default async function PageConditions() {
         </p>
         {/* V1 (plan du 23/10, R01, R16, R37) : rétractation ouverte à toutes les formules, bouton en ligne, nouveau délai
             au passage à l'annuel, remboursement intégral même après un début d'exécution demandé. Réforme du 19/06/2026
-            (art. L. 221-21 et D. 221-5 du code de la consommation) connue par des sources secondaires seulement.
+            (art. L. 221-21 et D. 221-5 du code de la consommation) : texte lu le 24/11/2026 dans le recueil fourni par
+            le dirigeant (non recontrôlé par nous) ; libellé du bouton, confirmation et accusé de réception comparés.
             Intégration du 24/10 : pas d'ancre `id` sur ce paragraphe. La liste blanche du balisage archivé (relecture
             adverse du socle, M1) n'admet pas l'attribut `id` dans le texte contractuel, et aucun lien ne visait
             « #retractation » (le récapitulatif de souscription mène à /conditions et cite l'article 8.10). */}
@@ -674,7 +681,7 @@ export default async function PageConditions() {
           <p className="mt-2">
             À l&apos;attention de{" "}
             <Fait valeur={EDITEUR.denomination} quoi="dénomination de l'éditeur" />,{" "}
-            <Fait valeur={EDITEUR.siege} quoi="adresse du siège" />,{" "}
+            <Fait valeur={EDITEUR.siege} quoi="adresse de l'éditeur" />,{" "}
             <Fait valeur={EDITEUR.email} quoi="adresse de contact" /> :
           </p>
           <p className="mt-2">
@@ -969,8 +976,17 @@ export default async function PageConditions() {
           fait de l&apos;impayé.</b> Dès que le paiement aboutit, la saisie et
           les envois automatiques reprennent pour l&apos;avenir ; les envois qui
           n&apos;ont pas eu lieu pendant la lecture seule ne sont pas tous
-          rattrapés.
+          rattrapés. Le passage en lecture seule est appliqué automatiquement,
+          à l&apos;échéance prévue ci-dessus.
         </p>
+        {/* Seconde reprise du 24/11/2026 (relecture T4R-06). « Sur le seul constat de l'impayé » était inexact : l'article
+            fixe quinze jours, et le code attend la preuve de livraison du premier courrier (lib/relances-paiement.ts).
+            La phrase « le Client peut demander qu'une personne réexamine sa situation », ajoutée au tour précédent sans
+            décision du dirigeant, est RETIRÉE : l'article 22 du RGPD tel que le recueil le reproduit ne l'exige que pour
+            une « décision fondée exclusivement sur un traitement automatisé […] produisant des effets juridiques » sur
+            une personne, et le texte ne dit pas que la lecture seule d'un compte impayé en est une ; la phrase engageait
+            en outre l'Éditeur à un réexamen qu'aucun parcours n'organise, et ne couvrait pas la fin d'essai (8.2).
+            Question laissée au dirigeant et à son juriste (notes du lot, seconde reprise). */}
         <p>
           <b className="font-semibold">15.4 — Résiliation par
           l&apos;Éditeur.</b> En cas de défaut de paiement ou de manquement
@@ -1032,14 +1048,24 @@ export default async function PageConditions() {
         </p>
       </Article>
 
-      {/* V1 (plan du 23/10, R05 ; décision du dirigeant du 23/10 : médiateur NON BLOQUANT, vente ouverte). Le médiateur
-          est un fait d'éditeur lu en base (composant Fait), comme l'adresse de contact : ses coordonnées s'affichent dès
-          que son nom est saisi. Tant qu'il manque, la phrase dit qu'il sera désigné aux mentions légales dès l'adhésion —
-          jamais que la vente est fermée. Saisir le médiateur change le texte publié : l'archive refusera alors la même
-          version, et une version technique sera publiée à l'adhésion (plan, lot 3).
-          Intégration des textes du 24/10 : la parenthèse « Faire une réclamation » du plan revient, la nature
-          « reclamation » étant livrée (lib/retours.ts, NATURES_RETOUR ; sa clôture renvoie au médiateur,
-          actions/retours.ts). */}
+      {/* Article 17, version du 24/11/2026 (relectures D7R-01 et D7R-02, écart R25-A2).
+          AVANT : sans médiateur, l'article disait que le Client « peut recourir gratuitement au médiateur de la
+          consommation, qui sera désigné aux mentions légales dès l'adhésion de l'Éditeur » — un recours au présent
+          alors qu'aucun médiateur n'existe, et une adhésion que rien n'établit. Avec médiateur, il imprimait ses
+          coordonnées : les saisir changeait le contrat, et les ventes se refermaient en attendant une nouvelle version.
+          MAINTENANT : UN SEUL texte, vrai dans les deux cas. Il dit le droit du consommateur dans les mots de l'article
+          L. 612-1 du code de la consommation (recueil fourni par le dirigeant le 24/11/2026), renvoie aux mentions
+          légales pour le nom et les coordonnées du médiateur, et dit que ces mentions indiquent, tant qu'aucun n'est
+          désigné, qu'il n'y en a pas. Le texte du contrat ne dépend plus des champs « médiateur » : les saisir ne
+          demande pas de nouvelle version (lib/editeur.ts, identiteDesConditions).
+          La réponse qui clôt une réclamation porte la même information (actions/retours.ts).
+          Seconde reprise du 24/11/2026 (relecture T4R-07) : l'article promettait que ces informations sont « rappelées
+          dans la réponse de l'Éditeur à la réclamation ». Le code ne le fait que pour une réclamation faite depuis
+          « Aide et retours » et close dans l'application (actions/retours.ts, `deciderRetour` : seul état de clôture
+          d'une réclamation) ; une réponse par courriel dépend de la personne qui l'écrit. La promesse est bornée à ce
+          cas. « Non-professionnel » n'est PAS rétabli : l'article L. 612-1 reproduit au recueil ne vise que le
+          « consommateur », et rien dans le recueil n'établit que la médiation de la consommation est ouverte à une
+          personne morale (question laissée au juriste). */}
       <Article titre="17. Droit applicable et litiges">
         <p>
           Les présentes conditions sont soumises au{" "}
@@ -1049,33 +1075,22 @@ export default async function PageConditions() {
           <Fait valeur={EDITEUR.email} quoi="adresse de contact" /> ou se fait
           depuis la page « Aide et retours » (« Faire une réclamation »).
         </p>
-        {EDITEUR.mediateurNom ? (
-          <p>
-            À défaut de solution amiable après une réclamation écrite adressée à
-            l&apos;Éditeur, le{" "}
-            <b className="font-semibold">Client consommateur ou
-            non-professionnel</b> peut recourir gratuitement au médiateur de la
-            consommation dont relève l&apos;Éditeur :{" "}
-            <span className="[overflow-wrap:anywhere]">
-              {EDITEUR.mediateurNom},{" "}
-              <Fait valeur={EDITEUR.mediateurAdresse} quoi="adresse du médiateur" />,{" "}
-              <Fait valeur={EDITEUR.mediateurSite} quoi="site du médiateur" />
-            </span>
-            .
-          </p>
-        ) : (
-          <p>
-            À défaut de solution amiable après une réclamation écrite adressée à
-            l&apos;Éditeur, le{" "}
-            <b className="font-semibold">Client consommateur ou
-            non-professionnel</b> peut recourir gratuitement au médiateur de la
-            consommation, qui sera désigné aux{" "}
-            <Link href="/mentions-legales" className="lien-texte">
-              mentions légales
-            </Link>{" "}
-            dès l&apos;adhésion de l&apos;Éditeur.
-          </p>
-        )}
+        <p>
+          Le <b className="font-semibold">Client consommateur</b> a le droit
+          de recourir gratuitement à un médiateur de la consommation en vue de
+          la résolution amiable d&apos;un litige qui l&apos;oppose à
+          l&apos;Éditeur, après une réclamation écrite restée sans solution.
+          Dès qu&apos;un médiateur est désigné, son nom et ses coordonnées
+          figurent aux{" "}
+          <Link href="/mentions-legales" className="lien-texte">
+            mentions légales
+          </Link>{" "}
+          ; la réponse par laquelle l&apos;Éditeur clôt une réclamation faite
+          depuis la page « Aide et retours » les rappelle. Tant qu&apos;aucun
+          médiateur n&apos;est désigné, les mentions légales et cette réponse
+          l&apos;indiquent expressément ; le Client garde alors la réclamation
+          écrite prévue ci-dessus et les voies de droit commun.
+        </p>
       </Article>
 
       <Article titre="Annexe 1 — Traitement de données pour le compte du Client (article 28 du RGPD)">

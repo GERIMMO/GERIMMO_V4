@@ -4,6 +4,7 @@ import styles from "./portail-artisan.module.css";
 import {
   chargerAgenda,
   chargerDemandesRdv,
+  chargerEchangesNonLus,
   chargerPieces,
   chargerSollicitations,
   verifierAccesArtisan,
@@ -15,6 +16,7 @@ import { Avertissement, Carte, CLASSE_BOUTON_SECONDAIRE, EnteteSousPage, Erreur,
 import { ValeurVivante } from "@/components/valeur-vivante";
 import { presenceReseau, rappelPresenceReseau } from "@/lib/reseau";
 import { exclusionLue } from "@/lib/artisan-prive-exclusion";
+import { nonLusPar } from "@/lib/echanges-intervention";
 
 export const metadata = { title: "Aujourd'hui — Gerimmo" };
 
@@ -38,12 +40,18 @@ export default async function PageArtisanAccueil() {
   const { data: exclusion } = await supabase.rpc("artisan_exclusion_plateforme");
   const rappelReseau = rappelPresenceReseau(presenceReseau(fiche, exclusionLue(exclusion) === "liste_noire"));
 
-  const [agenda, sollicitations, pieces, demandesRdv] = await Promise.all([
+  const [agenda, sollicitations, pieces, demandesRdv, echanges] = await Promise.all([
     chargerAgenda(),
     chargerSollicitations(),
     chargerPieces(),
     chargerDemandesRdv(),
+    chargerEchangesNonLus(),
   ]);
+
+  // Audit palier 1 (P1-05) : un message du client ou du locataire attend dans la discussion d'une mission. Il passe
+  // en tête : c'est souvent un accès, un code, un horaire — ce qui décide de la suite de la journée.
+  const aLire = nonLusPar(echanges.lignes, "intervention_id");
+  const messagesALire = agenda.lignes.filter((l) => aLire.has(l.intervention_id));
 
   const reports = agenda.lignes.filter(l => l.statut === "planifiee" && demandesRdv.lignes.some(d => d.intervention_id === l.intervention_id && d.type === "report" && d.statut === "en_attente"));
   const aAccepter = agenda.lignes.filter((l) => l.statut === "proposee");
@@ -92,13 +100,14 @@ export default async function PageArtisanAccueil() {
   // parties chez le locataire n'appelle aucun geste, mais la cacher derrière
   // un écran vide donnerait à l'artisan l'impression de l'avoir perdue.
   const rienAFaire =
+    messagesALire.length === 0 &&
     reports.length === 0 &&
     aAccepter.length === 0 &&
     aRendreCompte.length === 0 &&
     aPlanifier.length === 0 &&
     enAttenteDuLocataire.length === 0 &&
     aChiffrer.length === 0;
-  const lectureIncertaine = Boolean(agenda.erreur || sollicitations.erreur || pieces.erreur || demandesRdv.erreur);
+  const lectureIncertaine = Boolean(agenda.erreur || sollicitations.erreur || pieces.erreur || demandesRdv.erreur || echanges.erreur);
 
   return (
     <div className="space-y-6">
@@ -180,6 +189,16 @@ export default async function PageArtisanAccueil() {
         </Carte>
       ) : rienAFaire ? null : (
         <div className="space-y-6">
+          {messagesALire.length > 0 && (
+            <section id="messages-a-lire" className="scroll-mt-28">
+              <TitreSection>Messages à lire ({messagesALire.length})</TitreSection>
+              <div className="artisan-liste">
+                {messagesALire.map((l) => (
+                  <CarteMission key={l.intervention_id} ligne={l} origine="aujourdhui" nouveauxMessages={aLire.get(l.intervention_id)} aFaire="Lire la discussion de la mission" />
+                ))}
+              </div>
+            </section>
+          )}
           {reports.length > 0 && <section id="reports-a-traiter" className="scroll-mt-28"><TitreSection>Reports de rendez-vous à traiter ({reports.length})</TitreSection><div className="artisan-liste">{reports.map(l => <CarteMission key={l.intervention_id} ligne={l} origine="aujourdhui" aFaire="Répondre à la demande de report" />)}</div></section>}
           {aRendreCompte.length > 0 && (
             <section id="comptes-rendus" className="scroll-mt-28">
@@ -285,7 +304,7 @@ export default async function PageArtisanAccueil() {
         <details className={styles.networkNote}>
           <summary>Votre profil est privé</summary>
           <p>{rappelReseau.texte}</p>
-          <Link href="/artisan/entreprise" className="inline-flex min-h-11 items-center underline underline-offset-4">Mon entreprise</Link>
+          <Link href="/artisan/entreprise" className="inline-flex min-h-11 items-center underline underline-offset-4">Ma fiche entreprise</Link>
         </details>
       )}
     </div>

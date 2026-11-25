@@ -4,12 +4,15 @@ import { baseSimulee, type BaseSimulee } from "./fixtures/base-simulee";
 import type { EcritureFinances } from "@/lib/finances";
 import { PageFinances } from "@/components/page-finances";
 
-const banc = vi.hoisted(() => ({ db: null as BaseSimulee | null }));
+const banc = vi.hoisted(() => ({ db: null as BaseSimulee | null, quittancement: [] as { lignes: Record<string, unknown>[] }[] }));
 vi.mock("@/lib/espace", () => ({
   verifierAccesEspace: async () => ({ supabase: banc.db!.client }),
 }));
 vi.mock("@/components/recapitulatif-fiscal", () => ({ RecapitulatifFiscal: () => null }));
-vi.mock("@/app/agence/[orgId]/comptabilite/quittancement-mois", () => ({ QuittancementMois: () => null }));
+// Le tableau du mois n'est pas rendu ici ; ce qu'il reçoit est consigné (phase 3, lot 44, reprise : l'état du plan d'apurement).
+vi.mock("@/app/agence/[orgId]/comptabilite/quittancement-mois", () => ({
+  QuittancementMois: (p: { lignes: Record<string, unknown>[] }) => { banc.quittancement.push(p); return null; },
+}));
 vi.mock("@/lib/entites-patrimoine", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/entites-patrimoine")>(),
   lireEntitesPatrimoine: async () => ({
@@ -33,6 +36,7 @@ function depense(id: string, lot: string | null, bien: string, date: string, mon
 }
 
 beforeEach(() => {
+  banc.quittancement = [];
   const org = { organization_id: "parc" };
   banc.db = baseSimulee({
     biens: [{ ...org, id: "immeuble", nom: "Immeuble" }, { ...org, id: "maison", nom: "Maison" }],
@@ -147,4 +151,29 @@ it("garde une sélection devenue indisponible explicite et refuse d’afficher u
   expect(html).toContain("Sélection indisponible pour 2025");
   expect(html).toContain("Ce patrimoine n’est pas disponible pour cette année");
   expect(html).not.toContain('class="chiffres-finances');
+});
+
+// Phase 3, lot 44 (reprise, C65) : le tableau du mois en cours invitait à « Relancer sur le bail » un terme impayé sous plan
+// d'apurement en cours, où les relances sont suspendues. Ses termes non couverts lui arrivent avec l'état du plan de leur bail,
+// lu sous la RLS du propriétaire et limité à son espace ; un terme réglé n'est pas touché.
+it("donne au tableau du mois en cours l'état du plan d'apurement de chaque terme non couvert", async () => {
+  const org = { organization_id: "parc" };
+  const terme = (appel: string, bail: string, du: number, couvert: number, statut: string) =>
+    ({ lot_id: "A", appel_id: appel, bail_id: bail, lot_nom: "Les Ormes", locataire: "Durand Lucie", montant_du: du, montant_couvert: couvert, statut });
+  banc.db = baseSimulee({
+    biens: [{ ...org, id: "immeuble", nom: "Les Ormes" }], lots: [{ ...org, id: "A", bien_id: "immeuble" }], journal_par_bien: [],
+    plans_apurement: [
+      { ...org, bail_id: "bail-plan", etat: "actif" },
+      { ...org, bail_id: "bail-ancien-plan", etat: "solde" },
+      { organization_id: "tiers", bail_id: "bail-libre", etat: "actif" },
+    ],
+  }, { rpc: { quittancement_mois: () => ({ data: [
+    terme("1", "bail-plan", 770.5, 0, "impaye"), terme("2", "bail-ancien-plan", 650, 0, "impaye"),
+    terme("3", "bail-libre", 500, 100, "partiel"), terme("4", "bail-paye", 400, 400, "paye"),
+  ], error: null }) } });
+  renderToStaticMarkup(await PageFinances({ orgId: "parc", recherche: {} }));
+  expect(banc.quittancement).toHaveLength(1);
+  expect(banc.quittancement[0].lignes.map((l) => [l.appel_id, l.plan_apurement])).toEqual([
+    ["1", "en_cours"], ["2", "aucun"], ["3", "aucun"], ["4", undefined],
+  ]);
 });

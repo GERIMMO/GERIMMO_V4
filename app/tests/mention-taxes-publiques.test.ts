@@ -8,7 +8,7 @@ import { MENTION_REGIME_INCONNU, mentionTaxesPubliques } from "../src/lib/tarifs
 describe("mentionTaxesPubliques", () => {
   it("franchise en base : ne nomme pas les agences par défaut", () => {
     const phrase = mentionTaxesPubliques({ nature: "franchise" });
-    expect(phrase).toBe("TVA non applicable, art. 293 B du CGI : les prix affichés sont les montants payés.");
+    expect(phrase).toBe("TVA non applicable, article 293 B du CGI : les prix affichés sont les montants payés.");
     expect(phrase).not.toMatch(/agence/i);
   });
 

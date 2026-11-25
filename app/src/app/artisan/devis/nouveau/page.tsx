@@ -11,7 +11,7 @@ export default async function Page({searchParams}:{searchParams:Promise<{client?
  return <div className="space-y-6">
   <Retour href={RETOUR.href}>{RETOUR.libelle}</Retour>
   <EnteteSousPage rubrique="personnes" titre="Nouveau chantier et devis" mention="Pour l’un de vos clients externes, sans demande reçue par Gerimmo."/>
-  <NavigationPrivee/>
+  <NavigationPrivee enCours="/artisan/devis/nouveau"/>
   <LectureSeule active={active} exclusion={exclusion}/>
   {c?<>
    <Carte>

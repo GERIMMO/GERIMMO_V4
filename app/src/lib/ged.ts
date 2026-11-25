@@ -8,6 +8,8 @@ export const TYPES_DOCUMENT: Record<string, string> = {
   quittance: "Quittance / reçu",
   bail: "Bail",
   reglement_copropriete: "Règlement de copropriété",
+  // Décision du 24/11/2026 (Q46) : la notice d'information que le bailleur dépose lui-même pour un bail.
+  notice_information: "Notice d'information (déposée par le bailleur)",
   etat_des_lieux: "État des lieux",
   mandat: "Mandat de gestion",
   diagnostic: "Diagnostic",

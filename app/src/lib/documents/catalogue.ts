@@ -41,10 +41,10 @@ export const CATALOGUE_DOCUMENTS: EntreeCatalogue[] = [
   },
   {
     "id": "notice",
-    "nom": "Notice d’information",
+    "nom": "Résumé de la notice d’information",
     "famille": "Entrée et contrat",
     "cible": "bail",
-    "description": "Droits et obligations à remettre avec le bail.",
+    "description": "Résumé des droits et obligations. La notice officielle complète reste à remettre avec le bail.",
     "priorite": "P1",
     "code": "notice"
   },
@@ -296,7 +296,7 @@ export const CATALOGUE_DOCUMENTS: EntreeCatalogue[] = [
     "nom": "Protocole d’apurement",
     "famille": "Loyers et paiements",
     "cible": "bail",
-    "description": "Projet d’accord et échéancier calculé sur la dette constatée.",
+    "description": "Projet d’accord reprenant le plan d’apurement enregistré sur le bail.",
     "priorite": "P1",
     "code": "protocole_apurement"
   },
@@ -395,7 +395,7 @@ export const CATALOGUE_DOCUMENTS: EntreeCatalogue[] = [
     "nom": "Justificatif d’écriture rectificative",
     "famille": "Gestion et fiscalité",
     "cible": "ecriture",
-    "description": "Contre-écriture et référence de la pièce corrigée.",
+    "description": "Contre-écriture et pièce corrigée : libellé, sens, montant, dates et motif.",
     "priorite": "P1",
     "code": "ecriture_rectificative"
   },

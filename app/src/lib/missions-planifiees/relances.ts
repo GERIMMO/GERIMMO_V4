@@ -45,8 +45,10 @@ import {
   type NiveauRelanceAuto,
 } from "@/lib/relance-loyer-email";
 import { clientDeService } from "@/lib/supabase/service";
+import { envoiAutomatiqueOuvert, montantDeContexte } from "@/lib/envois-suspendus";
 import { consignerTache } from "@/lib/tache";
 import { adresseDuSite } from "@/lib/site";
+import { interlocuteurLocataire } from "@/lib/interlocuteur-locataire";
 import { timingSafeEqual } from "node:crypto";
 
 type Ligne = {
@@ -123,9 +125,30 @@ export async function traiterRelances(request: Request) {
     return Response.json({ envoyees: 0, echecs: 0 });
   }
 
+  // Lot 47 : la relance nomme au locataire son interlocuteur réel, « votre gestionnaire » dans un espace d'agence,
+  // « votre bailleur » ailleurs. Le type de chaque espace est lu une fois par passe ; une lecture en échec arrête la
+  // passe comme celle des relances dues (rien n'est envoyé ni consigné, la passe suivante reprend).
+  const idsEspaces = [...new Set(lignes.map((l) => l.organization_id))];
+  const { data: espaces, error: erreurEspaces } = await supabase.from("organizations").select("id, type").in("id", idsEspaces);
+  if (erreurEspaces) {
+    console.error("[cron relances] types d'espace illisibles:", erreurEspaces.message);
+    await consignerTache(supabase, "relances", { erreur: "lecture impossible" });
+    return Response.json({ erreur: "Lecture impossible." }, { status: 500 });
+  }
+  const typeEspace = new Map(((espaces ?? []) as { id: string; type: string | null }[]).map((o) => [o.id, o.type]));
+
+  // Audit palier 1 (P1-08) : l'interrupteur du superviseur, lu une fois par passe. Fermé (le défaut) : aucun contexte
+  // n'est joint, l'envoi reste suspendu par la liste fermée, exactement comme avant. Ouvert : le contexte désigne le
+  // bail, le niveau, le terme et les montants, et la base refait la preuve avant chaque envoi (migration 20261122200000).
+  const ouvert = await envoiAutomatiqueOuvert(supabase, "relance_loyer");
   let envoyees = 0;
   const echecs: EchecConsigne[] = [];
   for (const l of lignes) {
+    const reste = montantDeContexte(l.reste);
+    const interlocuteur = interlocuteurLocataire(typeEspace.get(l.organization_id));
+    const contexte = (cible: "locataire" | "caution") => ouvert && reste !== null
+      ? { contexteMetier: { type: "relance_loyer" as const, id: l.bail_id, niveau: l.niveau, echeance: l.date_echeance, reste, total: montantDeContexte(l.total_du), cible } }
+      : {};
     const verifierSolde = async () => {
       await verifierAvantEffet(supabase, "relances");
       const verification = await supabase.rpc("relance_loyer_envoi_confirme", { p_bail: l.bail_id, p_niveau: l.niveau, p_echeance: l.date_echeance, p_reste: Number(l.reste), p_total: l.total_du == null ? null : Number(l.total_du) });
@@ -143,6 +166,7 @@ export async function traiterRelances(request: Request) {
         reste: Number(l.reste),
         totalDu: l.total_du == null ? null : Number(l.total_du),
         lien: `${site}/locataire/${l.organization_id}/loyers`,
+        interlocuteur,
       }),
     });
     // Une clé par destinataire : le terme relancé et le niveau identifient la
@@ -163,6 +187,7 @@ export async function traiterRelances(request: Request) {
       organisation: { db: supabase, id: l.organization_id },
       to: l.destinataire,
       cleIdempotence: cle(l.destinataire, "locataire"),
+      ...contexte("locataire"),
       ...courrier(l.prenom),
     });
     let destinatairesComplets = !envoi.erreur;
@@ -179,6 +204,7 @@ export async function traiterRelances(request: Request) {
         organisation: { db: supabase, id: l.organization_id },
         to: autre,
         cleIdempotence: cle(autre, "locataire"),
+        ...contexte("locataire"),
         ...courrier(null),
       });
       if (copie.erreur) {
@@ -198,6 +224,7 @@ export async function traiterRelances(request: Request) {
           organisation: { db: supabase, id: l.organization_id },
           to: caution,
           cleIdempotence: cle(caution, "caution"),
+          ...contexte("caution"),
           subject: sujetInformationCaution({ lot: l.lot }),
           html: corpsInformationCaution({
             emetteur: l.emetteur,
@@ -206,6 +233,7 @@ export async function traiterRelances(request: Request) {
             periode: l.periode,
             dateEcheance: l.date_echeance,
             totalDu: Number(l.total_du ?? l.reste),
+            interlocuteur,
           }),
         });
         if (info.erreur) {

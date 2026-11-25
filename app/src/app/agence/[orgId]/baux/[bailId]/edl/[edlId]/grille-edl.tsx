@@ -4,6 +4,7 @@ import { useContext, useEffect, useRef, useState, useSyncExternalStore } from "r
 import { SuiviEnregistrement } from "@/lib/contexte-enregistrement";
 import { createPortal } from "react-dom";
 import { majGrilleEdl, type EtatEdl } from "@/app/actions/edl";
+import { PhotoLigneEdl } from "./photo-ligne-edl";
 import { formaterDate, formaterDateHeure } from "@/lib/ged";
 import {
   actionBrouillon,
@@ -38,6 +39,8 @@ type Ligne = {
   libelle: string;
   etat: string | null;
   commentaire: string | null;
+  // Audit palier 1, P2-01 : la photo de l'élément, quand il y en a une.
+  photo_document_id?: string | null;
 };
 
 type LigneReference = {
@@ -342,6 +345,7 @@ export function GrilleEdl({
                 {l.commentaire && (
                   <span className="w-full text-muted-foreground sm:w-auto sm:min-w-0 sm:flex-1 sm:truncate">{l.commentaire}</span>
                 )}
+                <PhotoLigneEdl orgId={orgId} bailId={bailId} edlId={edlId} ligne={l} modifiable={false} />
               </div>
             ))}
           </div>
@@ -602,6 +606,7 @@ export function GrilleEdl({
                       </Button>
                     )}
                   </div>
+                  <PhotoLigneEdl orgId={orgId} bailId={bailId} edlId={edlId} ligne={l} modifiable />
                 </div>
               );
             })}

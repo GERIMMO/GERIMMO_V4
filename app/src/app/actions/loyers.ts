@@ -18,7 +18,7 @@ import {
   parties,
 } from "@/lib/quittance-conforme";
 import { aujourdhuiParis, eur } from "@/lib/ged";
-import { avertissementExerciceNonTermine, etatDecompteSortie, exerciceNonTermine, messageSoldeNonAppele, type EtatDecompteSortie } from "@/lib/baux";
+import { avertissementExerciceAncien, avertissementExerciceNonTermine, etatDecompteSortie, exerciceDePlusDeTroisAns, exerciceNonTermine, messageSoldeNonAppele, type EtatDecompteSortie } from "@/lib/baux";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import {
   erreurDuChamp,
@@ -31,6 +31,8 @@ import { emettreRecusQuittances, libelleEmission } from "@/lib/quittances";
 import { compteRenduEncaissement, type EtatAppel } from "@/lib/imputation";
 import { adresseDeRetour, MESSAGE_SITE_NON_CONFIGURE } from "@/lib/site";
 import { estRejeuCleEnvoi, lireCleEnvoi, messageDejaEnregistre } from "@/lib/cle-envoi";
+import { lirePlanApurementDuBail } from "@/lib/rappels-loyers";
+import { relanceRefuseeSousPlan } from "@/lib/paliers-reception-loyer";
 import {
   CHAMP_CONFIRMATION_MONTANT,
   confirmationDonnee,
@@ -196,6 +198,21 @@ export async function ajouterRelance(
   const niveau = String(formData.get("niveau") ?? "");
   if (!["relance_1", "relance_2", "mise_en_demeure"].includes(niveau))
     return { erreur: "Niveau de relance invalide.", valeurs };
+  // Phase 3, lot 44 (C65) : sous un plan d'apurement en cours (actif, ou en défaut avant sa caducité), les relances sont
+  // suspendues — en base pour les automatiques, au clic pour les courriers (verifierCourrierDuBail, lot 39). Une relance
+  // enregistrée ici pendant le plan faisait ensuite avancer le palier du suivi.
+  // Reprise du lot 44 : le refus portait sur TOUTE relance, quelle que soit sa date. Or cette action CONSIGNE un envoi, parfois
+  // après coup, et c'est le seul moyen de saisir le numéro et la date de première présentation d'une mise en demeure (aucune
+  // action ne modifie une relance) : une mise en demeure partie le 02/11, avant un plan activé le 20/11, ne pouvait plus être
+  // consignée tant que le plan courait. Le protocole suspend les relances « dès l'activation du plan » : seule une relance
+  // datée du jour de l'activation ou après est refusée. Sans date saisie, la relance est du jour (défaut de la base).
+  const plan = await lirePlanApurementDuBail(supabase, orgId, bailId);
+  if (plan.error) return { erreur: "Impossible de vérifier le plan d’apurement de ce bail. Réessayez avant d’enregistrer cette relance.", valeurs };
+  if (plan.enCours) {
+    const dateEnvoi = String(formData.get("date_envoi") ?? "").trim() || aujourdhuiParis();
+    if (!plan.depuis || !/^\d{4}-\d{2}-\d{2}$/.test(dateEnvoi) || dateEnvoi >= plan.depuis)
+      return { erreur: relanceRefuseeSousPlan(plan.depuis), valeurs };
+  }
   const { error } = await supabase.from("relances").insert({
     organization_id: orgId,
     bail_id: bailId,
@@ -267,6 +284,16 @@ export async function regulariserCharges(
       erreur: `${avertissementExerciceNonTermine(annee, await lireEtatDecompteSortie(supabase, orgId, bailId))} Cochez la confirmation pour l’enregistrer malgré tout.`,
       valeurs,
     };
+  // Lot T3 (R16-A1) : un exercice clos depuis plus de trois ans n'est plus refusé comme « prescrit » par la base (le point de
+  // départ du délai de l'article 7-1 n'est pas la fin de l'exercice, et Gerimmo ne le connaît pas). Il s'enregistre sur
+  // confirmation explicite, vérifiée ICI comme pour l'exercice non terminé. Le sens du solde n'est pas encore connu (la base
+  // le calcule) : la confirmation est demandée pour tout exercice ancien, le texte dit qu'elle ne concerne qu'un complément.
+  // Reprise T3R-1 : la base l'exige aussi (migration 20261125151000) : sans `p_exercice_ancien`, elle refuse un complément
+  // ancien (« confirmation nécessaire ») ; la case cochée lui est transmise ci-dessous.
+  const exerciceAncien = exerciceDePlusDeTroisAns(annee, aujourdhuiParis());
+  const exerciceAncienConfirme = String(formData.get("confirmer_exercice_ancien") ?? "") === "oui";
+  if (exerciceAncien && !exerciceAncienConfirme)
+    return { erreur: `${avertissementExerciceAncien(annee)} Cochez la confirmation pour l’enregistrer malgré tout.`, valeurs };
   // Audit agence 27/09 : le décompte n'existe en GED que si la régularisation
   // existe. Déposé avant la fonction, chaque refus (exercice déjà régularisé,
   // forfait, exercice hors bail…) laissait une pièce rattachée à rien, dont
@@ -289,6 +316,8 @@ export async function regulariserCharges(
     // l'année suivant l'exercice) — le locataire peut demander de régler le
     // complément par douzièmes (art. 23 loi 89-462).
     p_etaler: formData.get("etaler") === "on",
+    // Reprise T3R-1 : la confirmation d'un exercice clos depuis plus de trois ans, exigée aussi par la base.
+    p_exercice_ancien: exerciceAncien && exerciceAncienConfirme,
   });
   if (error) {
     await abandonnerPieceGed(supabase, piece);
@@ -305,6 +334,8 @@ export async function regulariserCharges(
           ? `Complément de ${eur(Math.abs(ecart))} dû par le locataire, qui a demandé à le régler en 12 mensualités (échéancier enregistré).`
           : `Complément de ${eur(Math.abs(ecart))} dû par le locataire.`
         : "Charges équilibrées (aucun écart).";
+  // Lot T3 (R16-A1) : le complément d'un exercice ancien est enregistré, jamais présenté comme sûrement dû.
+  const reserveAncien = exerciceAncien && ecart < 0 ? " Exercice clos depuis plus de trois ans : ce complément est peut-être prescrit (article 7-1 de la loi du 6 juillet 1989)." : "";
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   // Audit du 27/09 : la régularisation n'écrit PAS au journal (aucun appel
   // ni avoir n'est encore généré) ; son solde est repris au décompte de
@@ -342,7 +373,7 @@ export async function regulariserCharges(
     alerteManquante ? "Attention : l’alerte n’a pas pu être créée, notez ce solde pour ne pas l’oublier." : "",
     prep.avertissement ?? "",
   ].filter(Boolean);
-  return { succes: [msg, ...complements].join(" ") };
+  return { succes: [msg + reserveAncien, ...complements].join(" ") };
 }
 
 // Générer les appels de loyer manquants (échéancier) jusqu'au mois courant.
@@ -531,7 +562,9 @@ export async function supprimerEncaissement(
   return { succes: "Encaissement supprimé — le motif est inscrit au journal." };
 }
 
-// Réviser le loyer selon l'IRL (clause requise, DPE F/G bloqué, prescription 1 an).
+// Réviser le loyer selon l'IRL (clause requise, DPE F/G bloqué, délai d'un an).
+// Décisions du 24/11/2026 : la base refuse la révision d'une année passé un an après sa date de révision (Q23), et
+// applique le loyer révisé au premier terme dont la période commence après la demande (Q43).
 // L'indice de RÉFÉRENCE n'est pas saisi ici : il est figé au bail à sa signature
 // (RM-3.8.2) et la base le lit elle-même. Seul l'indice du trimestre de révision,
 // saisi par l'admin d'agence (RM-3.8.3), est fourni.
@@ -549,9 +582,8 @@ export async function reviserLoyer(
   const indiceLu = indiceSaisi ? lireDecimal(indiceSaisi) : { valeur: 0 };
   if ("erreur" in indiceLu) return { erreur: erreurDuChamp("Indice IRL", indiceLu.erreur), valeurs };
   const nouv = indiceLu.valeur;
-  // Audit 29/09 : on saisit la date de la DEMANDE, pas la date d'effet. La
-  // base en déduit l'effet — l'anniversaire si la demande tombe ce jour-là,
-  // sinon la date de la demande, sans rétroactivité (art. 17-1 I).
+  // Audit 29/09 : on saisit la date de la DEMANDE. La base en déduit la date de révision (la dernière date
+  // anniversaire atteinte) et, depuis la décision Q43 du 24/11, le premier terme appelé au loyer révisé.
   const dateDemande = String(formData.get("date_demande") ?? "").trim();
   // Constat 21 : l'indice nouveau est celui du trimestre de référence du bail.
   const trimestre = String(formData.get("irl_trimestre_numero") ?? "").trim();
@@ -561,15 +593,22 @@ export async function reviserLoyer(
       erreur: "Indice IRL, trimestre et année de l'indice, et date de la demande obligatoires.",
       valeurs,
     };
+  // Reprise du lot D2 (24/11/2026) : l'indice du même trimestre de l'année précédente, demandé par le formulaire quand la
+  // révision d'une année n'a pas été faite. La base l'exige dans ce cas, calcule alors sur un an, et ne le lit pas sinon.
+  // Il n'est transmis que s'il est saisi : la révision ordinaire reste l'appel à quatre arguments.
+  const precedentSaisi = String(formData.get("irl_precedent") ?? "").trim();
+  const precedentLu = precedentSaisi ? lireDecimal(precedentSaisi) : null;
+  if (precedentLu && "erreur" in precedentLu) return { erreur: erreurDuChamp("Indice IRL de l’année précédente", precedentLu.erreur), valeurs };
   const { data, error } = await supabase.rpc("reviser_loyer", {
     p_bail: bailId,
     p_irl_nouveau: nouv,
     p_irl_trimestre: `T${trimestre} ${anneeIndice}`,
     p_date_demande: dateDemande,
+    ...(precedentLu ? { p_irl_precedent: precedentLu.valeur } : {}),
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
-  return { succes: `Loyer révisé à ${data} € HC.` };
+  return { succes: `Loyer révisé à ${data} € HC. Il s’applique au premier terme dont la période commence après la demande et après son enregistrement : la lettre PDF donne ce terme.` };
 }
 
 // Rattrapage manuel : régénérer les reçus (paiements partiels) et quittances

@@ -45,6 +45,7 @@ import { envoyerRelancesReportsRdv } from "@/lib/relances-reports-rdv";
 import { envoyerRelancesInvitations, type BilanRelancesInvitations } from "@/lib/relances-invitations";
 import { envoyerAlertesConservation, type BilanAlertesConservation } from "@/lib/alertes-conservation";
 import { clientDeService } from "@/lib/supabase/service";
+import { envoiAutomatiqueOuvert } from "@/lib/envois-suspendus";
 import { consignerTache } from "@/lib/tache";
 import { timingSafeEqual } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -203,6 +204,10 @@ export async function traiterRappels(request: Request) {
     return Response.json(bilan);
   }
 
+  // Audit palier 1 (P1-08) : l'interrupteur du superviseur, lu une fois par passe. Fermé (le défaut) : aucun contexte
+  // n'est joint, le rappel reste suspendu par la liste fermée, exactement comme avant. Ouvert : le contexte désigne le
+  // rendez-vous, l'échéance et le destinataire, et la base refait la preuve avant l'envoi (migration 20261122200000).
+  const rappelsOuverts = await envoiAutomatiqueOuvert(supabase, "rappel_rendez_vous");
   let rappeles = 0;
   const echecs: string[] = [];
   for (const l of lignes) {
@@ -234,6 +239,7 @@ export async function traiterRappels(request: Request) {
       },
       organisation: { db: supabase, id: l.organization_id },
       to: l.adresse,
+      ...(rappelsOuverts ? { contexteMetier: { type: "rappel_rendez_vous" as const, id: l.intervention_id, echeance: l.echeance, role: l.destinataire } } : {}),
       cleIdempotence: cleRappelRendezVous({
         interventionId: l.intervention_id,
         echeance: l.echeance,

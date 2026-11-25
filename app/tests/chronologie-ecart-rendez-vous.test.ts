@@ -32,6 +32,8 @@ vi.mock("../src/app/agence/[orgId]/incidents/[incidentId]/actions-incident", () 
   FormulairePhotoIncident: () => null,
   FormulaireQualification: () => null,
   FormulaireReouverture: () => null,
+  // Audit palier 1 du 22/11/2026 (P1-04) : la correction de l'urgence, rendue par la fiche comme les autres formulaires.
+  FormulaireUrgence: () => null,
 }));
 vi.mock("@/app/actions/reseau", () => ({
   confirmerCommuneBien: vi.fn(),

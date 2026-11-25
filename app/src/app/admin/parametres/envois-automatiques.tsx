@@ -1,0 +1,77 @@
+"use client";
+
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
+import { reglerEnvoiAutomatique } from "@/app/actions/envois-automatiques-reglage";
+import {
+  envoisOuverts, FLUX_ENVOIS_AUTOMATIQUES, LIBELLES_ENVOIS_AUTOMATIQUES, phraseAccords,
+  type AccordsEspaces, type EtatEnvoisAutomatiques, type FluxEnvoiAutomatique,
+} from "@/lib/envois-suspendus";
+
+/**
+ * Les cinq envois automatiques prévus et suspendus (audit palier 1, P1-08 ; cinquième envoi : décision Q37 du
+ * 24/11/2026), chacun avec son interrupteur.
+ * `etat` : le réglage enregistré (null = illisible). Tout est fermé à la livraison ; seul le superviseur permanent
+ * ouvre, envoi par envoi, après une confirmation explicite. Fermé, rien ne change par rapport à avant ce réglage.
+ */
+export function EnvoisAutomatiques({ etat, accords }: { etat: EtatEnvoisAutomatiques | null; accords?: AccordsEspaces }) {
+  const ouverts = envoisOuverts(etat);
+  return (
+    <section className="loc-carte space-y-4" aria-labelledby="titre-envois-automatiques" data-envois-automatiques={ouverts === null ? "illisible" : String(ouverts)}>
+      <div className="entete-carte">
+        <h2 id="titre-envois-automatiques">Envois automatiques d’e-mails</h2>
+        <span className={`puce ${ouverts ? "puce-loue" : "puce-prep"}`}>
+          {ouverts === null ? "État indisponible" : ouverts === 0 ? "Tous fermés" : `${ouverts} ouvert${ouverts > 1 ? "s" : ""} sur ${FLUX_ENVOIS_AUTOMATIQUES.length}`}
+        </span>
+      </div>
+      <p className="text-sm">
+        Cinq e-mails automatiques sont prêts mais ne partent pas tant que vous ne les ouvrez pas, un par un. Fermé,
+        rien n’est envoyé et rien n’est perdu : chaque loyer, relance ou rendez-vous reste visible dans les espaces, et
+        se traite à la main.
+      </p>
+      {etat === null ? (
+        <p role="alert" className="err">Le réglage des envois automatiques ne peut pas être lu. Il est visible par un superviseur, avec sa double vérification. Rechargez la page avant de le modifier.</p>
+      ) : (
+        <ul className="space-y-3">
+          {FLUX_ENVOIS_AUTOMATIQUES.map((flux) => <EnvoiAutomatique key={flux} flux={flux} ouvert={etat[flux] === true} accords={phraseAccords(flux, etat[flux] === true, accords)} />)}
+        </ul>
+      )}
+      <p className="text-sm text-[var(--texte-secondaire)]">
+        Ouvert, un envoi ne part que si la base confirme, juste avant, qu’il est toujours dû à cette adresse ; un arrêt
+        d’urgence le retient aussi. Les deux premiers ne concernent que les espaces qui ont demandé l’envoi automatique
+        dans leurs réglages ; la relance qu’un propriétaire envoie lui-même, d’un clic, ne demande pas ce réglage. Chaque ouverture ou fermeture est inscrite au journal de la supervision.
+      </p>
+    </section>
+  );
+}
+
+function EnvoiAutomatique({ flux, ouvert, accords }: { flux: FluxEnvoiAutomatique; ouvert: boolean; accords: string | null }) {
+  const [retour, action, pending] = useActionState(reglerEnvoiAutomatique, {});
+  const { titre, detail } = LIBELLES_ENVOIS_AUTOMATIQUES[flux];
+  const confirmation = `confirmation-${flux}`;
+  return (
+    <li className="rounded-lg border border-[var(--bordure)] p-4" data-envoi-automatique={flux} data-ouvert={ouvert ? "oui" : "non"}>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <p className="min-w-0 font-semibold">{titre}</p>
+        <span className={`puce ${ouvert ? "puce-loue" : "puce-prep"}`}>{ouvert ? "Ouvert" : "Fermé"}</span>
+      </div>
+      <p className="mt-1 text-sm text-[var(--texte-secondaire)]">{detail}</p>
+      {accords && <p className="mt-1 text-sm font-semibold" data-accords-espaces>{accords}</p>}
+      <form action={action} className="mt-3 space-y-3" data-saisie-confirmee>
+        <input type="hidden" name="flux" value={flux} />
+        <input type="hidden" name="choix" value={ouvert ? "fermer" : "ouvrir"} />
+        {!ouvert && (
+          <label htmlFor={confirmation} className="flex items-start gap-2 text-sm">
+            <input id={confirmation} type="checkbox" name="confirmation" value="oui" required className="mt-1" />
+            <span>Je confirme : de vrais e-mails partiront aux personnes concernées dès la prochaine passe.</span>
+          </label>
+        )}
+        <BoutonEnvoi variant={ouvert ? "outline" : "default"} enCours={pending} enCoursTexte="Enregistrement…">
+          {ouvert ? "Fermer cet envoi" : "Ouvrir cet envoi"}
+        </BoutonEnvoi>
+      </form>
+      {retour.erreur && <p role="alert" className="err mt-2">{retour.erreur}</p>}
+      {retour.succes && <p role="status" className="mt-2 text-sm">{retour.succes}</p>}
+    </li>
+  );
+}

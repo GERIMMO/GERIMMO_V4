@@ -280,6 +280,8 @@
 .espace-proprietaire [data-parcours-intervention] .incident-carte-intervention > [data-slot="card-header"] { padding-block: 12px; background: var(--filet-leger); border-bottom: 1px solid var(--filet); }
 /* Facture reçue : état métier « à régler / réglé », le vert reste. */
 .espace-proprietaire [data-parcours-intervention] .incident-facture { background: var(--success-soft); border-color: color-mix(in srgb, var(--success) 30%, #fff); border-left: 3px solid var(--success); }
+/* Audit palier 1 (P1-03) : une facture refusée n'a pas la teinte « réussite » de la facture en vigueur. */
+.espace-proprietaire [data-parcours-intervention] .incident-facture.incident-facture-refusee { background: var(--carte); border-color: var(--filet); border-left: 3px solid var(--filet-champ, var(--filet)); }
 .espace-proprietaire [data-parcours-intervention] :is(.incident-historique,.incident-messages) { overflow: hidden; }
 .espace-proprietaire [data-parcours-intervention] :is(.incident-historique,.incident-messages) > summary { background: var(--carte); color: var(--encre); font-size: 13px; font-weight: 500; }
 .espace-proprietaire [data-parcours-intervention] .incident-historique .chrono > div + div { border-top: 1px solid var(--filet-leger); padding-top: 12px; margin-top: 12px; }

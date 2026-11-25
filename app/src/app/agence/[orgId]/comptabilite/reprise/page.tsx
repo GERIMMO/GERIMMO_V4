@@ -46,6 +46,9 @@ export default async function PageRepriseComptable(
     basculee_le: string | null;
   }[];
   const basculee = passees.find((r) => r.statut === "basculee");
+  // Audit palier 1 (P1-02) : une reprise ouverte (un contrôle déjà lancé) se retrouve ici, même après un
+  // rechargement. Il n'y en a jamais qu'une à la fois, et c'est la plus récente (`ouvrir_reprise`).
+  const ouverte = passees.find((r) => r.statut === "en_cours" || r.statut === "controle");
   const dateReprise = basculee ? basculee.basculee_le ?? basculee.date_bascule : null;
 
   return (
@@ -160,7 +163,14 @@ export default async function PageRepriseComptable(
           le détail justifie. La bascule ne s&apos;ouvre qu&apos;à écart nul : quand le
           total annoncé est égal au total du détail.
         </p>
-        <FormulaireReprise orgId={orgId} />
+        <FormulaireReprise
+          orgId={orgId}
+          ouverte={ouverte ? {
+            id: ouverte.id,
+            dateBascule: ouverte.date_bascule ? ouverte.date_bascule.slice(0, 10) : null,
+            tresorerie: ouverte.tresorerie_annoncee === null ? null : Number(ouverte.tresorerie_annoncee),
+          } : null}
+        />
       </section>
 
       {/* Les conséquences les plus lourdes de la reprise ne sont pas des

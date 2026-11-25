@@ -3,7 +3,7 @@
  * et règles miroirs. Les corrections en base sont couvertes par
  * `audit-baux-documents-2026-09-29-base.test.ts` (parité TS/SQL comprise).
  */
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { contexte, personne } from "./fixtures/contexte-document";
 import { Fusion } from "@/lib/documents/gabarit";
@@ -69,7 +69,11 @@ describe("révision IRL : effet = max(anniversaire, demande)", () => {
     });
     expect(doc.html).toContain("Échéance annuelle du <span class=\"v\">01/03/2026</span>");
     expect(doc.html).toMatch(/prend effet à la date de la\s+demande, soit le <b><span class="v">15\/09\/2026/);
-    expect(doc.html).toContain("à compter du <span class=\"v\">15/09/2026</span>");
+    // Phase 3 (C54) : la ligne du loyer révisé ne dit plus « à compter du » la date d'effet. Gerimmo n'appelle le loyer révisé
+    // qu'à partir du terme émis après l'enregistrement de la révision ; la date d'effet reste dite dans la phrase ci-dessus,
+    // et le premier terme appelé au loyer révisé l'est quand les appels du bail sont lus (tests/loyers-impayes-phase3.test.ts).
+    expect(doc.html).toContain("<b>Loyer hors charges révisé</b>");
+    expect(doc.html).not.toContain("à compter du <span class=\"v\">15/09/2026</span>");
     expect(doc.html).not.toContain("à compter du <span class=\"v\">01/03/2026</span>");
     expect(doc.html).toContain("sans rétroactivité");
     expect(doc.html).toContain("T2 2026");
@@ -165,24 +169,55 @@ describe("acte de cautionnement", () => {
 // Constats 8 et 20 — congé pour vente : prix et terme calculé
 // ---------------------------------------------------------------------------
 describe("congé du bailleur (PDF)", () => {
+  // Phase 3, lot 48 (U01) : la lettre est datée du jour de sa génération (heure réelle). La date saisie à la main
+  // (25/12/2026), qui ne doit pas être imprimée, l'aurait été le 25/12/2026 comme date de la lettre : horloge figée.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-23T12:00:00Z"));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
   const client = (termes: string[]) => {
     const rpc = vi.fn(async () => ({ data: termes.shift() ?? null, error: null }));
     return { client: { rpc } as unknown as SupabaseClient, rpc };
   };
+  // Phase 3 (C31, C32) : le congé du bailleur se délivre sur un bail actif ; le contexte d'essai par défaut est un brouillon.
+  const bailActif = () => {
+    const ctx = contexte();
+    ctx.bail.etat = "actif";
+    return ctx;
+  };
+
+  it.each([
+    ["termine", "Ce bail est terminé : aucun congé n’est à délivrer."],
+    ["preavis", "Un congé est déjà enregistré pour ce bail (préavis en cours)"],
+    ["brouillon", "Ce bail n’est pas encore en cours : le congé du bailleur se prépare pour un bail actif."],
+  ])("bail %s : aucune lettre, et le refus dit pourquoi (C31, C32)", async (etat, message) => {
+    const ctx = contexte();
+    ctx.bail.etat = etat;
+    vi.mocked(chargerContexteBail).mockResolvedValue(ctx);
+    const { client: c, rpc } = client(["2029-08-31"]);
+    const doc = await assemblerCongeBailleur(c, "org", "b1", { motif: "vente", prix_vente: "245000" });
+    expect("erreur" in doc && doc.erreur).toContain(message);
+    expect(rpc).not.toHaveBeenCalled();
+  });
 
   it("vente en location nue : pas de PDF sans prix", async () => {
-    vi.mocked(chargerContexteBail).mockResolvedValue(contexte());
+    vi.mocked(chargerContexteBail).mockResolvedValue(bailActif());
     const { client: c } = client(["2029-08-31"]);
     const doc = await assemblerCongeBailleur(c, "org", "b1", { motif: "vente" });
     expect("erreur" in doc && doc.erreur).toMatch(/prix de vente proposé/);
   });
 
   it("vente en location nue : le prix et le terme calculé par la base sont imprimés", async () => {
-    vi.mocked(chargerContexteBail).mockResolvedValue(contexte());
+    vi.mocked(chargerContexteBail).mockResolvedValue(bailActif());
     const { client: c, rpc } = client(["2029-08-31"]);
     const doc = await assemblerCongeBailleur(c, "org", "b1", {
       motif: "vente",
       prix_vente: "245 000",
+      // Textes officiels, lot T1 : en location nue, un congé pour vendre répond à la question « logement acheté déjà loué ? ».
+      achete_occupe: "non",
       date_presentation: "2029-01-10",
       date_effet: "2026-12-25", // une date saisie à la main n'est plus lue
     });
@@ -195,11 +230,12 @@ describe("congé du bailleur (PDF)", () => {
   });
 
   it("présenté trop tard pour le terme en cours : vise le terme suivant", async () => {
-    vi.mocked(chargerContexteBail).mockResolvedValue(contexte());
+    vi.mocked(chargerContexteBail).mockResolvedValue(bailActif());
     const { client: c, rpc } = client(["2029-08-31", "2032-08-31"]);
     const doc = await assemblerCongeBailleur(c, "org", "b1", {
       motif: "vente",
       prix_vente: "200000",
+      achete_occupe: "non",
       date_presentation: "2029-04-01",
     });
     expect(rpc).toHaveBeenLastCalledWith("terme_bail", { p_bail: "b1", p_date: "2029-09-01" });
@@ -208,7 +244,7 @@ describe("congé du bailleur (PDF)", () => {
   });
 
   it("vente en meublé : le prix reste facultatif (art. 25-8)", async () => {
-    const ctx = contexte();
+    const ctx = bailActif();
     ctx.bail.type = "meuble";
     vi.mocked(chargerContexteBail).mockResolvedValue(ctx);
     const { client: c } = client(["2027-08-31"]);
@@ -221,6 +257,9 @@ describe("congé du bailleur (PDF)", () => {
     expect(ajouterMois("2026-08-31", 6)).toBe("2027-02-28");
     expect(congeBailleurDansLesDelais("2029-02-28", "2029-08-31", 6)).toBe(true);
     expect(congeBailleurDansLesDelais("2029-03-02", "2029-08-31", 6)).toBe(false);
+    // Textes officiels, lot T1 (R13-A1) : le 1er mars est déjà trop tard pour un terme au 31 août (1er mars + 6 mois =
+    // 1er septembre) ; l'ancienne règle (terme + 1 jour) l'acceptait. Cas détaillés dans tests/textes-t1-conges.test.ts.
+    expect(congeBailleurDansLesDelais("2029-03-01", "2029-08-31", 6)).toBe(false);
     expect(prixDepuisOptions("245 000,50")).toBe(245000.5);
     expect(prixDepuisOptions("0")).toBeNull();
   });
@@ -272,6 +311,14 @@ describe("mandat de gestion : mandant personne physique", () => {
     expect(h).toContain("médiateur de la");
     expect(h).toContain("L215-1");
     expect(h).toContain("VII — Date et signatures");
+  });
+
+  // Reprise du lot 43 : le mandat s'imprimait « Fait à Lyon, le <jour de génération>, en deux exemplaires originaux » au-dessus
+  // des cadres vides « Le mandant » et « Le mandataire ». Comme les baux et les avenants, la date se porte à la signature.
+  it("le mandat se date à la signature des parties, plus au jour de sa génération", async () => {
+    const texte = html(await assemblerMandatGestion(faux("SCI", null), "org", "m1")).replace(/<[^>]+>/g, "").replace(/\s+/g, " ");
+    expect(texte).toContain("Fait à Lyon, le date effective à compléter lors de la signature, en deux exemplaires originaux, dont un est remis au mandant.");
+    expect(texte).not.toMatch(/Fait à Lyon, le \d{2}\/\d{2}\/\d{4}/);
   });
 
   it("personne morale : pas de mentions consommateur", async () => {

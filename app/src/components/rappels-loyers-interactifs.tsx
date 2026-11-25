@@ -12,7 +12,7 @@ import { nouvelleCleEnvoi } from "@/lib/cle-envoi";
 import { deElide } from "@/lib/elision";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { eur, formaterDate, formaterDateHeure, moisEnFrancais } from "@/lib/ged";
-import { LIBELLES_PALIERS, pointReception, courrierDisponible } from "@/lib/paliers-reception-loyer";
+import { LIBELLES_PALIERS, pointReception, courrierDisponible, RELANCES_SUSPENDUES_SOUS_PLAN } from "@/lib/paliers-reception-loyer";
 import type { RappelLoyer } from "@/lib/rappels-loyers";
 import { useActionFormulaire } from "@/lib/use-action-formulaire";
 import { afficherToast } from "@/components/ui/toast";
@@ -28,9 +28,11 @@ const dateLongue = new Intl.DateTimeFormat("fr-FR", {
   day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Paris",
 });
 
-export function RappelsLoyersInteractifs({ orgId, aujourdHui, dus, totalEcheancesDues, lectureSeule, envoiRelanceDisponible = false, dansFenetre = false }: {
+export function RappelsLoyersInteractifs({ orgId, aujourdHui, dus, totalEcheancesDues, lectureSeule, envoiRelanceDisponible = false, relanceAutomatiqueOuverte = false, recommandeElectroniqueDisponible = false, dansFenetre = false }: {
   orgId: string; aujourdHui: string; dus: RappelLoyer[]; prochaine: RappelLoyer | null; totalEcheancesDues: number; lectureSeule: boolean;
-  envoiRelanceDisponible?: boolean; dansFenetre?: boolean;
+  envoiRelanceDisponible?: boolean; recommandeElectroniqueDisponible?: boolean; dansFenetre?: boolean;
+  /** Audit palier 1 (P1-08) : le superviseur a ouvert la relance automatique. Décision du 24/11/2026 (Q24) : le même interrupteur ouvre l'envoi immédiat à la main (`envoiRelanceDisponible`) ; les deux valeurs sont donc égales à l'écran. */
+  relanceAutomatiqueOuverte?: boolean;
 }) {
   const session = useContext(SessionVerifications);
   const [retours, setRetours] = useState<Record<string, { session: number; ligne: RappelLoyer; bilan: BilanReception }>>({});
@@ -76,11 +78,12 @@ export function RappelsLoyersInteractifs({ orgId, aujourdHui, dus, totalEcheance
         </h3>
         <ul className={styles.liste}>{lignes.map(ligne => (
           <ReceptionLoyer key={`${ligne.appel_id}:${ligne.montant_couvert}`} orgId={orgId} ligne={ligne}
-            aujourdHui={aujourdHui} lectureSeule={lectureSeule} envoiRelanceDisponible={envoiRelanceDisponible}
+            aujourdHui={aujourdHui} lectureSeule={lectureSeule} envoiRelanceDisponible={envoiRelanceDisponible} relanceAutomatiqueOuverte={relanceAutomatiqueOuverte}
+            recommandeElectroniqueDisponible={recommandeElectroniqueDisponible}
             bilan={retours[ligne.appel_id]?.session === session ? retours[ligne.appel_id].bilan : undefined}
             solde={!attentes.has(ligne.appel_id)} onSucces={memoriser} />
         ))}</ul>
-        {date === aujourdHui && !lectureSeule && lignes.some(ligne => attentes.has(ligne.appel_id)) && <p className={styles.noteJour}>La première relance sera disponible au délai prévu dans vos paramètres.</p>}
+        {date === aujourdHui && !lectureSeule && lignes.some(ligne => attentes.has(ligne.appel_id) && !ligne.plan_apurement_en_cours) && <p className={styles.noteJour}>La première relance sera disponible au délai prévu dans vos paramètres.</p>}
       </div>
     ))}
     {nombre > visibles.length && <p className={styles.precision}>Pour chaque bail, confirmez d’abord le mois le plus ancien.</p>}
@@ -106,9 +109,9 @@ function JustificatifReception({ bilan, hrefBail }: { bilan: BilanReception; hre
   </div>;
 }
 
-function ReceptionLoyer({ orgId, ligne, aujourdHui, lectureSeule, envoiRelanceDisponible, bilan, solde, onSucces }: {
+function ReceptionLoyer({ orgId, ligne, aujourdHui, lectureSeule, envoiRelanceDisponible, relanceAutomatiqueOuverte, recommandeElectroniqueDisponible, bilan, solde, onSucces }: {
   orgId: string; ligne: RappelLoyer; aujourdHui: string; lectureSeule: boolean;
-  envoiRelanceDisponible: boolean; bilan?: BilanReception; solde: boolean; onSucces: (ligne: RappelLoyer, resultat: EtatReceptionLoyer) => void;
+  envoiRelanceDisponible: boolean; relanceAutomatiqueOuverte: boolean; recommandeElectroniqueDisponible: boolean; bilan?: BilanReception; solde: boolean; onSucces: (ligne: RappelLoyer, resultat: EtatReceptionLoyer) => void;
 }) {
   const [choix, setChoix] = useState<"recu" | "partiel" | "non_recu" | null>(null);
   const [cle, setCle] = useState("");
@@ -167,7 +170,7 @@ function ReceptionLoyer({ orgId, ligne, aujourdHui, lectureSeule, envoiRelanceDi
       {point.date > aujourdHui ? <p className={styles.point}>Prochain point le {formaterDate(point.date)} · {LIBELLES_PALIERS[point.etape]}</p>
         : point.confirmationExpiree ? <p className={styles.point}>L’envoi n’a pas été enregistré. Vérifiez à nouveau le solde.</p>
         : point.etape === "echeance" && point.date > dateEcheance ? <p className={styles.point}>Nouveau loyer dû le {formaterDate(point.date)}. Confirmez d’abord le mois le plus ancien.</p>
-        : confirme && point.etape !== "recommande" && <p className={styles.point}>{envoiRelanceDisponible && suivi?.active ? "Confirmation enregistrée pour la relance automatique." : "Confirmation enregistrée. Aucun courrier envoyé par cette réponse."}</p>}
+        : confirme && point.etape !== "recommande" && <p className={styles.point}>{(envoiRelanceDisponible || relanceAutomatiqueOuverte) && suivi?.active ? "Confirmation enregistrée pour la relance automatique." : "Confirmation enregistrée. Aucun courrier envoyé par cette réponse."}</p>}
     </>}
     {!solde && point?.etape === "inconnu" && <p className={styles.precision}>Le palier de relance n’a pas pu être vérifié.</p>}
     {!solde && nonRecu && <p className={styles.signale} role="status">Pas encore reçu{ligne.non_recu_signale_le && ` · signalé le ${formaterDate(ligne.non_recu_signale_le)}`}</p>}
@@ -179,7 +182,7 @@ function ReceptionLoyer({ orgId, ligne, aujourdHui, lectureSeule, envoiRelanceDi
       </div>}
       {choix && <form data-saisie-confirmee onSubmit={soumettre} className={styles.formulaire} aria-label={`Confirmer le loyer de ${ligne.lot_nom}`}>
         <input type="hidden" name="reponse" value={choix} /><input type="hidden" name="cle_envoi" value={cle} /><input type="hidden" name="reste_attendu" value={reste.toFixed(2)} />
-        {choix === "non_recu" ? <p>{point?.etape === "recommande" ? "Votre réponse confirme le solde impayé. Le recommandé ne partira que si vous choisissez de l’envoyer." : !envoiRelanceDisponible ? "Votre réponse enregistre l’impayé. Vous pourrez préparer la relance en PDF. L’envoi de relances par e-mail est suspendu." : suivi?.active ? "Cette réponse autorise la relance automatique si son délai est atteint. Vous serez à nouveau interrogé au prochain palier." : "Votre réponse est enregistrée sans envoyer de courrier. Gerimmo vous redemandera de vérifier votre compte au prochain palier."}</p> : <>
+        {choix === "non_recu" ? <p>{ligne.plan_apurement_en_cours ? "Votre réponse enregistre l’impayé, sans relance : un plan d’apurement est en cours sur ce bail. Son suivi figure dans le bail." : point?.etape === "recommande" ? "Votre réponse confirme le solde impayé. Le recommandé ne partira que si vous choisissez de l’envoyer." : !envoiRelanceDisponible && !relanceAutomatiqueOuverte ? "Votre réponse enregistre l’impayé. Vous pourrez préparer la relance en PDF. L’envoi de relances par e-mail est suspendu." : suivi?.active ? "Cette réponse autorise la relance automatique si son délai est atteint. Vous serez à nouveau interrogé au prochain palier." : "Votre réponse est enregistrée sans envoyer de courrier. Gerimmo vous redemandera de vérifier votre compte au prochain palier."}</p> : <>
           <p>{choix === "partiel" ? "Indiquez la somme reçue. La confirmation envoie le reçu partiel par e-mail si le locataire a donné son accord." : "En confirmant, vous déclenchez l’envoi de la quittance par e-mail si le locataire a donné son accord."}</p>
           <div className={styles.champs}>
             <label htmlFor={`${uid}-montant`}>Montant reçu (€)<input id={`${uid}-montant`} name="montant" type="text" inputMode="decimal" required readOnly={choix === "recu"} value={choix === "recu" ? reste.toFixed(2).replace(".", ",") : montantSaisi} onChange={event => setMontantSaisi(event.target.value)} /></label>
@@ -191,7 +194,14 @@ function ReceptionLoyer({ orgId, ligne, aujourdHui, lectureSeule, envoiRelanceDi
         <div className={styles.choix}><BoutonEnvoi type="submit" className="btn-or" disabled={enCours || !cle}>{enCours ? "Enregistrement…" : choix === "non_recu" ? "Confirmer : pas encore reçu" : choix === "partiel" ? "Confirmer et envoyer le reçu" : "Confirmer et envoyer la quittance"}</BoutonEnvoi><button type="button" className="btn-secondaire" disabled={enCours} onClick={() => setChoix(null)}>Annuler</button></div>
       </form>}
     </>}
-    {!solde && dateEcheance < aujourdHui && <div className={styles.suivi}>
+    {/* Phase 3, lot 39 (reprise, C65) : sous un plan d'apurement en cours, ni palier ni courrier proposé — la base suspend les
+        relances automatiques et refuse les courriers ; l'écran le dit au lieu d'annoncer la relance suivante. */}
+    {!solde && dateEcheance < aujourdHui && ligne.plan_apurement_en_cours && <div className={styles.suivi}>
+      <div><h4><Mail size={17}/> Suivi des relances</h4>
+        <p className={styles.point}>{RELANCES_SUSPENDUES_SOUS_PLAN}</p></div>
+      <div className={styles.suite}><Link className={styles.lienSuivi} href={`/espace/${orgId}/baux/${ligne.bail_id}#plan-apurement`}>Suivre le plan d’apurement dans le bail</Link></div>
+    </div>}
+    {!solde && dateEcheance < aujourdHui && !ligne.plan_apurement_en_cours && <div className={styles.suivi}>
       <div><h4><Mail size={17}/> Suivi des relances</h4>
         <ol className={styles.frise}>{(["relance_1","relance_2","mise_en_demeure"] as const).map((niveau, index) => {
           const envoi = (ligne.historique ?? [ligne.derniere_relance]).find(r => r?.niveau === niveau);
@@ -212,7 +222,7 @@ function ReceptionLoyer({ orgId, ligne, aujourdHui, lectureSeule, envoiRelanceDi
         <div className={styles.choix}><BoutonGenererDocument key={courrier} orgId={orgId} code={courrier === "relance_1" ? "relance_simple" : "seconde_relance"} cibleId={ligne.bail_id}
           cheminRetour={`/espace/${orgId}`} libelle={courrier === "relance_1" ? "Préparer la première relance en PDF" : "Préparer la deuxième relance en PDF"} /></div></details>
       </>}
-      {courrier === "recommande" && <PreparationRecommande orgId={orgId} ligne={ligne} />}
+      {courrier === "recommande" && <PreparationRecommande orgId={orgId} ligne={ligne} electronique={recommandeElectroniqueDisponible} />}
       </>}<Link className={styles.lienSuivi} href={`/espace/${orgId}/baux/${ligne.bail_id}#relances`}>Suivre les relances dans le bail</Link></div>
     </div>}
     {etat.erreur && <p className="err mt-3" role="alert">{etat.erreur}</p>}
@@ -240,14 +250,21 @@ function EnvoiRelance({ orgId, ligne, niveau }: { orgId: string; ligne: RappelLo
   </form>;
 }
 
-function PreparationRecommande({ orgId, ligne }: { orgId: string; ligne: RappelLoyer }) {
+// Audit palier 1 (P1-18) : l'envoi électronique (AR24) n'apparaît que s'il est relié pour cet espace (`electronique`).
+// Sinon, seul le courrier en PDF est proposé : un bouton qui répondait « pas encore activé » n'aidait personne.
+function PreparationRecommande({ orgId, ligne, electronique }: { orgId: string; ligne: RappelLoyer; electronique: boolean }) {
   const [delai, setDelai] = useState("15");
   const uid = useId();
   const valide = /^\d+$/.test(delai) && Number(delai) >= 1 && Number(delai) <= 90;
   return <div className={styles.recommande}>
-    <div className={styles.disponible}><Info size={17} aria-hidden="true" /><strong>Recommandé AR24 disponible</strong></div>
-    <RecommandeElectronique orgId={orgId} bailId={ligne.bail_id} delai={Number(delai)} libelle="Préparer l’envoi du recommandé AR24" />
+    {electronique && <>
+      <div className={styles.disponible}><Info size={17} aria-hidden="true" /><strong>Recommandé AR24 disponible</strong></div>
+      <RecommandeElectronique orgId={orgId} bailId={ligne.bail_id} delai={Number(delai)} libelle="Préparer l’envoi du recommandé AR24" />
+    </>}
     <div className={styles.choix}>{valide ? <BoutonGenererDocument key={delai} orgId={orgId} code="mise_en_demeure" cibleId={ligne.bail_id} cheminRetour={`/espace/${orgId}`} libelle="Générer le recommandé en PDF" options={{ delai }} /> : <p role="alert">Indiquez un nombre entier de 1 à 90 jours.</p>}</div>
+    {/* Reprise du lot 53 (W34) : la consigne d'envoi suit le bouton du PDF, visible ; repliée dans « Délai de règlement », elle
+        passait inaperçue et semblait valoir aussi pour le recommandé AR24, que Gerimmo envoie. */}
+    <p>Ce PDF n’est pas envoyé par Gerimmo : à notifier avec preuve de réception.</p>
     <details><summary>Délai de règlement · {delai} jours</summary>
     <label htmlFor={`${uid}-delai`}>Délai de règlement (jours)<input id={`${uid}-delai`} type="number" min="1" max="90" step="1" value={delai} onChange={event => setDelai(event.target.value)} aria-describedby={`${uid}-aide`} /></label>
     <p id={`${uid}-aide`}>De 1 à 90 jours. Le PDF récapitule toutes les échéances impayées du bail.</p></details>

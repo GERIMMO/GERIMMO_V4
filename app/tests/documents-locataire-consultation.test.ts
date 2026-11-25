@@ -15,7 +15,6 @@ vi.mock("@/lib/quittance-conforme", () => ({
 }));
 vi.mock("@/app/locataire/[orgId]/formulaire-attestation", () => ({ FormulaireAttestation: () => null }));
 vi.mock("@/app/locataire/[orgId]/documents/depot-piece", () => ({ DepotPiece: () => null }));
-vi.mock("@/app/locataire/[orgId]/documents/depot-signature", () => ({ DepotSignature: () => null }));
 vi.mock("@/components/fenetre-lot", () => ({ FenetreLotProvider: ({ children }: { children: unknown }) => children, BoutonLot: () => null }));
 vi.mock("@/lib/espace", () => ({
   verifierAccesEspaceLocataire: async () => ({

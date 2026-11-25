@@ -7,12 +7,17 @@ if(url && (!['127.0.0.1','localhost','[::1]'].includes(new URL(url).hostname)||!
 const nom='20261024105901_reglages_conservation_superadmin';
 const migration=readFileSync(`supabase/migrations/${nom}.sql`,'utf8');
 const retour=readFileSync(`supabase/retours-arriere/${nom}.retour.sql`,'utf8');
+// Lot « textes » T4 (24/11/2026, écart R31-A1) : les factures se gardent dix ans (migration 20261125103000). Rejouer
+// SEULE la migration de ce fichier remet le plancher de 72 mois : la migration du lot T4 est donc rejouée après elle,
+// comme le dit son en-tête. Les attentes qui affirmaient « 72 mois » et réglaient 96 mois sont mises à jour : 96 mois
+// est désormais sous le plancher (120), refusé.
+const dixAns=readFileSync('supabase/migrations/20261125103000_factures_conservation_dix_ans.sql','utf8');
 describe.skipIf(!url)('réglage de conservation sur base locale',()=>{
  let db:Client,sa:string,ordinaire:string;
  beforeAll(async()=>{db=new Client({connectionString:url});await db.connect();});
  afterAll(async()=>{await db?.end();});
  beforeEach(async()=>{
-  await db.query('begin');await db.query(migration);
+  await db.query('begin');await db.query(migration);await db.query(dixAns);
   const r=await db.query(`insert into auth.users(id,instance_id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,confirmation_token,recovery_token,email_change,email_change_token_new,email_change_token_current) select gen_random_uuid(),'00000000-0000-0000-0000-000000000000','authenticated','authenticated','conservation-'||gen_random_uuid()||'@example.test','x',now(),'{"provider":"email","providers":["email"]}'::jsonb,'{}'::jsonb,now(),now(),'','','','','' from generate_series(1,2) returning id`);
   [sa,ordinaire]=r.rows.map(r=>r.id);
   await db.query("insert into public.memberships(account_id,organization_id,role,status) values($1,null,'super_admin','active')",[sa]);
@@ -40,7 +45,7 @@ describe.skipIf(!url)('réglage de conservation sur base locale',()=>{
  });
  it('valide les bornes et le motif en base sans activer les catégories désactivées',async()=>{
   await role(sa);
-  for(const [c,m] of [['archive:facture',71],['archive:preuve_contrat',119],['compte:inactif',23],['journal:tech_log',-1],['journal:tech_log',241],['journal:tech_log',null]] as const)expect(await echec(()=>modifier(c,m))).toMatch(/^22023/);
+  for(const [c,m] of [['archive:facture',71],['archive:facture',96],['archive:facture',119],['archive:preuve_contrat',119],['compte:inactif',23],['journal:tech_log',-1],['journal:tech_log',241],['journal:tech_log',null]] as const)expect(await echec(()=>modifier(c,m))).toMatch(/^22023/);
   for(const motif of ['court',null])expect(await echec(()=>modifier('journal:tech_log',8,undefined,motif))).toMatch(/^22023/);
   await modifier('personne:fiche',48);expect((await db.query("select duree_mois,actif from public.retention_rules where data_type='personne:fiche'")).rows[0]).toEqual({duree_mois:48,actif:false});
  });
@@ -57,13 +62,13 @@ describe.skipIf(!url)('réglage de conservation sur base locale',()=>{
  });
  it('applique les durées aux nouvelles archives et préserve les anciennes échéances',async()=>{
   const creer=()=>db.query("insert into public.archives_comptes(account_id_origine,fin_dernier_abonnement_paye,factures) values(gen_random_uuid(),'2020-01-01','[{\"emise_le\":\"2020-01-01\",\"exercice_clos_le\":\"2020-12-31\"}]') returning id,preuve_conservee_jusqu_au::text as preuve,factures_conservees_jusqu_au::text as factures,factures_duree_mois");
-  const avant=(await creer()).rows[0];await role(sa);await modifier('archive:facture',96);await modifier('archive:preuve_contrat',144);await db.query('reset role');const apres=(await creer()).rows[0];
-  expect(avant).toMatchObject({preuve:'2030-01-01',factures:'2026-12-31',factures_duree_mois:72});expect(apres).toMatchObject({preuve:'2032-01-01',factures:'2028-12-31',factures_duree_mois:96});
-  expect((await db.query('select factures_duree_mois from public.archives_comptes where id=$1',[avant.id])).rows[0].factures_duree_mois).toBe(72);
+  const avant=(await creer()).rows[0];await role(sa);await modifier('archive:facture',144);await modifier('archive:preuve_contrat',144);await db.query('reset role');const apres=(await creer()).rows[0];
+  expect(avant).toMatchObject({preuve:'2030-01-01',factures:'2030-12-31',factures_duree_mois:120});expect(apres).toMatchObject({preuve:'2032-01-01',factures:'2032-12-31',factures_duree_mois:144});
+  expect((await db.query('select factures_duree_mois from public.archives_comptes where id=$1',[avant.id])).rows[0].factures_duree_mois).toBe(120);
  });
  it('le bilan et la purge des factures gardent la même échéance après modification du catalogue',async()=>{
-  const creer=()=>db.query(`insert into public.archives_comptes(account_id_origine,fin_dernier_abonnement_paye,factures) values(gen_random_uuid(),'2019-01-01','[{"emise_le":"2019-01-01","exercice_clos_le":"2019-12-31"}]') returning id`);
-  const avant=(await creer()).rows[0].id;await role(sa);await modifier('archive:facture',96);await db.query('reset role');const apres=(await creer()).rows[0].id;
+  const creer=()=>db.query(`insert into public.archives_comptes(account_id_origine,fin_dernier_abonnement_paye,factures) values(gen_random_uuid(),'2019-01-01','[{"emise_le":"2015-01-01","exercice_clos_le":"2015-12-31"}]') returning id`);
+  const avant=(await creer()).rows[0].id;await role(sa);await modifier('archive:facture',144);await db.query('reset role');const apres=(await creer()).rows[0].id;
   const cibles=(await db.query("select id from public.cibles_conservation_complementaire() where categorie='archive:facture' and id=any($1::text[])",[[avant,apres]])).rows.map(r=>r.id);
   expect(cibles).toEqual([avant]);await db.query('select public.purger_archives_comptes()');
   const factures=(await db.query('select id,jsonb_array_length(factures) n from public.archives_comptes where id=any($1::uuid[])',[[avant,apres]])).rows;

@@ -5,12 +5,15 @@ import { FilePenLine } from "lucide-react";
 import { cleDevisLocal, lireDevisLocal, effacerDevisLocal, type BrouillonDevisLocal } from "@/lib/brouillon-devis-local";
 import type { PreparationDevis } from "@/lib/parcours-devis-artisan";
 import { FormulaireDevis } from "./formulaire-devis";
+import type { LigneGardee } from "@/lib/lignes-devis-gardees";
 import { CLASSE_BOUTON_PRINCIPAL, CLASSE_BOUTON_SOBRE } from "../../ui";
 
 export function FormulaireAvecReprise({ compteId, ...props }: {
   compteId: string; sollicitationId: string; echeanceParDefaut: string; initiale?: PreparationDevis | null; erreurPreparation?: string;
   /** D18 (livraison 2) : défini quand le client a demandé une révision ; le formulaire prépare cette version. */
   versionSuivante?: number;
+  /** P2-04 : les lignes de devis gardées par l'artisan (`null` = lecture en échec). */
+  lignesGardees?: LigneGardee[] | null;
 }) {
   const cle = cleDevisLocal(compteId, props.sollicitationId);
   const [lecture, setLecture] = useState<{ pret: boolean; copie: BrouillonDevisLocal | null }>({ pret: false, copie: null });
@@ -33,7 +36,7 @@ export function FormulaireAvecReprise({ compteId, ...props }: {
       <details className="rounded-[var(--rayon-champ)] border border-[var(--filet)] px-4 py-1 open:pb-4">
         <summary className="flex min-h-11 cursor-pointer items-center font-medium">Consulter ma saisie conservée</summary>
         <dl className="mt-3 space-y-3 text-sm">
-          {[["Diagnostic", b.contenu.diagnostic], ["Délai", b.contenu.delai], ["Durée", b.contenu.duree], ["Validité", b.contenu.valide_jusqu_au], ["Contraintes", b.contenu.contraintes], ["Observations", b.contenu.observations], ...(props.versionSuivante ? [["Ce qui change", b.contenu.note_revision ?? ""]] : [])].map(([titre, valeur]) => <div key={titre}><dt className="font-semibold">{titre}</dt><dd className="whitespace-pre-wrap break-words">{valeur || "Non renseigné"}</dd></div>)}
+          {[["Diagnostic", b.contenu.diagnostic], ["Délai", b.contenu.delai], ["Durée", b.contenu.duree], ["Validité", b.contenu.valide_jusqu_au], ["Contraintes", b.contenu.contraintes], ["Observations", b.contenu.observations], ["Garantie annoncée", b.contenu.garantie ?? ""], ...(props.versionSuivante ? [["Ce qui change", b.contenu.note_revision ?? ""]] : [])].map(([titre, valeur]) => <div key={titre}><dt className="font-semibold">{titre}</dt><dd className="whitespace-pre-wrap break-words">{valeur || "Non renseigné"}</dd></div>)}
         </dl>
         <ul className="mt-4 space-y-2 text-sm">{b.contenu.lignes.map((l, i) => <li key={i} className="break-words">{l.libelle || "Prestation à compléter"} · Quantité : {l.quantite || "à compléter"} · Prix HT : {l.prix || "à compléter"} € · TVA : {l.tva ? `${Number(l.tva)/100} %` : "à choisir"}</li>)}</ul>
       </details>

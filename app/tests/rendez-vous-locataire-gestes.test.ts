@@ -53,7 +53,8 @@ function rv(partiel: Partial<RendezVousLocataire> = {}): RendezVousLocataire {
 }
 function rendre(rendezVous: RendezVousLocataire, peutAgir = true) {
   return renderToStaticMarkup(
-    createElement(GestesRendezVous, { orgId: "org-1", rendezVous, rdvTexte: "jeudi 22 octobre, 9 h – 11 h", peutAgir })
+    // Lot 47 : l'interlocuteur nommé au locataire (ici, une agence : « gestionnaire »).
+    createElement(GestesRendezVous, { orgId: "org-1", rendezVous, rdvTexte: "jeudi 22 octobre, 9 h – 11 h", peutAgir, interlocuteur: "gestionnaire" })
   );
 }
 /** La balise du bouton d'envoi de l'annulation. */

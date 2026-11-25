@@ -1,7 +1,8 @@
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { aujourdhuiParis, eur, formaterDate } from "@/lib/ged";
-import { TYPES_BAIL } from "@/lib/baux";
+import { TYPES_BAIL, loyerDuTermeEnCours, type RevisionDuLoyer } from "@/lib/baux";
+import { deElide } from "@/lib/elision";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { buttonVariants } from "@/components/ui/button";
 import { FenetreLotProvider, BoutonLot } from "@/components/fenetre-lot";
@@ -9,6 +10,9 @@ import { ConsultationDocument } from "../consultation-document";
 import { CarteConge } from "./carte-conge";
 import { aEchoue, LectureImpossible, PanneLecture } from "../panne-lecture";
 import type { BailLocataire } from "../types";
+import { lireIdentiteContact } from "../identite-contact";
+import { interlocuteurDeLIdentite } from "@/lib/identite-contact-locataire";
+import { mentionEtage } from "@/lib/etage";
 
 export const metadata = { title: "Mon logement" };
 
@@ -19,6 +23,8 @@ export default async function PageLogementLocataire(
 ) {
   const { orgId } = await props.params;
   const { supabase } = await verifierAccesEspaceLocataire(orgId);
+  // Lot 47 : « votre gestionnaire » seulement dans un espace d'agence ; chez un propriétaire, « votre bailleur ».
+  const qui = interlocuteurDeLIdentite(await lireIdentiteContact(orgId));
 
   const [
     { data: baux, error: eBaux },
@@ -26,6 +32,7 @@ export default async function PageLogementLocataire(
     { data: infosRows, error: eInfos },
     { data: intentions, error: eIntentions },
     { data: edlRows, error: eEdl },
+    { data: revisions },
   ] =
     await Promise.all([
       supabase.rpc("mon_bail_locataire", { p_org: orgId }),
@@ -33,6 +40,9 @@ export default async function PageLogementLocataire(
       supabase.rpc("mes_infos_pratiques_locataire", { p_org: orgId }),
       supabase.rpc("mon_intention_conge", { p_org: orgId }),
       supabase.rpc("mes_edl_locataire", { p_org: orgId }),
+      // Reprise du lot D2 (24/11) : les révisions du bail, pour afficher le loyer du terme en cours et annoncer le loyer
+      // révisé avec son premier terme. Lecture ratée : le loyer du bail s'affiche comme avant, sans annonce.
+      supabase.rpc("revisions_de_mon_loyer_locataire", { p_org: orgId }),
     ]);
   // L'identifiant du lot : `mon_bail_locataire` n'en rend que le nom, et la
   // fenêtre du lot — la même que voit son gestionnaire, à sa portée à lui —
@@ -70,16 +80,30 @@ export default async function PageLogementLocataire(
   // une colocation à bail unique, le meublé du logement fait foi — même règle
   // que le serveur (enregistrer_conge).
   const bailMeuble = bail.type === "meuble" || (bail.type === "colocation" && bail.meuble);
-  const preavisMois = bailMeuble || bail.zone_tendue ? 1 : 3;
+  // Textes officiels, lot T1 (R02-A5) : en zone tendue, le préavis d'un mois n'est pas automatique — le locataire doit
+  // le préciser et le justifier dans sa lettre de congé, sinon trois mois (article 15 I de la loi du 6 juillet 1989).
+  const preavisMois = bailMeuble ? 1 : 3;
+  const zoneTendue = !bailMeuble && bail.zone_tendue === true;
   // Audit gestion du 29/09 : zone tendue non vérifiée par le gestionnaire —
   // l'écran ne tranche pas à la place de la loi.
   const zoneInconnue = !bailMeuble && bail.zone_tendue == null;
   const forfait = bail.charges_mode === "forfait";
+  // Reprise du lot D2 : le bail porte le loyer révisé dès l'enregistrement de la révision ; avant son premier terme,
+  // l'écran affiche le loyer du terme en cours et annonce le suivant.
+  const duTerme = loyerDuTermeEnCours(
+    bail.loyer_hc,
+    ((revisions ?? []) as (RevisionDuLoyer & { bail_id: string })[]).filter((r) => r.bail_id === bail.bail_id),
+    aujourdhuiParis(),
+    // Seconde reprise du lot D2 : un bail qui finit avant le premier terme révisé n'annonce rien.
+    bail.date_fin,
+  );
+  const moisDuTerme = (terme: string) =>
+    new Date(`${terme}T12:00:00Z`).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
   const depotDu = Number(depot?.depot_du ?? 0);
   const depotRecu = Number(depot?.encaisse ?? 0);
 
   return (
-    <FenetreLotProvider orgId={orgId}>
+    <FenetreLotProvider orgId={orgId} interlocuteur={qui}>
     <div className="loc-logement space-y-4">
       {/* L'en-tête porte sa mention, comme ses pages sœurs (24/09) : la carte
           était vide à droite du titre. */}
@@ -99,7 +123,7 @@ export default async function PageLogementLocataire(
       </div>
 
       {aEchoue(eDepot, eInfos, eIntentions, eEdl) && (
-        <PanneLecture quoi="le détail de votre logement" />
+        <PanneLecture quoi="le détail de votre logement" interlocuteur={qui} />
       )}
 
       <div className="loc-carte">
@@ -123,7 +147,7 @@ export default async function PageLogementLocataire(
                 bail.adresse ? bail.lot_nom : null,
                 bail.surface_m2 != null ? `${Number(bail.surface_m2).toLocaleString("fr-FR")}\u00a0m²` : null,
                 bail.pieces != null ? `${bail.pieces} pièce${bail.pieces > 1 ? "s" : ""}` : null,
-                bail.etage ? `étage ${bail.etage}` : null,
+                mentionEtage(bail.etage, bail.lot_nom),
                 bail.meuble ? "meublé" : null,
               ]
                 .filter(Boolean)
@@ -153,18 +177,28 @@ export default async function PageLogementLocataire(
             <span>Préavis si vous partez</span>
             <span className="text-right">
               {zoneInconnue
-                ? "1 mois si le logement est en zone tendue, 3 mois sinon (zone en cours de vérification par votre gestionnaire)"
+                ? // Reprise T1R-3 : en zone tendue, le mois de préavis n'est pas acquis d'office (article 15 I : le locataire précise
+                  // le motif et le justifie dans sa lettre ; à défaut, trois mois). Le texte de la zone inconnue le promettait encore.
+                  `1 mois si le logement est en zone tendue et que votre lettre le précise et le justifie, 3 mois sinon (zone en cours de vérification par votre ${qui})`
                 : <>
-                    {preavisMois} mois
-                    {preavisMois === 1 ? (bailMeuble ? " (logement meublé)" : " (zone tendue : secteur où les logements à louer manquent, la loi y réduit le préavis)") : ""}
+                    {zoneTendue
+                      ? "1 mois si votre lettre de congé précise que le logement est en zone tendue et le justifie ; sinon 3 mois"
+                      : `${preavisMois} mois${bailMeuble ? " (logement meublé)" : ""}`}
                   </>}
             </span>
           </div>
           <div className="ligne-info">
             <span>Loyer</span>
             <span className="montant text-right">
-              {eur(Number(bail.loyer_hc ?? 0))} + {eur(Number(bail.charges ?? 0))} de{" "}
+              {eur(Number(duTerme.loyer ?? 0))} + {eur(Number(bail.charges ?? 0))} de{" "}
               {forfait ? "forfait" : "provision"} de charges
+              {duTerme.aVenir && (
+                <span className="block text-xs font-normal text-muted-foreground" data-loyer-a-venir>
+                  loyer de {eur(Number(duTerme.loyer ?? 0))} jusqu&apos;au terme {deElide(moisDuTerme(duTerme.aVenir.dernierTermeAvant))},{" "}
+                  {eur(duTerme.aVenir.loyer)} à compter du terme {deElide(moisDuTerme(duTerme.aVenir.premierTerme))}{" "}
+                  (révision annuelle du loyer)
+                </span>
+              )}
             </span>
           </div>
           {/* Le montant DÛ d'abord, l'état du versement en mention (24/09) :
@@ -198,8 +232,9 @@ export default async function PageLogementLocataire(
           <p className="mt-3 text-[13px] text-muted-foreground">
             {depotRecu > 0 ? "Cet argent reste le vôtre" : "Une fois versé, cet argent reste le vôtre"}{" "}
             : il vous est restitué sous 1 mois après un état des lieux de sortie
-            conforme (2 mois si des retenues sont justifiées, pièces à
-            l&apos;appui), l&apos;usure normale déduite.
+            conforme à celui d&apos;entrée (2 mois sinon ; toute retenue doit
+            être justifiée, pièces à l&apos;appui). L&apos;usure normale du logement
+            ne peut pas vous être retenue.
           </p>
         )}
         <div className="mt-4 flex flex-wrap gap-2">
@@ -294,7 +329,7 @@ export default async function PageLogementLocataire(
                           ? // Une date passée ne s'annonce pas comme à venir
                             // (27/09) : « prévu le 25/09 » un 27/09.
                             e.date_edl.slice(0, 10) < aujourdhuiParis()
-                            ? ` — prévu le ${formaterDate(e.date_edl)} (date dépassée : voyez-la avec votre gestionnaire)`
+                            ? ` — prévu le ${formaterDate(e.date_edl)} (date dépassée : voyez-la avec votre ${qui})`
                             : ` — prévu le ${formaterDate(e.date_edl)}`
                           : ""}
                       </span>
@@ -305,7 +340,7 @@ export default async function PageLogementLocataire(
             </div>
             <p className="mt-3 text-[13px] text-muted-foreground">
               L&apos;état des lieux se signe sur place, le jour du rendez-vous avec
-              votre gestionnaire — vous en gardez un exemplaire.
+              votre {qui} — vous en gardez un exemplaire.
             </p>
           </div>
         );
@@ -316,11 +351,13 @@ export default async function PageLogementLocataire(
         enPreavis={bail.etat === "preavis"}
         dateFin={bail.date_fin}
         preavisMois={preavisMois}
+        zoneTendue={zoneTendue}
         intentionDu={
           ((intentions ?? []) as { created_at: string; traitee_le: string | null }[]).find(
             (i) => !i.traitee_le
           )?.created_at ?? null
         }
+        interlocuteur={qui}
       />
     </div>
     </FenetreLotProvider>

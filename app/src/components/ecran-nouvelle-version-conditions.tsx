@@ -11,7 +11,9 @@ import { CLE_REPORT_CONDITIONS } from "@/lib/conditions-acceptation";
  * « Nos conditions générales évoluent » (plan de conformité du 23/10/2026, lot 1A, constat R19).
  *
  * Un encart en tête de l'espace, jamais une fenêtre qui bloque : la personne peut continuer à travailler, et rien n'est
- * fermé pendant une période payée. « J'accepte la nouvelle version » enregistre l'accord (ajout seul, heure du serveur) ;
+ * fermé pendant une période payée. Décision du dirigeant du 24/11/2026 (Q15, accord exprès) : l'accord se donne par une
+ * case NON cochée par défaut, dont le libellé porte le lien vers le texte ; sans elle, le bouton ne valide rien (le
+ * serveur refuse aussi). « J'accepte la nouvelle version » enregistre l'accord (ajout seul, heure du serveur) ;
  * « Plus tard » masque l'encart jusqu'à la prochaine connexion, dans tous les onglets de ce navigateur (stockage local,
  * aucun témoin ; la valeur porte la version et l'heure de la connexion, qu'une nouvelle connexion change). Relecture
  * adverse du 24/10 (défaut 6) : gardé dans le stockage de session de l'onglet, il revenait dans chaque nouvel onglet.
@@ -98,6 +100,16 @@ export function EcranNouvelleVersionConditions({
       </p>
       <form data-saisie-libre action={action} className="flex flex-wrap items-center gap-3">
         <input type="hidden" name="cgu_version" value={version} />
+        <label className="flex min-h-11 w-full items-start gap-3">
+          <input type="checkbox" name="cgu" value="oui" required className="mt-0.5 size-6 shrink-0" />
+          <span>
+            J’ai lu et j’accepte la{" "}
+            <Link href="/conditions" target="_blank" rel="noopener" className="lien-texte">
+              version du {dateVersion} des conditions générales d’utilisation et de vente
+            </Link>
+            .
+          </span>
+        </label>
         <BoutonEnvoi enCoursTexte="Enregistrement…">
           J’accepte la nouvelle version
         </BoutonEnvoi>

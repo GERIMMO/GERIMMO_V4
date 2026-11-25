@@ -417,6 +417,9 @@ describe.skipIf(!DB_URL)("Date de bascule : les loyers d'un bail repris en cours
     `select p.proname, md5(pg_get_functiondef(p.oid)) as empreinte, p.proacl::text as droits
        from pg_proc p join pg_namespace n on n.oid = p.pronamespace
       where n.nspname = 'public' and p.proname in ('generer_appels_loyer_interne','generer_appels_loyer','cycle_mensuel_interne','activer_bail','regulariser_charges','premier_mois_suivi','poser_loyers_suivis_depuis','refuser_regularisation_avant_bascule')
+        -- Reprise du lot T3 (T3R-1) : la seconde signature de regulariser_charges (avec p_exercice_ancien) n'est pas du périmètre
+        -- de cette migration ; seule la signature d'origine, qu'elle ne redéfinit pas, est suivie ici.
+        and p.oid is distinct from to_regprocedure('public.regulariser_charges(uuid,integer,numeric,uuid,text,boolean,boolean)')::oid
       order by 1`)).rows as { proname: string; empreinte: string; droits: string | null }[];
   const colonnePresente = async () => (await db.query(
     `select count(*)::int as n from information_schema.columns where table_schema='public' and table_name='baux' and column_name='loyers_suivis_depuis'`)).rows[0].n === 1;

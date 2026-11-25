@@ -24,10 +24,36 @@ export type AvisEcheance = {
   prorata: boolean;
   /** Ce qui restait dû sur les termes antérieurs. Zéro si le locataire est à jour. */
   arriere: number;
+  /**
+   * Ce qui reste dû sur les termes SUIVANTS déjà échus le jour de l'envoi (0 ou absent : aucun). Seul un avis parti après
+   * son échéance en a : mois créés d'un coup par le rattrapage, ou bail saisi avec une date d'entrée passée.
+   */
+  suivantsEchus?: number;
   emetteur: string;
   prenom?: string | null;
   lien: string;
 };
+
+/** Un terme de l'échéancier du bail, tel que le rendent etat_loyers_bail et etat_loyers_bail_brut. */
+export type TermeEcheancier = {
+  periode: string;
+  date_echeance?: string | null;
+  montant_du: number | string;
+  montant_couvert: number | string;
+  statut?: string | null;
+};
+
+/**
+ * Phase 3, lot 44 (reprise, C49) : ce qui reste dû, le jour `jour` (AAAA-MM-JJ, Paris), sur les termes POSTÉRIEURS à
+ * `periode` dont l'échéance est passée (comme « impayé » en base), hors termes non dus. Une seule règle pour l'avis en PDF
+ * et l'avis par e-mail : le total « pour solder votre compte » est celui du compte à la date de l'avis.
+ */
+export function resteTermesSuivantsEchus(termes: TermeEcheancier[], periode: string, jour: string): number {
+  const reste = termes
+    .filter((t) => t.periode > periode && t.statut !== "non_du" && Boolean(t.date_echeance) && String(t.date_echeance).slice(0, 10) < jour)
+    .reduce((s, t) => s + Math.max(0, Number(t.montant_du) - Number(t.montant_couvert)), 0);
+  return Math.round(reste * 100) / 100;
+}
 
 /** « 4 octobre 2026 ». UTC : l'échéance est une date sans heure. */
 export function jourDeLEcheance(iso: string): string {
@@ -53,8 +79,22 @@ export function corpsAvisEcheance(a: AvisEcheance): string {
     : "";
   // L'arriéré est dit, jamais réclamé deux fois : le total à régler additionne
   // le terme et ce qui traîne, et l'e-mail montre le détail des deux.
+  // Phase 3, lot 44 (reprise, C49) : même règle que l'avis en PDF. Un avis parti après son échéance (rattrapage, bail
+  // saisi en retard) ne comptait que les termes antérieurs : « vous solderez votre compte » annonçait un total trop bas
+  // quand un terme suivant était déjà échu. Les termes suivants déjà échus sont comptés et dits ; sans eux, la phrase
+  // reste celle d'avant.
+  const suivantsEchus = Math.max(0, Number(a.suivantsEchus ?? 0));
+  const autresEchus = Math.round((a.arriere + suivantsEchus) * 100) / 100;
   const mentionArriere =
-    a.arriere > 0
+    suivantsEchus > 0
+      ? `<p style="color:#a12a2a"><strong>Solde des autres termes échus restant dû :
+         ${eur(autresEchus)}</strong> (${
+           a.arriere > 0
+             ? `termes antérieurs : ${eur(a.arriere)} ; termes suivants déjà échus : ${eur(suivantsEchus)}`
+             : "termes suivants déjà échus"
+         }). En le réglant avec ce terme, vous solderez votre compte à la date
+         de cet avis, soit ${eur(a.resteDu + autresEchus)} au total.</p>`
+      : a.arriere > 0
       ? `<p style="color:#a12a2a"><strong>Solde antérieur restant dû :
          ${eur(a.arriere)}.</strong> En le réglant avec ce terme, vous
          solderez votre compte, soit ${eur(a.resteDu + a.arriere)} au total.</p>`

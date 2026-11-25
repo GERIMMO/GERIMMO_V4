@@ -1,3 +1,5 @@
+import type { InterlocuteurLocataire } from "./interlocuteur-locataire";
+
 // Le report ou l'annulation d'un rendez-vous confirmé, demandé par le LOCATAIRE (décision D22 du 14/10/2026, option B ;
 // fiches LOC-21, CHN-01, REP-04 ; migration 20261014620000).
 //
@@ -130,8 +132,25 @@ export function instantRdv(iso: string): string {
  * Ce que le locataire lit de sa dernière demande, dans ses mots (fiche C.8). `null` quand il n'y a rien à dire (aucune
  * demande, ou une demande close qui n'a plus d'intérêt pour lui : retirée par lui-même).
  */
-export function etatDemandeLocataire(rv: RendezVousLocataire): { titre: string; detail: string; ton: "info" | "attention" | "succes" } | null {
+/**
+ * Audit palier 1 (P1-08, complément du 23/11/2026). Le rappel de la veille est l'un des quatre envois automatiques
+ * fermés par défaut : l'écran ne le promet que si le superviseur l'a ouvert. Fermé, il dit de noter la date.
+ */
+export const PHRASES_RAPPEL = {
+  /** Sous un rendez-vous confirmé. */
+  rendez_vous: { promis: "Nous vous le rappellerons la veille.", sans: "Notez bien cette date : aucun rappel ne vous sera envoyé." },
+  /** Après un report accepté par l'artisan. */
+  report: { promis: "Nous vous rappellerons le nouveau la veille.", sans: "Notez bien la nouvelle date : aucun rappel ne vous sera envoyé." },
+} as const;
+export function phraseRappel(rappelPromis: boolean, contexte: keyof typeof PHRASES_RAPPEL = "rendez_vous"): string {
+  return PHRASES_RAPPEL[contexte][rappelPromis ? "promis" : "sans"];
+}
+
+// Lot 47 : `interlocuteur` nomme qui le locataire appelle ou qui a tranché — « votre gestionnaire » dans un espace
+// d'agence, « votre bailleur » chez un propriétaire (`interlocuteurLocataire`).
+export function etatDemandeLocataire(rv: RendezVousLocataire, options: { rappelPromis?: boolean; interlocuteur: InterlocuteurLocataire }): { titre: string; detail: string; ton: "info" | "attention" | "succes" } | null {
   if (!rv.demande_id || !rv.demande_statut) return null;
+  const qui = options.interlocuteur;
   if (rv.demande_type === "annulation") {
     // Annulation : effet immédiat. Elle n'a plus rien à dire dès qu'un nouveau rendez-vous est fixé.
     if (rv.statut_mission === "planifiee") return null;
@@ -140,7 +159,7 @@ export function etatDemandeLocataire(rv: RendezVousLocataire): { titre: string; 
         ? `Vous avez annulé le rendez-vous du ${plageRdv(rv.demande_rdv_debut, rv.demande_rdv_fin)}`
         : "Vous avez annulé le rendez-vous",
       detail:
-        "L'artisan et votre gestionnaire sont prévenus. L'artisan va vous proposer d'autres créneaux : vous choisirez ici.",
+        `L'artisan et votre ${qui} sont prévenus. L'artisan va vous proposer d'autres créneaux : vous choisirez ici.`,
       ton: "info",
     };
   }
@@ -158,24 +177,24 @@ export function etatDemandeLocataire(rv: RendezVousLocataire): { titre: string; 
         titre: rv.nouveau_debut
           ? `L'artisan a accepté : nouveau rendez-vous le ${plageRdv(rv.nouveau_debut, rv.nouvelle_fin)}`
           : "L'artisan a accepté votre report",
-        detail: "Votre ancien rendez-vous est annulé. Nous vous rappellerons le nouveau la veille.",
+        detail: `Votre ancien rendez-vous est annulé. ${phraseRappel(options.rappelPromis === true, "report")}`,
         ton: "succes",
       };
     case "refusee":
       return {
-        titre: "L'artisan ne peut pas : votre gestionnaire va vous appeler",
+        titre: `L'artisan ne peut pas : votre ${qui} va vous appeler`,
         detail: `${rv.reponse_motif ? `Sa réponse : « ${rv.reponse_motif} ». ` : ""}Votre rendez-vous actuel est maintenu en attendant.`,
         ton: "attention",
       };
     case "expiree":
       return {
         titre: "L'artisan n'a pas répondu à temps",
-        detail: "Votre rendez-vous actuel est maintenu. Votre gestionnaire est prévenu et peut vous appeler.",
+        detail: `Votre rendez-vous actuel est maintenu. Votre ${qui} est prévenu et peut vous appeler.`,
         ton: "attention",
       };
     case "arbitree":
       return {
-        titre: "Votre gestionnaire a fixé le rendez-vous",
+        titre: `Votre ${qui} a fixé le rendez-vous`,
         detail: "Votre demande de report est close : la date ci-dessus est celle à retenir.",
         ton: "info",
       };
@@ -185,15 +204,15 @@ export function etatDemandeLocataire(rv: RendezVousLocataire): { titre: string; 
 }
 
 /** Pourquoi le locataire ne peut pas demander de report, quand il ne le peut pas (pour une phrase, jamais un bouton mort). */
-export function raisonSansReport(rv: RendezVousLocataire): string | null {
+export function raisonSansReport(rv: RendezVousLocataire, interlocuteur: InterlocuteurLocataire): string | null {
   if (rv.report_possible || rv.statut_mission !== "planifiee" || !rv.rdv_debut) return null;
   if (rv.demande_statut === "en_attente") return null;
   if (rv.reports_restants <= 0) {
-    return `Ce rendez-vous a déjà fait l'objet de ${REGLES_RDV_LOCATAIRE.reportsMax} demandes de report : pour le changer encore, appelez votre gestionnaire.`;
+    return `Ce rendez-vous a déjà fait l'objet de ${REGLES_RDV_LOCATAIRE.reportsMax} demandes de report : pour le changer encore, appelez votre ${interlocuteur}.`;
   }
   // Le délai, seulement quand la base le dit : jamais une raison devinée.
   if (!rv.annulation_tardive) return null;
-  return `Le rendez-vous est dans moins de ${REGLES_RDV_LOCATAIRE.delaiReportHeures} heures : il ne peut plus être reporté ici. Vous pouvez encore l'annuler, ou appeler votre gestionnaire.`;
+  return `Le rendez-vous est dans moins de ${REGLES_RDV_LOCATAIRE.delaiReportHeures} heures : il ne peut plus être reporté ici. Vous pouvez encore l'annuler, ou appeler votre ${interlocuteur}.`;
 }
 
 /** Badge d’agenda : un report attend une réponse ; une annulation reste visible tant que la date n’est pas refixée. */

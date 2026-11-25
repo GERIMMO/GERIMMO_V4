@@ -48,10 +48,16 @@ export function verifierDateReglement(brut: string | null, aujourdhui: string): 
   return null;
 }
 
-/** L'état calculé d'une facture : déposée → validée → partiellement réglée → réglée (B.4). */
-export type EtatReglementFacture = "deposee" | "validee" | "partiellement_reglee" | "reglee";
+/**
+ * L'état calculé d'une facture : déposée → validée → partiellement réglée → réglée (B.4). Ou « refusée » (audit palier 1,
+ * P1-03) : le gestionnaire l'a refusée avec un motif ; elle reste au dossier et l'artisan peut en déposer une autre.
+ */
+export type EtatReglementFacture = "deposee" | "validee" | "partiellement_reglee" | "reglee" | "refusee";
 
-export type FacturePourEtat = { montant_ttc_cents: number | string; validee_le: string | Date | null };
+/** Bornes du motif de refus, telles que la base les contrôle (`refuser_facture_artisan`, 20261122170000). */
+export const MOTIF_REFUS_FACTURE = { min: 5, max: 2000 } as const;
+
+export type FacturePourEtat = { montant_ttc_cents: number | string; validee_le: string | Date | null; refusee_le?: string | Date | null };
 export type ReglementPourEtat = { montant_cents: number | string; retire_le: string | Date | null };
 
 /**
@@ -65,6 +71,8 @@ export function etatReglementFacture(
 ): { etat: EtatReglementFacture; totalRegleCents: number; resteCents: number } {
   const montant = Number(facture.montant_ttc_cents);
   const totalRegleCents = reglements.filter((r) => !r.retire_le).reduce((somme, r) => somme + Number(r.montant_cents), 0);
+  // Une facture refusée n'est pas due : rien ne reste à régler sur elle.
+  if (facture.refusee_le) return { etat: "refusee", totalRegleCents, resteCents: 0 };
   const resteCents = Math.max(0, montant - totalRegleCents);
   const etat: EtatReglementFacture = !facture.validee_le
     ? "deposee"
@@ -82,6 +90,7 @@ export const LIBELLES_ETAT_REGLEMENT: Record<EtatReglementFacture, string> = {
   validee: "Validée, à régler",
   partiellement_reglee: "Partiellement réglée",
   reglee: "Réglée",
+  refusee: "Refusée, à corriger",
 };
 
 /**
@@ -92,6 +101,7 @@ export function phraseEtatReglement(etat: EtatReglementFacture, resteCents: numb
   if (etat === "reglee") return regleeLe ? `Réglée le ${formaterDate(typeof regleeLe === "string" ? regleeLe : regleeLe.toISOString())}` : "Réglée";
   if (etat === "partiellement_reglee") return `Reste à régler : ${eur(resteCents / 100)}`;
   if (etat === "validee") return `Reste à régler : ${eur(resteCents / 100)}`;
+  if (etat === "refusee") return "Facture refusée : l’artisan peut en déposer une autre";
   return "Facture déposée, à contrôler avant tout règlement";
 }
 
@@ -128,6 +138,7 @@ export function phraseEtatPourArtisan(f: Pick<FactureVueParArtisan, "etat" | "re
     return `Partiellement réglée : ${n} règlement${n > 1 ? "s" : ""} déclaré${n > 1 ? "s" : ""} par votre client`;
   }
   if (f.etat === "validee") return "Validée par votre client, règlement à venir";
+  if (f.etat === "refusee") return "Refusée par votre client : à corriger";
   return "Déposée, en attente de contrôle";
 }
 

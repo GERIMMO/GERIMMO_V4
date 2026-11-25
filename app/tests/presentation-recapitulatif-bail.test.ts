@@ -16,6 +16,14 @@ describe("récapitulatif du contrat", () => {
     const loyer = construire({ loyer_hc: 600, charges: 0, depot_garantie: 0 }).find(r => r.id === "loyer")!;
     expect(loyer.lignes.find(l => l.libelle === "Total mensuel")?.valeur).toContain("600");
   });
+  // Phase 3, lot 43 (T06) : le récapitulatif affichait « Le 1 de chaque mois » ; il écrit le jour comme le contrat (jourDuMois).
+  it("le jour d'échéance s'écrit comme au contrat : « Le 1er de chaque mois », « Le 5 de chaque mois »", () => {
+    const echeance = (jour: unknown) => construire({ jour_echeance: jour }).flatMap(r => r.lignes).find(l => l.champ === "bail.jour_echeance")?.valeur;
+    expect(echeance(1)).toBe("Le 1er de chaque mois");
+    expect(echeance("1")).toBe("Le 1er de chaque mois");
+    expect(echeance(5)).toBe("Le 5 de chaque mois");
+    expect(echeance(null)).toBeNull();
+  });
   it("distingue les réponses Non des décisions encore inconnues", () => {
     const connu = construire({ revision_irl: false }).flatMap(r => r.lignes);
     expect(connu.find(l => l.champ === "bail.revision_irl")?.valeur).toBe("Non");

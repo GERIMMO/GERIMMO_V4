@@ -31,6 +31,7 @@ import {
 } from "./communs";
 import type { Assemblage } from "./index";
 import { deElide } from "@/lib/elision";
+import { manqueJustificatifRetenue, retenueJustifiee, type JustificatifRetenue } from "@/lib/justificatif-retenue";
 
 type Retenue = {
   libelle: string;
@@ -40,6 +41,7 @@ type Retenue = {
   montant_retenu: number;
   sans_justificatif: boolean;
   justificatif_document: string | null;
+  piece?: JustificatifRetenue["piece"];
 };
 
 // Fin du délai légal : la remise des clés décalée du délai en mois, BORNÉE au
@@ -55,11 +57,17 @@ export function finDelaiRestitution(dateRemise: string, delaiMois: number): stri
   return cible.toISOString().slice(0, 10);
 }
 
-// Colonne « Justificatif » d'une retenue (audit du 27/09) : « sur demande »
-// est réservé aux pièces réellement déposées ; sans pièce, on l'écrit (wiki
-// « Restitution du dépôt de garantie », RM-2.4.6 et RM-2.7.2).
-export function libelleJustificatifRetenue(r: { sans_justificatif: boolean; justificatif_document: string | null }): string {
-  return r.justificatif_document && !r.sans_justificatif ? "Déposé — sur demande" : "Non fourni";
+// Décision du 24/11/2026 (Q49, règle dans lib/justificatif-retenue.ts) : la même exigence pour le décompte de restitution
+// (ci-dessous) et le décompte des retenues (catalogue-bail.ts).
+/** Chaque retenue sans pièce devient une information manquante : le PDF n'est pas produit. */
+export function exigerJustificatifsRetenues(f: Fusion, retenues: (JustificatifRetenue & { libelle?: unknown })[]): void {
+  for (const r of retenues) if (!retenueJustifiee(r)) f.champ(null, manqueJustificatifRetenue(r.libelle));
+}
+
+// Colonne « Justificatif » d'une retenue (audit du 27/09) : « sur demande » est réservé aux pièces réellement
+// déposées. Sans pièce, le décompte n'est plus imprimé (Q49) : « À déposer » ne se lit que dans l'épreuve bloquée.
+export function libelleJustificatifRetenue(r: JustificatifRetenue): string {
+  return retenueJustifiee(r) ? "Déposé — sur demande" : "À déposer";
 }
 
 // La décote de vétusté telle qu'appliquée : retenue = coût × (durée − âge) / durée
@@ -67,7 +75,7 @@ function vetusteAppliquee(r: Retenue): string {
   if (!r.duree_vie_ans) return "Aucune — coût retenu en intégralité";
   const cout = Number(r.cout);
   const decote = cout > 0 ? Math.round((1 - Number(r.montant_retenu) / cout) * 100) : 0;
-  return `${r.age_ans ?? 0}/${r.duree_vie_ans} ans — décote ${decote.toLocaleString("fr-FR")} %`;
+  return `${r.age_ans ?? 0}/${r.duree_vie_ans} ans — décote ${decote.toLocaleString("fr-FR")}\u00a0%`;
 }
 
 function moisLong(periode: string): string {
@@ -95,7 +103,8 @@ export async function assemblerDecompteRestitution(
   const { data: lignes } = await supabase
     .from("retenues")
     .select(
-      "libelle, cout, duree_vie_ans, age_ans, montant_retenu, sans_justificatif, justificatif_document"
+      // Seconde reprise du lot D3 : avec la fiche de la pièce, pour ne pas compter une pièce purgée comme un justificatif.
+      "libelle, cout, duree_vie_ans, age_ans, montant_retenu, sans_justificatif, justificatif_document, piece:documents!retenues_justificatif_document_fkey(purged_at)"
     )
     .eq("restitution_id", restitution.id)
     .order("created_at");
@@ -124,6 +133,8 @@ export async function assemblerDecompteRestitution(
 
   const f = new Fusion();
   const exp = expediteur(ctx);
+  // Q49 : chaque retenue a son justificatif, sinon le décompte n'est pas produit.
+  exigerJustificatifsRetenues(f, retenues);
 
   const corps = `
     ${enTete(f, exp, {
@@ -234,7 +245,7 @@ export async function assemblerDecompteRestitution(
         loyerHc !== null ? ` (soit ${eur(loyerHc * 0.1)})` : ""
       } pour chaque période mensuelle commencée en retard (article 22 de la loi du 6 juillet 1989).</p>
       <p>Les justificatifs déposés (devis, facture, constat comparé des états des lieux) sont tenus à la
-      disposition du locataire sur demande. Une retenue marquée « Non fourni » n'est appuyée d'aucune pièce.</p>
+      disposition du locataire sur demande.</p>
     </div>
     ${faitA(f, exp.ville, restitution.date_emission ?? new Date().toISOString())}
     ${blocSignatureEmetteur(exp.nom, await signatureOrganisation(supabase, orgId))}

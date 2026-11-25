@@ -206,12 +206,54 @@ describe("l'e-mail de relance : le gabarit et le lien de l'invitation", () => {
       if(cas==="refus fournisseur")m.envoyerEmail.mockResolvedValue({erreur:"refus"});
       if(cas==="réponse perdue")m.envoyerEmail.mockResolvedValue({erreur:"délai",incertain:true});
       const avantEnvoi=vi.fn(async()=>{if(cas==="arrêt demandé")throw new ArretSupervision();});
-      const resultat=await envoyerRappelInvitationLocataire({email:"a@example.invalid",invitationId:ID,expireLe:"2026-12-02T08:00:00Z",avantEnvoi});
+      const resultat=await envoyerRappelInvitationLocataire({email:"a@example.invalid",invitationId:ID,rang:1,expireLe:"2026-12-02T08:00:00Z",avantEnvoi});
       expect(resultat).toMatchObject({envoye:false,incertain:false,erreur:expect.stringContaining("suspendu")});
       expect(m.generateLink).not.toHaveBeenCalled();
       expect(m.envoyerEmail).not.toHaveBeenCalled();
       expect(avantEnvoi).not.toHaveBeenCalled();
     });
+
+  // Audit palier 1 du 22/11/2026 (P1-08) : la relance n'est plus arrêtée en dur ; elle dépend de l'interrupteur
+  // « relance d'invitation » du superviseur, fermé par défaut. Le service simulé ci-dessus n'a pas de lecture
+  // d'interrupteur : c'est le cas « illisible », qui vaut « fermé ».
+  const avecInterrupteur = (reponse: { data: unknown; error: unknown }) => {
+    const rpc = vi.fn(async () => reponse);
+    m.service.mockReturnValue({ auth: { admin: { generateLink: m.generateLink } }, rpc });
+    return rpc;
+  };
+
+  it.each([
+    ["fermé", { data: false, error: null }],
+    ["illisible", { data: null, error: { message: "panne" } }],
+    ["valeur inattendue", { data: "oui", error: null }],
+  ])("interrupteur %s : la relance reste suspendue, aucun lien de connexion n'est fabriqué", async (_cas, reponse) => {
+    const rpc = avecInterrupteur(reponse);
+    const { envoyerRappelInvitationLocataire } = await import("@/lib/lien-mot-de-passe");
+    const resultat = await envoyerRappelInvitationLocataire({ email: "a@example.invalid", invitationId: ID, rang: 1, expireLe: "2026-12-02T08:00:00Z" });
+    expect(resultat).toMatchObject({ envoye: false, incertain: false, erreur: expect.stringContaining("suspendu") });
+    expect(rpc).toHaveBeenCalledWith("envoi_automatique_ouvert", { p_flux: "relance_invitation" });
+    expect(m.generateLink).not.toHaveBeenCalled();
+    expect(m.envoyerEmail).not.toHaveBeenCalled();
+  });
+
+  it("interrupteur ouvert : le lien est fabriqué et l'e-mail part avec le contexte que la base saura reprouver", async () => {
+    avecInterrupteur({ data: true, error: null });
+    const { envoyerRappelInvitationLocataire } = await import("@/lib/lien-mot-de-passe");
+    const resultat = await envoyerRappelInvitationLocataire({ email: " A@Example.invalid ", invitationId: ID, rang: 2, expireLe: "2026-12-02T08:00:00Z" });
+    expect(resultat).toEqual({ envoye: true });
+    expect(m.generateLink).toHaveBeenCalledTimes(1);
+    expect(m.envoyerEmail).toHaveBeenCalledTimes(1);
+    expect(m.envoyerEmail.mock.calls[0][0]).toMatchObject({ to: "a@example.invalid", contexteMetier: { type: "relance_invitation", id: ID, rang: "2" } });
+  });
+
+  it("interrupteur ouvert mais rang hors de 1 ou 2 : rien ne part (la base ne saurait pas le prouver)", async () => {
+    const rpc = avecInterrupteur({ data: true, error: null });
+    const { envoyerRappelInvitationLocataire } = await import("@/lib/lien-mot-de-passe");
+    const resultat = await envoyerRappelInvitationLocataire({ email: "a@example.invalid", invitationId: ID, rang: 3, expireLe: "2026-12-02T08:00:00Z" });
+    expect(resultat).toMatchObject({ envoye: false, erreur: expect.stringContaining("suspendu") });
+    expect(rpc).not.toHaveBeenCalled();
+    expect(m.generateLink).not.toHaveBeenCalled();
+  });
 
 });
 

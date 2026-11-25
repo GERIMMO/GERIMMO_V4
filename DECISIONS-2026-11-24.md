@@ -120,3 +120,10 @@ mot pour mot :
   recherche dans les fichiers) ; leur exécution depuis l'éditeur SQL n'a pas été essayée (supposé). Autre voie : `psql`
   depuis l'ordinateur du dirigeant, avec le mot de passe de la base ; s'il était réinitialisé dans Supabase, le secret
   GitHub `SUPABASE_DB_PASSWORD` devrait être mis à jour le même jour, sinon les migrations du jour J échoueraient.
+- **P3, complément du 25/11 (soir)**, texte reçu mot pour mot : « J'autorise l'agent à annuler les changements de la
+  base par le connecteur Supabase, seulement après mon accord écrit à chaque fois. » → règle en vigueur : l'agent peut
+  jouer les retours de la base par le connecteur Supabase de la session (aucun mot de passe transmis), **uniquement après
+  un accord écrit du dirigeant pour cette fois-là** ; d'abord une simulation dans une transaction annulée, puis les
+  fichiers un par un, arrêt à la première erreur ; chaque exécution passe par la fenêtre d'autorisation de l'outil. Le
+  dirigeant garde sa propre voie (éditeur SQL de Supabase) en secours. Non vérifiés : le droit d'écriture du connecteur
+  (jamais essayé, et pas essayé sur la production sans raison) et sa disponibilité le jour venu.

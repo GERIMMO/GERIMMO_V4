@@ -8316,3 +8316,4 @@ cahier V3 et le wiki (sans autre document). La décision la plus récente l'empo
   n° 45693311092 réussi : 269 tables, 51 746 lignes, 112 fichiers) notés faits. `JOURNAL.md` : entrée du 25/11 au soir.
   Production non modifiée (ni site ni base).
 - P3 décidé : le dirigeant seul joue les retours de la base (éditeur SQL de Supabase, voie non essayée) ; `DECISIONS-2026-11-24.md` et plan mis à jour.
+- P3 complété : l'agent peut jouer les retours de la base par le connecteur Supabase, après accord écrit du dirigeant à chaque fois ; plan (P3, § 5.4) et décisions mis à jour.

@@ -233,7 +233,8 @@ export default async function PageLogementLocataire(
             {depotRecu > 0 ? "Cet argent reste le vôtre" : "Une fois versé, cet argent reste le vôtre"}{" "}
             : il vous est restitué sous 1 mois après un état des lieux de sortie
             conforme à celui d&apos;entrée (2 mois sinon ; toute retenue doit
-            être justifiée, pièces à l&apos;appui), l&apos;usure normale déduite.
+            être justifiée, pièces à l&apos;appui). L&apos;usure normale du logement
+            ne peut pas vous être retenue.
           </p>
         )}
         <div className="mt-4 flex flex-wrap gap-2">

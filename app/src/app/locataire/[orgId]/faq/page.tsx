@@ -55,7 +55,7 @@ function questions(orgId: string, qui: InterlocuteurLocataire): { question: stri
     {
       question: "Comment récupérer mon dépôt de garantie ?",
       reponse:
-        "Il vous est restitué sous 1 mois après un état des lieux de sortie conforme à l'entrée (2 mois sinon ; toute retenue doit être justifiée, pièces à l'appui). L'usure normale du logement est déduite : elle ne peut pas vous être facturée.",
+        "Il vous est restitué sous 1 mois après un état des lieux de sortie conforme à l'entrée (2 mois sinon ; toute retenue doit être justifiée, pièces à l'appui). L'usure normale du logement ne peut pas vous être facturée.",
     },
     {
       question: "Comment donner mon congé ?",

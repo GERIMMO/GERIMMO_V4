@@ -32,6 +32,21 @@ describe.skipIf(!chrome)("Dossiers mobiles : une rubrique à la fois",()=>{
   await page.getByText("Rapports",{exact:true}).click();await page.getByRole("link",{name:"Voir la preuve"}).click();
   await expect.poll(()=>page.getByRole("link",{name:"Rapport original"}).isVisible()).toBe(true);
  });
+ it("un nouveau rendu sans changement d’adresse ne rouvre pas la rubrique de l’ancre et n’y ramène pas l’écran",async()=>{
+  // CI WebKit du 25/11 : arrivé sur /baux/<id>#loyers, l’écran remontait en haut de « Loyers & paiements » à chaque
+  // réponse d’action (la page est rafraîchie), et le geste en cours tombait sur un autre élément.
+  await page.goto("http://localhost/#preuve");await page.getByRole("link",{name:"Rapport original"}).waitFor();
+  await page.getByText("Rapports",{exact:true}).click();
+  expect(await page.getByRole("link",{name:"Rapport original"}).isVisible()).toBe(false);
+  await page.getByRole("button",{name:"Actualiser l’affichage",exact:true}).click();
+  await page.getByText("Affichage 2",{exact:true}).waitFor();
+  // Le défilement vers l’ancre passe par requestAnimationFrame : deux images suffisent à le laisser se produire.
+  await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r(null)))));
+  expect(await page.getByRole("link",{name:"Rapport original"}).isVisible()).toBe(false);
+  // Une vraie navigation vers l’ancre la rouvre toujours.
+  await page.getByRole("link",{name:"Voir la preuve"}).click();
+  await expect.poll(()=>page.getByRole("link",{name:"Rapport original"}).isVisible()).toBe(true);
+ });
  it("le clavier parcourt les onglets avec flèches et Home/End",async()=>{
   await page.goto("http://localhost/");await page.getByRole("tab",{name:"Résumé",exact:true}).focus();await page.keyboard.press("ArrowRight");
   expect(await page.getByRole("tab",{name:"Logement",exact:true}).getAttribute("aria-selected")).toBe("true");

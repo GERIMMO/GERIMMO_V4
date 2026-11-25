@@ -1,21 +1,40 @@
 import { ouvrirSuiviLoyers } from "./aides";
-import { test,expect,type Page } from '@playwright/test';
+import { test,expect,type Page,type Request } from '@playwright/test';
 import {Client} from 'pg';
 import {randomUUID} from 'node:crypto';
 import AxeBuilder from '@axe-core/playwright';
 import {sansSyntheseAlertes,debordementHorizontal} from './aides';
 const ORG='3c1d1e95-3570-400b-8012-44530be145b1';
+// Réseau de chaque onglet. Recharger coupe tout ce que la page est encore en train de charger : la réponse
+// d'une action serveur (le résultat s'affiche avant la fin du flux qui porte l'écran rafraîchi par
+// revalidatePath) et les préchargements des liens, relancés par vagues après chaque action ou défilement.
+// WebKit signale chaque chargement coupé (« Fetch API cannot load … due to access control checks »,
+// « Load failed »), là où Chromium se tait (CI du 25/11, rejoué sur le banc). waitForLoadState('networkidle')
+// ne protégeait pas : cet état, atteint une fois par document, rend ensuite la main tout de suite.
+// On applique donc la même définition (aucune requête en cours depuis 500 ms), mais au moment où l'on
+// s'apprête à modifier les données ou à recharger. Rien n'est attendu si l'onglet est déjà au repos.
+const reseau=new WeakMap<Page,{enCours:Set<Request>;derniere:number}>();
+function suivreReseau(onglet:Page){
+ const etat={enCours:new Set<Request>(),derniere:0};reseau.set(onglet,etat);
+ onglet.on('request',r=>{etat.enCours.add(r);etat.derniere=Date.now();});
+ const fin=(r:Request)=>{etat.enCours.delete(r);etat.derniere=Date.now();};
+ onglet.on('requestfinished',fin);onglet.on('requestfailed',fin);
+}
+async function attendreReseauAuRepos(onglet:Page){
+ const etat=reseau.get(onglet);if(!etat)throw new Error('Le réseau de cet onglet n’est pas suivi.');
+ await expect.poll(()=>etat.enCours.size?[...etat.enCours].map(r=>`${r.method()} ${r.url()}`):Date.now()-etat.derniere<500?['dernière requête terminée il y a moins de 500 ms']:[],
+  {message:'réseau de l’onglet au repos avant de modifier les données de test',intervals:[100]}).toEqual([]);
+}
 async function rechargerApresFixture(page:Page){
  // Ces rechargements ne sont pas des gestes utilisateur : ils relisent les
- // fixtures SQL. Attendre la fin du préchargement Next avant de détruire le
- // document évite d'annuler ses requêtes RSC encore en vol dans WebKit.
- await page.waitForLoadState('networkidle');
+ // fixtures SQL. Ils attendent que l'onglet ne charge plus rien.
+ await attendreReseauAuRepos(page);
  await page.reload();
 }
 async function connecter(page:Page,email:string,destination:string){
  // Les cookies de recette changent hors de l'interface. Ne pas retirer la
- // session pendant les préchargements du compte précédent dans WebKit.
- await page.waitForLoadState('networkidle');
+ // session pendant que l'onglet charge encore quelque chose.
+ await attendreReseauAuRepos(page);
  await page.context().clearCookies();await page.goto(`/connexion?suite=${encodeURIComponent(destination)}`);await page.locator('#email').fill(email);await page.locator('#mot-de-passe').fill(process.env.E2E_MOT_DE_PASSE??'Gerimmo-Demo-2026');
  // La connexion remet ce marqueur à zéro à son montage. Le rétablir après
  // la saisie évite un rechargement du tableau de bord encore en préchargement.
@@ -35,7 +54,7 @@ for(const largeur of [390,1440]) test.describe(`${largeur}px`,()=>{
  let contexteProprietaire:Awaited<ReturnType<typeof browser.newContext>>|undefined;
  let compte:string|undefined;let adhesionCreee=false;const erreurs:string[]=[];
  const suivreErreurs=(onglet:Page)=>onglet.on('pageerror',e=>erreurs.push(`${onglet.url()} : ${e.message}`));
- suivreErreurs(pageLocataire);
+ suivreErreurs(pageLocataire);suivreReseau(pageLocataire);
  try{
   await db.query('begin');
   compte=(await db.query(`insert into auth.users(instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,confirmation_token,recovery_token,email_change,email_change_token_new,email_change_token_current)
@@ -55,25 +74,25 @@ for(const largeur of [390,1440]) test.describe(`${largeur}px`,()=>{
   // Audit palier 1 (P1-18) : le banc n'a aucun service de recommandé électronique relié — l'accord n'est pas demandé.
   await expect(recommandes).toHaveCount(0);
   // Un accord donné auparavant (fixture explicite) reste visible, pour être retiré seulement.
-  await pageLocataire.waitForLoadState('networkidle');
+  await attendreReseauAuRepos(pageLocataire);
   await db.query("update consentements_documents_locataire set recommandes_electroniques=true,recommandes_modifie_le=now() where organization_id=$1 and person_id=$2",[ORG,personne]);
   await rechargerApresFixture(page);await page.getByText('Réception de mes documents',{exact:true}).click();await expect(quittances.getByRole('button',{name:'Retirer mon accord'})).toBeVisible();
   await expect(recommandes.getByText('Accord électronique enregistré',{exact:true})).toBeVisible();await expect(recommandes.getByRole('button',{name:'Retirer mon accord'})).toBeVisible();
   await expect(recommandes.getByRole('button',{name:'J’accepte la réception électronique'})).toHaveCount(0);
   await quittances.getByRole('button',{name:'Retirer mon accord'}).click();await expect(quittances.getByText('Aucun accord électronique enregistré',{exact:true})).toBeVisible();
   expect((await db.query('select quittances_electroniques,recommandes_electroniques from consentements_documents_locataire where person_id=$1',[personne])).rows[0]).toEqual({quittances_electroniques:false,recommandes_electroniques:true});
-  await pageLocataire.waitForLoadState('networkidle');
+  await attendreReseauAuRepos(pageLocataire);
   await db.query("update memberships set status='inactive' where account_id=$1 and organization_id=$2",[compte,ORG]);await rechargerApresFixture(page);await page.getByText('Réception de mes documents',{exact:true}).click();
   await recommandes.getByRole('button',{name:'Retirer mon accord'}).click();await expect(recommandes.getByText('Aucun accord électronique enregistré',{exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'J’accepte la réception électronique'})).toHaveCount(0);
   expect((await db.query('select recommandes_electroniques from consentements_documents_locataire where person_id=$1',[personne])).rows[0].recommandes_electroniques).toBe(false);
   expect(await debordementHorizontal(page)).toBe(0);await page.screenshot({path:info.outputPath(`consentements-retires-${largeur}.png`),fullPage:true});
-  await pageLocataire.waitForLoadState('networkidle');
+  await attendreReseauAuRepos(pageLocataire);
   await db.query("update memberships set status='active' where account_id=$1 and organization_id=$2",[compte,ORG]);
   // Chaque personne conserve son propre navigateur. Effacer les cookies dans
   // l’onglet du locataire interrompait ses requêtes pendant le changement de rôle.
   contexteProprietaire=await browser.newContext({baseURL,viewport:{width:largeur,height:950},isMobile:largeur===390,hasTouch:largeur===390,deviceScaleFactor:largeur===390?2:1,locale:'fr-FR',timezoneId:'Europe/Paris'});
   page=await contexteProprietaire.newPage();
-  suivreErreurs(page);
+  suivreErreurs(page);suivreReseau(page);
   await sansSyntheseAlertes(page);
   await connecter(page,'proprietaire@example.com',`/espace/${ORG}`);
   await ouvrirSuiviLoyers(page);

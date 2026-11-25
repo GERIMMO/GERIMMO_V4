@@ -181,7 +181,16 @@ describe.skipIf(!url)("factures conservées dix ans (avec base)", () => {
     const apres = await lignes();
     expect(apres).toHaveLength(avant.length + 1);
     // Les lignes d'une même transaction portent la même date : la nouvelle se reconnaît à son contenu, pas à son rang.
-    const nouvelles = apres.filter((l) => !avant.some((a) => JSON.stringify(a) === JSON.stringify(l)));
+    // Vérification groupée de la fusion (25/11) : sur un banc préparé de zéro, la migration a déjà écrit à la préparation
+    // une ligne identique (même passage 72 → 120, même motif, sans auteur) ; un simple « absent d'avant » ne trouvait donc
+    // aucune nouvelle ligne. Les lignes d'avant sont retirées une à une (multiensemble) : reste exactement celle ajoutée ici.
+    const restantes = [...avant.map((a) => JSON.stringify(a))];
+    const nouvelles = apres.filter((l) => {
+      const i = restantes.indexOf(JSON.stringify(l));
+      if (i === -1) return true;
+      restantes.splice(i, 1);
+      return false;
+    });
     expect(nouvelles).toHaveLength(1);
     const ligne = nouvelles[0];
     // Sans auteur : c'est la mise à jour du logiciel, pas une personne.

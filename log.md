@@ -8264,3 +8264,27 @@ cahier V3 et le wiki (sans autre document). La décision la plus récente l'empo
 - **index.md** : résumé « 25/11 » ajouté aux 19 entrées.
 - **Reste** : créer les trois pages de notions ; relire les entrées de l'index antérieures au 25/11 qui décrivent encore
   la V1 du 24/10 comme « prévue » ; la seconde passe de vérification, démarrée sur `89cb87ff`, n'est pas terminée (`JOURNAL.md`).
+
+## [2026-11-25] lint | Seconde passe complète et livrables finalisés
+
+- **Objet** : reporter dans les livrables le résultat de la seconde passe complète, des essais de publication au banc et
+  de la première vérification automatique de GitHub (CI), et le changement de version préparée. Sources :
+  `livrables/notes-banc/passe2/`, `livrables/notes-banc/essais/`, faits vérifiés par le pilote, `git log` et `git diff`
+  de `89cb87ff` à `ee28d874` (lecture seule). Aucun code, aucune base, aucun service, aucune production touchés.
+- **État décrit** : en production, toujours la version du 21/11/2026 (`81740dec`, gelée). Version préparée :
+  `ee28d874` (branche `claude/palier-1-preproduction`), soit `89cb87ff` plus `140f4216` (RET-01, retours arrière),
+  `f78e3a3f` (L-01, carte « Mon logement » du locataire) et `ee28d874` (trois tests). Vérification complète au banc
+  de `f78e3a3f` : 16 574 tests réussis, seuls 2 fichiers en échec attendus ; 355 parcours réussis, 3 ignorés. Seconde
+  passe sur `89cb87ff` : 355 puis 354 parcours réussis, un seul défaut majeur (L-01, corrigé). CI : échec sur
+  `89cb87ff` (4 tests, dus aux tests eux-mêmes, corrigés) ; exécution sur `ee28d874` en cours, **résultat en
+  attente**. **Non publiée en production.**
+- **Fichiers modifiés** : `livrables/PLAN-DE-PUBLICATION.md` (version préparée, § 1, P5, résultat de P6 a, É1 à É3,
+  § 5.4, § 7) ; `livrables/RESUME-UNE-PAGE.md`, `livrables/PARCOURS-15-MINUTES.md`, `livrables/NON-FAIT.md` (résultat
+  de la seconde passe, commit, essais, CI) ; `JOURNAL.md` (entrée du 25/11) ; `QUESTIONS.md` (Q123 complétée : outil
+  public de quittance prérempli, bouton d'impression actif ; Q124 : quittance avec une part payée par la CAF) ;
+  `JURISTE.md` (partie 9, point 44, même question).
+- **Contrôles faits** : plus aucun « à compléter » de la seconde passe dans les livrables ; résumé sous 60 lignes ;
+  faits de git refaits sur `ee28d874` (859 fichiers changés depuis `81740dec`, 52 migrations ajoutées et inchangées
+  depuis `89cb87ff`, chantiers GitHub et réglages inchangés, `main` et la version en ligne contenues).
+- **Reste** : le résultat de la CI sur `ee28d874` ; les 19 pages du wiki et `index.md` qui citent encore `89cb87ff`
+  comme version préparée, à reprendre dans un prochain lint ; les décisions P1 à P3 et l'accord écrit sur P6 b du plan.

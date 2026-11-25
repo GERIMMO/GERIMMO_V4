@@ -904,6 +904,19 @@ sont ceux du recueil fourni par le dirigeant, **non recontrôlé sur Légifrance
     (c) si une erreur du résumé est trouvée après l'archivage, suffit-il d'un rectificatif par courriel, ou faut-il une
     nouvelle version ? (La question du client en essai reste le point 38.)
 
+### Seconde passe complète de vérification (25/11/2026)
+
+44. **Quittance d'un loyer dont une part est payée par la CAF** (seconde passe complète du 25/11, relecture des documents
+    générés, `livrables/notes-banc/passe2/p2-relecture-documents-envois.md` ; QUESTIONS.md, Q124). Sur le banc, une
+    quittance porte « déclare avoir reçu de [nom du locataire] la somme de 600 € », alors que 210 € de ce terme viennent
+    de la CAF (phrase lue dans `app/src/lib/documents/modeles/quittance.ts`, inchangée dans la version préparée). La
+    relecture classe ce point « mineur ». Le recueil fourni par le dirigeant (réf. 18, article 21 de la loi du 6 juillet
+    1989, non recontrôlé sur Légifrance) dit que la quittance « porte le détail des sommes versées par le locataire en
+    distinguant le loyer et les charges » ; l'analyse du recueil ne relève rien sur une part versée par un tiers.
+    Questions : (a) une quittance peut-elle déclarer avoir reçu du locataire la totalité du terme quand une part a été
+    versée par la CAF ? (b) faut-il distinguer, sur la quittance, la somme reçue du locataire et
+    celle versée par la CAF, et sous quelle forme ? (c) une seule quittance pour le terme entier reste-t-elle possible ?
+
 ---
 
 ## Points informatifs

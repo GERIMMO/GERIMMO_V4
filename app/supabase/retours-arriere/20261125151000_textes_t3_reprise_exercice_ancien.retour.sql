@@ -18,6 +18,12 @@ declare
   debut integer;
   fin integer;
 begin
+  -- Registre des migrations (essai de publication « retours » du 25/11/2026, constat RET-01) : la version est retirée
+  -- dans ce bloc unique, qui passe ou s'arrête d'un tenant (un refus ou une erreur plus bas l'y laisse) ; sans quoi le
+  -- chantier « Migrations Supabase » refuserait de rejouer la migration (« version déjà enregistrée »).
+  if to_regclass('supabase_migrations.schema_migrations') is not null then
+    delete from supabase_migrations.schema_migrations where version = '20261125151000';
+  end if;
   for r in select * from (values
     -- (fonction, début du texte de la reprise, fin du texte de la reprise, ligne du lot T3 à rendre)
     ('public.regulariser_charges(uuid,integer,numeric,uuid,text,boolean)',

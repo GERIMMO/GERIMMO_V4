@@ -20,6 +20,7 @@ import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { sansRetraitDuRegistre } from "./fixtures/registre-retour";
 import { verifierBaseDeTest } from "./garde-base";
 
 const NOM = "20261125151000_textes_t3_reprise_exercice_ancien";
@@ -77,7 +78,10 @@ function instructions(sql: string): string[] {
 describe("reprise du lot T3 — écriture de la migration et place au manifeste (sans base)", () => {
   it("la migration et son retour ne touchent aucune donnée ni aucune règle de lecture, et n'ouvrent rien aux visiteurs", () => {
     for (const fichier of [`supabase/migrations/${NOM}.sql`, `supabase/retours-arriere/${NOM}.retour.sql`]) {
-      const sql = lire(fichier).replace(/^\s*--.*$/gm, "");
+      // RET-01 (essai « retours » du 25/11) : le retour retire sa version du registre des migrations, et rien d'autre ;
+      // sansRetraitDuRegistre exige cette suppression une fois, puis la retire du texte contrôlé ci-dessous.
+      const texte = fichier.includes("retours-arriere") ? sansRetraitDuRegistre(lire(fichier), NOM.slice(0, 14)) : lire(fichier);
+      const sql = texte.replace(/^\s*--.*$/gm, "");
       expect(sql, fichier).not.toMatch(/\b(update|delete from|insert into|truncate|alter table)\b/i);
       expect(sql, fichier).not.toMatch(/\bpolicy\b|row level security/i);
       expect(sql, fichier).not.toMatch(/grant[^;]*\bto\b[^;]*\b(anon|public)\b/i);

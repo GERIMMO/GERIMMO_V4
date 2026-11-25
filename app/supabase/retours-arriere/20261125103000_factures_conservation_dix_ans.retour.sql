@@ -91,3 +91,14 @@ comment on table public.clients_stripe_supprimes is
   'Clients Stripe supprimés au terme de la conservation des factures (six ans, LPF L. 102 B ; éditeur non commerçant, décision du 23/10/2026). Relecture du 24/10.';
 
 select public.fermer_fonctions_a_anon();
+
+-- Registre des migrations (essai de publication « retours » du 25/11/2026, constat RET-01) : la version est retirée
+-- en DERNIER, une fois tout le reste joué. Avec `psql -v ON_ERROR_STOP=1 -f`, une erreur plus haut arrête le fichier
+-- avant ce bloc : la version reste, et le chantier « Migrations Supabase » ne rejoue pas une migration à moitié
+-- défaite. Sans ce bloc, ce chantier refuserait de rejouer la migration (« version déjà enregistrée »).
+do $registre$
+begin
+  if to_regclass('supabase_migrations.schema_migrations') is not null then
+    delete from supabase_migrations.schema_migrations where version = '20261125103000';
+  end if;
+end $registre$;

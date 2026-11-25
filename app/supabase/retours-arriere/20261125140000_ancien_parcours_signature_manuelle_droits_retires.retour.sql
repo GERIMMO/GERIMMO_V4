@@ -10,6 +10,12 @@
 do $retour$
 begin
   perform set_config('lock_timeout', '10s', true);
+  -- Registre des migrations (essai de publication « retours » du 25/11/2026, constat RET-01) : la version est retirée
+  -- dans ce bloc unique, qui passe ou s'arrête d'un tenant (un refus ou une erreur plus bas l'y laisse) ; sans quoi le
+  -- chantier « Migrations Supabase » refuserait de rejouer la migration (« version déjà enregistrée »).
+  if to_regclass('supabase_migrations.schema_migrations') is not null then
+    delete from supabase_migrations.schema_migrations where version = '20261125140000';
+  end if;
   grant execute on function public.envoyer_pour_signature(uuid, uuid, uuid) to authenticated;
   grant execute on function public.retourner_document_signe(uuid, uuid, text, text, bigint, text) to authenticated;
   grant execute on function public.annuler_demande_signature(uuid, uuid) to authenticated;

@@ -19,6 +19,7 @@ import { join } from "node:path";
 import { Client } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { FICHIERS_EN_SERIE } from "../vitest.config";
+import { sansRetraitDuRegistre } from "./fixtures/registre-retour";
 import { verifierBaseDeTest } from "./garde-base";
 
 const NOM = "20261125140000_ancien_parcours_signature_manuelle_droits_retires";
@@ -49,7 +50,9 @@ describe("ancien parcours de signature manuelle — manifeste, rien de supprimé
   });
 
   it("ni la migration ni son retour ne suppriment ou ne modifient quoi que ce soit : seulement des droits d'exécution", () => {
-    for (const sql of [MIGRATION, RETOUR].map(sansCommentaires)) {
+    // RET-01 (essai « retours » du 25/11) : le retour retire sa version du registre des migrations, et rien d'autre ;
+    // sansRetraitDuRegistre exige cette suppression une fois, puis la retire du texte contrôlé ci-dessous.
+    for (const sql of [MIGRATION, sansRetraitDuRegistre(RETOUR, NOM.slice(0, 14))].map(sansCommentaires)) {
       expect(sql).not.toMatch(/\b(drop|delete|truncate|alter|update|insert|create)\b/i);
       expect(sql).not.toMatch(/\bto\s+(anon|public)\b/i);
     }

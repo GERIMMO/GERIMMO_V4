@@ -14,6 +14,12 @@
 
 do $retour_marques_signature$
 begin
+  -- Registre des migrations (essai de publication « retours » du 25/11/2026, constat RET-01) : la version est retirée
+  -- dans ce bloc unique, qui passe ou s'arrête d'un tenant (un refus ou une erreur plus bas l'y laisse) ; sans quoi le
+  -- chantier « Migrations Supabase » refuserait de rejouer la migration (« version déjà enregistrée »).
+  if to_regclass('supabase_migrations.schema_migrations') is not null then
+    delete from supabase_migrations.schema_migrations where version = '20261125154000';
+  end if;
   if to_regclass('public.baux') is not null then
     drop trigger if exists baux_epoux_pacses_marques_a_la_signature on public.baux;
   end if;

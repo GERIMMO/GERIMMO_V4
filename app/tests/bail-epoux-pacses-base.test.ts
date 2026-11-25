@@ -19,6 +19,7 @@ import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { sansRetraitDuRegistre } from "./fixtures/registre-retour";
 import { verifierBaseDeTest } from "./garde-base";
 
 const NOM = "20261125152000_bail_locataires_epoux_pacses";
@@ -44,7 +45,9 @@ describe("case « mariés ou pacsés » — écriture de la migration et place a
     expect(sql).toContain("pg_get_functiondef");
     // Ni les appels de loyer ni les relances ne sont redéfinis : ils lisent déjà la date de fin (vide = toujours solidaire).
     expect(sql).not.toMatch(/appels_a_envoyer|relances_loyer_dues/);
-    const r = retour().replace(/^\s*--.*$/gm, "");
+    // RET-01 (essai « retours » du 25/11) : le retour retire sa version du registre des migrations, et rien d'autre ;
+    // sansRetraitDuRegistre exige cette suppression une fois, puis la retire du texte contrôlé ci-dessous.
+    const r = sansRetraitDuRegistre(retour(), NOM.slice(0, 14)).replace(/^\s*--.*$/gm, "");
     expect(r).not.toMatch(/\b(update|delete from|insert into|truncate|drop)\b/i); // la colonne et ses valeurs sont gardées
   });
   it("manifeste, liste des retours, ordre des migrations et fichiers en série sont à jour", () => {

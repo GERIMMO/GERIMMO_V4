@@ -22,6 +22,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { sansRetraitDuRegistre } from "./fixtures/registre-retour";
 import { verifierBaseDeTest } from "./garde-base";
 
 const NOM = "20261125105000_archive_compte_apres_client_stripe";
@@ -62,7 +63,9 @@ describe("archive gardée jusqu'à la suppression du client chez le prestataire 
   });
 
   it("une seule fonction réécrite, aucun droit ouvert, aucune donnée écrite, aucune règle d'accès touchée", () => {
-    for (const sql of [MIGRATION, RETOUR]) {
+    // RET-01 (essai « retours » du 25/11) : le retour retire sa version du registre des migrations, et rien d'autre ;
+    // sansRetraitDuRegistre exige cette suppression une fois, puis la retire du texte contrôlé ci-dessous.
+    for (const sql of [MIGRATION, sansRetraitDuRegistre(RETOUR, NOM.slice(0, 14))]) {
       const code = sql.replace(/^\s*--.*$/gm, "");
       expect(code.match(/create or replace function public\.(\w+)/g)).toEqual(["create or replace function public.purger_archives_comptes"]);
       expect(code).not.toMatch(/grant[^;]*\bto\b[^;]*\b(anon|public|authenticated)\b/i);

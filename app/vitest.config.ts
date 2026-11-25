@@ -131,6 +131,9 @@ export const FICHIERS_EN_SERIE = [
   // Reprise de la relecture de la fusion (X-01, 25/11) : rejoue 20261125154000 et son retour (déclencheurs de `baux` et de
   // `bail_personnes`) dans sa transaction.
   "tests/bail-epoux-pacses-nouvelle-signature-base.test.ts",
+  // Essai de publication « retours » (RET-01, 25/11) : joue la chaîne des 52 retours du lot à publier (DDL sur tout le
+  // schéma) dans la transaction du fichier, annulée à la fin.
+  "tests/retours-lot-publication-registre.test.ts",
   // Réserve du relecteur du lot D2 : ces trois fichiers figent le jour de Paris (`create or replace` de
   // `aujourdhui_paris()` dans leur transaction, tests/fixtures/jour-de-paris-fige.ts) : le verrou pris sur la fonction
   // ferait attendre les fichiers lancés en parallèle.

@@ -21,6 +21,7 @@ import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { CONDITIONS_VERSION } from "../src/lib/editeur";
 import { VERSIONS_AVEC_ARTICLE_15_4 } from "../src/lib/relances-paiement";
+import { sansRetraitDuRegistre } from "./fixtures/registre-retour";
 import { verifierBaseDeTest } from "./garde-base";
 
 const NOM = "20261125104000_courrier_impaye_conditions_du_24_novembre";
@@ -65,7 +66,9 @@ describe("courrier d'impayé et version des conditions (sans base)", () => {
       "    or contrat.cgu_version is null or contrat.cgu_version not in ('2026-10-24','2026-11-15') or contrat.cgu_version is distinct from c->>'version'",
       "    or contrat.cgu_version is null or contrat.cgu_version not in ('2026-10-24','2026-11-15','2026-11-24')  -- lot T4 : version du 24/11/2026 ajoutée\n    or contrat.cgu_version is distinct from c->>'version'"));
     expect(corps(RETOUR, "create or replace function public.empreinte_avant_alertes_direction(")).toBe(D_ORIGINE);
-    for (const sql of [MIGRATION, RETOUR]) {
+    // RET-01 (essai « retours » du 25/11) : le retour retire sa version du registre des migrations, et rien d'autre ;
+    // sansRetraitDuRegistre exige cette suppression une fois, puis la retire du texte contrôlé ci-dessous.
+    for (const sql of [MIGRATION, sansRetraitDuRegistre(RETOUR, NOM.slice(0, 14))]) {
       const code = sql.replace(/^\s*--.*$/gm, "");
       expect(code.match(/create or replace function public\.(\w+)/g)).toEqual(["create or replace function public.empreinte_avant_alertes_direction"]);
       expect(code).toContain("language plpgsql security definer set search_path='' as $$");

@@ -24,6 +24,12 @@ declare
   definition text;
   corps text;
 begin
+  -- Registre des migrations (essai de publication « retours » du 25/11/2026, constat RET-01) : la version est retirée
+  -- dans ce bloc unique, qui passe ou s'arrête d'un tenant (un refus ou une erreur plus bas l'y laisse) ; sans quoi le
+  -- chantier « Migrations Supabase » refuserait de rejouer la migration (« version déjà enregistrée »).
+  if to_regclass('supabase_migrations.schema_migrations') is not null then
+    delete from supabase_migrations.schema_migrations where version = '20261125111000';
+  end if;
   -- Garde de l'ordre (A-02), dans le même bloc que la restitution (X-02) : elle s'arrête avant toute modification.
   for r in select * from (values
     ('public.regulariser_charges(uuid,integer,numeric,uuid,text,boolean)'),

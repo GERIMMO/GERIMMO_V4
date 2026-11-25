@@ -106,3 +106,17 @@ mot pour mot :
   indicatif grisé dans le champ vide, jamais comme donnée. Décidé, à appliquer dans le code (autre agent).
 - **Q101, diffusion Facebook quand la Page est « À vérifier »** : « oui » → la diffusion reste masquée tant que la Page
   n'est pas vérifiée. Décidé, à appliquer dans le code (autre agent).
+
+## Réponses du 25/11 (soir) — préalables du plan de publication
+
+- **P1, nouvelle clé des sauvegardes** : « Étape 1, c'est fait » → la clé `GERIMMO_BACKUP_KEY` est remplacée par le
+  dirigeant. Contrôlée ensuite par P2 (restauration réussie avec la nouvelle clé, `JOURNAL.md`, 25/11 au soir).
+- **P2, sauvegarde et contrôle de restauration** : « Oui, lance les deux » → faits le 25/11 (n° 45692125958 et
+  45693311092), réussis.
+- **P3, qui peut annuler les changements de la base (retours arrière, niveau 2)** : « Seulement moi » → le dirigeant
+  seul. Aucun accès n'est donné à un tiers ; l'agent guide, mais ne joue jamais un retour sur la base de production.
+  Voie retenue par prudence, réversible : l'éditeur SQL du tableau de bord Supabase, avec le compte du dirigeant (aucun
+  mot de passe à transmettre ni à saisir). Les 52 retours ne contiennent aucune commande propre à `psql` (vérifié par
+  recherche dans les fichiers) ; leur exécution depuis l'éditeur SQL n'a pas été essayée (supposé). Autre voie : `psql`
+  depuis l'ordinateur du dirigeant, avec le mot de passe de la base ; s'il était réinitialisé dans Supabase, le secret
+  GitHub `SUPABASE_DB_PASSWORD` devrait être mis à jour le même jour, sinon les migrations du jour J échoueraient.

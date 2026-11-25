@@ -8315,3 +8315,4 @@ cahier V3 et le wiki (sans autre document). La décision la plus récente l'empo
 - Plan de publication : P1 (clé remplacée par le dirigeant) et P2 (sauvegarde n° 45692125958, contrôle de restauration
   n° 45693311092 réussi : 269 tables, 51 746 lignes, 112 fichiers) notés faits. `JOURNAL.md` : entrée du 25/11 au soir.
   Production non modifiée (ni site ni base).
+- P3 décidé : le dirigeant seul joue les retours de la base (éditeur SQL de Supabase, voie non essayée) ; `DECISIONS-2026-11-24.md` et plan mis à jour.

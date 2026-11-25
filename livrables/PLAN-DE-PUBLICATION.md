@@ -75,7 +75,7 @@ Pourquoi : la clé actuelle n'existe que dans les secrets de GitHub. Un secret G
 
 Cette sauvegarde ne remplace pas celle du jour J (étape É7) : le chantier des migrations exige une sauvegarde réussie depuis moins de 90 minutes.
 
-**P3 — Décider qui peut jouer un retour arrière de la base. À DÉCIDER.**
+**P3 — Décider qui peut jouer un retour arrière de la base. DÉCIDÉ le 25/11/2026 : vous seul (« Seulement moi », `DECISIONS-2026-11-24.md`, « Réponses du 25/11 (soir) »).** Voie retenue : l'éditeur SQL du tableau de bord Supabase, avec votre compte, fichier par fichier, dans l'ordre du § 5.4, l'agent vous guidant ; aucun mot de passe à transmettre. Les retours ne contiennent aucune commande propre à `psql` (VÉRIFIÉ par recherche) ; leur exécution depuis l'éditeur n'a pas été essayée (SUPPOSÉ). Avant le jour J, vérifiez seulement que vous ouvrez bien l'éditeur SQL du projet de production. Si vous préférez `psql` : ne réinitialisez le mot de passe de la base qu'en mettant à jour le même jour le secret GitHub `SUPABASE_DB_PASSWORD`.
 
 Les retours de la base se jouent « à la main », avec `psql` et le mot de passe de la base. Jamais par le chantier des migrations (`GUIDE-DE-REPRISE.md`, § 6). Ce mot de passe est dans le secret GitHub `SUPABASE_DB_PASSWORD`, qui ne se relit pas. Les notes ne disent pas qui le détient ailleurs. Sans cet accès, le niveau 2 du retour en arrière (§ 5.4) ne peut pas être joué vite. Il faut décider avant le jour J qui le jouerait, et comment l'accès serait donné. L'accès n'est jamais écrit dans un document.
 

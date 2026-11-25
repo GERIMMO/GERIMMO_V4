@@ -623,3 +623,4 @@ La première passe de recette a relu de nouveau tous les documents produits. Ell
 - **Vérifié** : sauvegarde « 20261125-2009 déposée et relue » ; restauration réussie dans une base jetable avec la nouvelle clé : 269 tables, 51 746 lignes, 112 fichiers, aucun manquant, protections validées. Ni le site ni la base de production n'ont été modifiés.
 - **Non vérifié** : la date de mise à jour du secret (l'outil GitHub de la session refuse ce chemin) ; la bascule vers un projet Supabase de secours (hors du contrôle, comme prévu).
 - **Reste** : les étapes 3 à 7 du plan avant le jour J (qui peut annuler les changements de la base, relecture des réglages, accord écrit sur l'ancien code, demi-journée, « je valide la publication »).
+- **Décidé (P3)** : vous seul pourrez annuler les changements de la base (« Seulement moi »), depuis l'éditeur SQL de Supabase avec votre compte ; voie non essayée, consignée dans le plan et dans `DECISIONS-2026-11-24.md`.

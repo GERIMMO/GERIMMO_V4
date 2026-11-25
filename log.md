@@ -8309,3 +8309,9 @@ cahier V3 et le wiki (sans autre document). La décision la plus récente l'empo
   correction de ma lecture de la CI de `ee28d874`), `QUESTIONS.md` (note de mise à jour), 17 pages du wiki et `index.md`
   (« complétée jusqu'à `062296e2` »).
 - **Reste** : votre message « je valide la publication » ; les décisions P1 à P3 et l'accord écrit sur P6 b du plan.
+
+## [2026-11-25] lint | Clé des sauvegardes remplacée, sauvegarde et restauration contrôlées
+
+- Plan de publication : P1 (clé remplacée par le dirigeant) et P2 (sauvegarde n° 45692125958, contrôle de restauration
+  n° 45693311092 réussi : 269 tables, 51 746 lignes, 112 fichiers) notés faits. `JOURNAL.md` : entrée du 25/11 au soir.
+  Production non modifiée (ni site ni base).

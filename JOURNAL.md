@@ -616,3 +616,10 @@ La première passe de recette a relu de nouveau tous les documents produits. Ell
 - **Corrigé dans ce journal** : le 25/11 au matin, j'ai lu la CI de `ee28d874` comme « verte, sauf WebKit » ; ce parcours y était passé au second essai seulement, et la première CI de `89cb87ff` l'avait vu échouer deux fois. Je ne l'avais pas relevé.
 - **Reste** : rien sur ces deux défauts. La CI de la PR et celle de `main` restent exigées le jour J (plan, É2, É4).
 - **État** : `062296e2` poussé sur `claude/palier-1-preproduction` et sur `claude/sauvegarde-fusion` ; plan, résumé, parcours de vérification, liste du non-fait, wiki et index mis à jour ; rien n'est publié en production.
+
+## 25/11/2026 (soir) — Clé des sauvegardes remplacée et contrôle de restauration (étapes P1 et P2 du plan)
+
+- **Fait** : vous avez remplacé la clé `GERIMMO_BACKUP_KEY` (P1, votre message « Étape 1, c'est fait ») ; avec votre accord, j'ai lancé une sauvegarde à la demande (n° 45692125958), puis le contrôle de restauration de la sauvegarde réelle (n° 45693311092).
+- **Vérifié** : sauvegarde « 20261125-2009 déposée et relue » ; restauration réussie dans une base jetable avec la nouvelle clé : 269 tables, 51 746 lignes, 112 fichiers, aucun manquant, protections validées. Ni le site ni la base de production n'ont été modifiés.
+- **Non vérifié** : la date de mise à jour du secret (l'outil GitHub de la session refuse ce chemin) ; la bascule vers un projet Supabase de secours (hors du contrôle, comme prévu).
+- **Reste** : les étapes 3 à 7 du plan avant le jour J (qui peut annuler les changements de la base, relecture des réglages, accord écrit sur l'ancien code, demi-journée, « je valide la publication »).

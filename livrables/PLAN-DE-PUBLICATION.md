@@ -54,7 +54,7 @@
 
 P1 et P2 appliquent votre décision Q9, déjà prise. Ils ne changent ni le site ni la structure de la base (la sauvegarde écrit seulement sa ligne habituelle au journal technique de la base, comme chaque nuit). Ils peuvent donc se faire avant le message « je valide la publication ». Le contrôle de restauration (P2, point 2) demande votre accord. Votre décision du 24/11 (nuit) le rappelle : une sauvegarde neuve et relisible doit exister avant la publication (`DECISIONS-2026-11-24.md`).
 
-**P1 — Nouvelle clé des sauvegardes `GERIMMO_BACKUP_KEY` (décision Q9). À FAIRE, par vous.**
+**P1 — Nouvelle clé des sauvegardes `GERIMMO_BACKUP_KEY` (décision Q9). FAIT par vous le 25/11/2026** (votre message « Étape 1, c'est fait » ; la date du secret n'a pas pu être relue d'ici, l'outil GitHub de la session refuse ce chemin ; le succès de P2 prouve que la nouvelle clé lit la copie).
 
 Pourquoi : la clé actuelle n'existe que dans les secrets de GitHub. Un secret GitHub ne se relit pas. Vous n'en avez aucune copie (Q9). Sans clé, aucune sauvegarde ne se restaure.
 
@@ -67,7 +67,7 @@ Pourquoi : la clé actuelle n'existe que dans les secrets de GitHub. Un secret G
 
 **Conséquence à connaître :** entre le remplacement de la clé et la réussite de P2, il n'existe plus aucune sauvegarde lisible. Faites P1 et P2 le même jour, l'un juste après l'autre.
 
-**P2 — Une sauvegarde lisible, faite avec la nouvelle clé. À FAIRE.**
+**P2 — Une sauvegarde lisible, faite avec la nouvelle clé. FAIT le 25/11/2026, avec votre accord** : sauvegarde à la demande n° 45692125958 (« ✓ sauvegarde 20261125-2009 déposée et relue ») ; contrôle de restauration n° 45693311092 réussi (bilan : 269 tables, 51 746 lignes, 112 fichiers, aucun manquant, protections validées, 12 tâches planifiées contrôlées ; bascule des services Supabase non faite, comme prévu). VÉRIFIÉ dans les journaux des deux chantiers. Le texte ci-dessous garde la marche à suivre.
 
 1. GitHub → Actions → « Sauvegarde quotidienne » → Run workflow, branche `main`. Ce chantier ne demande pas d'approbation (aucun environnement protégé dans `sauvegarde.yml`). Attendre le message « ✓ sauvegarde … déposée et relue ».
 2. Puis, avec votre accord : Actions → « Vérifier la restauration de la sauvegarde réelle » (`restauration-sauvegarde.yml`) → Run workflow, branche `main`. Il télécharge la **dernière** copie, la déchiffre avec la clé et la restaure dans une base jetable. Il ne touche ni Scaleway, ni Supabase, ni le site.

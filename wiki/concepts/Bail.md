@@ -1,10 +1,10 @@
 ---
 type: concept
-tags: [bail, contrat, alur, signature, colocation, preavis]
+tags: [bail, contrat, alur, signature, colocation, preavis, conge, epoux-pacs]
 status: in-progress
 created: 2026-07-22
-updated: 2026-11-24
-sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
+updated: 2026-11-25
+sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Recueil des textes officiels (v6)]]", "DECISIONS-2026-11-24.md", "QUESTIONS.md (Q4, Q11, Q23, Q34, Q40, Q43, Q46, Q77, Q102 à Q107, Q111, Q115, Q116, Q121, Q122)", "JURISTE.md (partie 9)", "JOURNAL.md (entrées du 24-25/11/2026)", "livrables/notes-banc/ (notes-T1, notes-T2, notes-T3, notes-mariage, notes-D5, relecture-T1R, relecture-T2R, fusion/fusion-notes, fusion/relecture-contrats, fusion/relecture-argent, fusion/corrections-fusion-notes)", "livrables/recueil/analyse-refs-01-09.md", "livrables/recueil/analyse-refs-10-24.md"]
 ---
 
 # Bail
@@ -34,9 +34,9 @@ change rien aux baux en cours.
 | Aspect | Bail nu | Bail meublé |
 |---|---|---|
 | Durée minimale | 3 ans (personne physique, RM-1.1.8 ; aussi **SCI familiale** et **indivision de personnes physiques**) — **6 ans** si un bailleur est une personne morale autre qu'une SCI familiale (art. 10 et 13 de la loi du 6 juillet 1989, audit des parcours métier du 29/09) | **1 an — 9 mois étudiant** (sans reconduction) ; reconduction tacite **d'1 an** hors étudiant ([[2026-08-05-bailpdf-modele-bail-meuble]], section III) |
-| Préavis locataire | 3 mois (1 mois en zone tendue) | **1 mois toujours** |
+| Préavis locataire | 3 mois (1 mois en zone tendue — version préparée : seulement si la lettre de congé précise et justifie le motif, voir § « Version préparée ») | **1 mois toujours** |
 | Préavis bailleur | 6 mois | 3 mois |
-| [[Dépôt de garantie]] max | **1 mois** hors charges | **2 mois** — jamais révisé en cours de bail (RM-2.1.5) |
+| [[Dépôt de garantie]] max | **1 mois** hors charges | **2 mois** — jamais révisé en cours de bail (RM-2.1.5) ; l'article 25-6 qui le fixe manque au [[Recueil des textes officiels (v6)\|recueil]] : plafond gardé, non relu (Q111) |
 | Inventaire mobilier | — | **Obligatoire, structuré** (pas un PDF joint) ; mobilier minimum décret 2015 sinon alerte de requalification. Exigence légale : « inventaire et état détaillé du mobilier » **annexés**, établis à la remise des clés ([[2026-08-05-bailpdf-modele-bail-meuble]], section XI) — l'inventaire structuré Gerimmo rend cette annexe générable |
 
 Mentions obligatoires alimentées par le socle : parties (0b), désignation du logement
@@ -124,7 +124,10 @@ Réponse du dirigeant du 22/11/2026 : « 1A - 2B - 3A - 4 ok »
   mois et activé le 20 active donc malgré un DPE classé G, mais garde son alerte d'état des lieux d'entrée.
 - **En base** : migration `20261122090000_bail_repris_dpe_g_et_edl_entree.sql`
   (PR [#357](https://github.com/GERIMMO/GERIMMO_V4/pull/357)), retour arrière fourni. **Au 22/11/2026 : prête, ni
-  fusionnée ni publiée** — la publication attend l'accord du dirigeant.
+  fusionnée ni publiée** — la publication attend l'accord du dirigeant. *Mise à jour du 25/11 :* le lot a été fusionné
+  dans `main` (`e1e442dc`) le 22/11, puis sa publication a été arrêtée par le gel de la production ; il partira avec la
+  publication unique de fin de mission (`QUESTIONS.md`, Q4, option confirmée le 24/11). En production aujourd'hui : la
+  version du 21/11 (`81740dec`).
 
 > [!warning] Points à trancher / contradictions
 > - **DPE classé G (décision 2B)** : aucune source du wiki n'établit ce que l'interdiction de louer un logement classé
@@ -183,8 +186,12 @@ conservation calée sur le bail — hypothèse à confirmer). Voir
   **enregistre son départ** à la date d'effet de son congé. Sa solidarité s'éteint
   **six mois** après cette date, ou à cette date si un **nouveau colocataire figurant
   au bail** le remplace. Le garant qui le couvre reste rattaché au bail et son
-  engagement s'éteint à la même date.
-- Couple marié/pacsé : solidarité légale automatique. Contrats séparés (1.4) et
+  engagement s'éteint à la même date. *(Version préparée : plus de fin de solidarité pour deux époux ou partenaires de
+  PACS déclarés au bail — case « mariés ou pacsés », voir § « Version préparée ».)*
+- Couple marié/pacsé : solidarité légale automatique (référentiel). *Le texte fourni (loi de 1989, art. 8-1 I,
+  [[Recueil des textes officiels (v6)]], non recontrôlé sur Légifrance) exclut de la colocation « la location consentie
+  exclusivement à des époux ou à des partenaires liés par un pacte civil de solidarité au moment de la conclusion
+  initiale du contrat ».* Contrats séparés (1.4) et
   remplacement (1.5) : **V2** (imposeront sous-lots ou assouplissement de RM-1.1.3).
 
 ## Machine à états (module 1 ≈ registre A5)
@@ -201,6 +208,9 @@ bail + zone **figée au bail**, RM-1.10.7), en jours calendaires, depuis la **r�
 du congé. 8 motifs dérogatoires → 1 mois, **justificatif obligatoire sinon blocage**
 (RM-1.10.5). Le locataire reste redevable jusqu'au terme du préavis ; relocation
 pendant le préavis l'interrompt. → alerte d'[[État des lieux]] de sortie.
+*Version préparée (lot T1) : en zone tendue, un mois seulement si la lettre du locataire précise et justifie le motif,
+trois mois sinon ; l'état des lieux de sortie demande l'« adresse du nouveau domicile ou du lieu d'hébergement » (lot T3).
+Voir § « Version préparée ».*
 
 **Congé du bailleur (1.11)** : au terme uniquement, préavis 6 mois (nu) / 3 mois
 (meublé) — **insuffisant = blocage (le congé serait nul)**. Trois motifs : reprise
@@ -215,12 +225,15 @@ Le PDF du congé (audit des parcours métier du 29/09) prend pour date d'effet l
 par la base** — la même règle que l'enregistrement du congé, durée selon la qualité
 des bailleurs — pour la date de présentation prévue (le terme suivant si le préavis
 n'y tient plus) ; il imprime le prix et refuse un congé pour vente d'un logement nu
-sans prix.
+sans prix. *Version préparée (lot T1) : date de **réception** prévue (et non plus de présentation), date limite comptée
+jusqu'au dernier jour du bail, cinq alinéas de l'article 15 II reproduits, reprise refusée à une société non familiale —
+voir § « Version préparée ».*
 
 **Reconduction tacite (1.8)** : alerte à l'agent **6 mois avant le terme** (sinon le
 congé bailleur devient impossible) — jamais de reconduction silencieuse. **Avenant
 (1.9)** : ne modifie jamais le bail d'origine, suit le même circuit
-génération/signature ; la **révision IRL n'exige pas d'avenant** (module 3, RM-1.9.3).
+génération/signature ; la **révision IRL n'exige pas d'avenant** (module 3, RM-1.9.3) —
+délai d'un an et premier terme révisé : [[Révision annuelle IRL]].
 
 ## Modèles et consultation
 
@@ -278,7 +291,9 @@ colocataires.
 >   développement ([[Modèle de données]]).
 > - Le module 1 saisit la « date de réception » du congé ; la matrice demande le champ
 >   « **date de première présentation** » (RM-A3.5, rattachement prioritaire n° 1) —
->   formulation à aligner en développement.
+>   formulation à aligner en développement. *25/11 : le texte fourni (art. 15 I et 25-8, recueil, non recontrôlé) fait
+>   courir le délai « à compter du jour de la réception » ; la version préparée (lot T1) dit « réception » partout pour
+>   le congé du bailleur, la colonne garde le nom `date_premiere_presentation`. La matrice reste contredite.*
 
 > [!info] Champs manquants pour générer un bail conforme (ingest bailpdf, 2026-08-01)
 > Voir [[Documents a generer et automatisation WhatsApp]]. À stocker et non prévus
@@ -365,12 +380,15 @@ Relu dans le code après les lots 35, 38, 40, 45 et 46 ([[Mission palier 1 — a
   même dans le PDF préparé pour la signature (deux avenants identiques sur un même bail ont donc la même référence :
   Q47, point 3). L'avenant de remplacement d'un colocataire ne vaut que pour un contrat commun, choisit le sortant parmi
   les titulaires et prévoit les signatures du bailleur, du sortant, de l'entrant et des colocataires restants ; faut-il
-  aussi celles des cautions ? (juriste, point 12).
+  aussi celles des cautions ? (juriste, point 12). *Version préparée : refusé, et plus proposé, pour un bail coché
+  « mariés ou pacsés » (relecture de la fusion, C-01).*
 - **Colocation** : un colocataire parti n'est plus traité comme locataire dans les documents. Le contrat individuel
   parle du « loyer maximal applicable au logement entier » (voir [[Mentions obligatoires du bail]]).
 - **Attestations d'un bail en préavis** : elles donnent la date de fin (« Un congé est enregistré : le contrat prend fin
   le … ») ; faut-il dire qui a donné le congé ? (juriste, point 8).
-- **Notice** : un résumé joint à part, pas la notice officielle (Q46 ; [[Mentions obligatoires du bail]]).
+- **Notice** : un résumé joint à part, pas la notice officielle (Q46 ; [[Mentions obligatoires du bail]]). *Décidé le
+  24/11 (Q46) et appliqué en préproduction (lot D3) : le bailleur dépose la notice, jointe comme annexe ; l'envoi en
+  signature électronique est bloqué sans elle — voir § « Version préparée ».*
 - **Baux préparés avant la publication** : l'ancienne mise en page est gardée pour contrôler l'empreinte d'un bail signé
   à son activation (même empreinte vérifiée sur 70 dossiers) ; un circuit de signature préparé mais pas encore envoyé
   sera refusé à l'envoi et à préparer de nouveau (Q40 ; [[Signature électronique]]).
@@ -379,3 +397,129 @@ Relu dans le code après les lots 35, 38, 40, 45 et 46 ([[Mission palier 1 — a
 > - La section « Contrats individuels de colocation » (14/09) parle du « loyer applicable au logement entier » : c'est un
 >   **plafond** du total des contrats individuels, désormais nommé « loyer maximal applicable au logement entier ».
 >   Vaut-il en toute zone, ou seulement par renvoi aux zones d'encadrement ? (`JURISTE.md`, partie 5, point 10).
+>   *25/11 : le texte fourni (art. 8-1, recueil) plafonne la somme des loyers au « loyer applicable au logement en
+>   application des articles 17 ou 25-9 » ; la règle vaut partout, reste à dire ce que vaut ce loyer hors encadrement
+>   (`livrables/recueil/analyse-refs-10-24.md`, réf. 17).*
+
+## Version préparée, à publier — congés, contrat, solidarité, signature (au 25/11/2026)
+
+**En production aujourd'hui** : la version du 21/11/2026 (`81740dec`) ; rien de ce qui suit n'y est encore. **Version
+préparée** : la branche réunie `claude/palier-1-fusion` (`89cb87ff`), vérifiée en entier sur le banc et poussée le
+25/11 (03:16 UTC) sur la branche de préproduction `claude/palier-1-preproduction` (`JOURNAL.md`, entrée du 25/11
+« Fusion des deux arbres et corrections »). Elle réunit (a) les décisions D1 à D3 (signature proposée en premier,
+révision du loyer, notice déposée), déjà en préproduction le 24/11 (`fde4cbb4`, vérifiée ce jour-là) ; (b) les lots T1
+à T3 tirés du recueil, la case « mariés ou pacsés », le retrait de l'ancien parcours de signature (D5) et les
+corrections des deux relectures de la fusion (`livrables/notes-banc/fusion/`). Rien ne part en production sans le message « je valide la publication »
+(`DECISIONS-2026-11-24.md`). Les règles ci-dessous suivent le [[Recueil des textes officiels (v6)]], **texte fourni par
+le dirigeant, non recontrôlé sur Légifrance** : elles ne sont pas présentées comme conformes.
+
+### Congés (lot T1)
+- **Date limite du [[Congé du bailleur|congé du bailleur]]** : la date de réception plus le préavis (six mois en nu, trois en meublé) doit
+  tomber **au plus tard le dernier jour du bail** ; l'ancienne règle acceptait un congé reçu un jour trop tard (écart
+  R13-A1, bloquant). La fiche du bail affiche la date limite du terme en cours, avec « Gardez une marge ». Exemples de
+  la notice de l'arrêté du 13 décembre 2017 reproduits par la base et l'application : terme le 15/06 → au plus tard le
+  15/12 ; le 30/06 → le 31/12 ; le 31/08 → le 28/02 (29 si bissextile). Même règle appliquée au meublé (supposé). Les
+  congés déjà enregistrés ne sont pas modifiés (Q105).
+- **Terme en fin de mois** : un bail commencé le 29/02/2024 finit le 28/02/2027 (le 27/02 avant) ; date limite du congé
+  au 31/08/2026 (27/08 avant). La même règle décale d'un jour le terme de certains baux étudiants de neuf mois (Q115).
+- **Réception, et non première présentation** : texte fourni (art. 15 I) — « Ce délai court à compter du jour de la
+  réception de la lettre recommandée, de la signification de l'acte du commissaire de justice ou de la remise en main
+  propre. » L'écran l'explique (« une lettre présentée mais non retirée ne fait pas courir le délai ») et dit « acte de
+  commissaire de justice ».
+- **Congé pour vendre d'un logement nu** : les cinq alinéas de l'article 15 II sont reproduits mot pour mot (texte
+  altéré → pas de lettre) ; conditions de la vente exigées (facultatives en meublé) ; désignation des locaux reprise des
+  fiches de Gerimmo. La lettre annonce la notice de l'arrêté de 2017 en pièce jointe (vente et reprise, nu) mais ne
+  l'imprime pas (texte du recueil douteux) : le bailleur la joint lui-même, Gerimmo ne le vérifie pas (Q102).
+- **Reprise** refusée en location nue quand un bailleur est « SCI » non familiale ou « Personne morale » (modèle et
+  base, Q106) ; SCI familiale : reprise au profit d'un associé ; meublé non contrôlé.
+- **Logement acheté déjà loué** : question obligatoire (vente et reprise, nu) ; refus quand le terme visé tombe trois ans
+  au plus (vente) ou deux ans au plus (reprise) après l'acquisition, sans calcul de la date d'effet repoussée (Q104).
+- **Préavis du locataire en zone tendue** : trois mois par défaut, **un mois si la personne qui enregistre le congé
+  confirme que la lettre précise le motif et le justifie** — texte fourni : « A défaut, le délai de préavis applicable à
+  ce congé est de trois mois. » Aucun justificatif déposé n'est exigé pour la zone tendue (Q103) ; les autres motifs
+  gardent leur pièce obligatoire ; zone inconnue : inchangé (un mois accepté, alerte « à vérifier »). À la publication,
+  la migration passe avant le code (sinon l'ancienne base accorde un mois d'office).
+- Amende pénale citée dans les mots du texte ; protection du locataire âgé complétée (personne à charge, exception du
+  bailleur).
+
+### Contrat et première échéance (lot T2) — détail : [[Mentions obligatoires du bail]]
+- **Première échéance** : le bail imprime le montant d'une **période complète** (loyer + charges détaillés), puis, s'il
+  ne commence pas un 1er, le premier terme au prorata, calculé comme l'appel de loyer (loyer et charges arrondis chacun).
+  Parité vérifiée sur 50 764 cas ; l'ancien calcul s'écartait d'un centime dans 9 973. Non rejoué : bail repris en cours
+  (date de bascule), dont le premier appel est un mois plein.
+- **Bail nu à durée réduite** : plus produit quand le champ « événement de durée réduite » est rempli (Q107) ; un bail
+  déjà signé reste activable. **Meublé** : la rubrique « durée réduite » est retirée. Voir [[Types de baux]].
+- Les baux préparés avant ces lots gardent leur empreinte (13 824 rendus archivés identiques) ; un dossier de signature
+  « prêt » mais non envoyé est refusé à l'envoi et se prépare de nouveau (Q40).
+
+### Solidarité et case « mariés ou pacsés » (décision du 24/11, nuit)
+- **Texte fourni** (art. 8-1 VI) : « La solidarité d'un des colocataires et celle de la personne qui s'est portée caution
+  pour lui prennent fin à la date d'effet du congé régulièrement délivré et lorsqu'un nouveau colocataire figure au
+  bail. A défaut, elles s'éteignent au plus tard à l'expiration d'un délai de six mois après la date d'effet du
+  congé. » La clause du bail reprend cet ordre (R17-A4) ; avec exactement deux locataires, elle ajoute que la règle ne
+  s'applique pas à une location consentie exclusivement à des époux ou partenaires de PACS.
+- **Décision du dirigeant** : « Tu peux ajouter la case marié ou pacsé. » À l'étape « Personnes » d'un contrat commun à
+  **exactement deux locataires**, au brouillon seulement : « Les deux locataires sont mariés l'un à l'autre, ou liés l'un
+  à l'autre par un PACS, à la signature du bail (location consentie à eux seuls) ». Cochée : le contrat dit qu'elle
+  « n'est pas une colocation au sens de l'article 8-1 » et que sa règle de fin de solidarité ne s'applique pas ; il
+  s'intitule « Contrat de location » (« Locataire 1 / 2 »). Non cochée : contrat identique, à l'octet près, à celui
+  d'avant la case.
+- **Calcul en base** : au départ de l'un des deux époux ou partenaires présents à la signature, **aucune fin de
+  solidarité** n'est enregistrée, pour lui comme pour sa caution ; appels et relances (caution comprise au second
+  niveau) continuent de les viser. Au brouillon coché, un troisième locataire est refusé et le bail ne sort du brouillon
+  qu'à deux. L'ajout d'un tiers après la signature est accepté avec un avertissement : ce tiers et son garant suivent la
+  règle de la colocation ; après « Corriger » et nouvelle signature, comptent les personnes présentes à cette signature.
+  L'**avenant de remplacement** n'est plus proposé pour un bail coché. Un bail déjà signé ne peut pas recevoir la case.
+  Migrations `20261125152000`, `20261125153000`, `20261125154000`, avec retours arrière.
+- Non traité : sur un bail non coché, un remplaçant arrivé après le départ enregistré ne raccourcit pas les six mois ;
+  l'acte de cautionnement n'est pas adapté à la case ([[Garantie]]) ; le second signataire garde la qualité
+  « Colocataire » dans le circuit de signature électronique.
+
+### Signature et notice (D1, D3, D5)
+- **Q11, préproduction** : la [[Signature électronique]] est proposée en premier là où elle peut servir (propriétaire qui
+  gère lui-même, service ouvert), avec « Signature sur papier, toujours possible » ; en agence ou service fermé, le papier
+  reste la voie présentée. L'ouverture du service est un réglage du jour de la publication.
+- **Q46, préproduction** : le bailleur dépose la notice d'information (PDF) à l'étape Documents du bail ; sans elle, la
+  préparation et l'envoi en signature électronique sont bloqués ; déposée, elle est jointe comme annexe. Le papier n'est
+  pas bloqué (rappel à l'écran). Depuis le lot T2 (version préparée `89cb87ff`), l'écran dit la version à déposer : annexe de l'arrêté
+  du 29 mai 2015 dans sa rédaction issue de l'arrêté du 9 octobre 2026, pour un contrat conclu ou renouvelé depuis le
+  18 octobre 2026. Gerimmo ne vérifie
+  ni le fichier ni sa version ; il n'imprime pas la notice du recueil (site miroir, adresses coupées, tableaux : Q77).
+- **D5, version préparée `89cb87ff`** : l'ancien parcours « télécharger, signer, redéposer » est retiré de l'espace du locataire
+  (carte, action, e-mail « Document à signer ») ; la signature électronique et le dépôt du bail signé sur papier restent.
+  En base rien n'est supprimé (trois droits retirés). Contrôle de production du 24/11 : aucune ancienne demande ; à refaire
+  en lecture seule le jour de la publication, avant la migration.
+
+### Révision du loyer (D2, préproduction) — détail : [[Révision annuelle IRL]]
+Date limite affichée (un an après la date de révision), second rappel 30 jours avant, refus au-delà ; nouveau loyer au
+premier terme qui suit la demande, écrit dans la lettre (Q43) ; date limite au calendrier du propriétaire (Q34). Délai
+d'un an lu sur la fiche de service-public le 24/11, pas sur l'article de loi ; l'article 17-1 figure depuis au recueil
+(« dans un délai d'un an suivant sa date de prise d'effet », réf. 01, texte fourni, non recontrôlé sur Légifrance).
+
+> [!warning] Points à trancher / contradictions (25/11/2026)
+> - **« Terme » du bail** : Gerimmo retient le dernier jour du bail ; si la loi visait le jour anniversaire, un congé
+>   valable serait refusé à l'enregistrement, sans dérogation (`JURISTE.md`, partie 9, points 1, 2 et 24 ; relecture
+>   T1R-1).
+> - **Époux et partenaires de PACS** : le référentiel parle de « solidarité légale automatique » ; le texte fourni les
+>   sort de la colocation sans fixer de terme à leur solidarité, qui reste celle de la clause du bail. Durée après le
+>   départ de l'un d'eux, divorce ou fin du PACS (code civil, art. 220 et 1751), mariage après la signature, tiers entré
+>   après la signature, remplacement de l'un d'eux, bail signé de nouveau après « Corriger » : au juriste
+>   (`livrables/notes-banc/notes-mariage.md` § 6 ; `fusion/corrections-fusion-notes.md` § 6 et § 9.4 ; `JURISTE.md`,
+>   partie 9, points 39 à 41 ; `QUESTIONS.md`, Q116, Q121, Q122). `JURISTE.md`, partie 9, point 11, dit encore la case
+>   « en cours ».
+> - **État des lots dans le journal** : les dernières entrées de `JOURNAL.md` disent la case « mariés ou pacsés » et la
+>   reprise du lot T3 « en cours » ; les notes du banc et la branche réunie les montrent faites (commits `d9380013`,
+>   `7180794e`), non vérifiées en entier. → *Tranché le 25/11 : la nouvelle entrée du journal (« Fusion des deux arbres
+>   et corrections ») précise que ces entrées datent d'avant la fusion ; `89cb87ff`, qui contient les deux commits, est
+>   vérifiée en entier sur le banc (16 506 tests réussis, seuls 2 fichiers en échec attendus ; 355 parcours réussis,
+>   3 ignorés) et poussée sur la branche de préproduction. Non publiée en production.*
+> - **Révision** : la fiche officielle lue le 24/11 applique le loyer révisé « à partir de la date de la demande » ;
+>   Gerimmo l'applique au terme suivant, choix plus favorable au locataire (Q43 ; `JURISTE.md`, partie 6, point 16). Le
+>   gel en classe F ou G est appliqué à tout bail, alors que le texte fourni ne le prévoit que pour les contrats conclus,
+>   renouvelés ou reconduits depuis le 24/08/2022 (écarts R01-A1 et R23-A1, non corrigés).
+> - **Zone tendue** : la notice du recueil annonce un nouveau décret des zones tendues (n° 2026-831) au 1er janvier
+>   2027, non reproduit ; le préavis réduit et la zone figée au bail seront à relire (`JURISTE.md`, partie 9, point 6).
+> - **Un congé par cotitulaire ?** Gerimmo produit une seule lettre pour tous les locataires (`JURISTE.md`, partie 9,
+>   point 10).
+> - **Première échéance** : la seconde phrase (premier terme au prorata) peut-elle figurer au contrat ? (`JURISTE.md`,
+>   partie 9, point 16).

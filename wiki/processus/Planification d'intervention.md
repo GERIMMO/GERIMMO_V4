@@ -3,8 +3,8 @@ type: process
 tags: [planification, creneaux, incident]
 status: in-progress
 created: 2026-07-21
-updated: 2026-11-23
-sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-10-rdv-et-planning]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Propositions de fonctions majeures — version candidate du 13 octobre 2026]]", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
+updated: 2026-11-25
+sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-10-rdv-et-planning]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Propositions de fonctions majeures — version candidate du 13 octobre 2026]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "DECISIONS-2026-11-24.md (Q6, Q30, Q32, Q37)", "JOURNAL.md — lots 15, 25, 26, 34 et D4 (22 au 25/11/2026)", "QUESTIONS.md — Q6, Q30, Q32, Q37", "livrables/notes-banc/notes-D4.md", "livrables/notes-banc/fusion/ (fusion-notes.md, PLAN-PUBLICATION-NOTES.md, relecture-envois.md)", "code de la branche fusionnée claude/palier-1-fusion (89cb87ff, lecture seule) : lib/relances-reports-rdv.ts, lib/envois-suspendus.ts"]
 ---
 
 # Planification d'intervention
@@ -107,6 +107,11 @@ Trois partis pris :
 > « prêts, fermés », que le [[Super Admin]] ouvre un par un ; tant qu'il ne l'a pas ouvert, rien ne part
 > ([[Mission palier 1 — audit du 22 novembre 2026]]). La phrase « est **en place** » ci-dessus décrit l'état du
 > 18/09, pas celui d'aujourd'hui.
+>
+> *25/11/2026* : **en production aujourd'hui**, le rappel ne part toujours pas. Décision du dirigeant du 24/11 (Q6) :
+> « ouvre les quatre envois automatiques à la publication ». Dans la version préparée, l'interrupteur reste **fermé à
+> la livraison** ; le [[Super Admin]] l'ouvre le jour de la publication, après les migrations et le code (voir
+> « Version préparée, à publier » en fin de page).
 
 Les deux messages sont **différents** : au locataire l'heure, la durée et quoi
 faire s'il ne peut pas ; à l'artisan l'adresse, le désordre et la référence du
@@ -150,6 +155,9 @@ artisan, l'annulation que côté gérant.
 >   l'avis de la demande (événement `rdv_report_demande`, admis) ; il n'est pas relancé ensuite. À l'échéance, la
 >   demande expire, le rendez-vous est maintenu et le gérant est alerté. **Constat du 22/11/2026, que l'audit de la
 >   mission palier 1 n'avait pas relevé** (`QUESTIONS.md`, Q37) : ni corrigé, ni ajouté au plan, qui est fermé.
+>   - *25/11 — supplanté dans la version préparée (non publiée)* : décision Q37 du 24/11, « oui, cinquième envoi avec
+>     son interrupteur, ouvert à la publication ». Le lot D4 en fait le cinquième envoi automatique (voir fin de page).
+>     **En production aujourd'hui**, la relance reste retenue.
 
 ## Ce qui a été complété le 16/10/2026 (relu dans le code le 22/11/2026)
 Les deux autres écarts que cette page relevait jusqu'ici avec la proposition C sont comblés par la migration
@@ -174,13 +182,15 @@ base d'essai ; **rien n'est en production** tant que le dirigeant n'a pas valid�
   en cours continue. Sa semaine type préremplit ses créneaux, en sautant ses absences ; rien ne part sans qu'il relise
   et envoie, et le préremplissage ne tient pas compte de ses autres rendez-vous. Ce n'est donc **toujours pas un moteur
   de disponibilités** (parti pris du module 10, plus haut). Le refus de la demande pendant l'absence est un choix de
-  prudence de l'agent, à confirmer par le dirigeant (`QUESTIONS.md`, Q30).
+  prudence de l'agent, à confirmer par le dirigeant (`QUESTIONS.md`, Q30). *Option confirmée par le dirigeant le
+  24/11 (« rien ne change »).*
 - **Rendez-vous manqué consigné (lot 26).** Une fois l'heure passée, l'artisan peut consigner que le locataire était
   absent ; le gestionnaire peut consigner l'absence du locataire **ou** de l'artisan. Le rendez-vous tombe, un nouveau
   est à convenir, le fait s'écrit à la chronologie. Le locataire lit la date manquée et qui est dit absent. Le nombre
   d'absences imputées à l'artisan sur douze mois s'affiche dans ses évaluations, mais **n'entre pas dans sa note**
   (`QUESTIONS.md`, Q32) : la règle du module 10 (« celles de l'artisan pèsent sur son score de fiabilité ») n'est donc
-  appliquée qu'à moitié.
+  appliquée qu'à moitié. *Option confirmée par le dirigeant le 24/11 (« rien ne change ») : l'écart avec le module 10
+  demeure, voir l'encadré final.*
 - **Rappel de rendez-vous (lot 15).** Voir l'encadré de la section « Le rappel de rendez-vous » : prêt, fermé, ouvert
   par le Super Admin.
 
@@ -198,3 +208,41 @@ En préproduction, **non publié** ([[Mission palier 1 — audit du 22 novembre 
   dit pourquoi il n'en propose plus ; annulation confirmée en deux temps ; l'artisan « en prend acte ». Le point
   « Non vérifié » de l'encadré D22-B ci-dessus est donc levé **sur le banc d'essai** ; la relance de l'artisan avant
   l'échéance reste retenue (Q37).
+
+## Version préparée, à publier (branche fusionnée du 25/11/2026, non publiée)
+
+Fait dans la branche `claude/palier-1-fusion` (`89cb87ff`, poussée le 25/11 sur la branche de préproduction `claude/palier-1-preproduction`), vérifié sur le banc local (service d'envoi simulé, aucun
+e-mail réel envoyé), **pas en production**. Sources : `DECISIONS-2026-11-24.md`, `JOURNAL.md` (lot D4),
+`livrables/notes-banc/notes-D4.md`, relecture des envois de la fusion.
+
+- **Cinq envois automatiques, chacun avec son interrupteur, tous fermés à la livraison** : avis d'échéance, relance
+  amiable d'un loyer impayé, **rappel de rendez-vous**, relance d'une invitation, et **relance d'une demande de report
+  de rendez-vous** (cinquième envoi, décision Q37). La relecture des envois de la fusion a vérifié les cinq
+  interrupteurs fermés.
+- **Relance de l'artisan avant l'échéance des 48 h** (lot D4) : la migration `20261125110000` ajoute l'interrupteur
+  `relance_report_rdv`, **faux par défaut**. Fermé, rien ne change (la relance reste retenue par la liste fermée des
+  e-mails). Ouvert, l'e-mail « Un report de rendez-vous attend votre réponse » porte son contexte métier, et la base
+  refait la preuve juste avant l'envoi : interrupteur ouvert, aucun arrêt (général ou « rappels »), demande de cet
+  espace toujours en attente et non échue, relance réservée et sans sort, mission planifiée, adresse de l'[[Artisan]].
+- **Ouverture le jour de la publication** (décisions Q6 et Q37) : après les migrations et le code (plan de
+  publication, étape 9), le [[Super Admin]] ouvre les cinq envois **un par un** dans Paramètres généraux, « Envois
+  automatiques d'e-mails », avec double vérification et une case de confirmation à chaque fois ; « Fermer cet envoi »
+  les referme. Contrôle prévu : cinq lignes « envoi_automatique » au journal de la supervision, puis un essai réel avec
+  un compte de test et une vraie boîte (il n'y a pas de préproduction hébergée : Q1 annulée). L'accord préalable de
+  chaque espace n'est exigé en plus que pour l'avis d'échéance et la relance de loyer (Q6) ; la preuve de la relance de
+  report n'en demande pas (notes D4), et le rappel de rendez-vous n'a pas de réglage d'espace (section du 18/09).
+- **La promesse du rappel suit l'interrupteur** (lot 34, section du 23/11) : fermé, le [[Locataire]] lit « Notez bien
+  cette date : aucun rappel ne vous sera envoyé. » ; ouvert, « nous vous le rappellerons la veille ».
+- **Absences de l'artisan** (Q30) et **rendez-vous manqué hors de la note** (Q32) : options confirmées le 24/11, rien
+  ne change.
+
+> [!warning] Points à trancher / contradictions (25/11/2026)
+> - **Production et version préparée divergent** : en production, ni le rappel de rendez-vous ni la relance de report
+>   ne partent ; dans la version préparée, ils partiront dès que le Super Admin les aura ouverts, ce que la décision
+>   Q6/Q37 prévoit à la publication. Tant que ce geste n'est pas fait, la phrase « est **en place** » de la section du
+>   18/09 reste fausse.
+> - **Module 10 / code** : les absences de l'artisan sont comptées mais n'entrent pas dans sa note (Q32 confirmée),
+>   alors que le référentiel dit qu'elles « pèsent sur son score de fiabilité » ([[Artisan]]).
+> - **Rejeu de migration** : rejouer seule la migration du 22/11 (`20261122200000`) après celle du lot D4 fait lire le
+>   cinquième envoi « fermé » jusqu'au rejeu de `20261125110000` (notes D4, point 3) : à savoir en cas de retour
+>   arrière.

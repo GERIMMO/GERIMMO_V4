@@ -3,8 +3,8 @@ type: concept
 tags: [edl, etat-des-lieux, bail, depot-de-garantie, mobile]
 status: draft
 created: 2026-07-24
-updated: 2026-11-24
-sources: ["[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]", "[[Notification et valeur probante]]", "log.md — entrées « decision » du 23/10/2026 (« Cautionnement et état des lieux signés dans Gerimmo ») et du 24/10/2026 (choix délégué n° 8), « deploy » du 24/10/2026 (PR #246)", "app/docs/signature-electronique-bail.md", "app/src/lib/textes-signature-actes.ts", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
+updated: 2026-11-25
+sources: ["[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]", "[[Notification et valeur probante]]", "log.md — entrées « decision » du 23/10/2026 (« Cautionnement et état des lieux signés dans Gerimmo ») et du 24/10/2026 (choix délégué n° 8), « deploy » du 24/10/2026 (PR #246)", "app/docs/signature-electronique-bail.md", "app/src/lib/textes-signature-actes.ts", "[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Recueil des textes officiels (v6)]]", "livrables/recueil/analyse-refs-10-24.md (réf. 11, 14 et 15)", "livrables/notes-banc/notes-T3.md et relecture-T3R.md", "JOURNAL.md — lots 18, 23, D3 et T3 (22 au 25/11/2026)", "DECISIONS-2026-11-24.md (Q11, Q40, Q49)", "QUESTIONS.md — Q40, Q49", "JURISTE.md — partie 2, points 1 à 5, 14 à 16", "code de la branche fusionnée claude/palier-1-fusion (89cb87ff, lecture seule) : lib/documents/modeles/edl.ts"]
 ---
 
 # État des lieux
@@ -14,6 +14,10 @@ rattaché au [[Bail]]. Enjeu juridique central : **sans état des lieux d'entré
 logement est réputé remis en bon état — aucune retenue sur le dépôt de garantie n'est
 possible** (RM-1.13.4), quelles que soient les dégradations constatées.
 Source : [[2026-07-24-gerimmo-v3-module-1-bail|Module 1]], parcours 1.12/1.13.
+Le texte de l'article 3-2 de la loi de 1989 reproduit par le recueil (fourni par le dirigeant, non recontrôlé sur
+Légifrance) borne cette présomption, celle de l'article 1731 du code civil : elle « ne peut être invoquée par celle des
+parties qui a fait obstacle à l'établissement de l'acte ou à sa remise à l'une des parties »
+([[Recueil des textes officiels (v6)]]).
 
 ![Schéma — le comparatif automatique est ce qui rend une retenue défendable](../../raw/assets/GERIMMO-V3-Module-1-Bail/media/2336fc92249b633a74a5575c720ae45bc6e31a85.png)
 
@@ -98,7 +102,9 @@ constat du refus, portée affaiblie · colocation → un seul EDL, signé par le
 **Bail repris en cours** (décision 3A du dirigeant, 22/11/2026) : un bail activé alors que son mois d'entrée est déjà
 passé ne reçoit pas l'alerte « État des lieux d'entrée à signer » — l'entrée a eu lieu avant Gerimmo. L'état des lieux
 de sortie n'est pas concerné. Prête dans la PR [#357](https://github.com/GERIMMO/GERIMMO_V4/pull/357), pas encore
-publiée au 22/11. Voir [[Bail]].
+publiée au 22/11. Voir [[Bail]]. *25/11 : la publication du lot #357 a été arrêtée par le gel de la production
+(JOURNAL.md, 22/11) ; sa migration `20261122090000_bail_repris_dpe_g_et_edl_entree` fait partie de la version préparée
+(branche fusionnée), non publiée.*
 
 ## Relations
 
@@ -126,6 +132,11 @@ au congé ([[Agenda et échéances]]) ; grille issue du [[Lot]] ; écarts consom
   fumée structuré, nouvelle adresse du locataire et chiffrage en sortie —
   et l'ajout d'une pièce « découverte sur place » à une grille en cours
   (régénérer remplace toute la grille).
+  *Relu le 25/11 : en production, l'adresse existe à la sortie sous le libellé « Adresse de restitution du dépôt de
+  garantie » (champ `adresse_restitution_depot`, ajouté après ce relevé par la migration
+  `20260921060000_edl_champs_pdf_complets` du 21/09) ; la version préparée la renomme et ajoute une photo par élément
+  (voir « Version préparée, à publier » en fin de page) ; le chiffrage est sorti de l'état des lieux (section du
+  24/11).*
 - Garde d'audit 09/09 : un EDL de **sortie** ne se crée et ne se signe que
   pendant le préavis — signé trop tôt, il rendait le congé inannulable ; la
   grille s'enregistre désormais en une seule transaction
@@ -178,9 +189,16 @@ sur gerimmo directement ! ») ; code livré par la PR #246 (migration
 >   signature » (loi 89-462, art. 3-2) — à confirmer sur Légifrance (source non ouverte le
 >   23/10/2026). Si c'est l'établissement, l'expiration du circuit de signature de l'état des
 >   lieux (30 jours) serait à raccourcir.
+>   - *25/11 — recueil fourni par le dirigeant, non recontrôlé sur Légifrance* : l'article 3-2 y dit « dans un délai
+>     de dix jours à compter de son établissement » (et non de sa signature) ([[Recueil des textes officiels (v6)]]).
+>     La question de l'expiration du circuit à 30 jours reste ouverte : aucune source du 25/11 ne la traite.
 > - **Valeur d'une signature par code SMS** pour un acte établi « en présence » : risque
 >   résiduel à faire relire par un juriste (décret 2016-382, art. 3 ; C. civ. 1367) — à
 >   confirmer sur Légifrance (source non ouverte le 23/10/2026).
+>   - *25/11 — recueil, non recontrôlé* : le décret n° 2016-382 (article 3) prévoit que l'état des lieux « est remis
+>     en main propre ou par voie dématérialisée à chacune des parties […] au moment de sa signature » ; la signature à
+>     distance après la visite n'y est pas traitée (JURISTE.md, partie 2, point 1). L'article 1367 n'est pas traité par
+>     les analyses du recueil.
 > - **Recette en Zoho réel** d'un état des lieux d'entrée (confirmation sur place affichée dans
 >   le suivi, notes de l'invitation conservées) : à faire.
 > - Les états des lieux envoyés avant le 24/10 sans confirmation sur place sont à compter en
@@ -226,3 +244,53 @@ Relu dans le code après les lots 36, 37, 40, 41 et 45 ([[Mission palier 1 — a
 >   figurer dans l'état des lieux signé par les deux parties ? (Q49, point 1 ; juriste, point 14).
 > - « Non relevé » et « non compté » sur la reproduction d'un état des lieux signé, ou faut-il exiger l'index et les
 >   clés avant d'enregistrer une signature ? (Q49, point 3 ; juriste, point 16). Rien n'est présenté comme conforme.
+>   - *25/11 — recueil, non recontrôlé* : l'article 3-2 demande « les relevés des index pour chaque énergie » ; le
+>     décret n° 2016-382 (article 2) cite « le cas échéant, les relevés des compteurs individuels » et « le détail et la
+>     destination des clés », sans citer le numéro du compteur. Le décret donne un contenu minimal (« au moins ») : il
+>     n'interdit ni n'impose le chiffrage des dégradations (analyse des réf. 14 et 15).
+>   - *25/11 — date* : le décret du recueil demande « Sa date d'établissement » ; c'est la date du constat que Gerimmo
+>     imprime (ci-dessus).
+
+## Version préparée, à publier (branche fusionnée du 25/11/2026, non publiée)
+
+Fait dans la branche `claude/palier-1-fusion` (`89cb87ff`, poussée le 25/11 sur la branche de préproduction `claude/palier-1-preproduction`), vérifié sur le banc local avec des données fictives, **pas
+en production**. Les textes cités viennent du recueil fourni par le dirigeant, **non recontrôlé sur Légifrance**
+([[Recueil des textes officiels (v6)]]) ; aucun point n'est tenu pour acquis au regard de la loi.
+
+- **Adresse à la sortie** (lot T3, écart R15-A1) : la saisie, la consultation, le message d'erreur et le document de
+  sortie disent « Adresse du nouveau domicile ou du lieu d'hébergement du locataire », mots du décret n° 2016-382,
+  article 2, 2°, a, tel que reproduit par le recueil, au lieu de « Adresse de restitution du dépôt de garantie » (en
+  production aujourd'hui). Même donnée en base (`adresse_restitution_depot`), rien n'est réécrit ; sans adresse, le
+  document de sortie reste « incomplet ». Elle sert aussi à l'article 22 (le locataire indique « l'adresse de son
+  nouveau domicile » à la remise des clés) : voir [[Restitution du dépôt de garantie]] et [[Dépôt de garantie]].
+- **Date de l'entrée sur le document de sortie** (lot 18) : « État des lieux d'entrée établi le … » quand l'entrée est
+  signée dans Gerimmo pour ce bail ; sinon la même mention avec « date à porter à la main ». Le décret du recueil
+  exige « La date de réalisation de l'état des lieux d'entrée » ; demander cette date à la saisie quand l'entrée a été
+  faite hors Gerimmo (R15-A3, mineur) n'est pas fait.
+- **Une photo par élément** (lot 23) : sous chaque élément, « Ajouter une photo » ; l'image est réduite sur l'appareil,
+  envoyée seule, rangée dans les documents du bail ; seules des images JPEG ou PNG sont acceptées. Le document imprime
+  une section « Photos » (« Photo n° 1 — Séjour — Sols ») et la ligne renvoie au numéro ; une image illisible garde sa
+  légende et le dit. Après signature, consultation seule ; pendant un circuit de signature en cours, la base refuse
+  l'ajout. Non vérifié : la prise de photo sur un vrai téléphone ; aucune valeur juridique particulière n'est
+  affirmée. Le décret du recueil permet d'illustrer l'état des lieux « d'images ».
+- **Retenues** (décision Q49, lot D3) : chaque retenue a sa pièce, un devis suffit ; l'état des lieux de sortie déjà
+  rangé peut justifier plusieurs retenues sans être déposé deux fois ; sans pièce, les deux décomptes sont bloqués. Le
+  chiffrage reste hors de l'état des lieux (section du 24/11).
+- **Signature** : l'état des lieux suit la règle « signature électronique proposée en premier, papier toujours
+  possible » (Q11) chez le propriétaire direct, quand le service est ouvert ([[Signature électronique]]).
+- **Dossiers préparés** : un état des lieux (de sortie notamment) préparé pour la signature et non envoyé est refusé à
+  l'envoi (« Préparez et relisez un nouveau PDF ») et se prépare de nouveau (Q40). Contrôle du 24/11 en production :
+  aucun dossier concerné.
+- **Non fait** : domicile du bailleur quand un mandataire établit l'acte (décret, article 2, d et e ; R15-A2, mode
+  agence, hors palier 1 ; JURISTE.md, partie 2, point 15).
+
+> [!warning] Points à trancher / contradictions (25/11/2026)
+> - La « Mise à jour d'implémentation (2026-09-09) » rangeait la nouvelle adresse du locataire parmi les absents ; elle
+>   a été ajoutée ensuite (migration `20260921060000_edl_champs_pdf_complets`, 21/09) sous le libellé « adresse de
+>   restitution du dépôt », que le recueil ne reprend pas (libellé corrigé dans la version préparée seulement).> - **Majoration de 10 % du dépôt rendu en retard** : selon l'article 22 du recueil, elle n'est pas due si le locataire
+>   n'a pas transmis l'adresse de son nouveau domicile ; noté par le lot T3, **non codé**.
+> - **Grille de vétusté** : le décret du recueil réserve ce nom à une grille que les parties conviennent dès la
+>   signature du bail, choisie parmi celles d'un accord collectif ; les durées retenues par le bailleur seul n'en sont
+>   pas une, alors que cette page parle de « la grille de [[Vétusté et décote]] » (JURISTE.md, partie 2, point 5).
+> - **Description précise** : le décret rend les observations facultatives (« peut être complété d'observations ») ;
+>   une note sur cinq niveaux suffit-elle comme « description précise » ? (JURISTE.md, partie 2, point 2).

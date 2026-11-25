@@ -3,8 +3,8 @@ type: process
 tags: [loyer, impaye, relance, mise-en-demeure]
 status: in-progress
 created: 2026-07-21
-updated: 2026-11-24
-sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
+updated: 2026-11-25
+sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Recueil des textes officiels (v6)]]", "DECISIONS-2026-11-24.md (Q6, Q24, Q37, case « mariés ou pacsés »)", "QUESTIONS.md (Q6, Q24, Q57, Q94, Q95, Q97, Q112, Q116 à Q118, Q122)", "JURISTE.md (partie 5 ; partie 9, points 21, 22 et 41)", "JOURNAL.md (lots 15, 53, D4 et fusion, 22-25/11/2026)", "livrables/notes-banc/ (notes-D4, relecture-D4R, notes-T3, notes-mariage, fusion/relecture-envois, fusion/corrections-fusion-notes, fusion/PLAN-PUBLICATION-NOTES)", "livrables/recueil/analyse-refs-10-24.md (réf. 24)", "code de la branche fusionnée claude/palier-1-fusion (89cb87ff, lecture seule)"]
 ---
 
 # Relances et mise en demeure
@@ -81,6 +81,8 @@ qui n'existent pas encore. Écrire « relance à J+5 » dans le produit reviendr
 à inventer une règle que personne n'a arrêtée — et à l'inscrire dans un acte qui
 fonde ensuite un recours. L'escalade reste donc un geste du gérant, tracé dans
 `relances` (niveau, date d'envoi, date de première présentation pour la LRAR).
+*Dépassé depuis le 20/09 : des relances automatiques existent (migration `20260920030000`, délais réglables) ; leurs
+e-mails restent fermés en production (`QUESTIONS.md`, Q6). Voir les sections suivantes.*
 
 > [!warning] Points à trancher
 > - Le **montant plancher** (~50 € dans le référentiel) et les **trois délais**
@@ -182,6 +184,9 @@ et 7). Rien n'est publié en production ; aucun courrier n'est présenté comme 
   demeure, le délai de règlement se saisit entre 1 et 90 jours ; elle précise : « Ce courrier est à notifier avec preuve
   de réception. Il ne constitue ni un commandement de payer ni une décision de résiliation du bail. » Quand le décompte
   de sortie est finalisé, ces courriers ne sont plus préparés : le solde figure dans le décompte.
+  *Rectifié le 25/11 : depuis le lot 53 (défaut W34, version préparée), la lettre n'imprime plus « Ce courrier est à notifier avec preuve de réception »,
+  consigne destinée à l'expéditeur ; elle reste à l'écran (aide du délai, préparation du recommandé). La lettre garde
+  « Ce courrier ne constitue ni un commandement de payer ni une décision de résiliation du bail. »*
 
 > [!warning] Points à trancher / contradictions (24/11/2026)
 > - **Relance datée d'avant le plan** : le code (reprise du lot 44) accepte l'enregistrement d'une relance (rubrique
@@ -196,3 +201,64 @@ et 7). Rien n'est publié en production ; aucun courrier n'est présenté comme 
 >   (partie 5, point 5).
 > - Les envois automatiques des relances et de l'avis restent **fermés** (lot 15) : rien de ce qui précède ne part par
 >   e-mail sans ouverture par le [[Super Admin]] et accord de l'espace.
+>   → *Décisions du 24/11 : « ouvre les quatre envois automatiques à la publication » (Q6) ; « accord des espaces
+>   conservé ; ouvre aussi la relance à la main » (Q24). Voir la section suivante : la relance à la main n'exige pas
+>   l'accord de l'espace.*
+
+## Version préparée, à publier (état au 25/11/2026) — envois, relance à la main, caution, époux
+
+> [!info] Ce qui est en production et ce qui ne l'est pas
+> **En production aujourd'hui** (version du 21/11/2026, `81740dec`, gelée depuis le 22/11) : relances automatiques
+> codées, mais leurs e-mails sont retenus par la liste fermée du pilote ; l'envoi immédiat d'une relance par e-mail, à
+> la main, est suspendu (Q6, Q24). Ce qui suit est lu dans le code de la branche fusionnée `claude/palier-1-fusion`
+> (`89cb87ff`, vérifiée en entier sur le banc et poussée le 25/11 sur la branche de préproduction,
+> non publiée en production ; `JOURNAL.md`, entrée du 25/11) et dans les notes des lots D4,
+> T3 et « mariés ou pacsés » (`livrables/notes-banc/`). Aucun point de droit n'est donné pour acquis.
+
+- **Cinq interrupteurs d'envoi, fermés à la livraison** : avis d'échéance, relance amiable d'un loyer impayé, rappels de
+  rendez-vous, relance d'invitation, et un cinquième, la relance d'une demande de report de rendez-vous (Q37). Le jour
+  de la publication, le [[Super Admin]] les ouvre un par un, avec une case de confirmation, **après** les migrations et
+  le code (Q6 ; plan de publication, `livrables/notes-banc/fusion/PLAN-PUBLICATION-NOTES.md`). Pour l'avis et la relance **automatiques**, chaque espace doit en plus avoir donné son accord ; un
+  accord déjà donné survit à une fermeture puis réouverture (Q24, point 1). Chez un propriétaire, une relance
+  automatique ne part qu'après sa réponse « Pas encore reçu » (Q24, point 3).
+- **Relance à la main** (Q24) : le [[Propriétaire bailleur]] envoie d'un clic, par e-mail, la relance d'un terme impayé
+  dès que l'interrupteur « Relance amiable d'un loyer impayé » est ouvert ; fermé, il n'a que le PDF. Elle n'exige pas
+  l'accord de l'espace. Réservée aux espaces de propriétaires (pas aux agences, Q95). La base revérifie avant l'envoi :
+  propriétaire actif de l'espace, plus ancien terme impayé et échu, mêmes montants, aucun [[Plan d'apurement]], aucune
+  relance du même niveau déjà consignée, destinataire locataire ou colocataire encore engagé (**jamais la caution**),
+  aucun arrêt. Elle **ne repart jamais d'elle-même** après un échec (D4R-03) : le propriétaire renvoie d'un clic.
+- **Trace de la relance à la main** (constats E-02 et Y-01 de la relecture de la fusion) : rien de parti ni d'incertain →
+  erreur, rien de consigné ; dès qu'un destinataire est servi ou que l'envoi est incertain, la relance est consignée
+  dans `relances`, avec une note qui distingue « non confirmé (peut-être parti) » et « à terminer (non parti) » ; ce
+  palier n'est alors plus proposé ni admis pour ce bail. Aucun plafond par espace : deux e-mails au plus par terme
+  impayé et par destinataire (Q97).
+- **Information de la caution** (écart R24-A1 du recueil) : le circuit n'est pas modifié — la caution est informée à la
+  **seconde relance** (réglable de 2 à 90 jours, 15 par défaut), et cet envoi est fermé. Les loyers d'un bail avec
+  caution affichent la date à ne pas dépasser (**échéance + un mois**) et ce que Gerimmo ne fait pas, avec le texte de
+  l'article 2303 du code civil tel que le donne le [[Recueil des textes officiels (v6)]] (réf. 24, non recontrôlé sur
+  Légifrance) ; le réglage des relances le dit aussi (Q112).
+- **Époux ou partenaires de PACS** (case « mariés ou pacsés » au [[Bail]], décision du 24/11) : au départ de l'un d'eux,
+  aucune fin de solidarité n'est enregistrée ; les appels et les relances, et l'information de sa caution, continuent de
+  le viser. Un tiers entré au bail après la signature, et son garant, suivent la règle de la colocation (six mois après
+  le congé, ou entrée du remplaçant) (corrections A-01 et X-01).
+- **Courriers d'impayés** (lot 53, Q57) : archivés avec leur date (« Relance amiable de loyer — 24/11/2026 ») ; la mise
+  en demeure n'imprime plus de consigne d'envoi (voir la section du 24/11, rectifiée).
+- **Non fait** (lot T3, section D) : le paiement partiel d'un locataire dont l'aide au logement est conservée par la CAF
+  pour logement non décent « ne peut être considéré comme un défaut de paiement » (art. 7 a du texte fourni, depuis le
+  15/06/2025) ; Gerimmo relancerait ce locataire comme un impayé. La commission de prévention des expulsions (art. 24)
+  n'est citée nulle part.
+
+> [!warning] Points à trancher / contradictions (25/11/2026)
+> - **Caution et délai d'un mois** : le texte fourni (art. 2303) demande au « créancier professionnel » d'informer la
+>   caution personne physique « dès le premier incident de paiement non régularisé dans le mois de l'exigibilité » ;
+>   Gerimmo l'informe à la seconde relance, qui peut partir après un mois, et l'envoi est fermé. Faut-il avancer la
+>   seconde relance à 30 jours quand le bail a une caution (Q112) ? Un bailleur particulier est-il un créancier
+>   professionnel ? (`JURISTE.md`, partie 9, points 21 et 22).
+> - **Section « Cible V3 »** (« le garant est informé dès la relance 2 », paramétrable) **≠ texte fourni** (un mois).
+> - **Relance à la main partie pour un seul colocataire** : faut-il un geste « terminer l'envoi » pour la personne non
+>   servie, et bloquer le palier suivant tant que l'envoi n'est pas confirmé ? (questions 2, 6 et 7 au dirigeant, notes
+>   de corrections de la fusion ; reprises depuis dans `QUESTIONS.md`, Q117 et Q118). Faut-il un interrupteur propre à
+>   la relance à la main (Q94) ?
+> - **Tiers entré au bail d'époux après la signature** : la règle de la colocation lui est appliquée ; le bail signé de
+>   nouveau après « Corriger » est traité comme une nouvelle conclusion (article 8-1, tel que cité par le recueil). Au
+>   juriste (`JURISTE.md`, partie 9, point 41) et au dirigeant (`QUESTIONS.md`, Q116 et Q122).

@@ -3,8 +3,8 @@ type: business-rule
 tags: [rgpd, conservation, retention, purge, litige, alertes, conformite]
 status: draft
 created: 2026-10-24
-updated: 2026-10-24
-sources: ["[[RGPD]]", "[[Registre des traitements]]", "[[Conservation et exploitation — 22 octobre 2026]]", "app/supabase/migrations/20261024140000_conservation_et_prospection.sql", "app/supabase/migrations/20261024130000_fermeture_comptes.sql", "log.md — entrées « decision » des 23 et 24/10/2026, « deploy » du 24/10/2026 (PR #246)"]
+updated: 2026-11-25
+sources: ["[[RGPD]]", "[[Registre des traitements]]", "[[Conservation et exploitation — 22 octobre 2026]]", "app/supabase/migrations/20261024140000_conservation_et_prospection.sql", "app/supabase/migrations/20261024130000_fermeture_comptes.sql", "log.md — entrées « decision » des 23 et 24/10/2026, « deploy » du 24/10/2026 (PR #246 et PR #248, migration 20261024150000_activation_inactivite_v1)", "[[Recueil des textes officiels (v6)]]", "livrables/recueil/analyse-refs-25-37.md (réf. 31 et 34)", "livrables/notes-banc/notes-T4.md et relecture-T4R.md", "DECISIONS-2026-11-24.md (Q39, Q46 ; vendeur entrepreneur individuel)", "JOURNAL.md — lots T4 et D3 (24-25/11/2026)", "QUESTIONS.md — Q39, Q84, Q86, Q87", "JURISTE.md — partie 3, A16 ; partie 9, point 28", "code de la branche fusionnée claude/palier-1-fusion (89cb87ff, lecture seule) : migrations 20261125103000 et 20261125105000 ; code en ligne 81740dec"]
 ---
 
 # Durées de conservation
@@ -23,6 +23,13 @@ déjà.
 > après le 24/10 n'apparaîtrait pas ici. Les durées sont une **politique de service**
 > proposée par le plan, pas une certification ; aucune source juridique n'a pu être ouverte
 > le 23/10.
+>
+> *Mise à jour du 25/11/2026* : les tableaux décrivent ce qui est **en production aujourd'hui**, à une correction près
+> (`compte:inactif`, active depuis le 24/10, voir son tableau). La **version préparée** de la mission palier 1 (branche
+> fusionnée, non publiée) ne change, d'après les notes des lots, qu'une durée — les factures passent de six à dix ans —
+> et **n'active aucune règle**
+> (décision du dirigeant du 24/11, Q39 : « N'active aucune règle de conservation ») : voir la section « Version
+> préparée, à publier ».
 
 ## Principes retenus le 23/10 (plan juriste/DPO, valeurs acceptées par le dirigeant)
 - **Gestion directe : 36 mois** après la fin du bail et la clôture de ses comptes pour les
@@ -33,6 +40,10 @@ déjà.
   fiscale de **six ans** (livre des procédures fiscales, art. L. 102 B), et non les dix ans
   du code de commerce ; la **preuve du contrat** conclu en ligne reste **dix ans** (code de
   la consommation, L. 213-1).
+  *25/11 : six ans est la règle en production aujourd'hui ; la version préparée passe à **dix ans** d'après le texte
+  du recueil (loi n° 2026-534, article 36), voir plus bas. Le vendeur est un entrepreneur individuel (nom commercial
+  SAUVEXPERT, activité déclarée 85.59A), selon l'avis Sirene transmis par le dirigeant le 24/11
+  (`DECISIONS-2026-11-24.md`).*
 - **Comptes : 24 mois** sans connexion ni abonnement, deux avertissements (J-60, J-15).
 - **Journal d'audit : 12 mois** en général ; 36 mois pour le contrôle interne ; dix ans pour
   les preuves du contrat.
@@ -83,11 +94,11 @@ les écritures (lot 5) ; le premier terme possible tombe en **novembre 2028**.
 
 | Règle | Durée | À partir de | Active |
 |---|---|---|---|
-| `compte:inactif` | 24 mois | Dernière connexion d'un membre ou fin du dernier abonnement payé | Non (avec `VERSION_MIN_INACTIVITE`, à la V1) |
+| `compte:inactif` | 24 mois | Dernière connexion d'un membre ou fin du dernier abonnement payé | Non au relevé ci-dessus ; **oui depuis le 24/10/2026** (migration `20261024150000_activation_inactivite_v1`, PR #248, avec `VERSION_MIN_INACTIVITE = "2026-10-24"` dans le code ; log.md) |
 | `compte:inscription_non_confirmee` | 1 mois | Création de l'inscription | Non |
 | `compte:invitation_jamais_utilisee` | 3 mois | Expiration, refus ou annulation de la dernière invitation | Non |
 | `archive:preuve_contrat` | 120 mois | Fin du dernier abonnement payé | Oui |
-| `archive:facture` | 72 mois | Fin de l'exercice de la facture, à défaut fin du dernier abonnement payé | Oui |
+| `archive:facture` | 72 mois (production) ; **120 mois, plancher 120** (version préparée) | Fin de l'exercice de la facture, à défaut fin du dernier abonnement payé ; jamais moins de dix ans après l'émission (version préparée) | Oui |
 | `contrat:retractation` | 120 mois | Date de la rétractation | Oui |
 | `contrat:intention_conge` | 24 mois | Traitement | Oui |
 | `journal:effacements_a_reappliquer` | 4 mois | Exécution de la fermeture | Oui |
@@ -177,6 +188,22 @@ des pièces dont la règle est active.
 >   des durées dont la règle reste inactive au déploiement ; chaque activation attend son
 >   bilan. `compte:inactif` doit être activée **avec** `VERSION_MIN_INACTIVITE` à la
 >   publication de la V1.
+>   - *25/11* : fait le 24/10 pour `compte:inactif` (PR #248, log.md). Les autres règles inactives le restent : le
+>     dirigeant a décidé le 24/11 de n'en activer aucune pendant la mission (Q39).
+> - **Factures : six ans (production) ou dix ans (version préparée)** : le recueil fourni par le dirigeant (non
+>   recontrôlé sur Légifrance) donne l'article modificateur (loi n° 2026-534, article 36), pas la rédaction de L. 102 B
+>   au 1er janvier 2027 : le point de départ des dix ans retenu par Gerimmo reste à confirmer (JURISTE.md, partie 9,
+>   point 28 ; partie 3, A16). Le texte ne vise que les documents soumis au contrôle de l'administration : aucune
+>   conclusion n'en est tirée pour les quittances du bailleur.
+> - **Anciens comptes fermés** : un compte fermé avant le lot T4 a reçu un courriel annonçant six ans pour ses factures ;
+>   elles seront gardées dix ans. Faut-il le prévenir ? (Q86 ; supposé : aucun compte payant fermé, non vérifié en
+>   production.)
+> - **Écran de simulation du nettoyage** : il compte encore parmi les preuves arrivées à leur terme une archive que la
+>   purge fait désormais attendre (client Stripe pas encore supprimé) — écart d'affichage seulement (Q87).
+> - **OpenAI** : la page confidentialité renvoie aux informations du prestataire ; aucune durée de conservation chez
+>   OpenAI n'est donnée par un document fourni (Q84 ; écart mineur R34-A2 de l'analyse du recueil, réf. 34).
+> - **Notice d'information déposée par le bailleur** (Q46) : sa durée de conservation n'est pas décidée (JOURNAL.md,
+>   lot D3).
 > - **Réclamations, parrainage, devis et factures d'artisans** : aucune durée au catalogue.
 > - **Motif d'exclusion d'un artisan** : 3 ans (espace) ou 5 ans (réseau), purge non
 >   planifiée.
@@ -212,3 +239,32 @@ cohérence d’une décision avec les engagements contractuels et la finalité d
 État : **en cours de validation locale, non publié**. Migration
 `20261024105901_reglages_conservation_superadmin.sql`, après `20261024150000` dans le
 manifeste. Preuves de contrôle et publication : `log.md`.
+*Relu le 25/11 : l'écran (`app/src/app/admin/conservation/`) et sa migration figurent dans le code en ligne
+(`81740dec`, publié le 21/11) ; l'application de la migration en production n'est pas relue dans les sources de ce
+jour. Dans la version préparée, le réglage des factures ne peut plus descendre sous 120 mois.*
+
+## Version préparée, à publier : factures conservées dix ans (lot T4, non publié)
+
+Fait dans la branche `claude/palier-1-fusion` (`89cb87ff`, poussée le 25/11 sur la branche de préproduction `claude/palier-1-preproduction`), vérifié sur le banc local, **pas en production**. On
+allonge, on ne raccourcit rien, on ne supprime rien.
+
+- **Texte** (recueil fourni par le dirigeant, **non recontrôlé sur Légifrance** ;
+  [[Recueil des textes officiels (v6)]], réf. 31) : loi n° 2026-534 du 25 juin 2026, article 36 — à l'article L. 102 B du livre des procédures
+  fiscales, « doivent être conservés pendant un délai de six » devient « sont conservés pendant un délai de dix » ;
+  « Le présent article s'applique aux documents et aux pièces dont le délai de conservation expire après le 1er janvier
+  2027 ». Toutes les factures de Gerimmo sont dans ce cas.
+- **Migration `20261125103000_factures_conservation_dix_ans`** : `archive:facture` à 120 mois, plancher 120 (le réglage
+  du super admin ne peut plus descendre dessous), une ligne « conservation_regle_modifiee » au journal des durées, sans
+  auteur ; échéance d'une facture archivée : dix ans après la plus tardive de son émission et de la fin de son exercice
+  (à défaut, de la fin du dernier abonnement payé), jamais moins de dix ans après son émission, y compris pour les
+  archives déjà constituées (qui ne sont pas réécrites) ; client Stripe jamais supprimé avant dix ans après la fin du
+  dernier abonnement payé, ni avant l'échéance recalculée de sa dernière facture archivée.
+- **Migration `20261125105000_archive_compte_apres_client_stripe`** (reprise T4R-01) : la purge ne supprime plus une
+  archive de compte fermé dont le client Stripe n'a pas encore été supprimé. Sans elle, preuve du contrat et dernière
+  facture échéant le même jour (dix ans), la fiche du client et ses factures seraient restées chez Stripe sans limite.
+- **Textes alignés** : article 9 des conditions générales (version du 24/11/2026, « au moins dix ans »), page
+  confidentialité, console de fermeture d'un compte ([[Fermeture de compte]], [[Conditions générales]]).
+- **Rien n'a pu être supprimé à six ans** : aucune facture n'a six ans avant 2032 (raisonnement par les dates,
+  production non lue). Les migrations sont à appliquer avant le 1er janvier 2027 au plus tard.
+- **Inchangé** : la preuve du contrat (dix ans après la fin du dernier abonnement payé) ; toutes les autres durées ;
+  aucune règle n'est activée (Q39).

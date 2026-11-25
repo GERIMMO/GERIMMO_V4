@@ -829,6 +829,81 @@ présenté comme conforme. « Réf. » renvoie au numéro de la référence dans
 38. **Client en essai** (notes D4, point R7.3). Question : un client en période d'essai, sans souscription, est-il un
     « Client » à qui la notification de l'article 16 est due ? (QUESTIONS.md, Q98)
 
+### Réunion des deux branches de travail et ses corrections (25/11/2026)
+
+Ces points viennent de la fusion des deux branches de travail, de ses deux relectures et de leurs corrections
+(`livrables/notes-banc/fusion/` : `corrections-fusion-notes.md`, § 4, 6 et 9.4 ; `fusion-resultat.json`). Ils portent sur
+la **version préparée** `89cb87ff` (vérifiée en entier sur le banc, poussée sur la branche de préproduction, **non
+publiée** : en production aujourd'hui, ni la case « mariés ou pacsés » ni ces corrections n'existent). Les textes cités
+sont ceux du recueil fourni par le dirigeant, **non recontrôlé sur Légifrance**. Rien n'est présenté comme conforme.
+
+39. **Remplacement de l'un des deux époux ou partenaires : quelle forme ?** (relecture de la fusion, C-01 ; complète la
+    partie 5, point 12 (b)). Avant la correction, l'avenant de remplacement de la colocation imprimait, même pour un bail
+    coché « mariés ou pacsés », que « la solidarité du sortant et de sa caution cesse à la date prévue par l'article 8-1
+    VI », au contraire de la clause du bail coché et de ce que Gerimmo enregistre (aucune date de fin). En attendant,
+    dans la version préparée : cet avenant n'est plus proposé pour un bail coché, et il est refusé s'il est demandé ; le
+    message renvoie à un professionnel du droit (`REFUS_AVENANT_REMPLACEMENT_EPOUX_PACS`,
+    `app/src/lib/solidarite-colocation.ts:68` ; QUESTIONS.md, Q121). Texte fourni : article 8-1 I et VI (réf. 17).
+    Questions : (a) sous quelle forme remplacer l'un des époux ou partenaires (avenant, nouveau bail, autre) ? (b)
+    l'arrivée du remplaçant met-elle fin à l'exception « location consentie exclusivement à des époux ou à des
+    partenaires », pour la suite du bail ? (c) quelle solidarité reste-t-il à l'époux qui part, et à sa caution ?
+40. **Solidarité de deux époux ou partenaires après le départ de l'un d'eux : quel terme ?** (notes « mariage »,
+    sections 1 et 6 ; complète la partie 1, point 20, et le point 11 ci-dessus). Texte fourni : l'article 8-1 I (réf. 17,
+    `r2-refs10-24.txt`, l. 1562-1621) exclut de la colocation la location consentie exclusivement à des époux ou à des
+    partenaires pacsés « au moment de la conclusion initiale du contrat » ; le VI (fin de la solidarité à l'arrivée d'un
+    remplaçant, ou au plus tard six mois après la date d'effet du congé) vise « un des colocataires » et sa caution. **Le
+    recueil ne fixe aucun autre terme** à la solidarité de ces locataires : reste celle de la clause du bail (« tenus
+    solidairement et indivisiblement »). Le recueil contient aussi deux articles du code civil (réf. 24) : l'article 220
+    (« toute dette ainsi contractée par l'un oblige l'autre solidairement », pour les contrats qui ont pour objet
+    l'entretien du ménage ou l'éducation des enfants) et l'article 1751 (le droit au bail du local qui sert à
+    l'habitation de deux époux est « réputé appartenir à l'un et à l'autre », et pour deux partenaires de PACS « dès lors
+    que les partenaires en font la demande conjointement »). Il ne dit pas si le loyer relève de l'article 220, ni ce que
+    deviennent ces solidarités en cas de divorce, de séparation ou de fin du PACS. Version préparée : case cochée, aucune
+    date de fin n'est enregistrée pour l'époux qui part, ni pour son garant ; les appels de loyer et les relances (garant
+    compris) continuent de les viser. Questions : (a) la solidarité de la clause dure-t-elle jusqu'à la fin du bail et de
+    ses renouvellements ? (b) quelle place pour les articles 220 et 1751 à côté de cette clause : le loyer est-il une
+    dette d'entretien du ménage ? (c) qu'en est-il après un divorce, une séparation ou la fin du PACS ? (d) pour deux
+    partenaires de PACS qui n'ont pas fait la demande conjointe de l'article 1751, la case doit-elle avoir le même effet ?
+    (e) la caution de l'un des époux : sans le VI, son engagement suit l'acte de cautionnement (durée, plafond,
+    résiliation de l'article 22-1) ; faut-il le dire dans l'acte ?
+41. **Troisième locataire ajouté au bail de deux époux ou partenaires, et bail signé de nouveau après « Corriger »**
+    (relecture de la fusion, A-01 ; reprise, X-01). Version préparée : au brouillon, un troisième locataire est refusé
+    sur un bail coché, et le bail ne sort du brouillon qu'avec exactement deux locataires. Après la signature, l'ajout
+    est accepté avec un avertissement (QUESTIONS.md, Q116) ; la base marque la personne ajoutée, et à elle comme à son
+    garant s'applique la fin de solidarité de la colocation (date du remplaçant, ou au plus tard six mois après la date
+    d'effet du congé) ; les deux époux ou partenaires présents à la signature gardent l'absence de fin. Après
+    « Corriger » (bail remis au brouillon, possible tant qu'aucun loyer n'est appelé) puis dépôt d'un nouveau bail signé,
+    les personnes présentes à cette nouvelle signature sont traitées comme celles « au moment de la conclusion initiale du
+    contrat » : un époux ajouté pendant la première période active, puis présent au bail signé de nouveau, part sans date
+    de fin, et son garant aussi (QUESTIONS.md, Q122). Texte fourni : article 8-1 I et VI (réf. 17). Questions : (a)
+    l'arrivée d'un tiers au bail de deux époux en fait-elle une colocation, pour tous ou pour le seul tiers ? (b) est-il
+    juste d'appliquer au tiers et à son garant la règle du VI ? (c) faut-il retenir, comme « conclusion initiale », le
+    bail signé de nouveau après « Corriger », ou le premier bail signé ? (d) un bail à plus de deux personnes peut-il
+    entrer dans l'exception (Gerimmo : non) ? (e) un mariage ou un PACS conclu après la signature laisse-t-il la
+    colocation (Gerimmo : oui, la case ne se coche qu'à la préparation du bail) ?
+42. **Valeur d'un accord exprès donné avant l'archivage d'une version des conditions** (relecture de la fusion, R-01 ;
+    complète les points 35 et 37). Version préparée : pour la non-reconduction faute d'accord exprès, seul compte un
+    accord qui porte l'empreinte du texte archivé de la version ; un accord enregistré avant l'archivage (sans empreinte)
+    ne compte pas, et il faudrait le redemander. Aucune version ne l'exige aujourd'hui (15/11 : « nouvelles souscriptions
+    uniquement » ; 24/11 : « au prochain acte », jamais de non-reconduction). La relecture a relevé que l'écran « les
+    conditions évoluent » se masque pourtant dès qu'une version est acceptée, même sans empreinte (QUESTIONS.md, Q119 et
+    Q120). Les notes ne citent aucun texte du recueil sur ce point. Questions : (a) un accord donné à une version annoncée
+    mais pas encore archivée vaut-il l'accord exprès de l'article 16 ? (b) s'il ne vaut pas, faut-il le redemander après
+    l'archivage, et sous quelle forme ? (c) la preuve retenue (version, date du serveur, empreinte du texte archivé,
+    compte ; point 37) suffit-elle à situer l'accord avant ou après l'archivage ?
+43. **Article 16 des conditions : annonce préalable et résumé des changements** (relecture de la fusion, C-03 ;
+    complète les points 35, 36 et 38). L'article 16 de la version du 24/11 (non publiée) promet que toute nouvelle
+    version est notifiée « par courrier électronique et dans son espace », « au moins un mois » avant sa prise d'effet,
+    « avec un résumé des changements ». Ce résumé est montré à l'abonné à qui l'accord exprès est demandé, puis recopié
+    dans l'archive, où il ne se corrige plus. La relecture a trouvé qu'il ne disait pas que l'article 17 ne vise plus le
+    « Client non-professionnel » ; la version n'étant pas encore archivée, une phrase a été ajoutée au résumé, sans
+    changer l'empreinte du texte des conditions. L'annonce
+    par courriel n'est toujours pas automatisée : Gerimmo refuse d'archiver une nouvelle version s'il existe un abonné
+    actif (point 36 ; QUESTIONS.md, Q93). Questions : (a) le résumé doit-il nommer chaque changement défavorable au client,
+    comme ce retrait ? (b) un résumé incomplet, une fois archivé, rend-il l'accord exprès ou le changement inopposable ?
+    (c) si une erreur du résumé est trouvée après l'archivage, suffit-il d'un rectificatif par courriel, ou faut-il une
+    nouvelle version ? (La question du client en essai reste le point 38.)
+
 ---
 
 ## Points informatifs

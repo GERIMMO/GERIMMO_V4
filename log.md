@@ -8215,3 +8215,52 @@ cahier V3 et le wiki (sans autre document). La décision la plus récente l'empo
   [[Dossier locataire]] (liste du décret), [[Régularisation des charges]] (plus de refus « prescrit »), [[État des
   lieux]], [[Mentions obligatoires du bail]], [[Grille tarifaire]] (« article 293 B »), [[Relances et mise en demeure]]
   et [[Planification d'intervention]] (relance à la main, cinquième envoi).
+
+## [2026-11-25] lint | Mise à jour des pages après la fusion du palier 1
+
+- **Objet** : reprendre les pages que l'entrée « ingest » du 25/11 signalait comme fausses pour la version préparée,
+  puis les relire en contrôle croisé. Sources : `livrables/notes-banc/` (notes, relectures, `fusion/`),
+  `livrables/recueil/`, `DECISIONS-2026-11-24.md`, fin de `JOURNAL.md`, `QUESTIONS.md`, `JURISTE.md`, code de
+  `89cb87ff` lu en lecture seule. Textes officiels : [[Recueil des textes officiels (v6)]], fourni par le dirigeant,
+  **non recontrôlé sur Légifrance** ; rien n'est noté « conforme ».
+- **État décrit** : en production aujourd'hui, la version du 21/11/2026 (`81740dec`), gelée depuis le 22/11 ; version
+  préparée, `89cb87ff` (branche `claude/palier-1-fusion`), vérifiée en entier sur le banc (16 506 tests réussis, seuls
+  2 fichiers en échec attendus ; 355 parcours réussis, 3 ignorés) et poussée le 25/11 à 03:16 UTC sur la branche de
+  préproduction `claude/palier-1-preproduction` ; **non publiée en production**.
+- **Pages modifiées (19)** : [[Bail]], [[Types de baux]], [[Mentions obligatoires du bail]], [[Garantie]],
+  [[Dossier locataire]], [[Révision annuelle IRL]], [[Régularisation des charges]], [[Relances et mise en demeure]],
+  [[Dépôt de garantie]], [[Restitution du dépôt de garantie]], [[Signature électronique]], [[État des lieux]],
+  [[Planification d'intervention]], [[Durées de conservation]], [[Fermeture de compte]], [[Conditions générales]],
+  [[Souscription de l'abonnement]], [[Grille tarifaire]], [[Registre des traitements]]. Chacune porte `updated:
+  2026-11-25`, la source du recueil et une section « Version préparée, à publier » séparée de la production, avec un
+  callout « Points à trancher / contradictions » daté du 25/11 ; aucune contradiction antérieure n'est supprimée (les
+  points tranchés sont marqués comme tels).
+- **Corrections de la relecture croisée** :
+  - 12 pages disaient encore `89cb87ff` « non poussée sur la préproduction », « branche locale » ou « vérification
+    complète en cours » / « non vérifiée en entier » : remplacé par l'état lu dans le dépôt distant et dans
+    `JOURNAL.md` (entrée du 25/11) ; le callout de [[Bail]] sur l'état des lots dans le journal est noté tranché, sans
+    être retiré.
+  - [[État des lieux]] : l'adresse de sortie n'« existait » pas « déjà » au relevé du 09/09 ; elle a été ajoutée le
+    21/09 (migration `20260921060000_edl_champs_pdf_complets`).
+  - [[Registre des traitements]] : « reprise du lot T3 en cours » corrigé (reprise T3R-2 faite, contenue dans
+    `89cb87ff`) ; libellé libre des pièces précisé.
+  - [[Mentions obligatoires du bail]] : lien vers le recueil coupé sur deux lignes, donc cassé, réparé.
+  - Liens vers des pages qui n'existent pas encore et présentées comme à consulter ([[Entrepreneur individuel (EI)]],
+    [[Médiation de la consommation]]) : marqués « page à créer » dans [[Conditions générales]], [[Souscription de
+    l'abonnement]] et [[Grille tarifaire]].
+  - Renvois ajoutés aux nouvelles questions et aux nouveaux points du juriste : Q116 à Q122 et `JURISTE.md`, partie 9,
+    points 39 à 43 ([[Bail]], [[Garantie]], [[Relances et mise en demeure]], [[Conditions générales]]) ; à
+    [[Bail]], la mention que l'article 17-1 figure maintenant au recueil.
+  - [[Conditions générales]] et [[Souscription de l'abonnement]], réécrites par les rédacteurs : points des anciens
+    callouts qui avaient disparu sans être marqués tranchés (points « à aligner avant de publier la V1 », encadré 14 bis
+    et essai gratuit, médiateur en production, recours « setup » du bouton, PDF joint seulement après archivage)
+    remis, signalés comme non relus le 25/11.
+  - Champ `sources` complété (registres, notes du banc, analyses du recueil, code lu) pour [[Révision annuelle IRL]],
+    [[Régularisation des charges]], [[Relances et mise en demeure]], [[Dépôt de garantie]] et
+    [[Restitution du dépôt de garantie]].
+- **Contrôles faits** : frontmatter YAML des 19 pages lu par programme (valide) ; aucun « conforme » écrit au sens
+  d'une conformité de Gerimmo ; liens `[[…]]` vérifiés (restent, assumés, [[Congé du bailleur]], [[Médiation de la
+  consommation]] et [[Entrepreneur individuel (EI)]], notions à créer listées par la page du recueil).
+- **index.md** : résumé « 25/11 » ajouté aux 19 entrées.
+- **Reste** : créer les trois pages de notions ; relire les entrées de l'index antérieures au 25/11 qui décrivent encore
+  la V1 du 24/10 comme « prévue » ; la seconde passe de vérification, démarrée sur `89cb87ff`, n'est pas terminée (`JOURNAL.md`).

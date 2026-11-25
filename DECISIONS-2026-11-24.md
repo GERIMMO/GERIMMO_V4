@@ -127,3 +127,7 @@ mot pour mot :
   fichiers un par un, arrêt à la première erreur ; chaque exécution passe par la fenêtre d'autorisation de l'outil. Le
   dirigeant garde sa propre voie (éditeur SQL de Supabase) en secours. Non vérifiés : le droit d'écriture du connecteur
   (jamais essayé, et pas essayé sur la production sans raison) et sa disponibilité le jour venu.
+- **P6 b, ancien code `81740dec` sur la base migrée**, texte reçu mot pour mot : « J'accepte les points non essayés de l'ancien code sur la nouvelle base. » → le dirigeant accepte les
+  points supposés A-05 (objets créés par le nouveau code puis lus par l'ancien, IA réelle, e-mails réels, tâches
+  planifiées, vrai PostgREST/Supabase, affichage des refus de la base) ; la case `base_compatible` peut être cochée à É10.
+  La consigne A-01 reste : aucune révision de loyer ni lettre « Révision du loyer » entre É8 et le succès de É10.

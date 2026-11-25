@@ -41,6 +41,38 @@ verifierBaseDeTest(url);
 const lire = (chemin: string) => readFileSync(chemin, "utf8");
 const migration = () => lire(`supabase/migrations/${NOM}.sql`);
 const retour = () => lire(`supabase/retours-arriere/${NOM}.retour.sql`);
+const retourT3 = () => lire(`supabase/retours-arriere/${T3}.retour.sql`);
+/**
+ * Les instructions de premier niveau d'un fichier SQL, telles que `psql -f` les envoie une à une (guillemets simples et
+ * dollar, commentaires respectés). Reprise de la relecture de la fusion (X-02) : sans `-v ON_ERROR_STOP=1`, psql
+ * continue après une instruction en erreur ; un retour en deux instructions pouvait donc échouer sur sa garde puis
+ * modifier la base quand même.
+ */
+function instructions(sql: string): string[] {
+  const liste: string[] = [];
+  let debut = 0, i = 0;
+  while (i < sql.length) {
+    if (sql.startsWith("--", i)) { const f = sql.indexOf("\n", i); i = f < 0 ? sql.length : f + 1; continue; }
+    if (sql.startsWith("/*", i)) { const f = sql.indexOf("*/", i + 2); i = f < 0 ? sql.length : f + 2; continue; }
+    if (sql[i] === "'") {
+      i++;
+      while (i < sql.length && !(sql[i] === "'" && sql[i + 1] !== "'")) i += sql[i] === "'" ? 2 : 1;
+      i++;
+      continue;
+    }
+    const balise = /^\$(?:[A-Za-z_][A-Za-z_0-9]*)?\$/.exec(sql.slice(i, i + 64));
+    if (balise) { const f = sql.indexOf(balise[0], i + balise[0].length); i = f < 0 ? sql.length : f + balise[0].length; continue; }
+    if (sql[i] === ";") {
+      const instruction = sql.slice(debut, i + 1).replace(/^\s*--.*$/gm, "").trim();
+      if (instruction !== ";") liste.push(instruction);
+      debut = i + 1;
+    }
+    i++;
+  }
+  const reste = sql.slice(debut).replace(/^\s*--.*$/gm, "").trim();
+  if (reste) liste.push(reste);
+  return liste;
+}
 
 describe("reprise du lot T3 — écriture de la migration et place au manifeste (sans base)", () => {
   it("la migration et son retour ne touchent aucune donnée ni aucune règle de lecture, et n'ouvrent rien aux visiteurs", () => {
@@ -67,6 +99,17 @@ describe("reprise du lot T3 — écriture de la migration et place au manifeste 
     expect(codes.indexOf("20261125151000")).toBeLessThan(codes.indexOf("20261125111000"));
     expect(lire("tests/relais-migrations-manifeste.test.ts")).toContain(`"${NOM}.sql",`);
     expect(lire("vitest.config.ts")).toContain('"tests/textes-t3-reprise-base.test.ts"');
+  });
+  it("X-02 (reprise de la relecture de la fusion) — les deux retours de la chaîne T3 sont chacun UNE instruction : psql les joue d'un bloc, avec ou sans ON_ERROR_STOP", () => {
+    // Avant : le retour du lot T3 portait sa garde dans un premier bloc DO, à part ; joué par `psql -f` sans
+    // ON_ERROR_STOP, l'erreur de la garde n'arrêtait pas le second bloc. Le retour de la reprise faisait suivre son bloc
+    // de quatre « drop function » : une erreur du bloc laissait partir les suppressions.
+    expect(instructions(retourT3()), T3).toHaveLength(1);
+    expect(instructions(retour()), NOM).toHaveLength(1);
+    expect(instructions(retourT3())[0]).toMatch(/^do \$/);
+    expect(instructions(retour())[0]).toMatch(/^do \$/);
+    // Le découpage lui-même : une garde à part donne bien deux instructions.
+    expect(instructions("-- x\ndo $$ begin raise exception 'a;b'; end $$;\ndo $q$ begin perform 1; end $q$;")).toHaveLength(2);
   });
 });
 
@@ -162,6 +205,17 @@ describe.skipIf(!url)("reprise du lot T3 — confirmation d'un complément ancie
     e.secondes = Number((await un("select count(*) n from pg_proc p where p.oid in (select to_regprocedure(s) from unnest($1::text[]) s)", [JUMELLES.map(([, s]) => s)])).n);
     return e;
   };
+  const etatAvecTerme = async () => ({ ...(await empreintes()),
+    terme: (await un("select md5(prosrc) m from pg_proc where oid=$1::text::regprocedure", ["public.terme_bail_calcule(uuid,date)"])).m });
+  /** Joue un fichier comme `psql -f` sans ON_ERROR_STOP : chaque instruction pour elle-même ; rend les erreurs vues. */
+  async function commePsqlSansArret(sql: string) {
+    const erreurs: string[] = [];
+    for (const instruction of instructions(sql)) {
+      const r = await essai(() => db.query(instruction));
+      if (r && typeof r === "object" && "refus" in r) erreurs.push(r.refus);
+    }
+    return erreurs;
+  }
 
   beforeAll(async () => { db = new Client({ connectionString: url }); await db.connect(); });
   beforeEach(async () => {
@@ -303,14 +357,12 @@ describe.skipIf(!url)("reprise du lot T3 — confirmation d'un complément ancie
     // Avant la correction : le retour du lot T3 ne trouvait plus sa ligne (réécrite par cette reprise), passait sans rien
     // dire, puis le retour de la reprise rendait la ligne du lot T3 : la base restait dans l'état du lot T3 (complément de
     // 2012 enregistré par appel direct, sans refus ni confirmation), alors que l'opérateur la croyait revenue.
-    const retourT3 = () => lire(`supabase/retours-arriere/${T3}.retour.sql`);
-    const TERME = "public.terme_bail_calcule(uuid,date)";
-    const etat = async () => ({ ...(await empreintes()), terme: (await un("select md5(prosrc) m from pg_proc where oid=$1::text::regprocedure", [TERME])).m });
-    const apres = await etat();
+    // (Ce test joue le fichier en un seul message : il ne voyait pas le cas de psql sans ON_ERROR_STOP, tenu par X-02.)
+    const apres = await etatAvecTerme();
     expect(await essai(() => db.query(retourT3()))).toEqual({
       refus: expect.stringContaining("jouez d'abord le retour de 20261125151000"),
     });
-    expect(await etat()).toEqual(apres); // rien n'a bougé, ni les deux fonctions, ni le terme du bail
+    expect(await etatAvecTerme()).toEqual(apres); // rien n'a bougé, ni les deux fonctions, ni le terme du bail
     // L'ordre de la chaîne « Ordre complet » : la reprise, puis le lot T3.
     await db.query(retour());
     await db.query(retourT3());
@@ -319,6 +371,33 @@ describe.skipIf(!url)("reprise du lot T3 — confirmation d'un complément ancie
     expect(await lignes(b)).toEqual([]);
     // Rejouable : sur une base revenue, le retour du lot T3 ne trouve plus rien à faire et n'échoue pas.
     expect(await essai(() => db.query(retourT3()))).not.toHaveProperty("refus");
+  });
+
+  it("X-02 (reprise de la relecture de la fusion) — retour du lot T3 joué en premier comme `psql -f` SANS ON_ERROR_STOP (chaque instruction à part, l'erreur n'arrête pas la suite) : l'erreur le dit, et rien ne bouge, ni les deux fonctions ni le terme du bail", async () => {
+    // Avant : la garde était un bloc DO à part. psql affichait « … Rien n'est modifié », puis jouait le second bloc :
+    // `terme_bail_calcule` revenait à son texte d'avant le lot T3 (terme d'un bail commencé un 29 février un jour trop
+    // tôt) pendant que les deux fonctions gardaient la reprise T3R-1, et psql sortait avec le code 0.
+    const apres = await etatAvecTerme();
+    const erreurs = await commePsqlSansArret(retourT3());
+    expect(erreurs).toEqual([expect.stringContaining("jouez d'abord le retour de 20261125151000, puis celui-ci. Rien n'est modifié")]);
+    expect(await etatAvecTerme()).toEqual(apres);
+    // Dans l'ordre de la chaîne, joués de la même façon, les deux passent sans erreur.
+    expect(await commePsqlSansArret(retour())).toEqual([]);
+    expect(await commePsqlSansArret(retourT3())).toEqual([]);
+    const b = await bail("2010-01-01");
+    expect(await regulariser(b, 2012, 1000)).toEqual({ refus: expect.stringMatching(/Exercice 2012 prescrit/) });
+  });
+
+  it("X-02 — retour de cette reprise sur une définition inattendue, joué comme `psql -f` sans ON_ERROR_STOP : l'erreur le dit, et les secondes signatures ne sont pas supprimées", async () => {
+    // Avant : le bloc DO s'arrêtait (texte de la reprise incomplet), puis les quatre « drop function » qui le suivaient
+    // partaient quand même : les fonctions gardaient la reprise T3R-1 sans plus offrir la signature de confirmation.
+    await db.query((await definition(REGULARISER)).replace(
+      "à la charge du locataire', p_annee;\n  end if;", "à la charge du locataire', p_annee;\n  end  if;"));
+    const etat = await empreintes();
+    expect(etat.secondes).toBe(4);
+    const erreurs = await commePsqlSansArret(retour());
+    expect(erreurs).toEqual([expect.stringContaining(`texte de la reprise incomplet dans ${REGULARISER} ; rien n'est modifié`)]);
+    expect(await empreintes()).toEqual(etat);
   });
 
   it("T3R-8 — bail étudiant de neuf mois : le terme d'un début au 29, 30 ou 31 ramené en fin de mois change d'un jour ; les autres débuts, non", async () => {

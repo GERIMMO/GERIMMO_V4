@@ -76,6 +76,9 @@ describe("T2R-1 — la règle des six mois est dite sous condition, aux deux end
       "20261125152000_bail_locataires_epoux_pacses.sql",
       // Relecture de la fusion (A-01, 25/11) : la case ne vaut que pour les deux personnes présentes à la signature.
       "20261125153000_bail_epoux_pacses_personnes_a_la_signature.sql",
+      // Reprise de cette relecture (X-01, 25/11) : la marque suit la nouvelle signature après « Corriger » ; elle ne
+      // touche pas ce calcul (filtre ci-dessous).
+      "20261125154000_bail_epoux_pacses_marque_a_la_nouvelle_signature.sql",
     ]);
     // Ce calcul n'est touché que par la case « mariés ou pacsés » et sa reprise A-01 (tests/bail-epoux-pacses-base.test.ts,
     // tests/bail-epoux-pacses-tiers-base.test.ts) ; la règle de six mois reste celle de tout bail dont la case n'est pas cochée.

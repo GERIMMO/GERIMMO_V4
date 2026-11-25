@@ -45,9 +45,12 @@ begin
     execute replace(definition, corps,
       substr(corps, 1, debut - 1) || r.ancien || substr(corps, debut + fin - 1 + length(r.fermeture)));
   end loop;
-end $retour_reprise_t3$;
 
-drop function if exists public.regulariser_charges(uuid,integer,numeric,uuid,text,boolean,boolean);
-drop function if exists public.regulariser_charges_avec_justificatif(uuid,integer,numeric,text,text,text,bigint,text,boolean,boolean);
-drop function if exists public.emettre_regularisation_fourniture(uuid,uuid,text,boolean,boolean,boolean,text,text,bigint,text,boolean);
-drop function if exists consommations_interne.emettre_regularisation(uuid,uuid,text,boolean,boolean,boolean,text,text,bigint,text,boolean);
+  -- Les secondes signatures (`p_exercice_ancien`) : dans le même bloc (reprise de la relecture de la fusion, X-02). Elles
+  -- suivaient le bloc, en instructions à part : joué par `psql -f` sans ON_ERROR_STOP, un arrêt du bloc ci-dessus les
+  -- laissait supprimer quand même, et les deux fonctions gardaient la reprise sans plus offrir la confirmation.
+  drop function if exists public.regulariser_charges(uuid,integer,numeric,uuid,text,boolean,boolean);
+  drop function if exists public.regulariser_charges_avec_justificatif(uuid,integer,numeric,text,text,text,bigint,text,boolean,boolean);
+  drop function if exists public.emettre_regularisation_fourniture(uuid,uuid,text,boolean,boolean,boolean,text,text,bigint,text,boolean);
+  drop function if exists consommations_interne.emettre_regularisation(uuid,uuid,text,boolean,boolean,boolean,text,text,bigint,text,boolean);
+end $retour_reprise_t3$;

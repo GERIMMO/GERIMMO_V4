@@ -90,11 +90,13 @@ it("relance aussi les colocataires engagés et dédoublonne les adresses",async(
 // défaut : la relance partie au locataire n'apparaissait pas au suivi, et une clé différente (nouveau montant) la lui
 // renvoyait. Il dit désormais la règle : un destinataire servi suffit pour consigner, la note dit l'envoi à terminer,
 // et chaque destinataire a sa propre clé.
+// Reprise de cette relecture (Y-01) : le message ne reprend plus le texte du service d'envoi (ici « Refus temporaire. »),
+// qui invite souvent à réessayer alors que ce palier ne repart plus depuis Gerimmo ; il dit que l'envoi n'est pas parti.
 it("un refus partiel consigne la relance partie, avec l'envoi à terminer ; chaque destinataire a sa propre clé",async()=>{
   m.tables.bail_personnes=[{person_id:"coloc",date_solidarite_fin:null}];m.tables.colocataires=[{email:"coloc@example.invalid"}];
   m.envoyer.mockResolvedValueOnce({}).mockResolvedValueOnce({erreur:"Refus temporaire."});
   const r=await envoyerRelanceReception("org","appel",{},f());
-  expect(r.succes).toContain("Relance envoyée à 1 destinataire et enregistrée dans le suivi du bail. 1 envoi n’a pas abouti (coloc@example.invalid) : Refus temporaire.");
+  expect(r.succes).toContain("Relance envoyée à 1 destinataire et enregistrée dans le suivi du bail. 1 envoi n’a pas abouti (coloc@example.invalid) : il n’est pas parti.");
   expect(m.trace).toHaveBeenCalledWith(expect.objectContaining({niveau:"relance_1",note:expect.stringContaining("· 1 destinataire · 1 envoi à terminer (non parti)")}),{onConflict:"id",ignoreDuplicates:true});
   const clePrincipale=m.envoyer.mock.calls[0][0].cleIdempotence,cleColocataire=m.envoyer.mock.calls[1][0].cleIdempotence;
   expect(cleColocataire).not.toBe(clePrincipale);
@@ -183,4 +185,71 @@ it("E-02 — aucun destinataire accepté : rien n'est consigné, l'erreur le dit
   m.envoyer.mockResolvedValue({erreur:"Le service d’e-mail a refusé l’envoi. Vérifiez l’adresse du destinataire puis réessayez."});
   const r=await envoyerRelanceReception("org","appel",{},f());
   expect(r.erreur).toContain("Le service d’e-mail a refusé l’envoi");expect(m.trace).not.toHaveBeenCalled();
+});
+
+// Reprise de la relecture de la fusion (Y-01, 25/11/2026). La correction E-02 rangeait toute réponse en erreur parmi les
+// envois « non partis », sans lire les deux marques du service d'envoi : `incertain` (délai dépassé, connexion coupée,
+// réponse 5xx ou 409, résultat non enregistré : l'e-mail a peut-être été remis) et `recuperable` (refus momentané, 429).
+// Locataire seul et envoi incertain : le message disait « La relance n'est pas partie et n'est pas enregistrée » à côté de
+// « a peut-être eu lieu », rien n'était consigné, et un paiement partiel (autre montant, autre clé) renvoyait une première
+// relance. En colocation, la note écrite disait « non parti » d'un envoi incertain, et un refus momentané affichait
+// « réessayez dans un instant » à côté de « ne repart plus depuis Gerimmo ».
+const ENVOI_INCERTAIN = { erreur: "La connexion au service d’e-mail a été interrompue. L’envoi n’est pas confirmé et a peut-être eu lieu : vérifiez avant de le renvoyer.", incertain: true as const };
+const ENVOI_LIMITE = { erreur: "Envoi limité temporairement par le prestataire d’e-mail : réessayez dans une minute.", recuperable: true };
+const traceGardee = () => m.trace.mockImplementation(async (ligne:{niveau:string;date_envoi:string})=>{(m.tables.relances as unknown[]).push({niveau:ligne.niveau,date_envoi:ligne.date_envoi});return {error:null};});
+it("Y-01 — locataire seul, envoi incertain : jamais « n’est pas partie » ; la relance est consignée « non confirmée » ; après un paiement partiel, rien ne repart",async()=>{
+  m.envoyer.mockResolvedValue(ENVOI_INCERTAIN);traceGardee();
+  const r1=await envoyerRelanceReception("org","appel",{},f());
+  expect(r1.erreur).toBeUndefined();
+  expect(r1.succes).not.toMatch(/n’est pas partie|pas parti/);
+  expect(r1.succes).toContain("Relance non confirmée : elle est enregistrée dans le suivi du bail comme envoi non confirmé.");
+  expect(r1.succes).toContain("1 envoi n’est pas confirmé (locataire@example.invalid) : il a peut-être eu lieu.");
+  expect(r1.succes).toContain("Ce palier de relance ne repart plus depuis Gerimmo, pour ne pas l’envoyer deux fois");
+  expect(m.trace).toHaveBeenCalledTimes(1);
+  expect(m.trace).toHaveBeenCalledWith(expect.objectContaining({niveau:"relance_1",note:expect.stringMatching(/ · aucun envoi confirmé · 1 envoi non confirmé \(peut-être parti\)$/)}),{onConflict:"id",ignoreDuplicates:true});
+  // Paiement partiel (reste 500) : autre montant, donc autre clé d'envoi. Le palier est consigné : rien ne repart.
+  m.ligne={...(m.ligne as object),montant_couvert:300};const f2=f();f2.set("reste_attendu","500");
+  expect((await envoyerRelanceReception("org","appel",{},f2)).erreur).toBeTruthy();
+  expect(new Set(m.envoyer.mock.calls.filter(c=>c[0].to==="locataire@example.invalid").map(c=>c[0].cleIdempotence)).size).toBe(1);
+  expect(m.trace).toHaveBeenCalledTimes(1);
+});
+it("Y-01 — colocation, colocataire incertain : la note et le message disent « non confirmé », jamais « non parti »",async()=>{
+  m.tables.bail_personnes=[{person_id:"coloc",date_solidarite_fin:null}];m.tables.colocataires=[{email:"coloc@example.invalid"}];
+  m.envoyer.mockImplementation(async (p:{to:string})=>p.to.startsWith("coloc")?ENVOI_INCERTAIN:{});
+  const r=await envoyerRelanceReception("org","appel",{},f());
+  expect(r.succes).toContain("Relance envoyée à 1 destinataire et enregistrée dans le suivi du bail. 1 envoi n’est pas confirmé (coloc@example.invalid) : il a peut-être eu lieu.");
+  expect(r.succes).not.toMatch(/n’a pas abouti|pas parti/);
+  const note=String(m.trace.mock.calls[0][0].note);
+  expect(note).toMatch(/ · 1 destinataire · 1 envoi non confirmé \(peut-être parti\)$/);
+  expect(note).not.toContain("non parti");
+});
+it("Y-01 — colocation, colocataire refusé un instant (429) : plus de « réessayez » à côté de « ne repart plus » ; le message nomme la personne à prévenir",async()=>{
+  m.tables.bail_personnes=[{person_id:"coloc",date_solidarite_fin:null}];m.tables.colocataires=[{email:"coloc@example.invalid"}];
+  m.envoyer.mockImplementation(async (p:{to:string})=>p.to.startsWith("coloc")?ENVOI_LIMITE:{});
+  const r=await envoyerRelanceReception("org","appel",{},f());
+  expect(r.succes).toContain("1 envoi n’a pas abouti (coloc@example.invalid) : le service d’e-mail ne l’a pas pris en charge pour le moment, il n’est pas parti.");
+  expect(r.succes).toContain("Ce palier de relance ne repart plus depuis Gerimmo, pour ne pas l’envoyer deux fois : prévenez autrement la personne non servie.");
+  expect(r.succes).not.toMatch(/réessayez/i);
+  expect(String(m.trace.mock.calls[0][0].note)).toMatch(/ · 1 destinataire · 1 envoi à terminer \(non parti\)$/);
+});
+it("Y-01 — un refus définitif d'un colocataire ne fait pas non plus dire « réessayez » au message qui ferme le palier",async()=>{
+  m.tables.bail_personnes=[{person_id:"coloc",date_solidarite_fin:null}];m.tables.colocataires=[{email:"coloc@example.invalid"}];
+  m.envoyer.mockImplementation(async (p:{to:string})=>p.to.startsWith("coloc")?{erreur:"Le service d’e-mail a refusé l’envoi. Vérifiez l’adresse du destinataire puis réessayez."}:{});
+  const r=await envoyerRelanceReception("org","appel",{},f());
+  expect(r.succes).toContain("1 envoi n’a pas abouti (coloc@example.invalid) : il n’est pas parti.");
+  expect(r.succes).not.toMatch(/réessayez/i);
+});
+it("Y-01 — rien d'accepté, un envoi incertain et un refus : consigné « non confirmé », le message distingue les deux",async()=>{
+  m.tables.bail_personnes=[{person_id:"coloc",date_solidarite_fin:null}];m.tables.colocataires=[{email:"coloc@example.invalid"}];
+  m.envoyer.mockImplementation(async (p:{to:string})=>p.to.startsWith("coloc")?ENVOI_LIMITE:ENVOI_INCERTAIN);
+  const r=await envoyerRelanceReception("org","appel",{},f());
+  expect(r.succes).toContain("Relance non confirmée : elle est enregistrée dans le suivi du bail comme envoi non confirmé. 1 envoi n’est pas confirmé (locataire@example.invalid) : il a peut-être eu lieu. 1 envoi n’a pas abouti (coloc@example.invalid) :");
+  expect(r.succes).toContain("vérifiez auprès des personnes concernées et prévenez autrement celles qui ne l’ont pas reçue.");
+  expect(String(m.trace.mock.calls[0][0].note)).toMatch(/ · aucun envoi confirmé · 1 envoi non confirmé \(peut-être parti\) · 1 envoi à terminer \(non parti\)$/);
+});
+it("Y-01 — rien d'accepté et aucun envoi incertain (refus momentané seul) : rien n'est consigné, le clic suivant reprend les mêmes clés",async()=>{
+  m.envoyer.mockResolvedValue(ENVOI_LIMITE);
+  const r=await envoyerRelanceReception("org","appel",{},f());
+  expect(r.erreur).toContain("La relance n’est pas partie et n’est pas enregistrée.");
+  expect(m.trace).not.toHaveBeenCalled();
 });

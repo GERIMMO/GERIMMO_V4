@@ -331,6 +331,9 @@ const MISSION_OCTOBRE = [
   // 25/11, relecture de la fusion (A-01) : sur un bail coché « mariés ou pacsés », la fin de solidarité vide ne vaut que pour
   // les deux personnes présentes à la signature ; troisième locataire refusé au brouillon coché, activation à deux exactement.
   "20261125153000_bail_epoux_pacses_personnes_a_la_signature.sql",
+  // 25/11, reprise de la relecture de la fusion (X-01) : la marque « entrée après la signature » est remise à faux, à la sortie
+  // du brouillon, pour les personnes présentes à cette signature (« Corriger » puis nouveau bail signé).
+  "20261125154000_bail_epoux_pacses_marque_a_la_nouvelle_signature.sql",
 
 
 ];

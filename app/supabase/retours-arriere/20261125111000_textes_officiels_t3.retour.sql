@@ -13,11 +13,18 @@
 -- « reprise T3R-1 ». Ce retour se joue APRÈS celui de 20261125151000. Joué avant, il ne trouvait plus sa ligne, passait
 -- sans rien dire, et la base restait dans l'état du lot T3 : il s'arrête désormais, avec une erreur qui le dit, sans rien
 -- modifier (comme le retour de 20261125152000 devant une fonction réécrite depuis).
+-- UNE SEULE INSTRUCTION (reprise de la relecture de la fusion, X-02) : la garde est la première étape du bloc qui rend
+-- les fonctions. Elle était auparavant un bloc DO à part : joué par `psql -f` sans `-v ON_ERROR_STOP=1`, psql affichait
+-- l'erreur « Rien n'est modifié », jouait quand même le bloc suivant (le terme du bail revenait à son texte d'avant)
+-- et sortait avec le code 0. Le fichier entier réussit ou échoue d'un bloc, avec ou sans ON_ERROR_STOP.
 
 do $$
 declare
   r record;
+  definition text;
+  corps text;
 begin
+  -- Garde de l'ordre (A-02), dans le même bloc que la restitution (X-02) : elle s'arrête avant toute modification.
   for r in select * from (values
     ('public.regulariser_charges(uuid,integer,numeric,uuid,text,boolean)'),
     ('consommations_interne.emettre_regularisation(uuid,uuid,text,boolean,boolean,boolean,text,text,bigint,text)')
@@ -26,14 +33,7 @@ begin
       raise exception 'Retour du lot T3 : % porte encore la reprise T3R-1 (migration 20261125151000) ; jouez d''abord le retour de 20261125151000, puis celui-ci. Rien n''est modifié', r.signature;
     end if;
   end loop;
-end $$;
 
-do $$
-declare
-  r record;
-  definition text;
-  corps text;
-begin
   for r in select * from (values
     ('public.regulariser_charges(uuid,integer,numeric,uuid,text,boolean)',
      $n$-- Lot T3 (R16-A1) : plus de refus « exercice prescrit » ici quand make_date(p_annee, 12, 31) < (public.aujourdhui_paris() - interval '3 years')::date. Article 7-1 : le délai court du jour où le bailleur a connu les dépenses, que la base ne connaît pas ; l'application avertit et fait confirmer.$n$,

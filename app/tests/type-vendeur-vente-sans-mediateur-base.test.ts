@@ -54,6 +54,8 @@ describe("type de vendeur et vente sans médiateur — manifeste et droits (sans
       "20261125152000_bail_locataires_epoux_pacses.sql",
       // Relecture de la fusion (A-01, 25/11) : la case « mariés ou pacsés » ne vaut que pour les personnes à la signature.
       "20261125153000_bail_epoux_pacses_personnes_a_la_signature.sql",
+      // Reprise de la relecture de la fusion (X-01, 25/11) : marque « entrée après la signature » à la nouvelle signature.
+      "20261125154000_bail_epoux_pacses_marque_a_la_nouvelle_signature.sql",
     ]);
     expect(suivantes.filter((m) => /supervision_identite/.test(readFileSync(`supabase/migrations/${m}`, "utf8")))).toEqual([]);
     expect(manifeste[manifeste.indexOf(`${NOM}.sql`) - 1]).toBe("20261125105000_archive_compte_apres_client_stripe.sql");

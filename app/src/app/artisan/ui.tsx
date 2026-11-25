@@ -254,14 +254,19 @@ export function Succes({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Un bloc (`div`), pas un paragraphe (CI du 25/11/2026) : l'avertissement d'annulation du locataire porte le formulaire
+// « J'en prends acte », puis le paragraphe « Vous avez pris acte… ». Un formulaire ou un paragraphe ne peut pas se
+// trouver dans un `p` : le navigateur fermait le paragraphe avant eux, la page reçue ne correspondait plus à celle de
+// React (erreur d'hydratation n° 418) et toute la fiche de mission était redessinée, bouton compris, sous le doigt de
+// l'artisan. Même apparence : aucune règle de style ne vise l'élément `p`.
 export function Avertissement({ children }: { children: React.ReactNode }) {
   return (
-    <p
+    <div
       role="alert"
       className="rounded-[var(--rayon-champ)] border-l-4 border-[var(--warning)] bg-[var(--warning-soft)] px-3.5 py-3 text-[0.9375rem] text-[var(--warning-soft-foreground)]"
     >
       {children}
-    </p>
+    </div>
   );
 }
 

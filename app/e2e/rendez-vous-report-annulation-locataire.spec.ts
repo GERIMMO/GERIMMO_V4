@@ -77,6 +77,13 @@ test("locataire : report demandé puis accepté, report refusé, puis annulation
 
   const chezLocataire = await browser.newContext({ ...info.project.use, storageState: { cookies: [], origins: [] } });
   const l = await chezLocataire.newPage();
+  // CI du 25/11/2026 : l'avertissement d'annulation de la fiche de mission (un paragraphe qui portait un formulaire)
+  // provoquait une erreur d'hydratation (n° 418) : toute la fiche était redessinée, bouton « J'en prends acte » compris,
+  // et le geste échouait parfois. Une erreur d'hydratation sur l'un des deux écrans fait échouer le parcours, même
+  // quand le geste aboutit.
+  const hydratation: string[] = [];
+  for (const [qui, p] of [["artisan", page], ["locataire", l]] as const)
+    p.on("pageerror", (e) => { if (/Hydration|Minified React error #(418|419|423|425)/.test(String(e))) hydratation.push(`${qui} : ${String(e).slice(0, 160)}`); });
   await sansSyntheseAlertes(l);
   await sansSyntheseAlertes(page);
   for (const c of [chezLocataire, page.context()]) await c.route("**/*", (r) => (LOCAUX.includes(new URL(r.request().url()).hostname) ? r.continue() : r.abort()));
@@ -229,6 +236,8 @@ test("locataire : report demandé puis accepté, report refusé, puis annulation
     const types = (await db.query("select type::text from incident_evenements where incident_id=$1 and type::text like 'rdv\\_%' order by created_at", [incident])).rows.map((r) => r.type);
     expect(types).toEqual(expect.arrayContaining(["rdv_report_demande", "rdv_report_accepte", "rdv_report_refuse"]));
     expect(types.some((t) => t.startsWith("rdv_annule"))).toBe(true);
+    // Aucun écran du parcours n'a été redessiné faute de correspondre à la page envoyée par le serveur.
+    expect(hydratation).toEqual([]);
   } finally {
     await db.query("rollback").catch(() => {});
     await chezLocataire.close();

@@ -1,7 +1,7 @@
 "use client";
 import {
-  AIDE_DEPART_COLOCATAIRE, AIDE_DEPART_EPOUX_PACS, AIDE_GARANTS_COLOCATION, AIDE_GARANTS_EPOUX_PACS, OPTION_SANS_REMPLACANT,
-  OPTION_SANS_REMPLACANT_EPOUX_PACS, SOLIDAIRE_SANS_FIN_EPOUX_PACS,
+  AIDE_DEPART_COLOCATAIRE, AIDE_DEPART_EPOUX_PACS, AIDE_GARANTS_COLOCATION, AIDE_GARANTS_EPOUX_PACS, AVERTISSEMENT_AJOUT_EPOUX_PACS,
+  OPTION_SANS_REMPLACANT, OPTION_SANS_REMPLACANT_EPOUX_PACS, SOLIDAIRE_SANS_FIN_EPOUX_PACS,
 } from "@/lib/solidarite-colocation";
 import { useActionStateSuivi } from "@/lib/suivi-enregistrement";
 
@@ -31,6 +31,11 @@ export type LigneColoc = {
   date_depart?: string | null;
   /** Fin de la solidarité (colocataire parti) ou de l'engagement du garant lié. */
   date_solidarite_fin?: string | null;
+  /**
+   * Relecture de la fusion (A-01) : ligne ajoutée au bail après sa signature (marque posée par la base). Sur un bail coché
+   * « mariés ou pacsés », cette personne garde la règle de la colocation : ses textes sont ceux de la colocation.
+   */
+  entree_apres_signature?: boolean;
 };
 
 type Personne = { id: string; nom: string };
@@ -220,7 +225,7 @@ export function FormulaireColocation({
                   <span className="w-full text-xs text-muted-foreground sm:w-auto">
                     parti le {formaterDate(c.date_depart)}
                     {c.date_solidarite_fin && ` · solidaire jusqu'au ${formaterDate(c.date_solidarite_fin)}`}
-                    {!c.date_solidarite_fin && epouxPacs && ` · ${SOLIDAIRE_SANS_FIN_EPOUX_PACS}`}
+                    {!c.date_solidarite_fin && epouxPacs && !c.entree_apres_signature && ` · ${SOLIDAIRE_SANS_FIN_EPOUX_PACS}`}
                   </span>
                 ) : brouillon ? (
                   <BoutonRetirer orgId={orgId} bailId={bailId} ligneId={c.id} />
@@ -232,12 +237,16 @@ export function FormulaireColocation({
                     remplacants={colocataires
                       .filter((r) => r.id !== c.id && !r.date_depart)
                       .map((r) => ({ id: r.person_id, nom: r.person_nom }))}
-                    epouxPacs={epouxPacs}
+                    epouxPacs={epouxPacs && !c.entree_apres_signature}
                   />
                 )}
               </li>
             ))}
           </ul>
+        )}
+        {/* Relecture de la fusion (A-01) : sur un bail signé coché, la personne ajoutée garde la règle de la colocation. */}
+        {epouxPacs && !brouillon && (
+          <p className="text-xs text-muted-foreground" data-avertissement-ajout-epoux-pacs>{AVERTISSEMENT_AJOUT_EPOUX_PACS}</p>
         )}
         <form data-saisie-confirmee action={formColoc} className="grid gap-2 sm:grid-cols-4">
           <input type="hidden" name="role" value="colocataire" />

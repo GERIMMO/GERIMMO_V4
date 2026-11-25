@@ -236,7 +236,9 @@ describe("les écrans : la case à la préparation, les libellés de la colocati
     expect(f).toContain("{epouxPacs ? <option value=\"\">{OPTION_SANS_REMPLACANT_EPOUX_PACS}</option> : <option value=\"\">{OPTION_SANS_REMPLACANT}</option>}");
     expect(f).toContain("{epouxPacs ? <>{AIDE_DEPART_EPOUX_PACS}</> : <>{AIDE_DEPART_COLOCATAIRE}</>}");
     expect(f).toContain("{epouxPacs ? AIDE_GARANTS_EPOUX_PACS : AIDE_GARANTS_COLOCATION}");
-    expect(f).toContain("{!c.date_solidarite_fin && epouxPacs && ` · ${SOLIDAIRE_SANS_FIN_EPOUX_PACS}`}");
+    // Relecture de la fusion (A-01) : le texte des époux ne vaut que pour une personne présente au bail à sa signature
+    // (tests/bail-epoux-pacses-tiers-ecrans.test.ts).
+    expect(f).toContain("{!c.date_solidarite_fin && epouxPacs && !c.entree_apres_signature && ` · ${SOLIDAIRE_SANS_FIN_EPOUX_PACS}`}");
     expect(f).not.toContain("Engagement plafonné à 6 mois après le\n");
   });
 });

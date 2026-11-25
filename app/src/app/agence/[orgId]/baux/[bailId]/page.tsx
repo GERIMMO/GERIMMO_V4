@@ -131,6 +131,13 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   // bascule ; tant que la colonne n'existe pas, la case est vue non cochée (règle de la colocation, l'affichage d'avant).
   const { data: lectureEpouxPacs, error: epouxPacsIndisponible } = await supabase.from("baux").select("locataires_epoux_pacses").eq("id", bailId).eq("organization_id", orgId).maybeSingle();
   const epouxPacs = !epouxPacsIndisponible && (lectureEpouxPacs as { locataires_epoux_pacses?: boolean | null } | null)?.locataires_epoux_pacses === true;
+  // Relecture de la fusion (A-01, migration 20261125153000) : les personnes ajoutées après la signature, lues à part. Une
+  // lecture en échec vaut « présentes à la signature » : les textes d'avant, ceux que la base applique sans la migration.
+  const { data: lectureMarques, error: marquesIndisponibles } = epouxPacs
+    ? await supabase.from("bail_personnes").select("id, entree_apres_signature").eq("bail_id", bailId)
+    : { data: null, error: null };
+  const entreesApresSignature = new Set(marquesIndisponibles ? [] : ((lectureMarques ?? []) as { id: string; entree_apres_signature?: boolean | null }[])
+    .filter((l) => l.entree_apres_signature === true).map((l) => l.id));
   const suiviSignature = await lirePresentationSignatures(orgId, { baux: [bailId] });
   const documentSigne = bail.document_signe ?? archiveSignee(signatureDuBail(suiviSignature.circuits, bailId));
   const signeNonActif = bail.etat === "brouillon" && Boolean(documentSigne);
@@ -248,6 +255,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     garant_de: l.garant_de,
     date_depart: l.date_depart,
     date_solidarite_fin: l.date_solidarite_fin,
+    entree_apres_signature: entreesApresSignature.has(l.id),
     garant_de_nom: l.garant_de ? nomsPersonnes.get(l.garant_de) ?? null : null,
   }));
   // Les garants du bail (id = PERSONNE, pas la ligne) — pour le cautionnement

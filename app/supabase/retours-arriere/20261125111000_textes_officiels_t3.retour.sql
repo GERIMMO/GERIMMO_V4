@@ -8,6 +8,25 @@
 -- exercice ancien, et la base refuse ensuite : c'est un refus, jamais un montant faux.
 -- Aucune donnée n'est modifiée ni supprimée : les régularisations et les congés enregistrés entre-temps restent tels quels.
 -- Droits inchangés. Rejouable.
+-- ORDRE (relecture de la fusion du 25/11, A-02) : la reprise du lot T3 (20261125151000) a remplacé, dans
+-- `regulariser_charges` et `consommations_interne.emettre_regularisation`, la ligne du lot T3 par la confirmation
+-- « reprise T3R-1 ». Ce retour se joue APRÈS celui de 20261125151000. Joué avant, il ne trouvait plus sa ligne, passait
+-- sans rien dire, et la base restait dans l'état du lot T3 : il s'arrête désormais, avec une erreur qui le dit, sans rien
+-- modifier (comme le retour de 20261125152000 devant une fonction réécrite depuis).
+
+do $$
+declare
+  r record;
+begin
+  for r in select * from (values
+    ('public.regulariser_charges(uuid,integer,numeric,uuid,text,boolean)'),
+    ('consommations_interne.emettre_regularisation(uuid,uuid,text,boolean,boolean,boolean,text,text,bigint,text)')
+  ) x(signature) loop
+    if position('reprise T3R-1' in coalesce((select p.prosrc from pg_proc p where p.oid = to_regprocedure(r.signature)), '')) > 0 then
+      raise exception 'Retour du lot T3 : % porte encore la reprise T3R-1 (migration 20261125151000) ; jouez d''abord le retour de 20261125151000, puis celui-ci. Rien n''est modifié', r.signature;
+    end if;
+  end loop;
+end $$;
 
 do $$
 declare

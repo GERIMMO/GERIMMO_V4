@@ -254,6 +254,10 @@ describe.skipIf(!url)("lot T3 — complément de charges d'un exercice ancien, t
   });
 
   it("une définition inattendue arrête la migration sans rien modifier", async () => {
+    // Relecture de la fusion (A-02, 25/11) : ce test jouait le retour du lot T3 SANS celui de la reprise T3R-1, dans le
+    // mauvais ordre ; le retour passait alors sans rien dire (sans rendre le refus « prescrit »). Il s'arrête désormais
+    // dans ce cas : l'ordre de la chaîne est joué ici, la reprise d'abord (tests/textes-t3-reprise-base.test.ts, A-02).
+    await db.query(readFileSync(`supabase/retours-arriere/${REPRISE}.retour.sql`, "utf8"));
     await db.query(readFileSync(`supabase/retours-arriere/${NOM}.retour.sql`, "utf8"));
     const def = await definition(TERME);
     await db.query(def.replace("::date - 1;", "::date - 2;"));

@@ -85,13 +85,19 @@ it("relance aussi les colocataires engagés et dédoublonne les adresses",async(
   expect(m.filtres).toContainEqual(["persons","in","id",["coloc"]]);
   expect(m.trace).toHaveBeenCalledWith(expect.objectContaining({note:expect.stringContaining("2 destinataires")}),expect.anything());
 });
-it("un refus partiel ne clôt pas la relance et la reprise garde les clés des destinataires déjà servis",async()=>{
+// Relecture de la fusion du 25/11/2026 (E-02) : ce test affirmait qu'un refus partiel ne consignait RIEN (« la relance
+// n'est pas marquée complète ») et qu'un second clic renvoyait aux deux destinataires avec les mêmes clés. C'était le
+// défaut : la relance partie au locataire n'apparaissait pas au suivi, et une clé différente (nouveau montant) la lui
+// renvoyait. Il dit désormais la règle : un destinataire servi suffit pour consigner, la note dit l'envoi à terminer,
+// et chaque destinataire a sa propre clé.
+it("un refus partiel consigne la relance partie, avec l'envoi à terminer ; chaque destinataire a sa propre clé",async()=>{
   m.tables.bail_personnes=[{person_id:"coloc",date_solidarite_fin:null}];m.tables.colocataires=[{email:"coloc@example.invalid"}];
   m.envoyer.mockResolvedValueOnce({}).mockResolvedValueOnce({erreur:"Refus temporaire."});
-  expect((await envoyerRelanceReception("org","appel",{},f())).erreur).toContain("1 destinataire(s) accepté(s)");expect(m.trace).not.toHaveBeenCalled();
+  const r=await envoyerRelanceReception("org","appel",{},f());
+  expect(r.succes).toContain("Relance envoyée à 1 destinataire et enregistrée dans le suivi du bail. 1 envoi n’a pas abouti (coloc@example.invalid) : Refus temporaire.");
+  expect(m.trace).toHaveBeenCalledWith(expect.objectContaining({niveau:"relance_1",note:expect.stringContaining("· 1 destinataire · 1 envoi à terminer (non parti)")}),{onConflict:"id",ignoreDuplicates:true});
   const clePrincipale=m.envoyer.mock.calls[0][0].cleIdempotence,cleColocataire=m.envoyer.mock.calls[1][0].cleIdempotence;
-  expect((await envoyerRelanceReception("org","appel",{},f())).succes).toContain("enregistrée");
-  expect(m.envoyer.mock.calls[2][0].cleIdempotence).toBe(clePrincipale);expect(m.envoyer.mock.calls[3][0].cleIdempotence).toBe(cleColocataire);expect(cleColocataire).not.toBe(clePrincipale);
+  expect(cleColocataire).not.toBe(clePrincipale);
 });
 it("ne commence aucun envoi quand les colocataires ne peuvent pas être vérifiés",async()=>{
   m.erreurs.bail_personnes={message:"lecture impossible"};expect((await envoyerRelanceReception("org","appel",{},f())).erreur).toContain("colocataires");expect(m.envoyer).not.toHaveBeenCalled();
@@ -144,4 +150,37 @@ it.each([
   expect(envoi).not.toHaveProperty("contexteMetier");
   expect(envoi.repriseAutonome).toBe(false);
   expect(m.trace).not.toHaveBeenCalled();
+});
+// Relecture de la fusion du 25/11/2026 (E-02) : en colocation, une adresse refusée pour de bon par le service d'envoi
+// (état « echec », jamais repris) faisait sortir l'action AVANT la trace, même quand le locataire avait reçu la relance :
+// rien n'était consigné dans `relances`, chaque clic répondait « envoi à terminer », la deuxième relance restait bloquée,
+// et après un paiement partiel (autre montant, donc autre clé d'envoi) le locataire recevait une seconde « première
+// relance » pour la même échéance. Désormais, dès qu'un destinataire a accepté l'envoi, la trace est écrite avec une
+// note qui dit qu'un envoi reste à terminer ; le même palier n'est plus envoyé à personne.
+it("E-02 — colocation, échec définitif d'un colocataire : la relance partie au locataire est consignée, la note dit l'envoi à terminer ; aucun second envoi au même palier, même après un paiement partiel",async()=>{
+  m.tables.bail_personnes=[{person_id:"coloc",date_solidarite_fin:null}];m.tables.colocataires=[{email:"coloc@example.invalid"}];
+  m.envoyer.mockImplementation(async (p:{to:string})=>p.to.startsWith("coloc")?{erreur:"Le service d’e-mail a refusé l’envoi. Vérifiez l’adresse du destinataire puis réessayez."}:{});
+  // La base garde la trace écrite : le suivi la relit au clic suivant.
+  m.trace.mockImplementation(async (ligne:{niveau:string;date_envoi:string})=>{(m.tables.relances as unknown[]).push({niveau:ligne.niveau,date_envoi:ligne.date_envoi});return {error:null};});
+  const r1=await envoyerRelanceReception("org","appel",{},f());
+  expect(r1.erreur).toBeUndefined();
+  expect(r1.succes).toContain("enregistrée dans le suivi du bail");
+  expect(r1.succes).toContain("1 envoi n’a pas abouti");
+  expect(r1.succes).toContain("coloc@example.invalid");
+  expect(m.trace).toHaveBeenCalledTimes(1);
+  expect(m.trace).toHaveBeenCalledWith(expect.objectContaining({bail_id:"bail",niveau:"relance_1",note:expect.stringMatching(/1 destinataire · 1 envoi à terminer/)}),{onConflict:"id",ignoreDuplicates:true});
+  const envoisApres1=m.envoyer.mock.calls.length;
+  // Nouveau clic, même montant : refusé, rien ne repart.
+  expect((await envoyerRelanceReception("org","appel",{},f())).erreur).toBeTruthy();
+  // Paiement partiel (reste 500) : refusé aussi, aucune seconde « première relance » au locataire.
+  m.ligne={...(m.ligne as object),montant_couvert:300};const f2=f();f2.set("reste_attendu","500");
+  expect((await envoyerRelanceReception("org","appel",{},f2)).erreur).toBeTruthy();
+  expect(m.envoyer.mock.calls.length).toBe(envoisApres1);
+  expect(new Set(m.envoyer.mock.calls.filter(c=>c[0].to==="locataire@example.invalid").map(c=>c[0].cleIdempotence)).size).toBe(1);
+  expect(m.trace).toHaveBeenCalledTimes(1);
+});
+it("E-02 — aucun destinataire accepté : rien n'est consigné, l'erreur le dit",async()=>{
+  m.envoyer.mockResolvedValue({erreur:"Le service d’e-mail a refusé l’envoi. Vérifiez l’adresse du destinataire puis réessayez."});
+  const r=await envoyerRelanceReception("org","appel",{},f());
+  expect(r.erreur).toContain("Le service d’e-mail a refusé l’envoi");expect(m.trace).not.toHaveBeenCalled();
 });

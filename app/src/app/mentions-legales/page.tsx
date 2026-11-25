@@ -1,7 +1,7 @@
 import { lireEditeur } from "@/lib/editeur-serveur";
 import Link from "next/link";
 import { Article, CoordonneesMediateur, CoquilleLegale, Fait } from "@/components/coquille-legale";
-import { courrielDeContact, documentsIncomplets, estEntrepreneurIndividuel, REGIME_TVA, prestatairesAvecFaits, prestatairesIncomplets, sirenEtSiret } from "@/lib/editeur";
+import { courrielDeContact, documentsIncomplets, REGIME_TVA, prestatairesAvecFaits, prestatairesIncomplets, sirenEtSiret, typeVendeur } from "@/lib/editeur";
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
 
 export const metadata = metadonneesPubliques({
@@ -19,21 +19,24 @@ export const metadata = metadonneesPubliques({
 export default async function PageMentionsLegales() {
   const { editeur: EDITEUR, indisponible } = await lireEditeur();
   const hebergeurs = prestatairesAvecFaits(EDITEUR).filter((p) => p.cle === "vercel" || p.cle === "supabase");
-  const individuel = estEntrepreneurIndividuel(EDITEUR);
+  // Relecture de la fusion du 25/11/2026 (C-02) : seul le type de vendeur CHOISI dit s'il y a un capital. Tant qu'il ne
+  // l'est pas, aucune ligne de capital (elle affichait « capital social (à venir) », même pour un entrepreneur individuel),
+  // et la page porte l'encadré « Document en cours de finalisation ». La forme juridique saisie n'est pas lue.
+  const type = typeVendeur(EDITEUR);
   const numeros = sirenEtSiret(EDITEUR.siret);
   return (
     <CoquilleLegale
       titre="Mentions légales"
       chapo="Les informations essentielles sur l’éditeur de Gerimmo."
       chemin="/mentions-legales"
-      incomplet={indisponible || documentsIncomplets(EDITEUR) || prestatairesIncomplets(hebergeurs, true)}
+      incomplet={indisponible || documentsIncomplets(EDITEUR) || type === null || prestatairesIncomplets(hebergeurs, true)}
       courriel={courrielDeContact(EDITEUR)}
     >
       <Article titre="Éditeur">
         <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-[auto_1fr]">
           {[
             ["Éditeur", <span key="identite"><Fait valeur={EDITEUR.denomination} quoi="identité de l’éditeur" /> — <Fait valeur={EDITEUR.forme} quoi="forme juridique" /></span>],
-            ...(individuel ? [] : [["Capital social", <Fait key="c" valeur={EDITEUR.capital} quoi="capital social" />]]),
+            ...(type === "personne_morale" ? [["Capital social", <Fait key="c" valeur={EDITEUR.capital} quoi="capital social" />]] : []),
             ["Adresse", <Fait key="s" valeur={EDITEUR.siege} quoi="adresse de l’entreprise" />],
             ["Immatriculation", <Fait key="r" valeur={EDITEUR.rcs} quoi="immatriculation au RNE ou au RCS" />],
             ...(numeros

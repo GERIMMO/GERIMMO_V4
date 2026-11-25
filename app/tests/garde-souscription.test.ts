@@ -567,6 +567,32 @@ describe("souscription : la version en vigueur des conditions générales, accep
     expect(mocks.retrieve).not.toHaveBeenCalled();
   });
 
+  // Relecture de la fusion du 25/11/2026 (E-01) : la comparaison avec l'identité archivée ne valait que pour un
+  // particulier. Une agence ouvrait la page de paiement (Stripe appelé) alors que le texte archivé, dont l'empreinte est
+  // la preuve de son accord, imprime une autre identité du vendeur. Elle vaut pour toute première souscription.
+  it.each([
+    ["l'archive manque", null],
+    ["le nom archivé est différent", { identite_editeur: { ...EDITEUR_COMPLET, denomination: "Autre vendeur EI" } }],
+    ["l'adresse archivée est différente", { identite_editeur: { ...EDITEUR_COMPLET, siege: "9 rue d'Avant, 75000 Paris" } }],
+  ])("agence, première souscription : refuse aussi la commande si %s, avant tout appel à Stripe", async (_cas, archive) => {
+    etat(GRILLE, false, true, "agence");
+    mocks.archive = archive;
+    const r = await demarrerAbonnement("org-1", {}, souscrire());
+    expect(r.erreur).toBe("Les souscriptions sont en attente de la vérification de la version archivée des conditions générales.");
+    expect(mocks.retrieve).not.toHaveBeenCalled();
+    expect(mocks.serviceRpc).not.toHaveBeenCalled();
+  });
+
+  it("agence : une archive concordante (médiateur absent compris) laisse passer la garde ; une hausse ne relit pas l'archive", async () => {
+    etat(GRILLE, false, true, "agence");
+    const sansMediateur = { ...EDITEUR_COMPLET, mediateurNom: null, mediateurAdresse: null, mediateurSite: null };
+    identite(sansMediateur);
+    mocks.archive = { identite_editeur: EDITEUR_COMPLET };
+    const r = await demarrerAbonnement("org-1", {}, souscrire());
+    expect(r.erreur ?? "").not.toContain("version archivée des conditions");
+    expect(mocks.lecturesCgu.length).toBeGreaterThan(0);
+  });
+
   it.each([
     ["le médiateur a été saisi après l'archivage", { ...EDITEUR_COMPLET, mediateurNom: null, mediateurAdresse: null, mediateurSite: null }],
     ["le médiateur a changé depuis l'archivage", { ...EDITEUR_COMPLET, mediateurNom: "Ancien médiateur", mediateurSite: "https://ancien.example" }],

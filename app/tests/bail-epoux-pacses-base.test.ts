@@ -30,6 +30,9 @@ verifierBaseDeTest(url);
 const lire = (chemin: string) => readFileSync(chemin, "utf8");
 const migration = () => lire(`supabase/migrations/${NOM}.sql`);
 const retour = () => lire(`supabase/retours-arriere/${NOM}.retour.sql`);
+// Relecture de la fusion (A-01, 25/11) : 20261125153000 complète `enregistrer_depart_colocataire` ; son retour se joue
+// AVANT celui de cette migration (qui s'arrête sur une fonction réécrite depuis), dans l'ordre inverse du manifeste.
+const retourSuivante = () => lire("supabase/retours-arriere/20261125153000_bail_epoux_pacses_personnes_a_la_signature.retour.sql");
 
 describe("case « mariés ou pacsés » — écriture de la migration et place au manifeste (sans base)", () => {
   it("additive : une colonne ajoutée (faux par défaut), une fonction complétée ; aucune ligne écrite, aucun droit ni aucune règle de lecture", () => {
@@ -87,10 +90,15 @@ describe.skipIf(!url)("case « mariés ou pacsés » — départ, appels, relanc
     const conjoint = await personne(`Conjoint ${cle}`, `conjoint-${cle}@exemple.invalid`);
     const garant = await personne(`Garant ${cle}`, `garant-${cle}@exemple.invalid`);
     const l = await id("insert into public.lots(organization_id,bien_id,nom,etat) values($1,(select bien_id from public.lots where id=$2),'Lot '||gen_random_uuid(),$3) returning id", [org, lot, etat === "actif" ? "loue" : "disponible"]);
+    // Relecture de la fusion (A-01, 25/11) : les deux locataires sont au bail À SA SIGNATURE — le bail est créé en
+    // brouillon, le conjoint et son garant y sont ajoutés, puis le bail sort du brouillon (comme au dépôt du bail signé).
+    // Le dossier insérait le bail déjà actif puis le conjoint : la base tient désormais une personne ajoutée à un bail
+    // signé pour un tiers entré après la signature (20261125153000). Le suivi des loyers part, comme avant, du début.
     const bail = await id(`insert into public.baux(organization_id,lot_id,type,etat,loyer_hc,charges,jour_echeance,date_debut,locataire_principal,locataires_epoux_pacses)
-      values($1,$2,'colocation',$3,750,50,1,'2024-01-01',$4,$5) returning id`, [org, l, etat, principal, epouxPacs]);
+      values($1,$2,'colocation','brouillon',750,50,1,'2024-01-01',$3,$4) returning id`, [org, l, principal, epouxPacs]);
     const ligne = await id("insert into public.bail_personnes(organization_id,bail_id,person_id,role,quote_part) values($1,$2,$3,'colocataire',50) returning id", [org, bail, conjoint]);
     await db.query("insert into public.bail_personnes(organization_id,bail_id,person_id,role,garant_de) values($1,$2,$3,'garant',$4)", [org, bail, garant, conjoint]);
+    if (etat === "actif") await db.query("update public.baux set etat='actif', loyers_suivis_depuis=null where id=$1", [bail]);
     await db.query("insert into public.appels_loyer(organization_id,bail_id,periode,loyer_hc,charges,montant_du,date_echeance) values($1,$2,'2026-11-01',750,50,800,'2026-11-01')", [org, bail]);
     // Le contrôle différé de cohérence lot / bail se joue tout de suite : une modification de la table des baux (la
     // migration, son retour) est refusée tant qu'un contrôle différé attend la fin de la transaction.
@@ -205,6 +213,7 @@ describe.skipIf(!url)("case « mariés ou pacsés » — départ, appels, relanc
     const ancien = await dossier("ancien", false);
     expect(await depart(ancien.ligne, "2026-01-31")).toBe("2026-07-31");
     await base();
+    await db.query(retourSuivante());
     await db.query(retour());
     await db.query("alter table public.baux drop column locataires_epoux_pacses");
     const instantane = async () => ({
@@ -223,6 +232,7 @@ describe.skipIf(!url)("case « mariés ou pacsés » — départ, appels, relanc
   });
 
   it("rejeu sans effet ; le retour rend la fonction à l'identique et garde la colonne : un époux parti reprend la fin à six mois (l'état d'avant) ; la marche avant repart", async () => {
+    await db.query(retourSuivante()); // l'état de cette migration, avant 20261125153000
     const apres = await etat();
     await db.query(migration());
     expect(await etat()).toEqual(apres);
@@ -246,6 +256,7 @@ describe.skipIf(!url)("case « mariés ou pacsés » — départ, appels, relanc
   });
 
   it("une définition inattendue (ligne des six mois absente) arrête la migration sans rien modifier ; un retour sur une fonction réécrite s'arrête aussi", async () => {
+    await db.query(retourSuivante());
     await db.query(retour());
     await db.query((await definition()).replace("interval '6 months'", "interval '6 mons'"));
     const e = await etat();

@@ -381,3 +381,16 @@ describe("normalisation, extraction et empreinte (sans page)", () => {
     }
   });
 });
+
+// Relecture de la fusion du 25/11/2026 (C-03) : l'article 17 de la version du 24/11/2026 ne vise plus que le « Client
+// consommateur » (« consommateur ou non-professionnel » auparavant). Le résumé des changements, montré à l'abonné à qui
+// l'accord exprès est demandé puis recopié dans l'archive, ne le disait pas. Le résumé n'entre pas dans le texte
+// contractuel : l'empreinte de garde de la version (test ci-dessus) ne bouge pas.
+describe("résumé de la version du 24/11/2026 (relecture de la fusion, C-03)", () => {
+  it("dit que l'article 17 ne vise plus le Client non-professionnel ; l'empreinte déclarée reste 67391a33…", () => {
+    const v = versionDeclaree("conditions_clients", "2026-11-24");
+    expect(v?.resume_modifications).toContain("le Client non-professionnel n’y est plus mentionné");
+    expect(v?.resume_modifications).toMatch(/article 17/i);
+    expect(v?.empreinte_reference).toBe("67391a33df830dffdb617ba08de99b734ce3e6ec0ac490d1d67f05f784d52fb9");
+  });
+});

@@ -328,6 +328,9 @@ const MISSION_OCTOBRE = [
   // 25/11, décision du dirigeant du 24/11 : case « mariés ou pacsés » au bail (colonne de `baux`) ; pas de fin de solidarité à
   // six mois au départ de l'un des époux ou partenaires de PACS (`enregistrer_depart_colocataire`).
   "20261125152000_bail_locataires_epoux_pacses.sql",
+  // 25/11, relecture de la fusion (A-01) : sur un bail coché « mariés ou pacsés », la fin de solidarité vide ne vaut que pour
+  // les deux personnes présentes à la signature ; troisième locataire refusé au brouillon coché, activation à deux exactement.
+  "20261125153000_bail_epoux_pacses_personnes_a_la_signature.sql",
 
 
 ];

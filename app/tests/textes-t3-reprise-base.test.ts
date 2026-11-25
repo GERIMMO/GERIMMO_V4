@@ -299,6 +299,28 @@ describe.skipIf(!url)("reprise du lot T3 — confirmation d'un complément ancie
     expect(await empreintes()).toEqual(etat);
   });
 
+  it("A-02 (relecture de la fusion) — retours dans le mauvais ordre : celui du lot T3 joué AVANT celui de cette reprise s'arrête avec une erreur explicite, sans rien modifier ; dans l'ordre de la chaîne, les deux passent et rendent le refus « prescrit »", async () => {
+    // Avant la correction : le retour du lot T3 ne trouvait plus sa ligne (réécrite par cette reprise), passait sans rien
+    // dire, puis le retour de la reprise rendait la ligne du lot T3 : la base restait dans l'état du lot T3 (complément de
+    // 2012 enregistré par appel direct, sans refus ni confirmation), alors que l'opérateur la croyait revenue.
+    const retourT3 = () => lire(`supabase/retours-arriere/${T3}.retour.sql`);
+    const TERME = "public.terme_bail_calcule(uuid,date)";
+    const etat = async () => ({ ...(await empreintes()), terme: (await un("select md5(prosrc) m from pg_proc where oid=$1::text::regprocedure", [TERME])).m });
+    const apres = await etat();
+    expect(await essai(() => db.query(retourT3()))).toEqual({
+      refus: expect.stringContaining("jouez d'abord le retour de 20261125151000"),
+    });
+    expect(await etat()).toEqual(apres); // rien n'a bougé, ni les deux fonctions, ni le terme du bail
+    // L'ordre de la chaîne « Ordre complet » : la reprise, puis le lot T3.
+    await db.query(retour());
+    await db.query(retourT3());
+    const b = await bail("2010-01-01");
+    expect(await regulariser(b, 2012, 1000)).toEqual({ refus: expect.stringMatching(/Exercice 2012 prescrit/) });
+    expect(await lignes(b)).toEqual([]);
+    // Rejouable : sur une base revenue, le retour du lot T3 ne trouve plus rien à faire et n'échoue pas.
+    expect(await essai(() => db.query(retourT3()))).not.toHaveProperty("refus");
+  });
+
   it("T3R-8 — bail étudiant de neuf mois : le terme d'un début au 29, 30 ou 31 ramené en fin de mois change d'un jour ; les autres débuts, non", async () => {
     const terme = async (b: string) => String((await un("select public.terme_bail_calcule($1,'2026-01-01')::text t", [b])).t);
     // [début, terme avant le lot T3 (« début + 9 mois − 1 jour »), terme depuis le lot T3]

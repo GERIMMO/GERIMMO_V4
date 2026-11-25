@@ -58,7 +58,8 @@ export function filtrerCibles<T>(q:T, modele:EntreeCatalogue):T {
   // Avenant : un bail signé et en cours, jamais un brouillon (le contrat n'est pas conclu) ni un bail terminé.
   if(id==="avenant") r=r.in("etat",["actif","preavis"]);
   // Avenant de remplacement : le contrat commun d'une colocation en cours.
-  if(id==="avenant_remplacement") r=r.eq("type","colocation").is("chambre_id",null).eq("etat","actif");
+  // Relecture de la fusion (C-01) : sauf un bail coché « mariés ou pacsés » (l'assembleur le refuse ; colonne jamais vide).
+  if(id==="avenant_remplacement") r=r.eq("type","colocation").is("chambre_id",null).eq("etat","actif").eq("locataires_epoux_pacses",false);
   // Congé du bailleur : un bail actif (en préavis, un congé est déjà enregistré ; terminé, le bail est clos).
   if(id==="conge_bailleur") r=r.eq("etat","actif");
   // Accusé de réception : un congé du locataire enregistré (non annulé), sortie pas encore faite (bail en préavis).

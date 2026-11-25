@@ -311,6 +311,17 @@ describe("garde de souscription à l’écran « Mon abonnement »", () => {
     expect(html).toContain("Les souscriptions sont en attente de la vérification de la version archivée des conditions générales.");
     expect(html).not.toContain("Continuer vers le paiement sécurisé");
   });
+  // Relecture de la fusion du 25/11/2026 (E-01) : l'écran d'une AGENCE ne comparait pas l'identité archivée (seul le
+  // particulier le faisait) ; le bouton de paiement s'affichait alors que le serveur doit refuser.
+  it("E-01 : agence, première souscription, adresse changée depuis l'archivage — la commande attend, et l'écran le dit", async () => {
+    mocks.stripePret = true;
+    etat = { ...etat, public_tarif: "agence" };
+    mocks.archive = { ...EDITEUR_COMPLET, siege: "9 rue d'Avant, 75000 Paris" };
+    let html: string;
+    try { html = await rendre(); } finally { mocks.archive = null; }
+    expect(html).toContain("Les souscriptions sont en attente de la vérification de la version archivée des conditions générales.");
+    expect(html).not.toContain("Continuer vers le paiement sécurisé");
+  });
   it("pilote gratuit : même avec Stripe prêt, médiateur et conditions acceptées, aucune commande", async () => {
     vi.stubEnv("GERIMMO_MODE", "commercial");
     try {

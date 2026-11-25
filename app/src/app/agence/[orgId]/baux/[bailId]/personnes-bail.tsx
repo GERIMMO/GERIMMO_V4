@@ -15,7 +15,7 @@ import { formaterDate } from "@/lib/ged";
 import { correspond } from "@/lib/roles-personnes";
 import { nouvelleCleEnvoi } from "@/lib/cle-envoi";
 import { enregistrerLocatairesEpouxPacs, type EtatBail } from "@/app/actions/baux";
-import { AIDE_CASE_EPOUX_PACS, LIBELLE_CASE_EPOUX_PACS } from "@/lib/solidarite-colocation";
+import { AIDE_CASE_EPOUX_PACS, LIBELLE_CASE_EPOUX_PACS, NOTE_TROISIEME_EPOUX_PACS } from "@/lib/solidarite-colocation";
 
 export type PersonneBail = {
   id: string; nom: string; prenom: string | null; email: string | null; telephone: string | null;
@@ -256,7 +256,10 @@ export function PersonnesBail({ orgId, bailId, personnes, detentions, participan
       {participants.filter(p => p.role === "colocataire").map(p => carte(p.person_id, "Colocataire", false, p))}
       {ouvert !== "principal" && <Button type="button" variant="outline" onClick={() => setOuvert("principal")}>{principalId ? "Changer de locataire" : "Choisir un locataire"}</Button>}
       {selecteur("principal")}
-      {colocation && principalId && ouvert !== "colocataire" && <Button type="button" variant="outline" onClick={() => setOuvert("colocataire")}><Plus size={15} />Ajouter un colocataire</Button>}
+      {/* Relecture de la fusion (A-01) : case cochée et deux locataires, pas de troisième (la base le refuse aussi). */}
+      {colocation && principalId && ouvert !== "colocataire" && (epouxPacs && locataires.length >= 2
+        ? <p className="text-xs text-muted-foreground" data-note-troisieme-epoux-pacs>{NOTE_TROISIEME_EPOUX_PACS}</p>
+        : <Button type="button" variant="outline" onClick={() => setOuvert("colocataire")}><Plus size={15} />Ajouter un colocataire</Button>)}
       {selecteur("colocataire")}
       {colocation && locataires.length >= 2 && <CaseEpouxPacs orgId={orgId} bailId={bailId} coche={epouxPacs} nombre={locataires.length} actualiser={actualiser} />}
       {!colocation && <p className="text-xs text-muted-foreground">Plusieurs locataires sur ce bail ? <a className="underline underline-offset-2" href="#etape-bail-1">Choisir un contrat de colocation à l’étape Le bail.</a></p>}

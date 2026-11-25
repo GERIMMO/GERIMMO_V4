@@ -59,6 +59,15 @@ export const REFUS_RETRAIT_BAIL_SIGNE_EPOUX_PACS =
 export const SUCCES_DEPART_EPOUX_PACS =
   "Départ enregistré — bail consenti à des époux ou à des partenaires liés par un PACS : aucune date de fin de solidarité n’est enregistrée (la règle de la colocation ne s’applique pas).";
 
+/**
+ * Relecture de la fusion du 25/11/2026 (C-01) : l'avenant de remplacement imprime la règle de la colocation sur la fin de
+ * la solidarité du sortant (article 8-1 VI). Pour un bail coché « mariés ou pacsés », le bail signé dit que cette règle ne
+ * s'applique pas, et Gerimmo n'enregistre aucune fin : l'avenant contredirait le contrat. Option la plus prudente : il
+ * n'est pas préparé (question laissée au juriste : quelle forme pour le remplacement de l'un des époux ou partenaires ?).
+ */
+export const REFUS_AVENANT_REMPLACEMENT_EPOUX_PACS =
+  "Ce bail a été consenti à deux époux ou partenaires de PACS (case cochée à sa préparation) : la règle de la colocation sur la fin de la solidarité du sortant (art. 8-1 de la loi du 6 juillet 1989), que cet avenant reprend, ne s’applique pas à ce bail. Gerimmo ne prépare donc pas cet avenant : le remplacement de l’un des locataires est à voir avec un professionnel du droit.";
+
 /** Ligne d'un colocataire parti, case cochée, sans date de fin. */
 export const SOLIDAIRE_SANS_FIN_EPOUX_PACS = "aucune fin de solidarité enregistrée (époux ou pacsés)";
 
@@ -66,4 +75,23 @@ export const SOLIDAIRE_SANS_FIN_EPOUX_PACS = "aucune fin de solidarité enregist
 export const AIDE_GARANTS_COLOCATION =
   "Garant nominatif (couvre un colocataire) ; avec clause de solidarité, il peut être appelé au-delà de sa part. Engagement plafonné à 6 mois après le départ du colocataire couvert (loi ALUR).";
 export const AIDE_GARANTS_EPOUX_PACS =
-  "Garant nominatif (couvre l’un des locataires) ; avec clause de solidarité, il peut être appelé au-delà de sa part. Bail consenti à des époux ou à des partenaires liés par un PACS : la limite de six mois de la colocation ne s’applique pas à son engagement, et Gerimmo n’enregistre pas de date de fin.";
+  "Garant nominatif (couvre l’un des locataires) ; avec clause de solidarité, il peut être appelé au-delà de sa part. Bail consenti à des époux ou à des partenaires liés par un PACS : pour le garant de l’un d’eux, la limite de six mois de la colocation ne s’applique pas à son engagement, et Gerimmo n’enregistre pas de date de fin. Pour le garant d’une personne ajoutée au bail après sa signature, Gerimmo applique la règle de la colocation.";
+
+/*
+ * Relecture de la fusion du 25/11/2026 (A-01, migration 20261125153000) : la case ne vaut que pour les deux personnes
+ * présentes au bail à sa signature (article 8-1, I : « au moment de la conclusion initiale du contrat »). Une personne
+ * ajoutée à un bail signé, et son garant, gardent la règle de la colocation ; la base le tient (marque posée à l'ajout).
+ * Au brouillon coché, un troisième locataire est refusé. Question au juriste : statut d'un tiers entré au bail des époux.
+ */
+
+/** Au-dessus de l'ajout d'un colocataire, bail signé coché. */
+export const AVERTISSEMENT_AJOUT_EPOUX_PACS =
+  "Bail consenti à deux époux ou partenaires liés par un PACS : une personne ajoutée maintenant n’était pas au bail à sa signature. À son départ, Gerimmo lui applique, ainsi qu’à son garant, la règle de la colocation (art. 8-1 de la loi du 6 juillet 1989) : fin de la solidarité au remplacement, ou au plus tard six mois après son congé.";
+
+/** Colocataire ajouté à un bail signé coché. */
+export const SUCCES_AJOUT_EPOUX_PACS =
+  "Colocataire ajouté. Entré au bail après sa signature : à son départ, la règle de la colocation s’applique à lui et à son garant.";
+
+/** À la préparation, case cochée et deux locataires : pas d'ajout d'un troisième. */
+export const NOTE_TROISIEME_EPOUX_PACS =
+  "Case « mariés ou pacsés » cochée : ce bail est consenti à deux personnes. Décochez-la avant d’ajouter un troisième locataire.";

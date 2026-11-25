@@ -1,5 +1,5 @@
 "use server";
-import { REFUS_RETRAIT_BAIL_SIGNE, REFUS_RETRAIT_BAIL_SIGNE_EPOUX_PACS, SUCCES_DEPART_EPOUX_PACS, refusCaseEpouxPacsNombre } from "@/lib/solidarite-colocation";
+import { REFUS_RETRAIT_BAIL_SIGNE, REFUS_RETRAIT_BAIL_SIGNE_EPOUX_PACS, SUCCES_AJOUT_EPOUX_PACS, SUCCES_DEPART_EPOUX_PACS, refusCaseEpouxPacsNombre } from "@/lib/solidarite-colocation";
 import { resoudreDepotsFormulaire, limiteFichierDepose } from "@/lib/depot-direct";
 
 
@@ -958,6 +958,9 @@ export async function ajouterBailPersonne(
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  // Relecture de la fusion (A-01) : sur un bail signé coché « mariés ou pacsés », la personne ajoutée n'était pas au bail
+  // à sa signature ; la base lui appliquera la règle de la colocation, le message le dit.
+  if (role === "colocataire" && bail?.etat !== "brouillon" && (await bailEpouxPacs(supabase, orgId, bailId))) return { succes: SUCCES_AJOUT_EPOUX_PACS };
   return { succes: role === "garant" ? "Garant ajouté." : "Colocataire ajouté." };
 }
 

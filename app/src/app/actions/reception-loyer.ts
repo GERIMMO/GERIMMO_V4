@@ -144,7 +144,7 @@ export async function envoyerRelanceReception(orgId: string, appelId: string, _e
   const contexteRelance: Extract<ContexteEnvoiAutomatique, { type: "relance_loyer_manuelle" }> | null = resteTexte !== null && totalTexte !== null && (await lireEnvoisProposes(supabase)).relance_loyer
     ? { type: "relance_loyer_manuelle", id: appelId, niveau, reste: resteTexte, total: totalTexte, acteur: user.id }
     : null;
-  let envoyes = 0;const erreursEnvoi:string[]=[];
+  let envoyes = 0;const erreursEnvoi:string[]=[];const nonServis:string[]=[];
   for (const destinataire of destinataires.values()) {
     const message: RelanceLoyer = { niveau, prenom: destinataire.prenom, emetteur: organisation.name, lot: ligne.lot_nom, periode: ligne.periode, dateEcheance: ligne.date_echeance, reste, totalDu, lien: `${site}/locataire/${orgId}/loyers`,
       // Lot 47 : « votre bailleur » chez un propriétaire, « votre gestionnaire » seulement dans un espace d'agence.
@@ -153,15 +153,27 @@ export async function envoyerRelanceReception(orgId: string, appelId: string, _e
       subject: sujetRelanceLoyer(message), html: corpsRelanceLoyer(message),
       cleIdempotence: cleRelanceLoyer({ bailId: ligne.bail_id, niveau, dateEcheance: ligne.date_echeance, destinataire: destinataire.email, role: "locataire", reste, totalDu }),
     });
-    if(envoi.erreur){erreursEnvoi.push(envoi.erreur);continue;}
+    if(envoi.erreur){erreursEnvoi.push(envoi.erreur);nonServis.push(destinataire.email);continue;}
     envoyes += 1;
   }
-  if(erreursEnvoi.length)return {erreur:`${envoyes} destinataire(s) accepté(s), ${erreursEnvoi.length} envoi(s) à terminer. La relance n’est pas marquée complète. ${erreursEnvoi[0]}`};
+  // Relecture de la fusion du 25/11/2026 (E-02) : rien n'est parti, rien n'est consigné (le clic suivant reprend les
+  // mêmes clés d'envoi).
+  if(envoyes === 0)return {erreur:`${erreursEnvoi.length} envoi(s) à terminer. La relance n’est pas partie et n’est pas enregistrée. ${erreursEnvoi[0]}`};
+  // Au moins un destinataire a accepté l'envoi : la relance EST partie. La trace s'écrit tout de suite, avec une note qui
+  // dit ce qui reste à terminer. Avant, une seule adresse refusée (état « echec », jamais repris) faisait sortir l'action
+  // avant la trace : rien n'était consigné, la deuxième relance restait bloquée, et un nouveau montant (nouvelle clé)
+  // renvoyait une « première relance » au locataire déjà servi. La trace écrite, ce palier n'est plus proposé
+  // (verifierCourrierDuBail) ni admis par la base (preuve de la relance à la main) : aucun second envoi au même palier.
+  const aTerminer = erreursEnvoi.length;
   const { error: erreurTrace } = await supabase.from("relances").upsert({ id, organization_id: orgId, bail_id: ligne.bail_id,
-    niveau, date_envoi: aujourdhuiParis(), note: `${NOTE_RELANCE_TABLEAU} · échéance ${ligne.periode} · ${envoyes} destinataire${envoyes > 1 ? "s" : ""}`,
+    niveau, date_envoi: aujourdhuiParis(), note: `${NOTE_RELANCE_TABLEAU} · échéance ${ligne.periode} · ${envoyes} destinataire${envoyes > 1 ? "s" : ""}${aTerminer ? ` · ${aTerminer} envoi${aTerminer > 1 ? "s" : ""} à terminer (non parti${aTerminer > 1 ? "s" : ""})` : ""}`,
   }, { onConflict: "id", ignoreDuplicates: true });
   for (const suffixe of ["", "/alertes", `/baux/${ligne.bail_id}`]) {
     revalidatePath(`/agence/${orgId}${suffixe}`); revalidatePath(`/espace/${orgId}${suffixe}`);
+  }
+  if (aTerminer) {
+    const partielle = `Relance envoyée à ${envoyes} destinataire${envoyes > 1 ? "s" : ""}${erreurTrace ? "" : " et enregistrée dans le suivi du bail"}. ${aTerminer > 1 ? `${aTerminer} envois n’ont pas abouti` : "1 envoi n’a pas abouti"} (${nonServis.join(", ")}) : ${erreursEnvoi[0]} Ce palier de relance ne repart plus depuis Gerimmo : prévenez autrement la personne non servie.`;
+    return { succes: erreurTrace ? `${partielle} Sa trace au bail n’a pas pu être confirmée : vérifiez le suivi avant tout nouvel envoi.` : partielle };
   }
   return { succes: erreurTrace ? "La relance a été envoyée, mais sa trace au bail n’a pas pu être confirmée. Vérifiez le suivi avant tout nouvel envoi." : `Relance envoyée ${envoyes > 1 ? "au locataire et aux colocataires concernés" : "au locataire"} et enregistrée dans le suivi du bail.` };
 }

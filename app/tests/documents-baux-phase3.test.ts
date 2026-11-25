@@ -349,6 +349,19 @@ describe("C21 à C25 — avenant de remplacement en colocation", () => {
     expect(r.document.html).toContain('<div class="bandeau">Le colocataire entrant</div><div class="zone"><span class="v">Martin Paul</span></div>');
     expect(r.document.html).toContain('<div class="bandeau">Les colocataires restants</div><div class="zone">Fictif Bruno<br/>Fictif Chloé</div>');
   });
+  // Relecture de la fusion du 25/11/2026 (C-01) : pour un bail coché « mariés ou pacsés », l'avenant annonçait que « la
+  // solidarité du sortant et de sa caution cesse à la date prévue par l'article 8-1 VI », alors que le bail signé dit le
+  // contraire (CLAUSE_EPOUX_PACS) et que la base n'enregistre aucune fin. Option prudente : Gerimmo ne le prépare pas.
+  it("C-01 : bail coché « mariés ou pacsés » — l'avenant n'est pas préparé, le refus dit pourquoi ; sans la case, rien ne change", async () => {
+    coloc();
+    ctx.locataires = ctx.locataires.slice(0, 2);
+    ctx.bail.locataires_epoux_pacses = true;
+    const refus = await assemblerComplementBail("avenant_remplacement", base(), "org", "b1", options);
+    expect(refus).toEqual({ erreur: "Ce bail a été consenti à deux époux ou partenaires de PACS (case cochée à sa préparation) : la règle de la colocation sur la fin de la solidarité du sortant (art. 8-1 de la loi du 6 juillet 1989), que cet avenant reprend, ne s’applique pas à ce bail. Gerimmo ne prépare donc pas cet avenant : le remplacement de l’un des locataires est à voir avec un professionnel du droit." });
+    ctx.bail.locataires_epoux_pacses = false;
+    expect(texteDe(succes(await assemblerComplementBail("avenant_remplacement", base(), "org", "b1", options)).document.html))
+      .toContain("La solidarité du sortant et de sa caution cesse à la date prévue par l’article 8-1 VI");
+  });
   it("C21 : un colocataire dont le départ est enregistré ne signe pas comme restant ; un seul restant au singulier", async () => {
     coloc();
     const r = succes(await assemblerComplementBail("avenant_remplacement", base({ bail_personnes: [{ person_id: "p3", date_depart: "2026-06-30" }, { person_id: "p2", date_depart: null }] }), "org", "b1", options));

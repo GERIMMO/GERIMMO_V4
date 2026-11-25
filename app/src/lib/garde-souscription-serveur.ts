@@ -47,7 +47,10 @@ export async function lireMotifIdentiteEditeur(
 ): Promise<string | null> {
   const [{ editeur }, { blocageIdentiteActif, venteSansMediateurLe }] = await Promise.all([lireEditeur(), lireReglageSouscription()]);
   const contexte: ContexteGarde = { enEssai, blocageIdentiteActif, venteSansMediateurDecidee: Boolean(venteSansMediateurLe), premiereSouscription, nouvelleSouscriptionParticulier };
-  return motifIdentiteEditeur(editeur, contexte) ?? (nouvelleSouscriptionParticulier ? await motifArchiveCommande(supabase, editeur) : null);
+  // Relecture de la fusion du 25/11/2026 (E-01) : la comparaison avec l'identité archivée vaut pour TOUTE première
+  // souscription, agence comprise (elle ne valait que pour un particulier, reste du temps où elle portait sur le
+  // médiateur). L'agence accepte le même texte archivé, dont l'empreinte est la preuve de son accord.
+  return motifIdentiteEditeur(editeur, contexte) ?? (premiereSouscription ? await motifArchiveCommande(supabase, editeur) : null);
 }
 
 /**
@@ -76,9 +79,9 @@ export async function motifArchiveCommande(supabase: Client, editeur: Record<str
  * redemandée, et une ligne de plus est sans conséquence (ajout seul).
  *
  * Reprise du lot D4 (relecture D4R-01) : seule compte une ligne qui porte l'EMPREINTE du texte archivé (recopiée par la
- * base). Une ligne sans empreinte — version non archivée au moment de l'accord, ouverture d'un espace propriétaire,
- * inscription, ou appel direct de `accepter_cgu` avant la migration 20261125150000 — ne prouve pas quel texte a été
- * accepté : la case est redemandée.
+ * base). Une ligne sans empreinte — version non archivée au moment de l'accord (premier mot de passe, appel direct de
+ * `accepter_cgu`, qui l'enregistre : relecture de la fusion, R-01), ouverture d'un espace propriétaire, inscription — ne
+ * prouve pas quel texte a été accepté : la case est redemandée.
  */
 export async function preuveConditionsEnVigueur(supabase: Client, accountId: string): Promise<string | null> {
   const lire = (parDocument: boolean) => {

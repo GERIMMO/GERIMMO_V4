@@ -2,7 +2,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import { Client } from "pg";
 import { connecterVers, debordementHorizontal, sansSyntheseAlertes } from "./aides";
-import { AIDE_DEPART_EPOUX_PACS, LIBELLE_CASE_EPOUX_PACS, OPTION_SANS_REMPLACANT_EPOUX_PACS, SOLIDAIRE_SANS_FIN_EPOUX_PACS } from "../src/lib/solidarite-colocation";
+import { AIDE_DEPART_EPOUX_PACS, AVERTISSEMENT_AJOUT_EPOUX_PACS, LIBELLE_CASE_EPOUX_PACS, OPTION_SANS_REMPLACANT_EPOUX_PACS, SOLIDAIRE_SANS_FIN_EPOUX_PACS } from "../src/lib/solidarite-colocation";
 
 // Décision du dirigeant du 24/11/2026 — case « mariés ou pacsés » au bail. Article 8-1 de la loi du 6 juillet 1989 (recueil
 // fourni par le dirigeant, non recontrôlé) : une location consentie exclusivement à des époux ou à des partenaires de PACS
@@ -51,11 +51,15 @@ test("case « mariés ou pacsés » : cochée à la préparation d'un bail à de
       ($1,$5,'Martin','Léa','lea@example.invalid','1 rue de recette','75001','Paris'),($2,$5,'Durand','Hugo','hugo@example.invalid','1 rue de recette','75001','Paris'),
       ($3,$5,'Petit','Inès','ines@example.invalid','1 rue de recette','75001','Paris'),($4,$5,'Roux','Paul','paul@example.invalid','1 rue de recette','75001','Paris')`, [lea, hugo, ines, paul, ORG]);
     // A : bail commun en préparation, Léa et Hugo. B : bail commun signé d'Inès et Paul, case cochée à sa préparation.
+    // Relecture de la fusion (A-01) : Paul est au bail B À SA SIGNATURE — le bail est préparé (brouillon), Paul y est
+    // ajouté, puis le bail sort du brouillon. Une personne ajoutée à un bail déjà signé est, pour la base, entrée après la
+    // signature (migration 20261125153000) : à son départ, la règle de la colocation s'applique.
     await db.query(`insert into baux(id,organization_id,lot_id,locataire_principal,type,etat,date_debut,loyer_hc,charges,charges_mode,jour_echeance,locataires_epoux_pacses) values
       ($1,$3,$4,$5,'colocation','brouillon',(date_trunc('month',current_date)+interval '1 month')::date,900,60,'provision',5,false),
-      ($2,$3,$6,$7,'colocation','actif','2025-01-01',900,60,'provision',5,true)`, [bailA, bailB, ORG, lotA, lea, lotB, ines]);
+      ($2,$3,$6,$7,'colocation','brouillon','2025-01-01',900,60,'provision',5,true)`, [bailA, bailB, ORG, lotA, lea, lotB, ines]);
     await db.query("insert into bail_personnes(organization_id,bail_id,person_id,role,quote_part) values($1,$2,$3,'colocataire',50)", [ORG, bailA, hugo]);
     await db.query("insert into bail_personnes(id,organization_id,bail_id,person_id,role,quote_part) values($1,$2,$3,$4,'colocataire',50)", [ligne, ORG, bailB, paul]);
+    await db.query("update baux set etat='actif' where id=$1", [bailB]);
     await db.query("commit");
 
     await page.setViewportSize({ width: 390, height: 950 });
@@ -79,6 +83,9 @@ test("case « mariés ou pacsés » : cochée à la préparation d'un bail à de
 
     // ── 2. Bail B signé, case cochée : départ de Paul, aucune fin de solidarité.
     await page.goto(`/espace/${ORG}/baux/${bailB}`);
+    // A-01 : l'ajout d'un colocataire à ce bail signé est précédé de l'avertissement (la personne ajoutée garde la règle
+    // de la colocation).
+    await expect(page.locator("[data-avertissement-ajout-epoux-pacs]")).toHaveText(AVERTISSEMENT_AJOUT_EPOUX_PACS, { timeout: 45_000 });
     const bouton = page.getByRole("button", { name: "Départ du colocataire" });
     await expect(bouton).toBeVisible({ timeout: 45_000 });
     await bouton.click();

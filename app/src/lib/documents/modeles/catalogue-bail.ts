@@ -12,6 +12,7 @@ import { loyerDuTermeEnCours, type RevisionDuLoyer } from "@/lib/baux";
 import { deElide } from "@/lib/elision";
 import { echeanceReglementaire } from "@/lib/documents-bail";
 import { exigerJustificatifsRetenues } from "./decompte-restitution";
+import { REFUS_AVENANT_REMPLACEMENT_EPOUX_PACS } from "@/lib/solidarite-colocation";
 
 // Reprise du lot 38 (S09, C40) : la liste des dossiers du catalogue (catalogue-cibles) écarte les mêmes cas, avec le même motif.
 // Inventaires : un logement meublé (case « meublé » du lot) ou un bail de type meublé.
@@ -347,6 +348,10 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
       if (ctx.bail.etat === "brouillon") return { erreur: "Le contrat commun est encore en préparation : modifiez les colocataires directement dans le brouillon avant sa signature, ou activez d’abord la location s’il est déjà signé." };
       if (ctx.bail.etat === "termine") return { erreur: "Ce contrat commun est terminé : aucun remplacement de colocataire n’est possible." };
       if (ctx.bail.etat !== "actif") return { erreur: "Un congé est enregistré pour ce contrat commun (préavis en cours) : le remplacement d’un colocataire se prépare tant que la location est en cours." };
+      // Relecture de la fusion du 25/11/2026 (C-01) : bail coché « mariés ou pacsés » — l'avenant annoncerait la fin de la
+      // solidarité du sortant (article 8-1 VI) que le bail signé écarte et que la base n'enregistre pas. Il n'est pas
+      // préparé (le catalogue ne le propose pas pour ce bail : catalogue-cibles.ts).
+      if (ctx.bail.locataires_epoux_pacses === true) return { erreur: REFUS_AVENANT_REMPLACEMENT_EPOUX_PACS };
       // C22 : le sortant est l'un des titulaires du contrat commun, choisi dans la liste de l'écran (son identifiant) ; une
       // personne étrangère au contrat est refusée. Un colocataire dont le départ est déjà enregistré ne signe pas comme
       // « restant ».

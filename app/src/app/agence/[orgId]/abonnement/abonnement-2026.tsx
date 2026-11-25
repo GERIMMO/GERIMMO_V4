@@ -173,7 +173,9 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
     ? `Le paiement en ligne n'est pas encore ouvert. ${contactPaiement}`
     : !REGIME_TVA
       ? `Le paiement en ligne n'est pas encore ouvert : le régime de TVA de l'éditeur doit d'abord être renseigné pour afficher les taxes exactes. ${contactPaiement}`
-      : motifIdentite ?? (!souscrit && publicTarif === "proprietaire_direct" && !nouvellesSouscriptionsFermees(garde.ventesOuvertes)
+      // Relecture de la fusion (E-01) : même comparaison avec l'identité archivée que le serveur, pour toute première
+      // souscription, agence comprise.
+      : motifIdentite ?? (!souscrit && !nouvellesSouscriptionsFermees(garde.ventesOuvertes)
           ? await motifArchiveCommande(supabase, garde.editeur) : null);
 
   const motifSouscription = !souscrit && reglages.pret && nouvellesSouscriptionsFermees(garde.ventesOuvertes)

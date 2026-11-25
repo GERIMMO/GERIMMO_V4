@@ -94,7 +94,8 @@ function baseFiltrante(tables: Record<string, Ligne[]>, rpcs: Record<string, { d
   return { db: { from: requete, rpc } as unknown as SupabaseClient, appels };
 }
 
-const bail = (id: string, etat: string, sur: Ligne = {}): Ligne => ({ id, organization_id: "org", etat, type: "nu", chambre_id: null, lot_id: "lot", locataire_principal: "p", ...sur });
+// La colonne de la case « mariés ou pacsés » (20261125152000) est « faux » par défaut, jamais vide.
+const bail = (id: string, etat: string, sur: Ligne = {}): Ligne => ({ id, organization_id: "org", etat, type: "nu", chambre_id: null, lot_id: "lot", locataire_principal: "p", locataires_epoux_pacses: false, ...sur });
 const ids = async (id: string, tables: Record<string, Ligne[]>) =>
   (await chargerCiblesCatalogue(baseFiltrante({ lots: [{ id: "lot", nom: "T2" }], persons: [{ id: "p", nom: "Fictif", prenom: "Paul" }], ...tables }).db, "org", modele(id))).choix.map((c) => c.id);
 
@@ -108,6 +109,8 @@ describe("la liste de choix ne propose que les baux que le modèle accepte", () 
       bail("commun-brouillon", "brouillon", { type: "colocation" }), bail("commun-actif", "actif", { type: "colocation" }),
       bail("commun-preavis", "preavis", { type: "colocation" }), bail("individuel-actif", "actif", { type: "colocation", chambre_id: "ch" }),
       bail("nu-actif", "actif"),
+      // Relecture de la fusion (C-01) : un contrat commun coché « mariés ou pacsés » n'est pas proposé (l'assembleur le refuse).
+      bail("commun-actif-epoux", "actif", { type: "colocation", locataires_epoux_pacses: true }),
     ];
     expect(await ids("avenant_remplacement", { baux })).toEqual(["commun-actif"]);
   });

@@ -49,6 +49,23 @@ describe("les pages rendent les informations enregistrées", () => {
     lecture.valeurs.typeVendeur = "personne_morale";
     expect(renderToStaticMarkup(await Mentions())).toContain("capital social (à venir)");
   });
+  // Relecture de la fusion du 25/11/2026 (C-02) : seul le type de vendeur choisi dit s'il y a un capital. Tant qu'il ne
+  // l'est pas (identité enregistrée avant la migration 20261125106000), la page affichait « Capital social (à venir) »,
+  // même à côté de « Entrepreneur individuel », sans l'encadré « Document en cours de finalisation ».
+  it("type de vendeur non choisi : aucune ligne de capital, et la page dit qu'elle est en cours de finalisation", async () => {
+    lecture.valeurs = { ...lecture.valeurs, typeVendeur: null, denomination: "DUPONT Jean EI", forme: "Entrepreneur individuel", capital: null };
+    const html = renderToStaticMarkup(await Mentions());
+    expect(html).not.toContain("Capital social");
+    expect(html).not.toContain("capital social (à venir)");
+    expect(html).toContain("Document en cours de finalisation");
+    // Le type choisi lève l'encadré (le reste de l'identité est complet) ; une société garde sa ligne de capital.
+    lecture.valeurs.typeVendeur = "entrepreneur_individuel";
+    const choisi = renderToStaticMarkup(await Mentions());
+    expect(choisi).not.toContain("Document en cours de finalisation");
+    expect(choisi).not.toContain("Capital social");
+    lecture.valeurs.typeVendeur = "personne_morale";
+    expect(renderToStaticMarkup(await Mentions())).toContain("Capital social");
+  });
   it("une confidentialité renseignée n’est pas marquée incomplète à cause du médiateur", async () => {
     const html = renderToStaticMarkup(await Confidentialite());
     expect(html).toContain("Personne fictive");

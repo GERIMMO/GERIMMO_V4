@@ -96,6 +96,10 @@ for (const largeur of [390, 768, 1440]) test(`consommations : relevé locataire,
     await expect(page.getByText("Calcul à vérifier", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Valider et continuer", exact: true }).click();
     await expect.poll(async () => (await db.query("select count(*)::int n from repartitions_fourniture r join factures_fourniture f on f.id=r.facture_id join contrats_fourniture c on c.id=f.contrat_id where c.lot_id=$1 and r.statut='validee'", [lot])).rows[0].n).toBe(1);
+    // Vérification complète du 25/11 (becd15c0) : l'analyse était lancée pendant le rafraîchissement qui suit « Valider et
+    // continuer » ; une fois sur 358, axe a lu la page entre deux rendus, sans son <title> (règle document-title). On attend
+    // que la page soit revenue à un état stable (titre présent), sans délai fixe, puis l'exigence reste entière.
+    await expect.poll(() => page.title()).not.toBe("");
     const accessibilite = await new AxeBuilder({ page }).analyze();
     expect(accessibilite.violations.filter(v => v.impact === "critical" || v.impact === "serious")).toEqual([]);
     expect(await debordementHorizontal(page)).toBe(0); expect(await debordementHorizontal(tp)).toBe(0);

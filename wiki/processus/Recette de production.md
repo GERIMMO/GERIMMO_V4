@@ -24,11 +24,12 @@ comptes ont été effacés ; la preuve est dans [[Contrôle des livraisons de Co
 
 **Les cinq personas.** Chaque passage porte un suffixe propre : `r<numéro d'exécution>-<tentative>`. Pour ce suffixe,
 `app/e2e/recette-production/preparer-comptes.sql` crée :
-- une agence en essai et son administrateur ;
-- un propriétaire en gestion directe et son parc, avec un bien déjà saisi ;
-- un locataire de l'agence, sans bail ;
-- un artisan privé validé, rattaché à cette seule agence ;
-- une supervision sans organisation, à expiration automatique (61 minutes au plus), avec un second facteur réel.
+- une agence en essai et son [[Administrateur d'agence|administrateur]] ;
+- un [[Propriétaire bailleur|propriétaire en gestion directe]] et son parc, avec un bien déjà saisi ;
+- un [[Locataire|locataire]] de l'agence, sans bail ;
+- un [[Artisan|artisan]] privé validé, rattaché à cette seule agence ;
+- une supervision ([[Super Admin]]) sans organisation, à expiration automatique (61 minutes au plus), avec un second
+  facteur réel.
 
 **Les adresses.** Elles ont toutes la forme `delivered+recette-<rôle>-<suffixe>@resend.dev`. Ce sont des boîtes de
 test de Resend : un courrier parti par erreur est accepté puis jeté, jamais remis à une personne.
@@ -137,8 +138,8 @@ premier essai (16/10) est dans [[Registre des anomalies — audit du 13 octobre 
 D'après la liste des fichiers ci-dessus (26/11/2026) :
 - **aucun paiement** : « Mon abonnement » est lu, jamais cliqué ;
 - **aucune signature électronique** ([[Signature électronique]]) ;
-- **pas l'invitation d'un artisan par un propriétaire**. Son parcours (`app/e2e/invitation-artisan.spec.ts`) tourne
-  dans la CI (`ci.yml`), pas en production ;
+- **pas l'[[Invitation d'un artisan par un propriétaire|invitation d'un artisan par un propriétaire]]**. Son
+  parcours (`app/e2e/invitation-artisan.spec.ts`) tourne dans la CI (`ci.yml`), pas en production ;
 - **pas la remise réelle des courriers** : les boîtes resend.dev sont des puits de test. Les envois automatiques sont
   fermés (Passation, a, geste R5), et les e-mails du [[Relais du dirigeant]] ne sont pas joués ;
 - **pas le PDF 2044**, ni le chemin confirmé de D38 ;
@@ -148,6 +149,16 @@ D'après la liste des fichiers ci-dessus (26/11/2026) :
 **Le contrôle humain.** Le parcours de vérification du dirigeant (`livrables/PARCOURS-15-MINUTES.md`) est fait à la
 main, avec des comptes « TEST ». Il **ne remplace pas** la recette automatique. Sa partie A a été jouée par l'agent le
 26/11 (sauf A7, A9, A14 et A15). Sa partie B n'est pas faite (Passation, a).
+
+## Relations
+
+- Historique de la démarche : [[Audit de nuit — fonctionnalités, personas et automatisation (20 septembre 2026)]] et
+  [[Lancement dans 10 jours — ce qu'il reste à faire (20 septembre 2026)]]. Ces deux pages décrivent le plan du
+  20/09, désormais supplanté.
+- Ce que la recette touche : [[Abonnement]] (affichage sans paiement), [[Quittancement des loyers]] (encaissements de
+  D04 et D05), [[Demande et sélection de devis]] (D18), [[Planification d'intervention]] (D22) et
+  [[Intervention et clôture]] (D23).
+- Où se range le résultat : [[Passation — état du 26 novembre 2026]], section a (dernière recette).
 
 > [!warning] Points à trancher / contradictions
 > - **Secrets sans environnement protégé** (réserve N10, Passation, d.2). La recette est limitée à `main`, mais tourne

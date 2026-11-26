@@ -1,5 +1,9 @@
 # REPONSES-JURISTE — réponses aux 133 questions de JURISTE.md (24/11/2026)
 
+> **Attention (ménage du 26/11/2026) : ce document a été rédigé par Claude, pas par un juriste. Ce n'est ni une
+> consultation ni un avis signé. Aucune réponse ne vaut « conforme » sans le texte officiel relu et, pour les points
+> sensibles, l'avis d'un professionnel du droit.**
+
 Réponses rédigées par Claude (conversation avec le dirigeant), à la manière d'un juriste. Ce n'est pas une
 consultation signée. Règle : rouvre chaque texte cité sur Légifrance avant de corriger ; si le texte lu
 contredit une réponse, le texte l'emporte et tu le notes. Les réponses de niveau « à faire valider » restent

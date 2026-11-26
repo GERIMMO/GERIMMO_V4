@@ -68,9 +68,10 @@ const CAUTION_ET_RELANCES =
 // Relevé du 26/11 (plan de corrections, L4) : envoi fermé, la sous-section disait « Les courriers de relance automatiques
 // sont suspendus », puis décrivait au présent les relances parties chaque matin. Fermé, la description passe au futur :
 // les délais et le seuil enregistrés ne servent qu'une fois l'envoi proposé et activé ici. La phrase sur la caution
-// (lot T3) ne change pas et reste affichée.
+// (lot T3) ne change pas et reste affichée. Relecture du lot L4 : « Quand il vous sera proposé » promettait une
+// ouverture que rien ne garantit ; la phrase dit « S'il vous est proposé ».
 const RELANCES_QUAND_PROPOSEES =
-  "Aucune relance ne part d’elle-même tant que l’envoi automatique est suspendu. Quand il vous sera proposé, vous pourrez l’activer ici : la première relance suivra alors le premier délai, puis la seconde le second, jamais deux le même jour, et une dette totale inférieure au seuil ne sera pas relancée.";
+  "Aucune relance ne part d’elle-même tant que l’envoi automatique est suspendu. S’il vous est proposé, vous pourrez l’activer ici : la première relance suivra alors le premier délai, puis la seconde le second, jamais deux le même jour, et une dette totale inférieure au seuil ne sera pas relancée.";
 
 export type EnvoisProposesAuProfil = { avis: boolean; relances: boolean };
 const RIEN_DE_PROPOSE: EnvoisProposesAuProfil = { avis: false, relances: false };

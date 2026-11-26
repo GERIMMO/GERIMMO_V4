@@ -100,6 +100,9 @@ describe("profil, relances d'impayé : envoi fermé, l'écran ne décrit plus de
     const texte = rendre({ estProprietaire });
     expect(texte).toContain("Les courriers de relance automatiques sont suspendus.");
     expect(texte).toContain("Aucune relance ne part d’elle-même tant que l’envoi automatique est suspendu.");
+    // Relecture du lot L4 : « Quand il vous sera proposé » promettait une ouverture que rien ne garantit.
+    expect(texte).toContain("S’il vous est proposé, vous pourrez l’activer ici : la première relance suivra alors le premier délai");
+    expect(texte).not.toContain("Quand il vous sera proposé");
     expect(texte).not.toContain("Chaque matin");
     expect(texte).toContain(CAUTION);
   });

@@ -11,6 +11,7 @@
  */
 process.env.TZ = "UTC";
 
+import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -20,6 +21,8 @@ const b = vi.hoisted(() => ({
   agenda: { lignes: [] as LigneAgenda[], erreur: false },
   creneaux: new Map<string, { lignes: CreneauMission[]; erreur: boolean }>(),
   lectureEnEchec: false,
+  // Relecture du lot L4 : la lecture réussit mais ne rend aucune fiche (compte sans fiche artisan).
+  sansFiche: false,
   redirections: [] as string[],
   activite: null as unknown,
   chemin: "/artisan",
@@ -44,7 +47,7 @@ const fiche = { artisan_id: "a1", statut_plateforme: "valide", siret_etat: "veri
 vi.mock("@/app/artisan/acces", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/app/artisan/acces")>()),
   verifierAccesArtisan: async () => ({ fiche, user: { id: "u1" }, supabase: { rpc: async () => ({ data: null, error: null }) } }),
-  chargerFicheArtisan: async () => ({ user: { id: "u1" }, fiche: b.lectureEnEchec ? null : fiche, erreur: b.lectureEnEchec }),
+  chargerFicheArtisan: async () => ({ user: { id: "u1" }, fiche: b.lectureEnEchec || b.sansFiche ? null : fiche, erreur: b.lectureEnEchec }),
   chargerAgenda: async () => b.agenda,
   chargerCreneauxMission: async (id: string) => b.creneaux.get(id) ?? { lignes: [], erreur: false },
   chargerSollicitations: async () => ({ lignes: [], erreur: false }),
@@ -76,7 +79,7 @@ import PageArtisanAccueil from "@/app/artisan/page";
 import PageChantier from "@/app/artisan/chantiers/[chantierId]/page";
 import PageFacture from "@/app/artisan/missions/[interventionId]/facture/page";
 import PageMission from "@/app/artisan/missions/[interventionId]/page";
-import PagePanneArtisan from "@/app/artisan/panne/page";
+import PagePanneArtisan, { generateMetadata as metadonneesPanne } from "@/app/artisan/panne/page";
 import { NavArtisan } from "@/components/nav-artisan";
 import { CONSIGNE_PLUS_DE_DATE } from "@/app/artisan/agenda/dates-a-garder";
 import { creneauTexte } from "@/app/artisan/libelles";
@@ -98,6 +101,7 @@ beforeEach(() => {
   b.agenda = { lignes: [], erreur: false };
   b.creneaux = new Map();
   b.lectureEnEchec = false;
+  b.sansFiche = false;
   b.redirections = [];
   b.chemin = "/artisan";
 });
@@ -237,6 +241,50 @@ describe("R9 — plus de renvois en boucle entre /artisan et /artisan/panne", ()
   });
 });
 
+describe("Relecture du lot L4 — la page de panne dit ce que la lecture a rendu, jusque dans l'onglet", () => {
+  const panne = async (essai?: string) =>
+    PagePanneArtisan({ params: Promise.resolve({}), searchParams: Promise.resolve(essai ? { essai } : {}) } as Parameters<typeof PagePanneArtisan>[0]);
+  const titreEcran = (html: string) => texte(/<h1\b[^>]*>([\s\S]*?)<\/h1>/.exec(html)?.[1] ?? "");
+
+  it("le titre de l'onglet suit la lecture : « Lecture impossible » seulement si elle échoue encore", async () => {
+    b.lectureEnEchec = true;
+    expect(await metadonneesPanne()).toEqual({ title: "Lecture impossible" });
+    b.lectureEnEchec = false;
+    expect(await metadonneesPanne()).toEqual({ title: "Votre fiche se lit de nouveau" });
+    b.sansFiche = true;
+    expect(await metadonneesPanne()).toEqual({ title: "Lecture rétablie" });
+  });
+
+  it.each([["fiche relue", false], ["lecture réussie sans fiche", true]])("%s : l'onglet porte le titre de l'écran", async (_cas, sansFiche) => {
+    b.sansFiche = sansFiche;
+    const html = renderToStaticMarkup(await panne("1"));
+    expect(titreEcran(html)).toBeTruthy();
+    expect((await metadonneesPanne()).title).toBe(titreEcran(html));
+  });
+
+  it("lecture réussie sans fiche (compte non artisan) : une phrase neutre, le même bouton, aucun renvoi", async () => {
+    b.sansFiche = true;
+    const html = renderToStaticMarkup(await panne("1"));
+    expect(b.redirections).toEqual([]);
+    const lu = texte(html);
+    expect(lu).toContain("La lecture fonctionne de nouveau.");
+    expect(lu).not.toContain("Votre fiche se lit de nouveau");
+    expect(lu).not.toContain("Rien n'est perdu");
+    expect(html).toMatch(/<a [^>]*href="\/artisan"[^>]*>Revenir à mon espace<\/a>/);
+  });
+
+  it("témoin (passait déjà) : fiche relue, la phrase sur la fiche reste", async () => {
+    const lu = texte(renderToStaticMarkup(await panne("1")));
+    expect(lu).toContain("La lecture de votre fiche a réussi à l'instant. Rien n'est perdu.");
+  });
+
+  it("le paramètre de la page est obligatoire : sans lui, l'appel ne se compile plus (tenu par tsc)", () => {
+    // @ts-expect-error — Next passe toujours `params` et `searchParams` ; un appel sans eux est une erreur de type.
+    const sansParametres = () => PagePanneArtisan();
+    expect(sansParametres).toBeTypeOf("function");
+  });
+});
+
 describe("Q89 — la barre du téléphone nomme la rubrique comme la page", () => {
   it("« Facturation », plus « Factures » ; le menu latéral garde les titres des pages", () => {
     b.chemin = "/artisan/facturation";
@@ -246,5 +294,11 @@ describe("Q89 — la barre du téléphone nomme la rubrique comme la page", () =
     const bureau = texte(renderToStaticMarkup(createElement(NavArtisan, { presentation: "bureau" })));
     expect(bureau).toContain("Ma facturation");
     expect(bureau).toContain("Ma fiche entreprise");
+  });
+
+  it("relecture du lot L4 : les commentaires ne disent plus que la barre appelle la page « Factures »", () => {
+    for (const fichier of ["src/app/artisan/clients/elements.tsx", "tests/artisan-ergonomie-des-b.test.ts"]) {
+      expect(readFileSync(fichier, "utf8"), fichier).not.toContain("s'appelle « Factures »");
+    }
   });
 });

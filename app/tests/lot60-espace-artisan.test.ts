@@ -96,14 +96,18 @@ describe("E007, E124 — « Nouveau chantier et devis » appartient aux clients 
 });
 
 describe("E001, E122 — la page de panne vérifie la lecture avant de l'annoncer", () => {
+  // Relecture du lot L4 (26/11) : le paramètre de la page est obligatoire. Ouverte sans `?essai=1` (favori, historique),
+  // comme Next l'appelle : des paramètres d'adresse vides.
+  const sansEssai = { params: Promise.resolve({}), searchParams: Promise.resolve({}) } as Parameters<typeof PagePanneArtisan>[0];
+
   it("la fiche se lit : pas de message d'échec, retour à l'espace", async () => {
-    await expect(PagePanneArtisan()).rejects.toThrow("redirect:/artisan");
+    await expect(PagePanneArtisan(sansEssai)).rejects.toThrow("redirect:/artisan");
     expect(etat.redirections).toEqual(["/artisan"]);
   });
 
   it("la lecture échoue encore : le message, l'aide et « Réessayer »", async () => {
     etat.lectureEnEchec = true;
-    const page = renderToStaticMarkup(await PagePanneArtisan());
+    const page = renderToStaticMarkup(await PagePanneArtisan(sansEssai));
     expect(etat.redirections).toEqual([]);
     expect(page).toContain("Lecture momentanément impossible");
     expect(page).toContain("signalez-le à Gerimmo");

@@ -20,7 +20,7 @@ export function Piece({label="Justificatif (PDF, JPEG ou PNG)",photo=false,requi
 export function LienPiece({id,children}:{id:string|null|undefined;children:ReactNode}){return id?<a className="bouton-gerimmo inline-flex min-h-12 w-fit items-center justify-center rounded-[var(--rayon-bouton)] border border-[var(--filet-champ)] bg-[var(--ivoire)] px-4 text-[0.9375rem] font-semibold text-[var(--encre)] hover:border-[var(--marque)] hover:bg-[var(--survol)]" href={`/api/artisan-prive/pieces/${id}`} target="_blank" rel="noreferrer">{children}</a>:null;}
 // Phase 3, lot 60 :
 //  - E011 : les pastilles « Agenda » et « Facturation » répétaient la navigation à toutes les largeurs (barre du bas sous
-//    1000 px, où la même page s'appelle « Factures » ; menu latéral au-delà) : elles sont retirées ;
+//    1000 px, où la même page s'appelle « Facturation » ; menu latéral au-delà) : elles sont retirées ;
 //  - E012, E123 : la pastille de la page affichée ne se distinguait pas des autres ; l'écran dit laquelle (`enCours`) ;
 //  - E128 : « Exporter mon registre » n'annonçait ni le fichier (JSON) ni son contenu, plus large que le carnet de clients.
 // « Clients externes » reste masquée à partir de 1000 px, où le menu latéral la porte (DES-B-05) ; « Nouveau chantier et

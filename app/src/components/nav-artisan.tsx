@@ -101,8 +101,10 @@ export function NavArtisan({
     { href: "/artisan/devis", libelle: "Devis", icone: "devis", badge: devisAChiffrer, sauf: SAUF_DEVIS },
     // Q89 (relevé du 26/11, choix d'affichage délégué) : la même rubrique s'appelait « Factures » ici, « Ma facturation »
     // dans le menu latéral et en titre de la page. La barre garde ses libellés courts, sans possessif (« Agenda » pour
-    // « Mon agenda ») : « Ma facturation » ne tient pas dans un onglet de 70 px à 390 px (71 px mesurés à 11 px dans
-    // Figtree, graisse 300, avant la graisse 500 de l'onglet) et s'afficherait tronqué.
+    // « Mon agenda ») : à 390 px, l'onglet mesure 78 px et la zone de son libellé 70 px ; « Ma facturation » y fait
+    // 72,75 px (Figtree 500, 11 px) et s'affiche tronqué (scrollWidth 73 > clientWidth 70), « Facturation » 56,91 px.
+    // Mesuré dans Chromium sur la barre rendue par l'application (relecture du lot L4, 26/11) : « Ma facturation » ne
+    // tient qu'à partir de 414 px.
     { href: "/artisan/facturation", libelle: "Facturation", icone: "factures", badge: 0, point: false },
   ] as { href: string; libelle: string; icone: string; exact?: boolean; badge: number; aussi?: string[]; sauf?: string[]; point?: boolean }[];
 

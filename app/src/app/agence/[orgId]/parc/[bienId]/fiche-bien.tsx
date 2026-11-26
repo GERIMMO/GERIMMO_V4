@@ -426,7 +426,12 @@ export async function FicheBien({ orgId, bienId, decompte, lotFacture, integree 
               );
             })}
           </ul>
-          {!estProprietaire && lotsActifs.some((l) => l.etat === "brouillon") && (
+          {/* Relecture du lot L4 (26/11) : la phrase s'affichait dès qu'un lot était en brouillon, y compris quand
+              chacun de ces lots était bloqué — leur « Mettre en location » est alors désactivé, avec sa raison, et
+              aucune vérification n'aura lieu. Elle ne s'affiche que si au moins un lot en brouillon n'a aucun
+              blocage (la même liste que `bloque`, plus haut ; lecture en échec : aucun blocage connu, le bouton reste
+              cliquable et la phrase aussi). */}
+          {!estProprietaire && lotsActifs.some((l) => l.etat === "brouillon" && (blocagesParLot.get(l.id) ?? []).length === 0) && (
             <p className="text-xs text-muted-foreground">
               La mise en location vérifie une dernière fois qu’il ne manque rien
               au lot.

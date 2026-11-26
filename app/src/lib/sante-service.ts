@@ -1,5 +1,6 @@
 import { iaDesactiveeParLeSuperviseur } from "./etat-ia";
 import { fermetureModeleSignature } from "./signature-interrupteurs";
+import { motifFermetureSelonReglages } from "./ouverture-signatures";
 import { signatureEnEssai } from "./signature-essai";
 import { REGIME_TVA } from "@/lib/editeur";
 import type { RegimeTva } from "@/lib/tarifs";
@@ -267,10 +268,15 @@ export function etatConfiguration(env: Env, regimeTva: RegimeTva | null = REGIME
       detail: actif ? `interrupteur activé — ${attendu}` : "interrupteur désactivé" });
   }
   const cautionFermee = Boolean(fermetureModeleSignature("cautionnement", env));
+  // Défaut E096/E204 : la ligne disait « Activé » dès que l'interrupteur propre au cautionnement était ouvert, sans
+  // regarder la connexion Zoho ni ZOHO_SIGN_BAIL_ACTIF et ZOHO_SIGN_DOCUMENTS_ACTIF, qui ferment aussi cet acte. Même
+  // lecture que la rubrique des signatures de cette page (lib/ouverture-signatures.ts), hors budget lu en base.
+  const cautionFermeeEnAmont = cautionFermee ? null : motifFermetureSelonReglages("cautionnement", env);
   verifications.push({ cle: "ZOHO_SIGN_CAUTIONNEMENT_FERME", usage: "Envoi du cautionnement", estConnexion: false,
     etat: "ok",
-    information: cautionFermee ? "Suspendu" : "Activé",
+    information: cautionFermee ? "Suspendu" : cautionFermeeEnAmont ? "Désactivé" : "Activé",
     detail: cautionFermee ? "suspendu, y compris pour les essais — PDF et suivi existant conservés" :
+      cautionFermeeEnAmont ? `interrupteur ouvert — nouveaux envois fermés : ${cautionFermeeEnAmont[0].toLowerCase()}${cautionFermeeEnAmont.slice(1)}` :
       "interrupteur ouvert — la configuration Zoho et les contrôles du document restent applicables" });
   const essais = (env.SIGNATURE_BAIL_ORGS_ESSAI ?? "").split(",").map(v => v.trim()).filter(Boolean);
   const essaisValides = essais.length > 0 && signatureEnEssai(essais[0], env);

@@ -23,6 +23,10 @@ export type PostProgramme = {
   valide_le: string | null;
   veille_source_id: string | null;
   slug: string | null;
+  /** `publications.origine` : « ia » termine le post par la mention (lib/facebook.ts). */
+  origine?: "ia" | "manuel" | null;
+  /** Le message que la mission enverra à Facebook (texteFacebook, calculé côté serveur) ; null sans adresse d'article. */
+  texte_diffuse?: string | null;
 };
 
 const champ = "w-full rounded-md border border-input bg-background px-3 py-2 text-sm";
@@ -55,7 +59,9 @@ function Geste({ post, action, libelle, classe, motifRequis, enCours, dejaValide
 // « Valider pour l'heure prévue », qui font paraître le post sur le site PUIS sur Facebook, sont masqués ; un court
 // texte dit pourquoi et où vérifier la Page. Relire, modifier, reporter et refuser restent possibles.
 export function VetoPost({ post, validationObligatoire, quand, diffusionActive = true, pageFacebook }: { post: PostProgramme; validationObligatoire: boolean; quand: string; diffusionActive?: boolean; pageFacebook: EtatPageFacebook }) {
-  const texte = post.facebook_texte?.trim() || `${post.titre}\n\n${post.chapo ?? ""}`;
+  // Lot D1 : l'aperçu est le message diffusé (lien de l'article et, pour un article d'origine « ia », la mention
+  // compris). Sans adresse d'article, aucun lien ne peut être montré : le texte préparé seul, comme avant.
+  const texte = post.texte_diffuse ?? (post.facebook_texte?.trim() || `${post.titre}\n\n${post.chapo ?? ""}`);
   const diffusionMasquee = pageFacebook !== "relie";
   return (
     <article className="@container loc-carte border-l-4 border-l-[var(--warning)]">

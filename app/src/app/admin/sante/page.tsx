@@ -334,7 +334,10 @@ export default async function PageSante() {
       </ConsoleSection>
 
       {/* ── Documents légaux ──────────────────────────────────────────── */}
-      <ConsoleSection titre="Informations légales" description="Faits requis et informations à compléter." icone="documents" statut={identite.indisponible ? "Lecture indisponible" : aFournir+aCompleter.length ? `${aFournir+aCompleter.length} à compléter` : "Complètes"}>
+      {/* Compteurs de la rubrique : l'en-tête additionnait les faits à fournir (bloquants) et ceux à compléter (le
+          médiateur) sous « à compléter » (« 12 à compléter » au-dessus d'une pastille « 9 à fournir »). Il les compte
+          désormais à part, avec les mots de la pastille et de la liste. */}
+      <ConsoleSection titre="Informations légales" description="Faits requis et informations à compléter." icone="documents" statut={identite.indisponible ? "Lecture indisponible" : aFournir+aCompleter.length ? [aFournir > 0 && `${aFournir} à fournir`, aCompleter.length > 0 && `${aCompleter.length} à compléter`].filter(Boolean).join(" · ") : "Complètes"}>
         <div className="entete-carte mb-3">
 
           <span className={`puce ${aFournir > 0 ? "puce-rouge" : aCompleter.length > 0 ? "puce-prep" : "puce-loue"}`}>

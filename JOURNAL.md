@@ -689,3 +689,16 @@ La première passe de recette a relu de nouveau tous les documents produits. Ell
 - **A14 et A15** (couper puis rallumer l'IA) : non faits, ils demandent la console avec la double vérification.
 - **Constat à examiner** : les « coordonnées de bailleur » saisies au premier bien sont rangées sur l'espace (adresse renseignée), mais la fiche « personne » du propriétaire reste sans adresse (VÉRIFIÉ en base). Le bail affiche donc « Adresse à compléter » pour le propriétaire, qui doit la saisir une seconde fois. Effet sur le contrat généré non vérifié.
 - **Nettoyage** : demande « Fermer mon compte » enregistrée depuis le compte fictif à 07:35Z (VÉRIFIÉ en base : demande « Données personnelles — Fermer mon compte », état « nouveau »). Reste à la programmer dans la console (`/admin/donnees`, « Afficher le bilan sans rien effacer », puis « Programmer la fermeture » si le bilan ne cite que `TEST-PUBLICATION`). Effacement 14 jours plus tard.
+
+## 26/11/2026 (matin) — Correctif Q125 : branche, relectures, PR #359
+
+- **Branche** `claude/correctif-q125-inscription`, partie de `main` (`8f9dd9ce`). Commits : `4ed6760` (correctif `app/src/proxy.ts` et son test) puis `85253c0` (reprises des relectures). PR [#359](https://github.com/GERIMMO/GERIMMO_V4/pull/359). Votre accord : « Publie le correctif Q125 », sous condition de CI verte et de relectures sans point bloquant (`DECISIONS-2026-11-24.md`).
+- **VÉRIFIÉ localement sur `85253c0`** : eslint et typage (après `next typegen`) sans erreur. Nouveau test, 21 cas : 14 échecs sans le correctif, 21 réussites avec, dont le symptôme (« Mes espaces » ne renvoie plus vers la connexion après une réponse tardive). 20 fichiers de tests du proxy : 363 réussis, 9 ignorés.
+- **Trois relectures indépendantes** (sécurité, effets de bord, qualité du test) : « acceptable avec réserves » pour les trois, aucune bloquante.
+  - Réserves gardées :
+    - un cookie de session déjà fermée reste dans le navigateur jusqu'à la prochaine navigation de document ou connexion, avec un appel refusé à Auth par requête d'ici là ;
+    - transmission de `Sec-Fetch-Mode` par Vercel non prouvée (sans elle, rien ne change) ;
+    - navigateurs anciens sans cet en-tête : comportement d'avant.
+  - Hors périmètre : l'erreur de la fermeture des autres sessions dans `actions/auth.ts` n'est pas lue (faiblesse antérieure, à traiter à part).
+- **CI** : PR sur `85253c0` en cours. Les deux exécutions sur `4ed6760` (n° 45778448064 et n° 45778793179) ont été arrêtées, devenues sans objet.
+- **À contrôler après la mise en ligne** : recettes de production rejouées (parcours d'inscription au premier essai), volume des 403 `/user` dans les journaux Auth.

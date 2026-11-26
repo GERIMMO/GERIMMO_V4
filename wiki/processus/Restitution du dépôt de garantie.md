@@ -3,8 +3,8 @@ type: process
 tags: [restitution, depot-de-garantie, retenue, decompte, delai-legal, vetuste]
 status: draft
 created: 2026-07-24
-updated: 2026-11-25
-sources: ["[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[Le jour de référence est le jour de Paris]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Recueil des textes officiels (v6)]]", "DECISIONS-2026-11-24.md (Q49)", "QUESTIONS.md (Q40, Q49)", "JURISTE.md (partie 1, point 25 ; partie 2, point 4 ; partie 5, point 14 ; partie 8, point 1)", "JOURNAL.md (lots D3 et T3, 24-25/11/2026)", "livrables/notes-banc/ (notes-T3, relecture-T3R)", "livrables/recueil/analyse-refs-10-24.md (réf. 11, 14 et 15)", "code de la branche fusionnée claude/palier-1-fusion (89cb87ff, lecture seule)"]
+updated: 2026-11-26
+sources: ["[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[Le jour de référence est le jour de Paris]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Recueil des textes officiels (v6)]]", "DECISIONS-2026-11-24.md (Q49)", "QUESTIONS.md (Q40, Q49)", "JURISTE.md (partie 1, point 25 ; partie 2, point 4 ; partie 5, point 14 ; partie 8, point 1)", "JOURNAL.md (lots D3 et T3, 24-25/11/2026)", "livrables/notes-banc/ (notes-T3, relecture-T3R)", "livrables/recueil/analyse-refs-10-24.md (réf. 11, 14 et 15)", "code de la branche fusionnée claude/palier-1-fusion (89cb87ff, lecture seule)", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)"]
 ---
 
 # Restitution du dépôt de garantie
@@ -40,8 +40,8 @@ Source : [[2026-07-24-gerimmo-v3-module-2-garanties|Module 2]], parcours 2.4 / 2
    pas ») et saisit le coût de remise en état.
 4. Le système **applique la décote de vétusté** depuis la grille ([[Vétusté et décote]]).
 5. L'agent joint devis ou facture (**alerte si absent**, RM-2.4.6 — retenue acceptée
-   mais « difficilement défendable », absence tracée, US-2.4.2). *Version préparée (Q49) : sans pièce, aucun des deux
-   décomptes ne se produit — voir la section du 25/11.*
+   mais « difficilement défendable », absence tracée, US-2.4.2). *Depuis le 25/11/2026, version `062296e2` (Q49) :
+   sans pièce, aucun des deux décomptes ne se produit — voir la section du 25/11.*
 6. Le système calcule le solde ; l'agent valide et **génère le décompte** (PDF), envoyé
    au locataire (2.7).
 
@@ -145,7 +145,7 @@ Voir [[Agenda et échéances]] (alerte liée à son événement d'origine).
 > de restitution (seuils J-7 et J+0 du délai légal) lisent encore le jour de la session.
 > Voir [[Le jour de référence est le jour de Paris]].
 
-## État dans l'application au 24/11/2026 (préproduction, non publié) — décomptes et sortie (mission palier 1, phase 3)
+## État dans l'application au 24/11/2026 (préproduction ; en production depuis le 25/11/2026) — décomptes et sortie (mission palier 1, phase 3)
 
 Relu dans le code après les lots 37, 41 et 45 ([[Mission palier 1 — audit du 22 novembre 2026]] ; `QUESTIONS.md`,
 Q49 ; `JURISTE.md`, partie 5, points 1 et 14).
@@ -166,15 +166,20 @@ Q49 ; `JURISTE.md`, partie 5, points 1 et 14).
 >   l'autre) : faut-il aligner ? (Q49, point 2). Le chiffrage doit-il rester visible avec l'état des lieux, dans un
 >   document distinct ? (Q49 ; juriste, point 14).
 >   → *Tranché le 24/11 par le dirigeant (Q49) : « aligne les deux décomptes : chaque retenue a son justificatif, un
->   devis suffit. » Appliqué dans la version préparée (section suivante).*
+>   devis suffit. » Appliqué dans la version préparée `062296e2`, en production depuis le 25/11/2026 (section
+>   suivante).*
 
-## Version préparée, à publier (état au 25/11/2026) — justificatifs, état des lieux de sortie, textes fournis
+## Version préparée `062296e2`, en production depuis le 25/11/2026 — justificatifs, état des lieux de sortie, textes fournis
 
-> [!info] Ce qui est en production et ce qui ne l'est pas
-> Rien de cette section n'est en production : la production sert la version du 21/11/2026 (`81740dec`), gelée depuis
-> le 22/11. Ce qui suit est lu dans le code de la branche fusionnée `claude/palier-1-fusion` (`89cb87ff`, complétée jusqu'à `062296e2`, vérifiée en entier sur le banc et poussée le 25/11 sur la branche de préproduction,
-> non publiée en production ; `JOURNAL.md`, entrée du 25/11) et dans `JOURNAL.md` (lot D3), `QUESTIONS.md` (Q40,
-> Q49), `JURISTE.md` (parties 8 et 9) et les notes du lot T3. Aucun point de droit n'est donné pour acquis.
+> [!info] Ce qui est en production
+> Cette section est en production depuis le 25/11/2026 à 23:17Z (26/11 à 00 h 17, heure de Paris) : la version
+> préparée `062296e2` a été publiée par la PR #358 (`main` = `8f9dd9ce`, identique à `062296e2`), ses 52 migrations sont
+> appliquées (25/11, 22:09Z) et la recette de production n° 58 a réussi (`log.md`, entrée « deploy » du 25/11/2026).
+> Jusqu'au 25/11, la production servait la version du 21/11/2026 (`81740dec`), gelée depuis le 22/11, qui n'en
+> contenait rien. Ce qui suit est lu dans le code de la branche fusionnée `claude/palier-1-fusion` (`89cb87ff`, complétée jusqu'à `062296e2`, vérifiée en entier sur le banc et poussée le 25/11 sur la branche de préproduction ;
+> `JOURNAL.md`, entrée du 25/11) et dans `JOURNAL.md` (lot D3), `QUESTIONS.md` (Q40,
+> Q49), `JURISTE.md` (parties 8 et 9) et les notes du lot T3. Aucun point de droit n'est donné pour acquis : la
+> publication ne vérifie rien de juridique.
 
 - **Une pièce par retenue, un devis suffit** (Q49, lot D3) : une retenue sans pièce bloque le décompte de restitution
   **comme** le décompte des retenues, avec une ligne « À renseigner » par retenue ; « Non fourni » ne s'imprime plus.
@@ -198,8 +203,9 @@ Q49 ; `JURISTE.md`, partie 5, points 1 et 14).
   le décompte non — [[Vétusté et décote]]).
 
 > [!warning] Points à trancher / contradictions (25/11/2026)
-> - **Référentiel V3 ≠ version préparée** : RM-2.4.6 / US-2.4.2 acceptent une retenue sans pièce, avec une alerte ; la
->   version préparée bloque les deux décomptes tant qu'une retenue n'a pas sa pièce.
+> - **Référentiel V3 ≠ version `062296e2`** (en production depuis le 25/11/2026) : RM-2.4.6 / US-2.4.2 acceptent une
+>   retenue sans pièce, avec une alerte ; la version `062296e2` bloque les deux décomptes tant qu'une retenue n'a pas sa
+>   pièce.
 > - **Provision de 20 %** (RM-2.4.8, section « Règles d'imputation ») : décrite comme conservable, mais **non proposée**
 >   par l'application ; le texte fourni la permet sans clause. À décider par le dirigeant : l'ajouter ou non
 >   (`JURISTE.md`, partie 1, point 25).

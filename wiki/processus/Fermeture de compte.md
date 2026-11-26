@@ -3,8 +3,8 @@ type: process
 tags: [compte, fermeture, effacement, inactivite, rgpd, stripe, conformite]
 status: draft
 created: 2026-10-24
-updated: 2026-11-25
-sources: ["[[Demandes sur les données et fermeture de compte]]", "[[Durées de conservation]]", "[[Registre des traitements]]", "log.md — entrées « decision » des 23/10/2026 (valeurs par défaut du plan) et 24/10/2026 (choix délégués 2 et 3), « deploy » du 24/10/2026 (PR #246 et PR #248, migration 20261024150000_activation_inactivite_v1)", "app/supabase/migrations/20261024130000_fermeture_comptes.sql", "app/src/lib/comptes-fermeture.ts", "app/src/app/actions/fermeture-compte.ts", "[[Recueil des textes officiels (v6)]]", "livrables/recueil/analyse-refs-25-37.md (réf. 31 et 34)", "livrables/notes-banc/notes-T4.md et relecture-T4R.md", "DECISIONS-2026-11-24.md (Q15, Q64)", "JOURNAL.md — lot T4 et contrôle de production du 24/11/2026", "QUESTIONS.md — Q64, Q86, Q87", "JURISTE.md — partie 9, points 28 et 35", "code de la branche fusionnée claude/palier-1-fusion (89cb87ff, lecture seule) : migrations 20261125103000 et 20261125105000, lib/comptes-fermeture-serveur.ts, admin/donnees/programmer-fermeture.tsx, confidentialite/page.tsx ; code en ligne 81740dec : lib/comptes-fermeture.ts"]
+updated: 2026-11-26
+sources: ["[[Demandes sur les données et fermeture de compte]]", "[[Durées de conservation]]", "[[Registre des traitements]]", "log.md — entrées « decision » des 23/10/2026 (valeurs par défaut du plan) et 24/10/2026 (choix délégués 2 et 3), « deploy » du 24/10/2026 (PR #246 et PR #248, migration 20261024150000_activation_inactivite_v1)", "app/supabase/migrations/20261024130000_fermeture_comptes.sql", "app/src/lib/comptes-fermeture.ts", "app/src/app/actions/fermeture-compte.ts", "[[Recueil des textes officiels (v6)]]", "livrables/recueil/analyse-refs-25-37.md (réf. 31 et 34)", "livrables/notes-banc/notes-T4.md et relecture-T4R.md", "DECISIONS-2026-11-24.md (Q15, Q64)", "JOURNAL.md — lot T4 et contrôle de production du 24/11/2026", "QUESTIONS.md — Q64, Q86, Q87", "JURISTE.md — partie 9, points 28 et 35", "code de la branche fusionnée claude/palier-1-fusion (89cb87ff, complétée jusqu'à 062296e2, en production depuis le 25/11/2026 ; lecture seule) : migrations 20261125103000 et 20261125105000, lib/comptes-fermeture-serveur.ts, admin/donnees/programmer-fermeture.tsx, confidentialite/page.tsx ; code en ligne jusqu'au 25/11/2026 : 81740dec : lib/comptes-fermeture.ts", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)"]
 ---
 
 # Fermeture de compte
@@ -25,7 +25,8 @@ contrat, les références des factures et la trace de la demande.
 >
 > *Mise à jour du 25/11/2026* : la V1 des conditions a été publiée le 24/10 (PR #248). Le même jour, la migration
 > `20261024150000_activation_inactivite_v1` a passé la règle `compte:inactif` à **active**, et le code en ligne
-> (`81740dec`) pose `VERSION_MIN_INACTIVITE = "2026-10-24"` (log.md, entrée « deploy » du 24/10). La règle ne vise que
+> (`81740dec` jusqu'au 25/11, puis `062296e2` depuis le 25/11/2026, même valeur, relue le 26/11 dans `main`)
+> pose `VERSION_MIN_INACTIVITE = "2026-10-24"` (log.md, entrée « deploy » du 24/10). La règle ne vise que
 > les comptes qui ont accepté la V1 ou une version plus récente. La phrase « inactive » ci-dessus décrit l'état d'avant
 > cette publication.
 
@@ -81,8 +82,8 @@ contrat, les références des factures et la trace de la demande.
 - L'invitation ou la fiche d'**un autre propriétaire** ; les dossiers des propriétaires et
   gestionnaires restent sous leur responsabilité.
 - Le **client Stripe** avant le terme des factures (six ans après la fin du dernier
-  abonnement payé). *Version préparée (non publiée) : dix ans, et jamais avant l'échéance recalculée de la dernière
-  facture archivée — voir « Version préparée, à publier ».*
+  abonnement payé, jusqu'au 25/11/2026). *Depuis le 25/11/2026, version `062296e2` : dix ans, et jamais avant
+  l'échéance recalculée de la dernière facture archivée — voir « Version préparée `062296e2` ».*
 - Ce qui appartient à un autre compte : règlement déclaré par un artisan (détaché, référence
   de la facture gardée), demande d'aide d'un autre membre (détachée), parrainage (détaché,
   l'avantage de l'autre client reste), fiche d'un artisan citée par un propriétaire
@@ -95,7 +96,7 @@ contrat, les références des factures et la trace de la demande.
 | Élément | Jusqu'à |
 |---|---|
 | Preuve du contrat (versions des conditions acceptées et dates, dates d'abonnement, identifiant de facturation, adresse électronique) | 10 ans après la fin du dernier abonnement payé ; **aucune** si le compte n'a jamais payé |
-| Références des factures d'abonnement (les factures elles-mêmes restent chez Stripe) | 6 ans après la fin de l'exercice de la facture, à défaut après la fin du dernier abonnement payé (production) ; **10 ans**, et jamais moins de dix ans après l'émission (version préparée) |
+| Références des factures d'abonnement (les factures elles-mêmes restent chez Stripe) | 6 ans après la fin de l'exercice de la facture, à défaut après la fin du dernier abonnement payé (production jusqu'au 25/11/2026) ; **10 ans**, et jamais moins de dix ans après l'émission (version `062296e2`, en production depuis le 25/11/2026) |
 | Déclaration de rétractation et trace de son remboursement | 10 ans après la déclaration |
 | Trace de la demande (ou de la fermeture pour inactivité et de ses avertissements) | 3 ans |
 | Registre des effacements à réappliquer après une restauration | 4 mois |
@@ -171,9 +172,11 @@ remboursement sept jours au plus, puis part en l'annonçant « en cours ».
 
 Voir [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] pour les sources officielles consultées, les corrections retenues et les réserves encore ouvertes. Les mentions « non publié » ci-dessus décrivent l’état avant la mise en ligne ; seule une entrée `deploy` du journal en atteste l’achèvement.
 
-## Version préparée, à publier : factures dix ans (lot T4, non publié)
+## Version préparée `062296e2`, en production depuis le 25/11/2026 : factures dix ans (lot T4)
 
-Fait dans la branche `claude/palier-1-fusion` (`89cb87ff`, complétée jusqu'à `062296e2`, poussée le 25/11 sur la branche de préproduction `claude/palier-1-preproduction`), vérifié sur le banc local, **pas en production**. Le
+Fait dans la branche `claude/palier-1-fusion` (`89cb87ff`, complétée jusqu'à `062296e2`, poussée le 25/11 sur la branche de préproduction `claude/palier-1-preproduction`), vérifié sur le banc local, **en
+production depuis le 25/11/2026** (PR #358, `main` = `8f9dd9ce` ; les deux migrations ci-dessous font partie des 52
+appliquées le 25/11 à 22:09Z ; `log.md`, entrée « deploy » du 25/11/2026). Le
 déroulé de la fermeture (déclencheurs, étapes, gardes, remboursement, annulation, gel) ne change pas. Ce qui change
 tient aux durées gardées après la fermeture ([[Durées de conservation]]) :
 
@@ -190,14 +193,16 @@ tient aux durées gardées après la fermeture ([[Durées de conservation]]) :
   « purge » ne supprime le client, laissé alors chez Stripe sans limite.
 - **Textes** : la console de fermeture (`/admin/donnees`) dit « Preuve du contrat payé archivée avant l'effacement
   (dix ans ; factures dix ans) » ; la page confidentialité et l'article 9 des conditions générales (version du
-  24/11/2026) disent dix ans. Le courriel « Votre compte Gerimmo est fermé » donne la date de fin calculée par la base,
-  donc dix ans.
+  24/11/2026 ; `/conditions` affiche « Version du 24 novembre 2026, en vigueur depuis cette date » ; son archivage
+  dans la console, réglage R2 du plan de publication, n'est pas encore fait au 26/11) disent dix ans. Le courriel
+  « Votre compte Gerimmo est fermé » donne la date de fin calculée par la base, donc dix ans.
 - **Banc d'essai seulement** : aucun e-mail réel, aucun appel à Stripe pendant ces travaux ; aucune purge n'a pu
-  supprimer de facture à six ans (aucune n'a six ans avant 2032 ; production non lue). Migrations à appliquer avant le
-  1er janvier 2027 au plus tard.
+  supprimer de facture à six ans (aucune n'a six ans avant 2032 ; production non lue). Les migrations devaient être
+  appliquées avant le 1er janvier 2027 au plus tard : elles le sont depuis le 25/11/2026 (22:09Z).
 
 > [!warning] Points à trancher / contradictions (25/11/2026)
-> - **Six ans (production) / dix ans (version préparée)** : un compte fermé avant le lot T4 a reçu un courriel disant
+> - **Six ans (production jusqu'au 25/11/2026) / dix ans (version `062296e2`, en production depuis le 25/11/2026)** :
+>   un compte fermé avant le lot T4 a reçu un courriel disant
 >   que ses factures sont gardées six ans ; elles le seront dix ans. Faut-il le prévenir ? (Q86 ; supposé : aucun compte
 >   payant fermé à ce jour, non vérifié en production.)
 > - **Conditions acceptées par un abonné existant** : la version du 24/11/2026 (article 9 : dix ans) demande l'accord
@@ -209,6 +214,6 @@ tient aux durées gardées après la fermeture ([[Durées de conservation]]) :
 > - **Écran de simulation du nettoyage** : il compte encore parmi les preuves arrivées à leur terme une archive que la
 >   purge fait désormais attendre (Q87) — écart d'affichage seulement.
 > - **Libre-service** : l'énoncé en tête de page annonce la fermeture « en libre-service » après le 30/11 ; la version
->   préparée ne l'apporte pas : le bouton « Fermer mon compte » reste prévu au lot 5, et d'ici là la demande déposée
->   depuis « Mes données personnelles » est exécutée par la supervision (commentaire de la page confidentialité,
+>   `062296e2`, en production depuis le 25/11/2026, ne l'apporte pas : le bouton « Fermer mon compte » reste prévu au
+>   lot 5, et d'ici là la demande déposée depuis « Mes données personnelles » est exécutée par la supervision (commentaire de la page confidentialité,
 >   branche fusionnée).

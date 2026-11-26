@@ -3,8 +3,8 @@ type: process
 tags: [charges, regularisation, loyer]
 status: draft
 created: 2026-07-22
-updated: 2026-11-25
-sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-0c-copropriete]]", "[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Recueil des textes officiels (v6)]]", "[[Registre des anomalies — audit du 13 octobre 2026]]", "QUESTIONS.md (Q50, Q60)", "JURISTE.md (partie 2, points 6 et 7)", "JOURNAL.md (lots 42, 54 et T3, 23-25/11/2026)", "livrables/notes-banc/ (notes-T3, relecture-T3R, fusion/corrections-fusion-notes)", "livrables/recueil/analyse-refs-10-24.md (réf. 12 et 16)", "code de la branche fusionnée claude/palier-1-fusion (89cb87ff, lecture seule)"]
+updated: 2026-11-26
+sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-0c-copropriete]]", "[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Recueil des textes officiels (v6)]]", "[[Registre des anomalies — audit du 13 octobre 2026]]", "QUESTIONS.md (Q50, Q60)", "JURISTE.md (partie 2, points 6 et 7)", "JOURNAL.md (lots 42, 54 et T3, 23-25/11/2026)", "livrables/notes-banc/ (notes-T3, relecture-T3R, fusion/corrections-fusion-notes)", "livrables/recueil/analyse-refs-10-24.md (réf. 12 et 16)", "code de la branche fusionnée claude/palier-1-fusion (89cb87ff, lecture seule)", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)"]
 ---
 
 # Régularisation des charges
@@ -100,8 +100,9 @@ Le module 3 confirme et précise les décisions du 2026-07-22 :
   au décompte.
 - **Prescription triennale** (art. 7-1 loi 89-462) : un **complément** n'est plus
   réclamable pour un exercice clos depuis plus de trois ans — refus. Un **trop-perçu**
-  peut toujours être rendu au locataire. *C'est la règle en production aujourd'hui ;
-  la version préparée remplace ce refus par un avertissement confirmé (section du 25/11).*
+  peut toujours être rendu au locataire. *C'était la règle en production jusqu'au 25/11/2026 (version `81740dec`) ;
+  la version `062296e2`, en production depuis le 25/11/2026, remplace ce refus par un avertissement confirmé (section
+  du 25/11).*
 - **Régularisation tardive** (art. 23 loi 89-462) : faite après le 31/12 de l'année
   suivant l'exercice, elle est marquée « tardive » et le locataire **peut demander un
   paiement par douzièmes**. Option « étalement sur 12 mois » : l'échéancier (12
@@ -117,7 +118,8 @@ Le module 3 confirme et précise les décisions du 2026-07-22 :
 >   des charges — à confirmer avec une source avant d'assouplir.
 >   → *25/11 : l'article 7-1 du [[Recueil des textes officiels (v6)]] (réf. 16, non recontrôlé sur Légifrance) fait
 >   courir les trois ans « à compter du jour où le titulaire d'un droit a connu ou aurait dû connaître les faits lui
->   permettant d'exercer ce droit ». La version préparée assouplit en conséquence (section du 25/11).*
+>   permettant d'exercer ce droit ». La version `062296e2`, en production depuis le 25/11/2026, assouplit en
+>   conséquence (section du 25/11).*
 > Source : [[Audit complet du 29 septembre 2026]].
 
 > [!info] Jour de référence (depuis le 15/10/2026)
@@ -125,7 +127,7 @@ Le module 3 confirme et précise les décisions du 2026-07-22 :
 > de l'étalement et la date d'émission se comptent au **jour de Paris** (PR #189). Voir
 > [[Le jour de référence est le jour de Paris]].
 
-## État dans l'application au 24/11/2026 (préproduction, non publié) — étalement et courrier (mission palier 1, phase 3)
+## État dans l'application au 24/11/2026 (préproduction ; en production depuis le 25/11/2026) — étalement et courrier (mission palier 1, phase 3)
 
 Relu dans le code après le lot 42 ([[Mission palier 1 — audit du 22 novembre 2026]] ; `QUESTIONS.md`, Q50 ;
 `JURISTE.md`, partie 5, point 15).
@@ -150,14 +152,17 @@ Relu dans le code après le lot 42 ([[Mission palier 1 — audit du 22 novembre 
 >   les dates la rendent vraie) n'est pas contredite, la question reste ouverte. Q50 : le contrôle en lecture seule du
 >   24/11 n'a trouvé **aucune** régularisation de charges en production ; décision du dirigeant : pas de liste.*
 
-## Version préparée, à publier (état au 25/11/2026) — complément ancien, courrier, textes fournis
+## Version préparée `062296e2`, en production depuis le 25/11/2026 — complément ancien, courrier, textes fournis
 
-> [!info] Ce qui est en production et ce qui ne l'est pas
-> Rien de cette section n'est en production : la production sert la version du 21/11/2026 (`81740dec`), gelée depuis
-> le 22/11. Ce qui suit est lu dans le code de la branche fusionnée `claude/palier-1-fusion` (`89cb87ff`, complétée jusqu'à `062296e2`, vérifiée en entier sur le banc et poussée le 25/11 sur la branche de préproduction,
-> non publiée en production ; `JOURNAL.md`, entrée du 25/11) et dans les notes du lot T3 et de sa reprise
+> [!info] Ce qui est en production
+> Cette section est en production depuis le 25/11/2026 à 23:17Z (26/11 à 00 h 17, heure de Paris) : la version
+> préparée `062296e2` a été publiée par la PR #358 (`main` = `8f9dd9ce`, identique à `062296e2`), ses 52 migrations sont
+> appliquées (25/11, 22:09Z) et la recette de production n° 58 a réussi (`log.md`, entrée « deploy » du 25/11/2026).
+> Jusqu'au 25/11, la production servait la version du 21/11/2026 (`81740dec`), gelée depuis le 22/11, sans les
+> changements de cette section (le solde non appelé, déployé le 14/10, mis à part). Ce qui suit est lu dans le code de la branche fusionnée `claude/palier-1-fusion` (`89cb87ff`, complétée jusqu'à `062296e2`, vérifiée en entier sur le banc et poussée le 25/11 sur la branche de préproduction ;
+> `JOURNAL.md`, entrée du 25/11) et dans les notes du lot T3 et de sa reprise
 > (`livrables/notes-banc/notes-T3.md`, `relecture-T3R.md`), `JOURNAL.md` et `QUESTIONS.md`. Aucun point de droit n'est
-> donné pour acquis.
+> donné pour acquis : la publication ne vérifie rien de juridique.
 
 - **Complément d'un exercice de plus de trois ans : plus de refus « prescrit »** (écart R16-A1 du recueil). L'écran
   avertit : « Exercice … clos depuis plus de trois ans : un complément de charges à la charge du locataire est
@@ -174,7 +179,7 @@ Relu dans le code après le lot 42 ([[Mission palier 1 — audit du 22 novembre 
   courrier ; la période d'occupation n'est imprimée que si elle est certaine (Q60, en attente : l'enregistrer avec
   chaque régularisation serait un lot à part).
 - **Solde non appelé** (décision D40-A, déployée avec la PR #181 du 14/10 selon le registre des anomalies ; inchangé
-  dans la version préparée) : une régularisation émise en cours de bail n'écrit
+  dans la version en production depuis le 25/11/2026) : une régularisation émise en cours de bail n'écrit
   ni appel ni écriture au livre ; l'écran dit « Ce solde n'est pas appelé : il sera repris au décompte de sortie. »
   ([[Solde de tout compte]] ; [[Registre des anomalies — audit du 13 octobre 2026]], CHF-06).
 - **Ce que dit le texte fourni** (art. 23, réf. 12, non recontrôlé) et que le code suit déjà selon l'analyse du recueil :
@@ -184,12 +189,15 @@ Relu dans le code après le lot 42 ([[Mission palier 1 — audit du 22 novembre 
   « le cas échéant » (écart mineur R12-A1) ; la transmission au locataire, sur sa demande, du récapitulatif des charges
   (nouveauté relevée dans l'art. 23). La récupération « toutes taxes comprises » des contrats d'entreprise, autre
   nouveauté relevée, n'a pas été comparée au code.
-- À la publication, la migration `20261125111000` puis `20261125151000` passent avant le code ; leurs retours se jouent
-  dans l'ordre inverse, avec `psql -v ON_ERROR_STOP=1` (gardes ajoutées après la relecture de la fusion).
+- À la publication, les migrations `20261125111000` puis `20261125151000` sont passées avant le code (52 migrations
+  appliquées le 25/11 à 22:09Z, code publié à 23:17Z) ; leurs retours se jouent dans l'ordre inverse, avec
+  `psql -v ON_ERROR_STOP=1` (gardes ajoutées après la relecture de la fusion).
 
 > [!warning] Points à trancher / contradictions (25/11/2026)
-> - **Production ≠ version préparée** : la section du 29/09 (refus « prescrit » à partir de la fin de l'exercice) reste
->   vraie pour la production jusqu'à la publication ; elle est fausse pour la version préparée.
+> - **Production ≠ version préparée** : la section du 29/09 (refus « prescrit » à partir de la fin de l'exercice) est
+>   restée vraie pour la production jusqu'à la publication ; elle est fausse pour la version préparée.
+>   → *26/11 : la version préparée `062296e2` est en production depuis le 25/11/2026 à 23:17Z. La section du 29/09
+>   décrit la production jusqu'au 25/11 (version `81740dec`) ; elle ne vaut plus pour la production actuelle.*
 > - **Point de départ du délai** : le texte fourni le fixe au jour où le bailleur a connu les faits ; Gerimmo ne connaît
 >   pas ce jour et compte toujours son seuil depuis la fin de l'exercice, pour avertir. Reste au juriste : quelle date le
 >   prouve en copropriété (approbation des comptes ?) (`JURISTE.md`, partie 2, point 6).

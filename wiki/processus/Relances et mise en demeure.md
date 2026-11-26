@@ -3,8 +3,8 @@ type: process
 tags: [loyer, impaye, relance, mise-en-demeure]
 status: in-progress
 created: 2026-07-21
-updated: 2026-11-25
-sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Recueil des textes officiels (v6)]]", "DECISIONS-2026-11-24.md (Q6, Q24, Q37, case « mariés ou pacsés »)", "QUESTIONS.md (Q6, Q24, Q57, Q94, Q95, Q97, Q112, Q116 à Q118, Q122)", "JURISTE.md (partie 5 ; partie 9, points 21, 22 et 41)", "JOURNAL.md (lots 15, 53, D4 et fusion, 22-25/11/2026)", "livrables/notes-banc/ (notes-D4, relecture-D4R, notes-T3, notes-mariage, fusion/relecture-envois, fusion/corrections-fusion-notes, fusion/PLAN-PUBLICATION-NOTES)", "livrables/recueil/analyse-refs-10-24.md (réf. 24)", "code de la branche fusionnée claude/palier-1-fusion (89cb87ff, lecture seule)"]
+updated: 2026-11-26
+sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Recueil des textes officiels (v6)]]", "DECISIONS-2026-11-24.md (Q6, Q24, Q37, case « mariés ou pacsés »)", "QUESTIONS.md (Q6, Q24, Q57, Q94, Q95, Q97, Q112, Q116 à Q118, Q122)", "JURISTE.md (partie 5 ; partie 9, points 21, 22 et 41)", "JOURNAL.md (lots 15, 53, D4 et fusion, 22-25/11/2026)", "livrables/notes-banc/ (notes-D4, relecture-D4R, notes-T3, notes-mariage, fusion/relecture-envois, fusion/corrections-fusion-notes, fusion/PLAN-PUBLICATION-NOTES)", "livrables/recueil/analyse-refs-10-24.md (réf. 24)", "code de la branche fusionnée claude/palier-1-fusion (89cb87ff, lecture seule)", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)", "livrables/PLAN-DE-PUBLICATION.md (§ 4, réglage R5)"]
 ---
 
 # Relances et mise en demeure
@@ -82,7 +82,8 @@ qui n'existent pas encore. Écrire « relance à J+5 » dans le produit reviendr
 fonde ensuite un recours. L'escalade reste donc un geste du gérant, tracé dans
 `relances` (niveau, date d'envoi, date de première présentation pour la LRAR).
 *Dépassé depuis le 20/09 : des relances automatiques existent (migration `20260920030000`, délais réglables) ; leurs
-e-mails restent fermés en production (`QUESTIONS.md`, Q6). Voir les sections suivantes.*
+e-mails restent fermés en production (`QUESTIONS.md`, Q6 ; au 26/11, réglage R5 pas encore fait). Voir les sections
+suivantes.*
 
 > [!warning] Points à trancher
 > - Le **montant plancher** (~50 € dans le référentiel) et les **trois délais**
@@ -143,11 +144,12 @@ e-mails restent fermés en production (`QUESTIONS.md`, Q6). Voir les sections su
 > jour) se comptent au **jour de Paris** (lot « fuseau-paris », PR #186) : avant, un loyer
 > échu la veille à Paris restait « attendu » entre minuit et 2 h. Voir [[Le jour de référence est le jour de Paris]].
 
-## État dans l'application au 24/11/2026 (préproduction, non publié) — plan d'apurement, protocole, avis et virement
+## État dans l'application au 24/11/2026 (préproduction ; en production depuis le 25/11/2026) — plan d'apurement, protocole, avis et virement
 
 Relu dans le code de la branche de préproduction après les lots 39 et 44 de la phase 3
 ([[Mission palier 1 — audit du 22 novembre 2026]] ; `QUESTIONS.md`, Q44 et Q45 ; `JURISTE.md`, partie 5, points 1, 5
-et 7). Rien n'est publié en production ; aucun courrier n'est présenté comme conforme.
+et 7). Rien n'était publié en production le 24/11 ; ces changements sont en production depuis le 25/11/2026 (version
+`062296e2`). Aucun courrier n'est présenté comme conforme.
 
 - **Sous un [[Plan d'apurement]] actif ou en défaut, aucune relance n'est proposée ni préparée.** Le suivi des loyers et
   la fenêtre du lot n'affichent plus le bouton « Relancer » ni le palier suivant ; ils disent « Plan d'apurement en
@@ -184,7 +186,7 @@ et 7). Rien n'est publié en production ; aucun courrier n'est présenté comme 
   demeure, le délai de règlement se saisit entre 1 et 90 jours ; elle précise : « Ce courrier est à notifier avec preuve
   de réception. Il ne constitue ni un commandement de payer ni une décision de résiliation du bail. » Quand le décompte
   de sortie est finalisé, ces courriers ne sont plus préparés : le solde figure dans le décompte.
-  *Rectifié le 25/11 : depuis le lot 53 (défaut W34, version préparée), la lettre n'imprime plus « Ce courrier est à notifier avec preuve de réception »,
+  *Rectifié le 25/11 : depuis le lot 53 (défaut W34, en production depuis le 25/11/2026), la lettre n'imprime plus « Ce courrier est à notifier avec preuve de réception »,
   consigne destinée à l'expéditeur ; elle reste à l'écran (aide du délai, préparation du recommandé). La lettre garde
   « Ce courrier ne constitue ni un commandement de payer ni une décision de résiliation du bail. »*
 
@@ -204,23 +206,34 @@ et 7). Rien n'est publié en production ; aucun courrier n'est présenté comme 
 >   → *Décisions du 24/11 : « ouvre les quatre envois automatiques à la publication » (Q6) ; « accord des espaces
 >   conservé ; ouvre aussi la relance à la main » (Q24). Voir la section suivante : la relance à la main n'exige pas
 >   l'accord de l'espace.*
+>   → *26/11 : en production depuis le 25/11/2026, ces envois sont toujours fermés : au 26/11 à 05:30Z, le Super Admin
+>   ne les a pas encore ouverts (réglage R5 du plan de publication).*
 
-## Version préparée, à publier (état au 25/11/2026) — envois, relance à la main, caution, époux
+## Version préparée `062296e2`, en production depuis le 25/11/2026 — envois, relance à la main, caution, époux
 
-> [!info] Ce qui est en production et ce qui ne l'est pas
-> **En production aujourd'hui** (version du 21/11/2026, `81740dec`, gelée depuis le 22/11) : relances automatiques
-> codées, mais leurs e-mails sont retenus par la liste fermée du pilote ; l'envoi immédiat d'une relance par e-mail, à
-> la main, est suspendu (Q6, Q24). Ce qui suit est lu dans le code de la branche fusionnée `claude/palier-1-fusion`
-> (`89cb87ff`, complétée jusqu'à `062296e2`, vérifiée en entier sur le banc et poussée le 25/11 sur la branche de préproduction,
-> non publiée en production ; `JOURNAL.md`, entrée du 25/11) et dans les notes des lots D4,
-> T3 et « mariés ou pacsés » (`livrables/notes-banc/`). Aucun point de droit n'est donné pour acquis.
+> [!info] Ce qui est en production
+> **En production depuis le 25/11/2026** à 23:17Z (26/11 à 00 h 17, heure de Paris) : la version préparée `062296e2`,
+> publiée par la PR #358 (`main` = `8f9dd9ce`, identique à `062296e2`) ; ses 52 migrations sont appliquées (25/11,
+> 22:09Z) et la recette de production n° 58 a réussi (`log.md`, entrée « deploy » du 25/11/2026). Les cinq envois y sont
+> **en ligne mais fermés** : au 26/11 à 05:30Z, le [[Super Admin]] ne les a pas encore ouverts (réglage R5,
+> `livrables/PLAN-DE-PUBLICATION.md`, § 4). Aucune relance de loyer ne part donc encore par e-mail, ni automatique ni à
+> la main (fermé, le propriétaire n'a que le PDF).
+>
+> **Jusqu'au 25/11** (version du 21/11/2026, `81740dec`, gelée depuis le 22/11) : relances automatiques codées, mais
+> leurs e-mails étaient retenus par la liste fermée du pilote ; l'envoi immédiat d'une relance par e-mail, à la main,
+> était suspendu (Q6, Q24). Ce qui suit est lu dans le code de la branche fusionnée `claude/palier-1-fusion`
+> (`89cb87ff`, complétée jusqu'à `062296e2`, vérifiée en entier sur le banc et poussée le 25/11 sur la branche de préproduction ;
+> `JOURNAL.md`, entrée du 25/11) et dans les notes des lots D4,
+> T3 et « mariés ou pacsés » (`livrables/notes-banc/`). Aucun point de droit n'est donné pour acquis : la publication
+> ne vérifie rien de juridique.
 
 - **Cinq interrupteurs d'envoi, fermés à la livraison** : avis d'échéance, relance amiable d'un loyer impayé, rappels de
   rendez-vous, relance d'invitation, et un cinquième, la relance d'une demande de report de rendez-vous (Q37). Le jour
   de la publication, le [[Super Admin]] les ouvre un par un, avec une case de confirmation, **après** les migrations et
   le code (Q6 ; plan de publication, `livrables/notes-banc/fusion/PLAN-PUBLICATION-NOTES.md`). Pour l'avis et la relance **automatiques**, chaque espace doit en plus avoir donné son accord ; un
   accord déjà donné survit à une fermeture puis réouverture (Q24, point 1). Chez un propriétaire, une relance
-  automatique ne part qu'après sa réponse « Pas encore reçu » (Q24, point 3).
+  automatique ne part qu'après sa réponse « Pas encore reçu » (Q24, point 3). *26/11 : code et migrations en ligne
+  depuis le 25/11 ; l'ouverture (réglage R5) n'est pas encore faite, les cinq interrupteurs restent fermés.*
 - **Relance à la main** (Q24) : le [[Propriétaire bailleur]] envoie d'un clic, par e-mail, la relance d'un terme impayé
   dès que l'interrupteur « Relance amiable d'un loyer impayé » est ouvert ; fermé, il n'a que le PDF. Elle n'exige pas
   l'accord de l'espace. Réservée aux espaces de propriétaires (pas aux agences, Q95). La base revérifie avant l'envoi :

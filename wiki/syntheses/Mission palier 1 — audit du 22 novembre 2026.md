@@ -3,15 +3,29 @@ type: synthesis
 tags: [audit, palier-1, conformite, securite, ia, plan-de-correction, documents]
 status: in-progress
 created: 2026-11-22
-updated: 2026-11-24
-sources: []
+updated: 2026-11-26
+sources: ["log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)"]
 ---
 
 # Mission palier 1 — audit du 22 novembre 2026
 
 **En une phrase :** à la demande du dirigeant, Gerimmo est audité puis corrigé en autonomie pour le palier 1
 ([[Propriétaire bailleur]], [[Locataire]], [[Artisan]], incidents, gestion administrative, [[Super Admin]]) ; la
-production est gelée jusqu'à sa validation écrite ; l'audit complet est dans `AUDIT.md`, à la racine du dépôt.
+production a été gelée jusqu'à sa validation écrite, puis la version issue de la mission (`062296e2`) est en
+production depuis le 25/11/2026 ; l'audit complet est dans `AUDIT.md`, à la racine du dépôt.
+
+> [!info] Publication du 25/11/2026
+> Après le message du dirigeant « Je valide la publication », la version préparée `062296e2` (branche réunie
+> `claude/palier-1-fusion` `89cb87ff`, complétée jusqu'à `062296e2`) est en production depuis le 25/11/2026 à 23:17Z
+> (26/11 à 00 h 17, heure de Paris), par la PR #358 : `main` = `8f9dd9ce`, identique à `062296e2`. Elle remplace
+> `81740dec` (version du 21/11). Ses 52 migrations sont appliquées (25/11, 22:09Z) ; la recette de production n° 58 a
+> réussi. Les souscriptions payantes restent **fermées** (`/tarifs` relue le 25/11 après la publication).
+> **Pas encore fait au 26/11** : les réglages de la console, à faire par le dirigeant (plan de publication, § 4, R1 à
+> R8 : identité du vendeur, archivage des conditions du 24/11, contrôle du mode IA, repères fiscaux, parcours manuel
+> de 15 minutes, ouverture des cinq envois automatiques, en-tête Stripe, puis l'ouverture des souscriptions si le
+> dirigeant la décide). Ce qui en dépend est en ligne mais pas encore réglé ni ouvert. Ce qui était « non vérifié », « supposé » ou « à trancher par le juriste » le reste : la
+> publication ne vérifie rien de juridique. Source : `log.md`, entrée « deploy » du 25/11/2026 ; `JOURNAL.md`, entrée
+> du 25/11 (nuit).
 
 ## Où lire quoi
 
@@ -36,7 +50,8 @@ production est gelée jusqu'à sa validation écrite ; l'audit complet est dans 
 - **IA** : un seul fournisseur ; le cœur du métier n'appelle jamais l'IA ; la déclaration d'incident est déjà un
   formulaire et le créneau se choisit déjà à la main ([[Cycle de vie d'un incident]],
   [[Planification d'intervention]]). Aucun réglage ne coupe aujourd'hui l'IA proprement : un interrupteur super admin
-  est au plan.
+  est au plan. *(Constat du 22/11 ; l'interrupteur du lot 2, migration `20261122120000`, est en production depuis le
+  25/11/2026.)*
 - **Envois suspendus** : avis d'échéance, relances, rappels de rendez-vous sont codés mais fermés par la liste fermée
   du pilote ([[Quittancement des loyers]], [[Relances et mise en demeure]]).
 
@@ -56,7 +71,9 @@ production est gelée jusqu'à sa validation écrite ; l'audit complet est dans 
 
 Le détail, lot par lot (ce qui est fait, vérifié, non vérifié, retour arrière), est dans `JOURNAL.md` à la racine.
 Chaque lot est vérifié sur une base d'essai remise à neuf (migrations rejouées, tests, parcours navigateur) avant
-d'être poussé sur la branche de préproduction ; rien n'est publié en production.
+d'être poussé sur la branche de préproduction ; rien n'était publié en production pendant la mission. *Mise à jour
+du 26/11 :* la version qui réunit ces lots (`062296e2`) est en production depuis le 25/11/2026 (encadré du début de
+page).
 
 | Lot | Point du plan | Ce qui change pour l'utilisateur |
 |---|---|---|
@@ -104,6 +121,9 @@ posée à l'expert-comptable (`JURISTE.md`, partie 4) : elle n'est pas tranchée
 Q24) : aucun e-mail automatique ne part tant que le Super Admin n'a pas ouvert l'envoi correspondant ; pour l'avis
 d'échéance et la relance d'un loyer, chaque espace doit en plus donner son accord ; même ouvert, un e-mail ne part que
 si la base confirme, juste avant, qu'il est toujours dû. Aucun e-mail réel n'a été envoyé pendant la vérification.
+*26/11 : en production depuis le 25/11/2026, les cinq envois automatiques (les quatre du lot 15 et la relance d'une
+demande de report, Q37) restent fermés tant que le dirigeant ne les ouvre pas un par un dans la console (réglage R5 du
+plan de publication, pas encore fait).*
 
 **Règles posées aux lots 17 à 34** (prudences de l'agent ; aucune n'affirme une conformité) :
 
@@ -146,6 +166,8 @@ si la base confirme, juste avant, qu'il est toujours dû. Aucun e-mail réel n'a
   n'y en a pas ; une valeur illisible n'est pas affichée ; seul le Super Admin en double vérification la règle, et
   chaque réglage est journalisé avec la valeur d'avant. Les deux valeurs livrées n'ont **pas** été contrôlées à la
   source par l'agent : elles sont livrées sans date de vérification (`QUESTIONS.md`, Q38). Aucun calcul ne s'en sert.
+  *26/11 : en production depuis le 25/11/2026 ; la saisie des repères (15 000 €, 30 %) avec leur source dans la
+  console (réglage R4 du plan de publication) n'est pas encore faite.*
 - *Prudences sans texte (lot 33)* : quand un point de droit n'a pas pu être relu, l'écran avertit et dit ce que Gerimmo
   ne vérifie pas ; il ne cite aucun article et ne bloque rien, **sauf** la lettre de reprise, qui n'est pas préparée
   avec des blancs (choix de prudence de l'agent). Les questions sont posées au juriste (`JURISTE.md`, partie 1, points
@@ -168,7 +190,8 @@ attente ou partent dans `JURISTE.md`.
 
 ## Phase 3 — documents générés (état au 24/11/2026, lots 35 à 49)
 
-**État dans l'application au 24/11/2026 (préproduction, non publié).** Le détail, lot par lot, est dans `JOURNAL.md`
+**État dans l'application au 24/11/2026 (préproduction ; en production depuis le 25/11/2026 avec la version
+`062296e2`).** Le détail, lot par lot, est dans `JOURNAL.md`
 (entrées du 23 et du 24/11, à partir de « Phase 3, vérification des documents »). **Aucun document n'est présenté comme
 conforme** : les points de droit sont posés au juriste (`JURISTE.md`, partie 5, points 1 à 19) et les choix du
 dirigeant dans `QUESTIONS.md` (Q40 à Q53) ; dans les deux cas, l'option la plus prudente est appliquée en attendant.
@@ -188,7 +211,8 @@ dirigeant dans `QUESTIONS.md` (Q40 à Q53) ; dans les deux cas, l'option la plus
   lots : la vérification complète après les lots 35 à 49 ») : compilation, types et style sans erreur ; 14 961 tests
   réussis (31 mis de côté par conception) ; 309 parcours navigateur réussis du premier coup, 3 mis de côté par
   conception et 1 réussi au second essai (expliqué, corrigé). Poussé sur la branche de préproduction (d43eb1a0) ;
-  **rien n'est publié en production**.
+  rien n'était publié en production au 24/11. *Mise à jour du 26/11 :* repris dans la version `062296e2`, **en
+  production depuis le 25/11/2026** (PR #358, `main` = `8f9dd9ce`).
 
 | Lot | Thème | Ce qui change pour l'utilisateur |
 |---|---|---|
@@ -205,7 +229,7 @@ dirigeant dans `QUESTIONS.md` (Q40 à Q53) ; dans les deux cas, l'option la plus
 | 45 | Notice et état des lieux signé (majeur) | Le même résumé de notice, le plus récent, sur la fiche, le récapitulatif et la signature (Q46) ; un état des lieux signé sans index ni nombre de clés imprime « non relevé » / « non compté » (Q49 ; juriste, point 16) ([[Signature électronique]]) |
 | 46 | Catalogue | Plus aucun document proposé puis refusé pour l'état du dossier ; un colocataire parti n'est plus traité comme locataire ; chaque « À renseigner » mène à l'écran qui corrige ([[Document]]) |
 | 47 | Mots du locataire (majeur) | Chez un propriétaire, les e-mails et les écrans du locataire disent « votre bailleur » ; « gestionnaire » reste en agence. Aucun e-mail réel envoyé |
-| 48 et 49 | Derniers constats, un retrait | Tests figés dans le temps ; « Gestionnaire » dans le fil d'une intervention en agence ; étage d'un duplex non redit ; contrat signé de première location renvoyé au texte du contrat (Q53) ; **alignement de la quittance en ligne (lot 48) retiré au lot 49** : elle reste comme en production (Q52 ; juriste, point 19) ([[Quittance conforme]]) |
+| 48 et 49 | Derniers constats, un retrait | Tests figés dans le temps ; « Gestionnaire » dans le fil d'une intervention en agence ; étage d'un duplex non redit ; contrat signé de première location renvoyé au texte du contrat (Q53) ; **alignement de la quittance en ligne (lot 48) retiré au lot 49** : elle reste telle qu'elle était en production (`81740dec`) (Q52 ; juriste, point 19) ([[Quittance conforme]]) |
 
 **Règles posées par la phase 3** (prudences de l'agent ; aucune n'affirme une conformité) :
 
@@ -223,12 +247,14 @@ dirigeant dans `QUESTIONS.md` (Q40 à Q53) ; dans les deux cas, l'option la plus
   **actuels**, même après une vente, et rendait inaccessibles des quittances déjà émises tant que la fiche du
   propriétaire n'avait pas d'adresse. Il a été retiré, le retour arrière joué sur le banc ; la version complète reste
   dans l'historique de la branche. Choix laissé au dirigeant (Q52) et question posée au juriste (partie 5, point 19).
-- *Signature électronique* : un circuit préparé mais **pas encore envoyé** avant la publication sera refusé à l'envoi
-  (« Le dossier a changé depuis la préparation ») et à préparer de nouveau ; les circuits envoyés ou signés ne sont pas
-  touchés ; une vérification en lecture seule est prévue au plan de publication (Q40).
+- *Signature électronique* : un circuit préparé mais **pas encore envoyé** avant la publication (25/11/2026) est
+  refusé à l'envoi (« Le dossier a changé depuis la préparation ») et à préparer de nouveau ; les circuits envoyés ou
+  signés ne sont pas touchés ; une vérification en lecture seule était prévue au plan de publication (contrôle C3,
+  Q40) : son résultat n'est pas repris dans le compte rendu de la publication (`JOURNAL.md`, entrée du 25/11 (nuit)).
 
 > [!warning] Points à trancher / contradictions (phase 3, 24/11/2026)
-> - **Relance datée d'avant le plan d'apurement** : le code de la préproduction (reprise du lot 44) ne refuse qu'une
+> - **Relance datée d'avant le plan d'apurement** : le code de la préproduction (reprise du lot 44), en production
+>   depuis le 25/11/2026 avec la version `062296e2`, ne refuse qu'une
 >   relance datée du jour de l'activation ou après ; une relance envoyée avant (une mise en demeure et sa date de
 >   première présentation) peut encore être consignée. `QUESTIONS.md` (Q44, point 2) et `JOURNAL.md` (lot 39) disaient
 >   d'abord le contraire : relevé par la relecture du wiki, ils ont été rectifiés le 24/11. Reste au dirigeant à dire
@@ -236,6 +262,8 @@ dirigeant dans `QUESTIONS.md` (Q40 à Q53) ; dans les deux cas, l'option la plus
 > - **Limites connues laissées ouvertes** : le décompte des retenues reste bloqué sans justificatif, alors que le
 >   décompte de restitution imprime « Non fourni » (Q49) ; un même devis a deux références (Q51) ; un seul IBAN par
 >   espace, pas par bailleur (Q45) ; des saisies rares d'un duplex répètent encore un niveau (Q41).
+>   → *26/11 : pour Q49, tranché le 24/11 (lot D3) : sans pièce, les deux décomptes sont bloqués ; en production
+>   depuis le 25/11/2026 avec la version `062296e2` ([[Restitution du dépôt de garantie]]).*
 > - La synthèse [[Etat des lieux generation de documents]] décrit le catalogue d'août et de septembre ; elle n'est pas
 >   réécrite et renvoie ici.
 

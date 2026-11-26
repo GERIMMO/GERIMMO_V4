@@ -3,18 +3,22 @@ type: business-rule
 tags: [tarifs, stripe, abonnement, tva, franchise]
 status: in-progress
 created: 2026-07-21
-updated: 2026-11-25
-sources: ["[[2026-09-28-decision-tarification]]", "[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-18-administration]]", "[[Conditions générales]]", "[[Recueil des textes officiels (v6)]]", "DECISIONS-2026-11-24.md (Q7, complément du 24/11 : « Mentionne tva non applicable pour l'instant »)", "QUESTIONS.md (Q63, Q66, Q80)", "JURISTE.md, partie 6 point 13 et partie 9 point 32", "livrables/notes-banc/notes-D7.md (§ 1, 5.3), notes-T4.md (R29-A1, T4R-10)", "livrables/recueil/analyse-refs-25-37.md (réf. 29, 30)", "code en production : 81740dec — app/src/lib/tarifs.ts, app/src/components/grilles-tarifaires.tsx, app/src/app/tarifs/page.tsx, app/src/lib/conditions-versions.json", "version préparée : 89cb87ff — mêmes fichiers"]
+updated: 2026-11-26
+sources: ["[[2026-09-28-decision-tarification]]", "[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-18-administration]]", "[[Conditions générales]]", "[[Recueil des textes officiels (v6)]]", "DECISIONS-2026-11-24.md (Q7, complément du 24/11 : « Mentionne tva non applicable pour l'instant »)", "QUESTIONS.md (Q63, Q66, Q80)", "JURISTE.md, partie 6 point 13 et partie 9 point 32", "livrables/notes-banc/notes-D7.md (§ 1, 5.3), notes-T4.md (R29-A1, T4R-10)", "livrables/recueil/analyse-refs-25-37.md (réf. 29, 30)", "code en production jusqu'au 25/11 : 81740dec — app/src/lib/tarifs.ts, app/src/components/grilles-tarifaires.tsx, app/src/app/tarifs/page.tsx, app/src/lib/conditions-versions.json", "version lue avant la publication : 89cb87ff (branche claude/palier-1-fusion, complétée jusqu'à 062296e2, en production depuis le 25/11) — mêmes fichiers", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)", "livrables/PLAN-DE-PUBLICATION.md (§ 4, réglages R1, R2, R7)"]
 ---
 
 # Grille tarifaire
 
-> [!info] Deux états à ne pas confondre
-> - **En production aujourd'hui** : code `81740dec` (servi depuis le 21/11/2026). Les **ventes y sont fermées**
->   ([[Souscription de l'abonnement]]).
-> - **Version préparée, à publier** : branche `89cb87ff`, complétée jusqu'à `062296e2` (vérifiée en entier sur le banc, poussée le 25/11 sur la
->   branche de préproduction, non publiée en production). **La grille ne change pas** ; seules changent la mention de
->   franchise (« article » en toutes lettres) et l'identité du vendeur qui la porte.
+> [!info] État de la production au 26/11/2026
+> - **En production depuis le 25/11/2026** à 23:17Z (26/11 à 00 h 17, heure de Paris) : version `062296e2` (branche
+>   `89cb87ff`, complétée jusqu'à `062296e2`, vérifiée en entier sur le banc), publiée par la PR #358 (`main` =
+>   `8f9dd9ce`, identique à `062296e2`) ; ses 52 migrations sont appliquées (25/11, 22:09Z) et la recette de production
+>   n° 58 a réussi (`log.md`, entrée « deploy » du 25/11/2026). **La grille ne change pas** ; seules changent la mention
+>   de franchise (« article » en toutes lettres) et l'identité du vendeur qui la porte. Les **ventes y restent
+>   fermées** (`/tarifs` relue le 25/11 après la publication ; [[Souscription de l'abonnement]]).
+> - **Jusqu'au 25/11** : code `81740dec` (servi depuis le 21/11/2026), ventes fermées.
+> - **Pas encore fait au 26/11** (réglages à faire par le dirigeant, `livrables/PLAN-DE-PUBLICATION.md`, § 4) :
+>   identité du vendeur (R1) et en-tête des factures dans le compte Stripe (R7).
 
 ## Grille appliquée par le code depuis le 11/11/2026
 
@@ -50,22 +54,24 @@ nouvelles souscriptions propriétaires et SCI, calcul par unité locative active
 
 **Taxes** — régime déclaré de l'éditeur (`REGIME_TVA`, constante du code) : **franchise en base**, aucune TVA facturée,
 le prix affiché est le prix payé.
-- Mention en production : « TVA non applicable, **art.** 293 B du CGI » (pied des factures Stripe, courriel de
+- Mention en production jusqu'au 25/11 (`81740dec`) : « TVA non applicable, **art.** 293 B du CGI » (pied des factures Stripe, courriel de
   confirmation, `/tarifs`) ; « article » en toutes lettres seulement sur les mentions légales et les conditions.
-- **Version préparée** : « TVA non applicable, **article** 293 B du CGI » partout, d'après l'article 293 E du code
+- **En production depuis le 25/11/2026** (`062296e2`, lu dans le code avant la publication) : « TVA non applicable,
+  **article** 293 B du CGI » partout, d'après l'article 293 E du code
   général des impôts lu dans le [[Recueil des textes officiels (v6)]] (**fourni par le dirigeant, non recontrôlé sur
   Légifrance**). Mention gardée « pour l'instant » par le dirigeant (24/11), pour un vendeur **entrepreneur
   individuel** (nom commercial SAUVEXPERT, [[Entrepreneur individuel (EI)]], page à créer).
 - Le pied de facture est écrit par Gerimmo ; l'**en-tête** des factures (nom suivi de « EI », adresse, SIREN) se règle
-  dans le **compte Stripe**, hors de Gerimmo (Q80). Un client Stripe existant ne reçoit le nouveau pied qu'à sa
+  dans le **compte Stripe**, hors de Gerimmo (Q80 ; réglage R7, pas encore fait au 26/11). Un client Stripe existant ne reçoit le nouveau pied qu'à sa
   prochaine souscription ou hausse (T4R-10).
 
 **Règles d'application** : hausse (formule, biens, lots sous mandat) seulement après présentation du nouveau montant,
 de la date d'effet et du prorata (aperçu Stripe) puis confirmation — une garde en base refuse sinon l'écriture ; baisse
 appliquée à l'échéance, sans prorata ; changement de périodicité à l'échéance seulement ; résiliation pour la prochaine
 échéance. Révision tarifaire notifiée **au moins un mois** avant (article 8.9) et, pour le consommateur, soumise à son
-accord exprès. Version préparée : une hausse ou un changement de périodicité demande aussi l'accord à une nouvelle
-version archivée des conditions (décision Q15, [[Conditions générales]]). Voir [[Cycle de vie de l'abonnement]].
+accord exprès. Depuis le 25/11/2026 (`062296e2`) : une hausse ou un changement de périodicité demande aussi l'accord à
+une nouvelle version archivée des conditions (décision Q15, [[Conditions générales]] ; au 26/11, la version du 24/11
+n'est pas encore archivée, réglage R2). Voir [[Cycle de vie de l'abonnement]].
 
 ## Grille du 28/09/2026 — supplantée le 11/11/2026 ([[2026-09-28-decision-tarification]])
 
@@ -182,7 +188,7 @@ Les deux dernières tranches restent sur devis.
 > [!warning] Points à trancher / contradictions
 > - **Grille « en vigueur » contredite par le code** : [[Abonnement]] et [[Référentiel du palier 1]] (règle R-ABO-01)
 >   donnent encore la grille du 28/09 (Solo, Bailleur, Investisseur, Patrimoine) comme en vigueur ; le code applique
->   l'abonnement unique depuis le 11/11 (production et version préparée). La décision du dirigeant qui fonde
+>   l'abonnement unique depuis le 11/11 (dans `81740dec` comme dans `062296e2`, en production depuis le 25/11/2026). La décision du dirigeant qui fonde
 >   l'abonnement unique et la révision du 29/10 n'est dans aucune page-source du wiki : seuls le code, la PR #286 et le
 >   résumé de la version des conditions du 11/11 en témoignent. À faire confirmer.
 > - **Franchise en base pour ce vendeur** : activité déclarée « formation continue d'adultes » (85.59A) pour un vendeur
@@ -196,7 +202,8 @@ Les deux dernières tranches restent sur devis.
 >   constante du code : en changer demande une publication.
 > - **Factures à une SCI ou à un professionnel** : d'ici septembre 2027 elles devront porter le SIREN du client, que
 >   Gerimmo ne demande pas à la souscription (recueil, réf. 29, non recontrôlé).
-> - **En-tête des factures Stripe** (« EI », adresse, SIREN) : réglage hors Gerimmo, non vu (Q80).
+> - **En-tête des factures Stripe** (« EI », adresse, SIREN) : réglage hors Gerimmo, non vu (Q80) ; réglage R7 du plan
+>   de publication, pas encore fait au 26/11.
 > - ~~Unité « bien »~~ — tranché le 28/09 pour l'ancienne grille ; non revérifié pour l'abonnement unique.
 > - ~~Régime de TVA de l'éditeur~~ — tranché le 28/09 : franchise en base ; confirmé « pour l'instant » le 24/11.
 > - ~~Clients existants~~ — tranché le 28/09 : bascule, gel après l'essai, bascule dès l'ajout de bien pour ceux qui

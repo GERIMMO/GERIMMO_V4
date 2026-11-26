@@ -3,8 +3,8 @@ type: process
 tags: [irl, revision, loyer, prescription]
 status: draft
 created: 2026-07-24
-updated: 2026-11-25
-sources: ["[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Recueil des textes officiels (v6)]]", "[[Référentiel du palier 1]]", "DECISIONS-2026-11-24.md (Q23, Q34, Q43, Q100)", "QUESTIONS.md (Q23, Q34, Q43, Q70 à Q72, Q100)", "JURISTE.md (partie 5, point 6 ; partie 6, point 16 ; partie 7)", "JOURNAL.md (lots 14, 39, 52 et D2, 22-25/11/2026)", "livrables/recueil/analyse-refs-01-09.md (réf. 01) et analyse-refs-10-24.md (réf. 16 et 23)", "code de la branche fusionnée claude/palier-1-fusion (89cb87ff, lecture seule)"]
+updated: 2026-11-26
+sources: ["[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Recueil des textes officiels (v6)]]", "[[Référentiel du palier 1]]", "DECISIONS-2026-11-24.md (Q23, Q34, Q43, Q100)", "QUESTIONS.md (Q23, Q34, Q43, Q70 à Q72, Q100)", "JURISTE.md (partie 5, point 6 ; partie 6, point 16 ; partie 7)", "JOURNAL.md (lots 14, 39, 52 et D2, 22-25/11/2026)", "livrables/recueil/analyse-refs-01-09.md (réf. 01) et analyse-refs-10-24.md (réf. 16 et 23)", "code de la branche fusionnée claude/palier-1-fusion (89cb87ff, lecture seule)", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)"]
 ---
 
 # Révision annuelle IRL
@@ -53,9 +53,10 @@ anniversaires) : une révision tardive n'empêche pas celle de l'anniversaire su
 Auparavant, la date d'effet était forcée à l'anniversaire, même pour une révision
 demandée des mois plus tard — un rappel rétroactif interdit.
 
-C'est la règle **en production aujourd'hui**. Dans la **version préparée** (décision Q43 du 24/11, section
-« Version préparée » plus bas), la date d'effet reste calculée ainsi, mais le loyer révisé n'est appelé qu'à partir du
-**premier mois qui commence après la demande**.
+C'était toute la règle **en production jusqu'au 25/11/2026** (version `81740dec`). Dans la **version préparée**
+`062296e2`, **en production depuis le 25/11/2026** (décision Q43 du 24/11, section « Version préparée » plus bas), la
+date d'effet reste calculée ainsi, mais le loyer révisé n'est appelé qu'à partir du **premier mois qui commence après
+la demande**.
 
 ## Déroulé
 
@@ -69,12 +70,12 @@ Tâche quotidienne → détection des dates anniversaires → vérification de l
 | Cas | Comportement |
 |---|---|
 | **DPE F ou G (passoire thermique)** | **Blocage — révision légalement interdite** depuis août 2022 (RM-3.8.6, confirmé par [[2026-08-05-bailpdf-contrat-de-bail\|BailPDF]] : ni révision ni augmentation, en cours de bail comme au renouvellement ; l'interdiction de **louer** suit son propre calendrier — [[Diagnostic]]). Gerimmo bloque **tout** bail, quelle que soit sa date : voir l'avertissement du 25/11 en fin de page |
-| Date anniversaire + 1 an dépassée | **Révision prescrite pour l'année écoulée** : la demande se rattache alors à l'anniversaire suivant ; alerte forte avant expiration ([[Agenda et échéances]]). Version préparée : refus même avec une demande antidatée, date limite affichée |
-| Demande après l'anniversaire | **Effet à la date de la demande**, jamais à l'anniversaire passé (pas de rappel rétroactif). Version préparée : loyer révisé appelé à partir du premier mois qui commence après la demande |
+| Date anniversaire + 1 an dépassée | **Révision prescrite pour l'année écoulée** : la demande se rattache alors à l'anniversaire suivant ; alerte forte avant expiration ([[Agenda et échéances]]). Depuis le 25/11/2026, version `062296e2` : refus même avec une demande antidatée, date limite affichée |
+| Demande après l'anniversaire | **Effet à la date de la demande**, jamais à l'anniversaire passé (pas de rappel rétroactif). Depuis le 25/11/2026, version `062296e2` : loyer révisé appelé à partir du premier mois qui commence après la demande |
 | Indice d'un autre trimestre que la référence | **Blocage** — l'IRL comparé est celui du même trimestre |
-| Année de bail non révisée (version préparée) | **Pas de rattrapage** : calcul sur un an, l'indice du même trimestre de l'année précédente est demandé |
-| Indices invraisemblables (version préparée) | **Refus** si le rapport des deux indices sort de 0,8 à 1,25 — contrôle de saisie, pas une règle de droit (Q71) |
-| Bail terminé (version préparée) | **Refus** de la révision |
+| Année de bail non révisée (version `062296e2`, depuis le 25/11/2026) | **Pas de rattrapage** : calcul sur un an, l'indice du même trimestre de l'année précédente est demandé |
+| Indices invraisemblables (version `062296e2`, depuis le 25/11/2026) | **Refus** si le rapport des deux indices sort de 0,8 à 1,25 — contrôle de saisie, pas une règle de droit (Q71) |
+| Bail terminé (version `062296e2`, depuis le 25/11/2026) | **Refus** de la révision |
 | IRL en baisse | Le loyer baisse — rare mais légalement dû |
 | Dépôt de garantie, provisions | **Jamais modifiés** par la révision (RM-3.8.8, RM-2.1.5) |
 
@@ -83,7 +84,7 @@ Tâche quotidienne → détection des dates anniversaires → vérification de l
 Consomme le loyer et l'IRL de référence du [[Bail]] ; alimente les
 [[Période de loyer|appels de loyer]] suivants ; indices et alertes via
 [[Administrateur d'agence]] (module 18) et [[Agenda et échéances]] (module 14) ;
-dépend du [[Diagnostic]] DPE du lot. Dans la version préparée, chaque terme porte le loyer qui valait pour lui :
+dépend du [[Diagnostic]] DPE du lot. Depuis le 25/11/2026 (version `062296e2`), chaque terme porte le loyer qui valait pour lui :
 révision par son premier terme révisé, avenant au [[Bail]] par sa date d'effet. Textes fournis :
 [[Recueil des textes officiels (v6)]] (réf. 01, 16 et 23, non recontrôlés sur Légifrance) ; règle unifiée du palier 1 :
 [[Référentiel du palier 1]].
@@ -109,8 +110,8 @@ révision par son premier terme révisé, avenant au [[Bail]] par sa date d'effe
 > interdite. L'application agence, elle, garde la saisie de l'indice (pas de
 > récupération automatique en V1).
 >
-> **Version préparée (non publiée)** : aucun indice n'est plus écrit dans le code de l'outil, et aucun champ n'est
-> prérempli ; l'exemple n'apparaît qu'en texte grisé dans le champ vide (décision du 25/11, Q100). La lettre ne
+> **Version `062296e2`, en production depuis le 25/11/2026** : aucun indice n'est plus écrit dans le code de l'outil,
+> et aucun champ n'est prérempli ; l'exemple n'apparaît qu'en texte grisé dans le champ vide (décision du 25/11, Q100). La lettre ne
 > s'imprime que si ses six champs sont saisis. L'outil n'a **pas** reçu les règles du lot D2 (année perdue, délai d'un
 > an, premier mois révisé) : il peut donner un autre résultat que l'application (Q72, en attente).
 
@@ -119,7 +120,7 @@ révision par son premier terme révisé, avenant au [[Bail]] par sa date d'effe
 > de Paris** (PR #189) : avant, une révision datée d'aujourd'hui, saisie après minuit à
 > Paris, était refusée comme « Révision anticipée ». Voir [[Le jour de référence est le jour de Paris]].
 
-## État dans l'application au 24/11/2026 (préproduction, non publié) — le mois de l'effet (mission palier 1, phase 3)
+## État dans l'application au 24/11/2026 (préproduction ; en production depuis le 25/11/2026) — le mois de l'effet (mission palier 1, phase 3)
 
 Relu dans le code après le lot 39 ([[Mission palier 1 — audit du 22 novembre 2026]] ; `QUESTIONS.md`, Q43 ;
 `JURISTE.md`, partie 5, point 6). *Dépassé par la décision Q43 du 24/11 (section suivante) : ces phrases ne restent
@@ -141,16 +142,20 @@ imprimées que pour les révisions enregistrées avant la migration `20261124100
 >   suivant (Q43).
 >   → *Tranché le 24/11 par le dirigeant (Q43) : « la révision ne s'applique jamais à des jours antérieurs à la demande
 >   du bailleur. Applique-la au premier terme qui suit la demande et écris-le dans la lettre. » Appliqué dans la version
->   préparée (section suivante). La question de la renonciation reste posée au juriste (`JURISTE.md`, partie 7,
->   point 2).*
+>   préparée `062296e2`, en production depuis le 25/11/2026 (section suivante). La question de la renonciation reste
+>   posée au juriste (`JURISTE.md`, partie 7, point 2).*
 
-## Version préparée, à publier (état au 25/11/2026) — décisions Q23, Q34 et Q43 (lot D2)
+## Version préparée `062296e2`, en production depuis le 25/11/2026 — décisions Q23, Q34 et Q43 (lot D2)
 
-> [!info] Ce qui est en production et ce qui ne l'est pas
-> Rien de cette section n'est en production : la production sert la version du 21/11/2026 (`81740dec`), gelée depuis
-> le 22/11. Ce qui suit est lu dans le code de la branche fusionnée `claude/palier-1-fusion` (`89cb87ff`, complétée jusqu'à `062296e2`, vérifiée en entier sur le banc et poussée le 25/11 sur la branche de préproduction,
-> non publiée en production ; `JOURNAL.md`, entrée du 25/11) et dans `JOURNAL.md` (lots 14 et D2),
-> `QUESTIONS.md` (Q23, Q34, Q43, Q70 à Q72) et `JURISTE.md` (partie 7). Aucun point de droit n'est donné pour acquis.
+> [!info] Ce qui est en production
+> Cette section est en production depuis le 25/11/2026 à 23:17Z (26/11 à 00 h 17, heure de Paris) : la version
+> préparée `062296e2` a été publiée par la PR #358 (`main` = `8f9dd9ce`, identique à `062296e2`), ses 52 migrations sont
+> appliquées (25/11, 22:09Z) et la recette de production n° 58 a réussi (`log.md`, entrée « deploy » du 25/11/2026).
+> Jusqu'au 25/11, la production servait la version du 21/11/2026 (`81740dec`), gelée depuis le 22/11, qui n'en
+> contenait rien. Ce qui suit est lu dans le code de la branche fusionnée `claude/palier-1-fusion` (`89cb87ff`, complétée jusqu'à `062296e2`, vérifiée en entier sur le banc et poussée le 25/11 sur la branche de préproduction ;
+> `JOURNAL.md`, entrée du 25/11) et dans `JOURNAL.md` (lots 14 et D2),
+> `QUESTIONS.md` (Q23, Q34, Q43, Q70 à Q72) et `JURISTE.md` (partie 7). Aucun point de droit n'est donné pour acquis : la
+> publication ne vérifie rien de juridique.
 
 - **Rappel et indice** (lot 14) : un rappel « Révision annuelle du loyer possible » paraît dans « À faire » dès la date
   anniversaire, pendant 60 jours, sauf pour un bail en préavis, un loyer déjà révisé ou un logement dont le dernier DPE
@@ -176,14 +181,15 @@ imprimées que pour les révisions enregistrées avant la migration `20261124100
   de référence ; le renvoi à la fiche Service-Public est retiré de la lettre au locataire ; l'ancienne rédaction ne
   cite plus « rédaction issue de la loi n° 2014-366 » (écart R01-A3 du recueil).
 - **Aucune ligne existante n'est réécrite** : révisions, appels de loyer et baux déjà enregistrés gardent leurs valeurs.
-- À la publication, les migrations du lot D2 (`20261124100000` à `20261124170000`) passent avant le code.
+- À la publication, les migrations du lot D2 (`20261124100000` à `20261124170000`) sont passées avant le code : elles
+  font partie des 52 appliquées le 25/11 à 22:09Z, code publié ensuite (publication vérifiée à 23:17Z).
 
 > [!warning] Points à trancher / contradictions (25/11/2026)
 > - **Fiche officielle, texte fourni et règle de Gerimmo** : la fiche Service-Public lue le 24/11 dit que le loyer révisé
 >   s'applique « à partir de la date de la demande » ; l'article 17-1 du [[Recueil des textes officiels (v6)]] (non
->   recontrôlé sur Légifrance) dit qu'elle « prend effet à compter de sa demande ». La version préparée applique le
->   loyer révisé plus tard (premier mois suivant), au bénéfice du locataire : faut-il l'écrire comme une renonciation ?
->   (`JURISTE.md`, partie 6, point 16 et partie 7, point 2).
+>   recontrôlé sur Légifrance) dit qu'elle « prend effet à compter de sa demande ». La version `062296e2`, en
+>   production depuis le 25/11/2026, applique le loyer révisé plus tard (premier mois suivant), au bénéfice du
+>   locataire : faut-il l'écrire comme une renonciation ? (`JURISTE.md`, partie 6, point 16 et partie 7, point 2).
 > - **Gel en classe F ou G et date du bail** (écarts R01-A1 et R23-A1 du recueil, non corrigés) : selon le texte fourni
 >   (art. 17-1 III ; loi n° 2021-1104, art. 159 IV), le gel ne vise que les contrats conclus, renouvelés ou reconduits
 >   depuis le 24/08/2022 (outre-mer : après le 01/07/2024). Gerimmo refuse la révision pour **tout** bail F ou G, y
@@ -192,8 +198,8 @@ imprimées que pour les révisions enregistrées avant la migration `20261124100
 > - **Date de révision convenue** (R01-A2) : Gerimmo révise toujours à la date anniversaire ; un bail repris qui prévoit
 >   une autre date ne peut pas être suivi. **Bail repris en cours** : l'indice inscrit peut être celui d'origine ou un
 >   indice déjà mis à jour ; Gerimmo préfère refuser que calculer faux (Q70).
-> - **Indice « saisi manuellement » (décision actée, section Prérequis)** ≠ version préparée, qui propose l'indice lu
->   chez l'Insee (le gérant le valide ou le saisit lui-même).
+> - **Indice « saisi manuellement » (décision actée, section Prérequis)** ≠ version `062296e2` (en production depuis
+>   le 25/11/2026), qui propose l'indice lu chez l'Insee (le gérant le valide ou le saisit lui-même).
 > - Restent au juriste (`JURISTE.md`, partie 7, points 1, 3 et 4) : le calcul sur un an après une année perdue ; la
 >   date de la demande (celle que le bailleur saisit, sans preuve d'envoi ni de réception) ; le dernier jour du délai
 >   d'un an (veille de l'anniversaire ou anniversaire lui-même). Le texte fourni (art. 7-1, réf. 16) dit seulement que

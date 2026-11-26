@@ -4,7 +4,7 @@ tags: [bail, contrat, alur, signature, colocation, preavis, conge, epoux-pacs]
 status: in-progress
 created: 2026-07-22
 updated: 2026-11-26
-sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Recueil des textes officiels (v6)]]", "DECISIONS-2026-11-24.md", "QUESTIONS.md (Q4, Q11, Q23, Q34, Q40, Q43, Q46, Q77, Q102 à Q107, Q111, Q115, Q116, Q121, Q122)", "JURISTE.md (partie 9)", "JOURNAL.md (entrées du 24-25/11/2026)", "livrables/notes-banc/ (notes-T1, notes-T2, notes-T3, notes-mariage, notes-D5, relecture-T1R, relecture-T2R, fusion/fusion-notes, fusion/relecture-contrats, fusion/relecture-argent, fusion/corrections-fusion-notes)", "livrables/recueil/analyse-refs-01-09.md", "livrables/recueil/analyse-refs-10-24.md", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)"]
+sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Recueil des textes officiels (v6)]]", "DECISIONS-2026-11-24.md", "QUESTIONS.md (Q4, Q11, Q23, Q34, Q40, Q43, Q46, Q77, Q102 à Q107, Q111, Q115, Q116, Q121, Q122)", "JURISTE.md (partie 9)", "JOURNAL.md (entrées du 24-25/11/2026)", "livrables/notes-banc/ (notes-T1, notes-T2, notes-T3, notes-mariage, notes-D5, relecture-T1R, relecture-T2R, fusion/fusion-notes, fusion/relecture-contrats, fusion/relecture-argent, fusion/corrections-fusion-notes)", "livrables/recueil/analyse-refs-01-09.md", "livrables/recueil/analyse-refs-10-24.md", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)", "[[Occupation d'un bien]]", "code relu le 26/11/2026 (lecture seule) : app/supabase/migrations/20260731_sprint4_bail_fondation.sql, 20260801_colocation_bail_personnes_details.sql, 20260929120000_audit_baux_documents.sql"]
 ---
 
 # Bail
@@ -21,6 +21,17 @@ régimes dans [[Types de baux]].
 Objets liés : **Occupant** (locataire ↔ bail, quote-part de solidarité), **Lien de
 garantie** (garant ↔ bail, date d'extinction — [[Dossier locataire]]),
 **[[État des lieux]]**.
+
+**Dans l'application** (relu dans le code le 26/11/2026) : le bail est la table `baux` depuis le sprint 4 (migration
+`20260731_sprint4_bail_fondation.sql`, 31/07/2026) — lot, type (`nu`, `meuble`, `colocation`), état (`brouillon`,
+`actif`, `preavis`, `termine`), locataire principal, dates de début et de fin, loyer, charges, dépôt de garantie, jour
+d'échéance, contrat signé. Les autres personnes du bail sont dans `bail_personnes` : rôle `colocataire` ou `garant`,
+quote-part, surface privative, colocataire couvert par le garant, date de fin de solidarité (01/08/2026), date de départ
+(29/09/2026). C'est donc le bail, et non plus une « occupation », qui dit qui occupe quel lot et depuis quand.
+*Historique : l'ancien dépôt (Gerimmo V3) n'avait pas d'objet bail ; il l'approchait par la table `bien_occupants`
+(personne ↔ bien, `occupant_type` locataire / propriétaire / autre, `started_at` / `ended_at`), les
+[[Période de loyer|périodes de loyer]] et un document de type `contrat` ([[Occupation d'un bien]], page fusionnée ici
+le 26/11/2026). Aucune migration de l'application ne crée `bien_occupants`.*
 
 ## Création (1.1 / 1.2)
 
@@ -256,7 +267,8 @@ colocataires.
   [[Restitution du dépôt de garantie]] (via les écarts d'[[État des lieux]]),
   [[Période de loyer]] / [[Quittancement des loyers]] (échéancier né de la signature),
   [[Comptabilité]], rapport de gestion (module 6).
-- Remplace [[Occupation d'un bien]] (approximation actuelle du code).
+- Remplace [[Occupation d'un bien]], approximation de l'ancien dépôt V3 (`bien_occupants`) : dans l'application, le
+  bail est la table `baux` depuis le 31/07/2026 (§ « Dans l'application », en tête de page).
 - Le **propriétaire en gestion directe** suit les mêmes parcours en variante — sans
   mandat, honoraires ni rapport.
 
@@ -289,9 +301,13 @@ colocataires.
 > durée réduite, travaux…) : [[Structure du modèle-type de bail]].
 
 > [!warning] Points résiduels
-> - **Migration depuis le code** : articulation entre l'objet Bail V3 et
+> - ~~**Migration depuis le code** : articulation entre l'objet Bail V3 et
 >   `bien_occupants`/[[Occupation d'un bien]] existants — à traiter au moment du
->   développement ([[Modèle de données]]).
+>   développement ([[Modèle de données]]).~~ *Sans objet (relu le 26/11/2026)* : l'application est partie d'un
+>   schéma neuf ; aucune migration ne crée `bien_occupants`, et le bail existe depuis le 31/07/2026 (`baux`,
+>   `bail_personnes`). Contradiction relevée à la fusion : [[Occupation d'un bien]] disait le bail « décidé mais pas
+>   encore implémenté » — vrai de l'ancien dépôt au 22/07, faux de l'application depuis le 31/07.
+>   [[Modèle de données]] dessine encore `bien_occupants` (page non modifiée ici).
 > - Le module 1 saisit la « date de réception » du congé ; la matrice demande le champ
 >   « **date de première présentation** » (RM-A3.5, rattachement prioritaire n° 1) —
 >   formulation à aligner en développement. *25/11 : le texte fourni (art. 15 I et 25-8, recueil, non recontrôlé) fait

@@ -144,12 +144,27 @@ Plan juriste/DPO du 23/10 (lots 1 et 2) ; textes contractuels inchangés (versio
 - Cycle de vie automatisé — voir [[Cycle de vie de l'abonnement]], [[Onboarding et abonnement]].
 
 > [!warning] Points à trancher / contradictions
+> - **26/11/2026 — grille corrigée** : cette page donnait encore la grille du 28/09 et l'offre de lancement comme en
+>   vigueur ; elle suit désormais le code (abonnement unique du 11/11, essai de 2 mois du 15/11) et renvoie à
+>   [[Grille tarifaire]]. La **décision du dirigeant** qui fonde l'abonnement unique n'est dans aucune page-source du
+>   wiki : seuls le code, la PR #286 et le résumé des conditions du 11/11 en témoignent ([[Grille tarifaire]]). À faire
+>   confirmer.
+> - **Bascule des anciens contrats** : la règle du 28/09 (« bascule sur la nouvelle grille dès l'ajout d'un bien ») et
+>   celle du 11/11 (« les conditions des contrats précédents sont conservées ») ne disent pas la même chose. Sans
+>   contrat payant à ce jour, l'écart n'a pas d'effet ; la règle à appliquer au premier ancien contrat reste à écrire.
+> - **Parrainage** : le mécanisme du mois offert au parrain est décrit pour la grille du 28/09 ; son effet exact sur
+>   l'abonnement unique (montant de l'avoir) n'est pas revérifié.
+> - **Grille agences** (49 € HT, puis 4,90 € par lot) : entrée dans le code avec la PR #281 (05/11/2026, « révision du
+>   29/10/2026 » en tête de `tarifs.ts`) ; jamais publiée, et la décision du dirigeant n'est dans aucune page-source du
+>   wiki. À confirmer avant toute ouverture aux agences.
+> - **Unité comptée** : l'« unité locative active » de l'abonnement unique (conditions du 11/11) n'a pas été revérifiée
+>   face à la règle « lot » du 28/09 ([[Grille tarifaire]]).
 > - ~~La facturation annuelle n'est pas lancée (prix à refixer).~~ **Tranché le
 >   28/09/2026** : annuel ouvert aux particuliers, deux mois offerts
 >   ([[2026-09-28-decision-tarification]]).
-> - Le schéma hérité (`subscription_plans` à trois tarifs, frais de mise en place)
->   subsiste dans les tables historiques ; la grille `2026-09-28` le remplace pour
->   toute nouvelle souscription.
+> - ~~Le schéma hérité (`subscription_plans` à trois tarifs, frais de mise en place)
+>   subsiste dans les tables historiques~~ — ces tables viennent du [[Dépôt Gerimmo-V3]] ; elles n'existent pas dans le
+>   code V4 (recherche du 26/11/2026).
 > - ~~Identité de l'éditeur encore à fournir (nécessaire au formulaire de
 >   rétractation)~~ → saisie en production au relevé du 23/10, sauf le médiateur
 >   ([[Informations manquantes — 23 octobre 2026]]).

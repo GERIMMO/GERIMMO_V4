@@ -3,11 +3,25 @@ type: persona
 tags: [role, artisan, incident]
 status: in-progress
 created: 2026-07-21
-updated: 2026-10-24
-sources: ["[[Ouverture du réseau d'artisans]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]", "[[2026-07-24-gerimmo-v3-module-7-incidents]]", "[[2026-07-24-gerimmo-v3-module-8-artisans]]", "[[2026-07-24-gerimmo-v3-module-11-notation]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]", "[[2026-07-24-gerimmo-v3-a2-conservation-rgpd]]", "[[2026-09-28-reseau-national-ouvertures-locales]]", "[[Invitation d'un artisan par un propriétaire]]", "[[Conditions générales]]", "log.md — entrée « deploy » du 24/10/2026 (PR #246)"]
+updated: 2026-11-26
+sources: ["[[Vision de l'écosystème Gerimmo]]", "[[Contrôle des livraisons de Codex — 22 octobre 2026]] (C2)", "[[Préparation fonctionnelle — 21 octobre 2026]]", "log.md — entrées du 21/10/2026 (« decision | Version de base fonctionnelle… », « dev | Préparer l'ouverture des clients externes et règlements artisans ») et du 23/10/2026 (« decision | Signature ouverte pendant la bêta… », « decision | Conformité V1 : valeurs par défaut… », point 7)", "app/supabase/migrations/20261021140836_ouverture_activite_artisan.sql", "app/supabase/migrations/20261012225000_garde_activation_artisan.sql", "app/src/lib/artisan-activation.ts", "app/supabase/migrations/20261023180000_reseau_zone_choisie_par_artisan.sql", "app/src/lib/conditions-versions.json (conditions de l'espace artisan du 24/10/2026)", "[[Ouverture du réseau d'artisans]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]", "[[2026-07-24-gerimmo-v3-module-7-incidents]]", "[[2026-07-24-gerimmo-v3-module-8-artisans]]", "[[2026-07-24-gerimmo-v3-module-11-notation]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]", "[[2026-07-24-gerimmo-v3-a2-conservation-rgpd]]", "[[2026-09-28-reseau-national-ouvertures-locales]]", "[[Invitation d'un artisan par un propriétaire]]", "[[Conditions générales]]", "log.md — entrée « deploy » du 24/10/2026 (PR #246)"]
 ---
 
 # Artisan
+
+> [!info] État au 26/11/2026 — trois points qui priment sur les sections plus anciennes de cette page
+> - **Gratuit et sans commission** : l'espace artisan ne coûte rien à l'artisan et Gerimmo ne prend aucune commission
+>   (décision du 23/10/2026, plan juriste/DPO, valeur par défaut n° 7 acceptée par le dirigeant, `log.md` ; conditions
+>   de l'espace artisan du 24/10/2026, « espace gratuit et sans commission », `app/src/lib/conditions-versions.json`).
+>   Aucun artisan ne paie pour être mieux classé (classement du 24/10, plus bas).
+> - **Il choisit lui-même sa zone et ses métiers** depuis le 23/10/2026 (codes postaux ou départements, à l'inscription
+>   puis dans « Mon entreprise ») ; il est proposé dès que Gerimmo a validé son inscription et qu'il est public. Le
+>   super admin n'ouvre plus le réseau commune par commune (migration `20261023180000`, [[Ouverture du réseau d'artisans]]).
+> - **L'outil « clients externes » et les règlements sont ouverts en production depuis le 21/10/2026** (migration
+>   `20261021140836_ouverture_activite_artisan.sql`, appliquée en production le 21/10 d'après le
+>   [[Contrôle des livraisons de Codex — 22 octobre 2026]], constat C2), à la demande du dirigeant (« il faut rien
+>   fermer mais tout ouvrir pour que tout soit fonctionnel », 21/10) ; il les a **laissés ouverts sans avis
+>   d'expert-comptable** le 23/10 (`log.md`). Aucune migration postérieure ne les referme (recherche du 26/11/2026).
 
 **En une phrase :** prestataire/intervenant technique (dépannage, travaux) mobilisé sur
 les [[Incident|incidents]].
@@ -205,11 +219,16 @@ Conséquence : un artisan blacklisté par l'agence A **reste visible** pour l'ag
   émet un **avoir numéroté** (« AV-0001 », numérotation propre à chaque artisan, continue,
   jamais réutilisée) du même montant TTC ; le numéro de la facture annulée reste réservé ;
   une nouvelle facture devient possible sur le chantier ; pas d'annulation tant qu'un
-  règlement déclaré est actif, et plus aucun règlement sur une facture annulée. **Module
-  éteint en production** : l'outil privé est désactivé hors d'une base locale
+  règlement déclaré est actif, et plus aucun règlement sur une facture annulée.
+  ~~**Module éteint en production** : l'outil privé est désactivé hors d'une base locale
   (`app/src/lib/artisan-prive.ts`), aucun réglage de l'hébergeur ne l'allume ; décision du
   15/10 : « finis », module éteint jusqu'à la validation comptable de la forme de l'avoir.
-  D24-B et D25-B, qui portent sur ce même outil, sont donc déployés mais sans effet.
+  D24-B et D25-B, qui portent sur ce même outil, sont donc déployés mais sans effet.~~
+  **Supplanté le 21/10/2026** : l'outil est **ouvert en production**. En hébergement HTTPS, son ouverture est décidée en
+  base (`artisan_module_actif`, `app/src/lib/artisan-activation.ts`), et la migration `20261021140836` a mis à vrai
+  les deux modules « clients » et « règlements ». L'annulation par avoir est une action de la fonction
+  `artisan_externe_ecrire`, gardée par le module « clients » : elle est donc active elle aussi (déduit du code), comme
+  D24-B et D25-B. Le dirigeant a laissé ces modules ouverts **sans avis d'expert-comptable** (23/10, `log.md`).
 - **Invitation par un propriétaire** (décision du 15/10/2026, remplace D17-B ; **en
   production depuis le 16/10**, PR #194, fusion `f24dfb0`) : un propriétaire direct
   l'invite par e-mail ; il ouvre le lien, crée lui-même son compte avec l'adresse invitée,
@@ -241,13 +260,17 @@ Conséquence : un artisan blacklisté par l'agence A **reste visible** pour l'ag
 >   des travaux, listes noires globale et locale, compte obligatoire, adresse du bien
 >   confirmée, carnet personnel, invitation par un propriétaire.
 > - **À faire trancher** (voir [[Ouverture du réseau d'artisans]]) : téléphone montré avant
->   sollicitation (masqué par prudence, à confirmer) ; zone par code postal ou département
->   plutôt que par commune (écart à ratifier) ; levier par artisan et par zone ; zone
+>   sollicitation (masqué par prudence, à confirmer) ; ~~zone par code postal ou département
+>   plutôt que par commune (écart à ratifier)~~ — ratifié par le dirigeant le 23/10/2026 ([[Ouverture du réseau
+>   d'artisans]]) ; levier par artisan et par zone ; zone
 >   héritée d'une agence à la réclamation d'une fiche ; artisans de test validés et publics,
 >   proposés aux vrais propriétaires de leur zone (les comptes des amis sont « des clients
 >   comme les autres », décision du 23/10).
 
 > [!warning] Points à trancher (relevé du 16/10/2026)
+> - **D24-C — mise à jour du 26/11/2026** : l'outil n'est plus éteint, il est ouvert depuis le 21/10 sans avis
+>   d'expert-comptable ; les questions ci-dessous ne sont donc plus des préalables à l'activation, mais des points à
+>   faire relire sur un outil déjà ouvert.
 > - **D24-C, avant toute activation, avec l'expert-comptable** (message de fusion de la
 >   PR #190) : mentions de l'avoir et numérotation AV- (en-tête de la migration
 >   `20261014710000`), document remis au client et avoir partiel (journal `log.md`, entrée
@@ -290,7 +313,20 @@ Conséquence : un artisan blacklisté par l'agence A **reste visible** pour l'ag
   lui et pour son métier, avec opposition possible dans chaque message
   ([[Prospection commerciale]]).
 
-> [!warning] Points à trancher / contradictions (24/10/2026)
+> [!warning] Points à trancher / contradictions (mis à jour le 26/11/2026)
+> - **Gratuit pour toujours, ou payant plus tard ?** La décision du 23/10 (« espace artisan gratuit et sans
+>   commission ») s'oppose à d'autres pistes : abonnement et commission de l'artisan à l'étage 3 (artefact Vision du
+>   16/10, cité par la [[Vision de l'écosystème Gerimmo]]) ; « peut-être une commission sur le réseau d'artisans »
+>   ([[Feuille de route — plateforme de référence, 26 novembre 2026]], section 5, étage 3). Question 1 de la
+>   [[Vision de l'écosystème Gerimmo]], section 12 : à trancher par le dirigeant. Rien de payant n'existe pour
+>   l'artisan dans le code.
+> - **Clients externes ouverts sans expert-comptable** : avoir numéroté AV-, règlements déclarés et numérotation des
+>   factures externes sont ouverts en production depuis le 21/10, alors que la décision du 15/10 attendait la
+>   validation comptable de la forme de l'avoir. Le dirigeant a choisi de laisser ouvert le 23/10 ; la relecture
+>   comptable reste à faire.
+> - **Page à relire en entier** : plusieurs sections plus anciennes (module 8 du référentiel V3 : fiche créée par
+>   l'agence, zone par codes postaux posée par l'agence) décrivent la cible V3 et non le code ; l'encadré « État au
+>   26/11/2026 » en tête de page prime sur elles.
 > - **Règlement P2B (2019/1150)** : application probable à l'espace artisan ; article 9
 >   (accès aux données) et plaintes non traités — à confirmer sur EUR-Lex (source non ouverte
 >   le 23/10/2026).

@@ -4,7 +4,7 @@ tags: [vision, proposition-de-valeur, strategie]
 status: stable
 created: 2026-09-10
 updated: 2026-11-26
-sources: ["[[Analyse concurrentielle]]", "[[2026-09-04-maquette-v3-prototype]]", "[[2026-09-08-maquette-espace-agence-v6]]", "[[2026-07-21-fonctionnalites-par-persona-v0]]"]
+sources: ["[[Analyse concurrentielle]]", "[[2026-09-04-maquette-v3-prototype]]", "[[2026-09-08-maquette-espace-agence-v6]]", "[[2026-07-21-fonctionnalites-par-persona-v0]]", "[[Vision de l'écosystème Gerimmo]]", "[[Passation — état du 26 novembre 2026]] (sections a et d.3)", "[[Feuille de route — plateforme de référence, 26 novembre 2026]] (section 1)", "[[Signature électronique]]", "[[Canaux de communication]]", "[[Référentiel du palier 1]] (C-38)", "log.md — entrées du 18/10/2026 (Zoho Sign Europe choisi) et du 20/09/2026 (lancement sans WhatsApp)", "app/src/lib/envois-suspendus.ts", "recherche dans app/ le 26/11/2026 (aucun code Telegram, WhatsApp ni application native)"]
 ---
 
 # Proposition de valeur
@@ -84,7 +84,37 @@ travail elle-même ; les bots conversationnels de la note produit v0.
 
 > [!note] Signature électronique non activée au lancement (30/09/2026, décision du 27/09) → [[Signature électronique]]
 
+> [!info] État au 26/11/2026 — ce qui ne tient plus dans le texte du 10/09
+> L'énoncé fondateur et ses trois promesses restent la référence ; la vision à jour est la
+> [[Vision de l'écosystème Gerimmo]]. Ce que le texte ci-dessus annonce et qui n'est pas, ou plus, vrai :
+> - **Yousign → Zoho Sign** : le prestataire de signature est **Zoho Sign** (centre de données européen), choisi par le
+>   dirigeant le **18/10/2026** (`log.md`) ; aucun circuit Yousign en production ([[Signature électronique]]). Le
+>   point 3 des conséquences (« Yousign, Stripe, WhatsApp, mobile ») est donc à lire avec Zoho Sign.
+> - **WhatsApp et « bots » : non construits.** Le « bot WhatsApp (V1) » de la promesse « plus rapide » et les « bots
+>   conversationnels » de la note produit v0 n'existent pas : Telegram est abandonné depuis le 25/07, WhatsApp a été
+>   reporté le 20/09 à après le lancement (« trop long », `log.md`) et n'a jamais été construit (C-38 du [[Référentiel du palier 1]]). Le code ne contient aucun
+>   envoi Telegram ni WhatsApp (recherche du 26/11/2026). Les canaux sont l'e-mail et l'espace personnel.
+> - **Envois automatiques codés mais fermés.** L'avis d'échéance, la relance amiable d'un loyer, le rappel de
+>   rendez-vous, la relance d'invitation et la relance d'une demande de report ont chacun un interrupteur, **fermé**
+>   (`app/src/lib/envois-suspendus.ts` ; cinq interrupteurs fermés, vérifié en base le 26/11, [[Passation — état du 26 novembre 2026]],
+>   sections a et d.3). Le dirigeant a décidé de les ouvrir « à la publication » (Q6, Q37) ; le geste R5 n'est pas
+>   fait. Tant qu'ils sont fermés, « relances à seuils automatiques » et le travail qui « se fait tout seul » ne sont
+>   pas tenus pour ces envois.
+> - **Pas d'application mobile native.** Le site est adapté au mobile ; une application installable est seulement
+>   envisagée ([[Feuille de route — plateforme de référence, 26 novembre 2026]], section 1 ;
+>   [[Vision de l'écosystème Gerimmo]], section 11). Le dépôt ne contient aucun projet iOS ou Android.
+> - **Stripe** sert à l'abonnement à Gerimmo, pas aux loyers (frontière du 10/09, rappelée plus bas) ; les
+>   souscriptions payantes sont fermées au 26/11, ouverture fixée au 30/11 par le dirigeant
+>   (`DECISIONS-2026-11-24.md`, réponses du 26/11).
+
 > [!warning] Points à trancher / contradictions
+> - **26/11/2026 — à trancher** : WhatsApp revient-il dans la promesse (C-38 ; question 4 de la
+>   [[Vision de l'écosystème Gerimmo]]) ? Sans réponse, la promesse « plus rapide » ne doit plus le citer.
+> - **26/11/2026 — non vérifié** : l'état d'ouverture de la signature Zoho Sign en production (interrupteurs
+>   `ZOHO_SIGN_*`). La [[Feuille de route — plateforme de référence, 26 novembre 2026]] la range parmi les automatismes
+>   « éteints par défaut », alors que le dirigeant l'a laissée ouverte pendant la bêta le 23/10 (`log.md`).
+> - **26/11/2026 — vitrine** : elle promet des quittances envoyées d'elles-mêmes, alors que les envois automatiques
+>   sont fermés ([[Vision de l'écosystème Gerimmo]], encadré final). À aligner, ou à tenir en ouvrant les envois.
 > - ~~**Jusqu'où « faire le travail d'une agence » ?**~~ → **tranché par Tahir
 >   le 2026-09-10 : Gerimmo reste l'outil qui exécute le travail** — il n'a pas
 >   vocation à devenir l'agence (pas de gérance en ligne opérée, pas
@@ -95,4 +125,6 @@ travail elle-même ; les bots conversationnels de la note produit v0.
 >   écrans « fonds mandants » de la maquette s'intègrent dans les limites du
 >   journal de gestion (T8), sans révision du référentiel.
 > - Les honoraires réels du marché (taux d'une gérance classique) ne sont
->   documentés dans aucune source : à sourcer pour chiffrer « moins cher ».
+>   documentés dans aucune source : à sourcer pour chiffrer « moins cher ». *26/11/2026 : premiers chiffres dans la
+>   [[Feuille de route — plateforme de référence, 26 novembre 2026]], section 2 (de 4,9 % TTC à 8,40 % TTC des
+>   encaissements, recherches web du 26/11).*

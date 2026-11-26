@@ -1,10 +1,10 @@
 ---
 type: process
-tags: [compte, fermeture, effacement, inactivite, rgpd, stripe, conformite]
+tags: [compte, fermeture, effacement, inactivite, rgpd, stripe, conformite, demandes, droits, support]
 status: draft
 created: 2026-10-24
 updated: 2026-11-26
-sources: ["[[Demandes sur les données et fermeture de compte]]", "[[Durées de conservation]]", "[[Registre des traitements]]", "log.md — entrées « decision » des 23/10/2026 (valeurs par défaut du plan) et 24/10/2026 (choix délégués 2 et 3), « deploy » du 24/10/2026 (PR #246 et PR #248, migration 20261024150000_activation_inactivite_v1)", "app/supabase/migrations/20261024130000_fermeture_comptes.sql", "app/src/lib/comptes-fermeture.ts", "app/src/app/actions/fermeture-compte.ts", "[[Recueil des textes officiels (v6)]]", "livrables/recueil/analyse-refs-25-37.md (réf. 31 et 34)", "livrables/notes-banc/notes-T4.md et relecture-T4R.md", "DECISIONS-2026-11-24.md (Q15, Q64)", "JOURNAL.md — lot T4 et contrôle de production du 24/11/2026", "QUESTIONS.md — Q64, Q86, Q87", "JURISTE.md — partie 9, points 28 et 35", "code de la branche fusionnée claude/palier-1-fusion (89cb87ff, complétée jusqu'à 062296e2, en production depuis le 25/11/2026 ; lecture seule) : migrations 20261125103000 et 20261125105000, lib/comptes-fermeture-serveur.ts, admin/donnees/programmer-fermeture.tsx, confidentialite/page.tsx ; code en ligne jusqu'au 25/11/2026 : 81740dec : lib/comptes-fermeture.ts", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)", "JOURNAL.md — entrée du 26/11/2026 (matin) (réglage R2)"]
+sources: ["[[Demandes sur les données et fermeture de compte]]", "[[Durées de conservation]]", "[[Registre des traitements]]", "log.md — entrées « decision » des 23/10/2026 (valeurs par défaut du plan) et 24/10/2026 (choix délégués 2 et 3), « deploy » du 24/10/2026 (PR #246 et PR #248, migration 20261024150000_activation_inactivite_v1)", "app/supabase/migrations/20261024130000_fermeture_comptes.sql", "app/src/lib/comptes-fermeture.ts", "app/src/app/actions/fermeture-compte.ts", "[[Recueil des textes officiels (v6)]]", "livrables/recueil/analyse-refs-25-37.md (réf. 31 et 34)", "livrables/notes-banc/notes-T4.md et relecture-T4R.md", "DECISIONS-2026-11-24.md (Q15, Q64)", "JOURNAL.md — lot T4 et contrôle de production du 24/11/2026", "QUESTIONS.md — Q64, Q86, Q87", "JURISTE.md — partie 9, points 28 et 35", "code de la branche fusionnée claude/palier-1-fusion (89cb87ff, complétée jusqu'à 062296e2, en production depuis le 25/11/2026 ; lecture seule) : migrations 20261125103000 et 20261125105000, lib/comptes-fermeture-serveur.ts, admin/donnees/programmer-fermeture.tsx, confidentialite/page.tsx ; code en ligne jusqu'au 25/11/2026 : 81740dec : lib/comptes-fermeture.ts", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)", "JOURNAL.md — entrée du 26/11/2026 (matin) (réglage R2)", "code relu le 26/11/2026 (lecture seule) : app/src/app/actions/demandes-donnees.ts, app/src/app/compte/donnees/, app/src/app/admin/donnees/, app/src/lib/signature-suivi.ts, app/src/lib/email.ts"]
 ---
 
 # Fermeture de compte
@@ -32,8 +32,8 @@ contrat, les références des factures et la trace de la demande.
 
 ## Déclencheurs
 1. **Demande du titulaire** : demande « Fermer mon compte » ou « effacement » déposée depuis
-   « Mes données personnelles » (`/compte/donnees`,
-   [[Demandes sur les données et fermeture de compte]]). Avant le 30/11, c'est le **super-administrateur permanent (second facteur)**
+   « Mes données personnelles » (`/compte/donnees`, voir la section « Demandes sur les
+   données personnelles » plus bas). Avant le 30/11, c'est le **super-administrateur permanent (second facteur)**
    qui la programme depuis `/admin/donnees` ; une demande écrite est exigée. Le bouton
    libre-service « Fermer mon compte » est prévu au lot 5.
 2. **Inactivité** (dès que la règle sera active — *active depuis le 24/10/2026, voir l'encadré ci-dessus*) : compte d'un espace sans connexion d'un
@@ -139,8 +139,87 @@ remboursement sept jours au plus, puis part en l'annonçant « en cours ».
   propriétaire. **La connexion de n'importe quel membre actif de l'espace compte** (choix
   délégué n° 3 du 24/10, lecture du plan).
 
+## Demandes sur les données personnelles
+*Reprise de [[Demandes sur les données et fermeture de compte]] (pages des 21 au 24/10/2026), fusionnée ici le
+26/11/2026 ; formulaire et file de supervision relus dans le code le 26/11/2026.*
+
+### Le formulaire et la file de supervision
+- **`/compte/donnees`** (« Mes données personnelles ») : le titulaire connecté demande une copie, une rectification, un
+  effacement ou la fermeture de son compte. La demande et les réponses restent **privées entre lui et la
+  supervision**, même s'il appartient à une organisation. **Le formulaire ne supprime rien** et ne résilie aucun
+  abonnement (l'écran le dit : « Aucune donnée n'a été supprimée »). Depuis le 24/10, une demande « Fermer mon
+  compte » ou « effacement » peut être exécutée par la fermeture décrite plus haut.
+- Même page : le titulaire télécharge l'**archive complète** de son espace (second facteur validé ou mot de passe
+  récent) — [[Export complet des données]].
+- **`/admin/donnees`** : file paginée qui sépare demandes ouvertes et terminées et affiche l'échéance d'**un mois
+  civil** (jour de Paris), les réponses et leur historique. Une demande qui a reçu une réponse n'est plus signalée
+  « sans première réponse ». « Résolu » ne s'emploie qu'après contrôle des résultats. L'alerte de délai est indicative :
+  une réponse intermédiaire ne suffit pas forcément à remplir l'obligation.
+- **En base** : `retours_utilisateurs` et `soumettre_retour` (nature « question », organisation nulle, auteur tiré de
+  la session, clé d'envoi stable ; `app/src/app/actions/demandes-donnees.ts`) ; les politiques existantes protègent
+  aussi `retours_historique`. Ni nouvelle permission ni migration (21/10).
+
+### Traitement contrôlé (procédure du 21/10/2026)
+Écrite avant que la fermeture programmée existe ; depuis le 24/10, la fermeture et l'effacement d'un compte suivent les
+étapes de cette page.
+1. Qualifier le titulaire, le responsable du traitement et les catégories demandées ; ne demander une preuve
+   complémentaire qu'en cas de doute justifié.
+2. Séparer ce qui peut être effacé de ce qui doit être conservé : motif, périmètre réduit, accès limité et échéance pour
+   chaque catégorie.
+3. Fournir les exports par un canal privé. Avant toute suppression : inventaire approuvé, sauvegarde vérifiée,
+   simulation, puis validation. Vérifier à part l'abonnement et les dossiers partagés.
+4. Zoho : vérifier la copie signée et son certificat dans le stockage privé de Gerimmo (lisibilité, empreintes) avant
+   toute purge chez le prestataire ; la suppression par l'API documentée déplace en corbeille et ne prouve pas un
+   effacement définitif. Contrôler aussi les autres prestataires et les sauvegardes.
+5. Révoquer sessions et accès, traiter les références partagées, vérifier les fichiers physiques. La suppression du
+   seul compte d'authentification n'invalide pas les jetons déjà délivrés ; une anonymisation doit être irréversible,
+   pas un simple changement de nom. Réappliquer les effacements après une restauration.
+6. Répondre précisément : effacé, conservé (avec motif et durée), copies encore en attente. Ne garder que les preuves
+   nécessaires.
+
+Durées : [[Durées de conservation]] (58 règles depuis le 24/10, contre 29 au 21/10 ; pièces de la gestion directe :
+36 mois après la fin du bail). La durée générale de cinq ans citée par certains anciens documents ne doit pas être
+présentée comme la prescription universelle des baux d'habitation : Service-Public distingue notamment un délai de
+trois ans.
+
+### Courriels et signatures (relevé des 21 et 22/10/2026)
+- **Accords du dirigeant du 21/10** : adresse de réponse `contact@gerimmo.app`, un seul essai vers son adresse
+  professionnelle approuvée, réception MX par Resend, DMARC en observation (`p=none` : il observe, ne rejette rien) ;
+  SPF et DKIM inchangés. Domaine et réception vérifiés par Resend, e-mail d'essai « Delivered » ; la réponse entrante
+  n'était pas encore constatée.
+- **Zoho Sign** : rappels par e-mail à J+7 et J+21, puis alerte interne à J+28 (jamais de troisième rappel au
+  signataire) ; SMS de vérification gardés ; rappels natifs de Zoho désactivés à la création du circuit, pour éviter le
+  cumul ; le rapprochement vérifie l'identité des signataires et archive le PDF signé et le certificat avant de terminer
+  le circuit ; une réservation d'envoi incertaine n'est pas répétée automatiquement. Variables `RESEND_REPONDRE_A` et
+  `ZOHO_SIGN_RELANCES_ACTIVES` (lues par `app/src/lib/email.ts` et `app/src/lib/signature-suivi.ts`), enregistrées pour
+  la production dans Vercel le 21/10. Le contact propre à une organisation reste prioritaire ; un échec réseau après
+  l'appel d'envoi est déclaré « incertain », pour ne pas proposer de renvoi aveugle. Aucun circuit de signature n'était
+  en production au moment du contrôle.
+- **Rétention automatique globale de Zoho : désactivée** — elle toucherait des documents anciens dont l'archivage local
+  n'est pas démontré ; les copies passent par la procédure ci-dessus avant une purge qualifiée.
+- **Décision du 22/10** : l'expéditeur des signatures garde pour le moment l'adresse personnelle du dirigeant, à changer
+  plus tard ; cela remplace l'objectif d'une adresse professionnelle immédiate pour les signatures, sans toucher au
+  courriel de contact du site. Envoi standard Zoho, aucun SMTP ajouté. Changements locaux de conservation :
+  [le bilan du 22 octobre](../../app/docs/signatures-conservation-22-octobre.md).
+
+### Vérifications du 21/10/2026
+161 tests ciblés (demandes, courrier, signatures), 130 tests sur base fictive (suivi, atomicité, supervision) et 21
+tests de support et d'actions (recouvrement partiel avec les 130), tous réussis ; aucun droit supplémentaire, aucune
+donnée métier de production modifiée. Parcours local : dépôt, confirmation, persistance après rechargement,
+historique, refus d'accès à la supervision pour un gestionnaire, réponse du super-administrateur fictif retrouvée après
+rechargement ; écrans d'ordinateur et de téléphone (390 px) sans débordement. Ces tests locaux ne valent pas recette
+humaine des prestataires externes.
+
+### Sources consultées (21/10/2026)
+- [CNIL — exercice des droits et délai](https://www.cnil.fr/fr/passer-laction/les-droits-des-personnes-sur-leurs-donnees).
+- [CNIL — effacement](https://www.cnil.fr/fr/comprendre-mes-droits/le-droit-leffacement-supprimer-vos-donnees-en-ligne).
+- [CNIL — durées de conservation](https://www.cnil.fr/sites/default/files/atoms/files/guide_durees_de_conservation.pdf).
+- [Service-Public — conservation des papiers](https://www.service-public.gouv.fr/particuliers/vosdroits/F19134) et [prescription locative](https://www.service-public.gouv.fr/particuliers/vosdroits/F479).
+- [Zoho — rétention des documents](https://help.zoho.com/portal/en/kb/zoho-sign/admin-guide/account-settings/document-retention/articles/document-retention) et [suppression API vers la corbeille](https://www.zoho.com/sign/api/document-managment/delete-document.html).
+- [Resend — DMARC](https://resend.com/docs/dashboard/domains/dmarc).
+
 ## Relations
-[[Demandes sur les données et fermeture de compte]] · [[Export complet des données]] ·
+[[Export complet des données]] ·
 [[Durées de conservation]] · [[Registre des traitements]] (P13, P15) · [[RGPD]] ·
 [[Rétractation en ligne]] · [[Résiliation de l'abonnement]] · [[Super Admin]] ·
 [[Compte, personne et adhésion]]
@@ -158,8 +237,13 @@ remboursement sept jours au plus, puis part en l'annonçant « en cours ».
 >     être des comptes de test (Q64) ; aucun autre depuis le 14/11 (JOURNAL.md).
 > - **Suppression chez Zoho** : l'API documentée déplace en corbeille ; l'effacement
 >   définitif n'est pas garanti (lot 5).
+> - **Demandes de personnes sans compte** : tenues à la main dans `/admin/donnees` ; la table dédiée
+>   (`demandes_droits_externes`) est prévue au lot 5 — absente des migrations au 26/11/2026.
+> - **Conservation des demandes** (`support:demande_droits`, 36 mois après la clôture) : règle créée le 24/10,
+>   **inactive** jusqu'à son bilan ([[Durées de conservation]] ; la version `062296e2` n'active aucune règle).
 > - **Droit à l'effacement et délais** (RGPD art. 12.3, 17, 18, 19, 28.3 g) : à confirmer sur
->   Légifrance (source non ouverte le 23/10/2026).
+>   Légifrance (source non ouverte le 23/10/2026). Même réserve pour le délai d'un mois affiché aux demandes et pour
+>   une réponse donnée par une seule personne (le dirigeant).
 >   - *25/11 — recueil fourni par le dirigeant, non recontrôlé* : il reproduit les articles 5, 6, 12 à 15, 22, 28 et 33
 >     du RGPD ; l'article 17 (effacement) n'y est pas, ni les articles 18 et 19. L'analyse du recueil n'a relevé aucun
 >     écart sur la réponse sous un mois, prolongeable de deux mois, telle que l'écrit la page confidentialité

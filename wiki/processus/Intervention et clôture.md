@@ -4,16 +4,43 @@ tags: [intervention, cloture, rapport, incident]
 status: in-progress
 created: 2026-07-21
 updated: 2026-11-26
-sources: ["[[Dépôt Gerimmo-V3]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Propositions de fonctions majeures — version candidate du 13 octobre 2026]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)"]
+sources: ["[[Dépôt Gerimmo-V3]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Propositions de fonctions majeures — version candidate du 13 octobre 2026]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)", "[[Intervention]]", "code relu le 26/11/2026 (lecture seule) : app/supabase/migrations/20260911180000_module8_artisans_socle.sql (incident_interventions, retenir_devis, accepter_mission, intervention_photos, controler_cloture_intervention, deposer_compte_rendu)"]
 ---
 
 # Intervention et clôture
 
-**En une phrase :** exécuter l'[[Intervention]], produire le rapport officiel, clôturer
+**En une phrase :** exécuter l'intervention (définition ci-dessous), en rendre compte, clôturer
 l'[[Incident]] et évaluer l'[[Artisan]].
 
+## Définition et données de l'intervention
+*Reprise de la page concept [[Intervention]], fusionnée ici le 26/11/2026 ; relue dans le code le 26/11/2026.*
+
+**Définition :** la mission confiée à un [[Artisan]] pour résoudre un [[Incident]], puis réalisée. Elle naît quand le
+gestionnaire **retient un [[Devis]]** (`retenir_devis` : ce devis passe « retenu », les autres « non retenus », la
+consultation est close, l'intervention est créée à l'état `proposee` et l'incident passe « affecté »). Table
+`incident_interventions` (migration `20260911180000_module8_artisans_socle.sql`, 11/09/2026). Voir aussi
+[[Modèle de données]].
+- **Données notables** : la nature des travaux, figée au moment de confier la mission ; les dates prévues
+  (`debut_prevu`, `fin_prevue`) et réelles (`demarree_le`, `terminee_le`) ; le montant prévu (celui du devis retenu)
+  et le montant final déclaré par l'artisan dans son compte rendu ; les motifs de refus et d'annulation.
+- **Photos avant, pendant et après** (`intervention_photos`), rangées dans la GED de l'espace et liées à l'incident.
+  Pour terminer l'intervention, le **compte rendu** et **une photo d'après** sont obligatoires (RM-7.5.1 et RM-7.5.2 ;
+  gardes `controler_cloture_intervention` et `deposer_compte_rendu`).
+- **Objets liés** : créneaux (`intervention_creneaux`, [[Planification d'intervention]]), compte rendu
+  (`intervention_comptes_rendus`), évaluations (`artisan_evaluations`), règlements de facture
+  (`intervention_facture_reglements`), messages (`intervention_messages`).
+- **Rôle dans le métier** : matérialiser la résolution de l'incident, tracer coûts et photos, consigner le compte rendu,
+  puis clôturer l'incident et évaluer l'artisan.
+- **Ancien dépôt (V3), absent de l'application** : le champ `execution_mode` (`artisan_gerimmo`, `artisan_prive`,
+  `interne`) — une intervention est toujours confiée à un artisan inscrit (`artisan_id` obligatoire) ; les tables
+  des matériaux, du rapport, de la revue de clôture et de l'évaluation (`incident_intervention_*`,
+  `incident_closure_reviews`, `incident_artisan_evaluations`) ; aucune n'existe dans les migrations de l'application.
+
 ## Déclencheur
-- Rendez-vous validé ([[Planification d'intervention]]) → `createIntervention` (statut `planifiee`).
+- **Dans l'application** : la sélection d'un devis (`retenir_devis`) crée l'intervention à l'état `proposee` ;
+  l'artisan l'accepte (`accepter_mission`, état `acceptee`), puis le créneau retenu la fait passer `planifiee`
+  ([[Planification d'intervention]]).
+- *Ancien dépôt (V3)* : rendez-vous validé → `createIntervention` (statut `planifiee`).
 
 ## Acteurs
 - [[Artisan]] (exécute), gestionnaire (valide/clôture), [[Locataire]].

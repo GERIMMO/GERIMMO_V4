@@ -19,8 +19,8 @@ vi.mock("react", async (importOriginal) => {
 vi.mock("next/font/local", () => ({ default: () => ({ className: "police-document" }) }));
 
 import { GenerateurQuittance } from "../src/app/outils/quittance-de-loyer/generateur-quittance";
-import { Champ, Segments } from "../src/components/outils/champs";
-import { ChiffreHero, FeuillePapier, Pastille } from "../src/components/outils/resultats";
+import { Alerte, Champ, Segments } from "../src/components/outils/champs";
+import { ChiffreHero, DispositionOutil, FeuillePapier, Pastille } from "../src/components/outils/resultats";
 import { CLE_STOCKAGE_QUITTANCE } from "../src/lib/outils/quittance";
 import { monter, type Instance } from "./aide/hooks-sans-dom";
 
@@ -125,9 +125,12 @@ describe("outil public de quittance : rien de prérempli (Q123)", () => {
 
   it("l'exemple n'est qu'un texte indicatif dans un champ vide", async () => {
     const i = await demarrer();
-    // Pas de texte indicatif sur le champ du mois : un champ de type « month » ne l'affiche pas (Chromium).
+    // Pas de texte indicatif sur le champ du mois : Chromium ne l'affiche pas (il montre son propre gabarit).
     expect(champ(i, "q-periode")?.props.type).toBe("month");
     expect(champ(i, "q-periode")?.props.placeholder).toBeUndefined();
+    // Firefox et Safari sur ordinateur en font un champ texte, sans gabarit : une aide toujours visible donne le format
+    // (Champ la relie par aria-describedby, rendu HTML vérifié dans tests/outils-sans-valeur-rendu.test.ts et en e2e).
+    expect(champ(i, "q-periode")?.props.aide).toBe("Au format AAAA-MM (ex. 2026-09) si votre navigateur n'affiche pas de calendrier.");
     expect(champ(i, "q-loyer")?.props.placeholder).toBe("Ex. 850");
     expect(champ(i, "q-charges")?.props.placeholder).toBe("Ex. 120");
     expect(champ(i, "q-recu")?.props.placeholder).toBe("Ex. 970");
@@ -148,6 +151,27 @@ describe("outil public de quittance : rien de prérempli (Q123)", () => {
     expect(aide()).toBeUndefined();
   });
 
+  it("mois saisi mais illisible (champ texte de Firefox ou de Safari sur ordinateur) : le message donne le format attendu", async () => {
+    // Chromium refuse « 09/2026 » dans un champ « month » (fill lève une erreur) : cet état ne se joue qu'ici.
+    const i = await demarrer();
+    const suivant = () => bouton(i, "Mois suivant");
+    const aide = () => tous(i).find((e) => e.props.id === "q-mois-suivant-aide");
+    for (const illisible of ["09/2026", "septembre 2026", "2026-13", "2026-9"]) {
+      await saisir(i, "q-periode", illisible);
+      expect(suivant()?.props.disabled, illisible).toBe(true);
+      expect(suivant()?.props["aria-describedby"], illisible).toBe("q-mois-suivant-aide");
+      expect(texte(aide()?.props.children), illisible).toBe("Saisissez le mois au format AAAA-MM.");
+      // Rien n'est produit sur un mois illisible.
+      expect(document(i), illisible).toBeUndefined();
+    }
+    // Vidé, le champ redevient un mois absent ; lisible, le bouton s'active.
+    await saisir(i, "q-periode", "");
+    expect(texte(aide()?.props.children)).toBe("Saisissez d'abord le mois.");
+    await saisir(i, "q-periode", "2026-09");
+    expect(suivant()?.props.disabled).toBe(false);
+    expect(aide()).toBeUndefined();
+  });
+
   it("terme incomplet : l'impression par le navigateur sort un court message, pas une page blanche", async () => {
     const i = await demarrer();
     const imprime = () => parTestId(i, "q-incomplet-imprime");
@@ -159,9 +183,42 @@ describe("outil public de quittance : rien de prérempli (Q123)", () => {
     );
     await remplirLeTerme(i);
     expect(imprime()).toBeUndefined();
-    // Montants saisis mais invalides : le message le dit aussi.
-    await saisir(i, "q-loyer", "-1");
-    expect(texte(imprime()?.props.children)).toMatch(/^Quittance incomplète : vérifiez le loyer, les charges et le montant reçu/);
+    // Montants saisis mais invalides : le message imprimé le dit aussi, avec les mêmes exigences que l'alerte à l'écran
+    // (dont « en euros et centimes »).
+    for (const loyer of ["-1", "illisible"]) {
+      await saisir(i, "q-loyer", loyer);
+      expect(texte(imprime()?.props.children), loyer).toBe(
+        "Quittance incomplète : vérifiez le loyer, les charges et le montant reçu (des montants non négatifs, en euros et centimes, un terme et un paiement supérieurs à zéro)."
+      );
+      expect(texte(tous(i).find((e) => e.type === Alerte)?.props.children), loyer).toContain("en euros et centimes");
+    }
+  });
+
+  it("terme incomplet ou document produit : la même racine (un <div> qui commence par la disposition), sinon le formulaire est remonté et le champ en cours perd le focus", async () => {
+    const i = await demarrer();
+    const racine = () => i.rendu as El;
+    const premier = () => [racine().props.children].flat()[0] as El;
+    // Le terme se complète champ après champ ; à chaque état, même type de racine et même premier enfant.
+    const etapes: [string, string][] = [
+      ["q-periode", "2026-09"],
+      ["q-date", "2026-09-03"],
+      ["q-loyer", "850"],
+      ["q-charges", "120"],
+      ["q-recu", "9"],
+      ["q-recu", "970"],
+    ];
+    expect(racine().type).toBe("div");
+    expect(premier().type).toBe(DispositionOutil);
+    expect(document(i)).toBeUndefined();
+    for (const [id, valeur] of etapes) {
+      await saisir(i, id, valeur);
+      expect(racine().type, `${id}=${valeur}`).toBe("div");
+      expect(premier().type, `${id}=${valeur}`).toBe(DispositionOutil);
+      if (id === "q-charges") expect(document(i), "terme encore incomplet").toBeUndefined();
+    }
+    // Le parcours a bien traversé les deux états : le premier chiffre du montant reçu a fait passer de « à compléter » au
+    // document produit.
+    expect(document(i)).toBeDefined();
   });
 
   it("le montant reçu ne suit plus le total : il se saisit, ou se recopie à la demande", async () => {

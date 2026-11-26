@@ -77,3 +77,17 @@ describe.each(OUTILS)("$nom : la page arrive vide (Q123)", ({ composant, exemple
     for (const motif of absents) expect(t + html, String(motif)).not.toMatch(motif);
   });
 });
+
+describe("quittance de loyer : le champ du mois dit son format", () => {
+  it("sans texte indicatif (Chromium ne l'affiche pas), mais avec une aide visible reliée au champ (Firefox, Safari sur ordinateur : champ texte)", () => {
+    const html = rendre(GenerateurQuittance);
+    const balise = /<input[^>]*id="q-periode"[^>]*>/.exec(html)?.[0] ?? "";
+    expect(balise).toMatch(/\btype="month"/);
+    expect(balise).not.toMatch(/\bplaceholder=/);
+    expect(balise).toMatch(/\baria-describedby="q-periode-aide"/);
+    const aide = /<p[^>]*id="q-periode-aide"[^>]*>([^<]*)<\/p>/.exec(html);
+    // Toujours visible : ni masquée, ni réservée aux lecteurs d'écran.
+    expect(aide?.[0]).not.toMatch(/\b(?:hidden|sr-only)\b/);
+    expect(texte(aide?.[1] ?? "").trim()).toBe("Au format AAAA-MM (ex. 2026-09) si votre navigateur n'affiche pas de calendrier.");
+  });
+});

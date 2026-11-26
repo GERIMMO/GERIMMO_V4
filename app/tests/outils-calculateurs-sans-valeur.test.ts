@@ -309,6 +309,8 @@ describe("rentabilité locative : rien de prérempli (Q123)", () => {
       .map((e) => e.props.legende);
     expect(legendes).toContain("Le financement");
     expect(legendes).not.toContain("Le crédit (facultatif)");
+    // Le choix imbriqué dans « Le financement » ne répète pas « Financement » : il nomme ce qui se choisit.
+    expect(segments(i, "rt-credit")?.props.libelle).toBe("Mode de financement");
   });
 
   it("crédit à calculer : un montant ou une durée à 0 est refusé (plus de « Sans crédit » pour un crédit choisi)", async () => {

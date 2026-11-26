@@ -28,23 +28,30 @@ function surveillerConsole(page: Page): string[] {
  * page et se perd (constat du 22/11/2026 : « 850 » revenait à la place de la saisie, environ une fois sur cinq). La
  * page ne pose plus de date au montage (Q123) : la preuve qu'elle a pris la main est « Mois suivant », qui ne s'active
  * qu'avec un mois saisi. On refait la saisie jusque-là.
+ *
+ * Chaque reprise VIDE d'abord le champ : la saisie perdue reste affichée, et la refaire à l'identique ne change pas la
+ * valeur du champ ; React n'y voit aucun changement et son état reste vide, reprise après reprise (sonde du 26/11/2026,
+ * scripts retenus jusqu'après la saisie : sans vider, « Mois suivant » jamais actif en 20 s ; en vidant, actif dès la
+ * première reprise après l'hydratation, idem pour la rentabilité).
  */
 async function quittancePrete(page: Page, mois = "2026-09") {
   const champ = page.getByLabel("Mois", { exact: true });
   const suivant = page.getByRole("button", { name: "Mois suivant" });
   await expect(async () => {
+    await champ.fill("");
     await champ.fill(mois);
     await expect(suivant).toBeEnabled({ timeout: 1_000 });
   }).toPass({ timeout: 20_000 });
 }
 
 /**
- * Même précaution pour les autres outils (Q123 : ils s'ouvrent vides) : la première saisie est refaite jusqu'à ce que
- * le message de ce qui manque ne cite plus ce champ.
+ * Même précaution pour les autres outils (Q123 : ils s'ouvrent vides) : la première saisie est refaite, champ vidé
+ * d'abord (même raison), jusqu'à ce que le message de ce qui manque ne cite plus ce champ.
  */
 async function premiereSaisie(page: Page, libelle: string, valeur: string, manque: string, cite: string) {
   const champ = page.getByLabel(libelle, { exact: true });
   await expect(async () => {
+    await champ.fill("");
     await champ.fill(valeur);
     await expect(page.getByTestId(manque)).not.toContainText(cite, { timeout: 1_000 });
   }).toPass({ timeout: 20_000 });
@@ -185,6 +192,7 @@ const MENTIONS_QUITTANCE: [string, string][] = [
 ];
 const MANQUE_MENTIONS =
   "le mode de paiement, le nom du bailleur, l'adresse du bailleur, le nom du locataire et l'adresse du logement loué.";
+const AIDE_MOIS = "Au format AAAA-MM (ex. 2026-09) si votre navigateur n'affiche pas de calendrier.";
 
 test("quittance : rien de prérempli ; 850 + 120, reçu 500 → reçu de paiement partiel, reste dû 470,00 € ; impression complète seulement", async ({ page }) => {
   const erreurs = surveillerConsole(page);
@@ -200,9 +208,12 @@ test("quittance : rien de prérempli ; 850 + 120, reçu 500 → reçu de paiemen
   await expect(page.getByTestId("q-total")).toHaveCount(0);
   await expect(page.getByRole("button", { name: /Imprimer (la quittance|le reçu)/ })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Mois suivant" })).toBeDisabled();
-  // Inactif, « Mois suivant » dit pourquoi ; le champ du mois n'a pas de texte indicatif (Chromium ne l'affiche pas).
+  // Inactif, « Mois suivant » dit pourquoi ; le champ du mois n'a pas de texte indicatif (Chromium ne l'affiche pas),
+  // mais une aide visible, reliée au champ, donne le format (Firefox et Safari sur ordinateur en font un champ texte).
   await expect(page.getByRole("button", { name: "Mois suivant" })).toHaveAccessibleDescription("Saisissez d'abord le mois.");
   await expect(page.getByLabel("Mois", { exact: true })).not.toHaveAttribute("placeholder");
+  await expect(page.getByLabel("Mois", { exact: true })).toHaveAccessibleDescription(AIDE_MOIS);
+  await expect(page.getByText(AIDE_MOIS)).toBeVisible();
   // Terme incomplet : l'impression par le navigateur sort un court message, pas une page blanche.
   await page.emulateMedia({ media: "print" });
   await expect(page.getByTestId("q-incomplet-imprime")).toBeVisible();
@@ -213,6 +224,8 @@ test("quittance : rien de prérempli ; 850 + 120, reçu 500 → reçu de paiemen
 
   await quittancePrete(page);
   await expect(page.getByRole("button", { name: "Mois suivant" })).toHaveAccessibleDescription("");
+  // L'aide du format reste visible une fois le mois saisi.
+  await expect(page.getByText(AIDE_MOIS)).toBeVisible();
   await remplir(page, [["Date du paiement", "2026-09-03"], ["Loyer hors charges", "850"], ["Provision pour charges", "120"]]);
   // Le montant reçu ne suit plus le total : il se saisit, ou se recopie à la demande.
   await expect(page.getByLabel("Montant reçu")).toHaveValue("");
@@ -353,6 +366,8 @@ test("rentabilité : rien de prérempli ; brute 5,29 %, nette 4,08 %, cash-flow 
     ["Frais de gestion", "0"],
   ]);
   await expect(page.getByRole("group", { name: "Le financement" })).toBeVisible();
+  // Le choix imbriqué nomme ce qui se choisit (il ne répète pas « Financement »).
+  await expect(page.getByRole("group", { name: "Mode de financement", exact: true })).toBeVisible();
   await page.getByRole("radio", { name: "Calculer la mensualité" }).check();
   // Un crédit choisi ne se calcule pas sur une durée nulle : refusé, plus de « Sans crédit ».
   await remplir(page, [["Montant emprunté", "160000"], ["Taux annuel", "3,5"], ["Durée", "0"]]);
@@ -381,6 +396,17 @@ test("quittance publique : aucun document sans paiement valide, excédent hors d
     await expect(page.getByRole("button", { name: /Imprimer (la quittance|le reçu)/ })).toHaveCount(0);
   }
 
+  // Montant illisible : l'impression par le navigateur cite les mêmes exigences que l'alerte à l'écran.
+  await loyer.fill("illisible");
+  await recu.fill("500");
+  await expect(page.getByText("Utilisez des montants non négatifs, en euros et centimes.", { exact: false })).toBeVisible();
+  await page.emulateMedia({ media: "print" });
+  await expect(page.getByTestId("q-incomplet-imprime")).toHaveText(
+    "Quittance incomplète : vérifiez le loyer, les charges et le montant reçu (des montants non négatifs, en euros et centimes, un terme et un paiement supérieurs à zéro)."
+  );
+  await page.emulateMedia({ media: "screen" });
+  await loyer.fill("850");
+
   await recu.fill("1200");
   await expect(document).toContainText(/somme de 970,00\s*€/);
   await expect(document).toContainText(/versement total est de 1\s200,00\s*€/);
@@ -391,4 +417,20 @@ test("quittance publique : aucun document sans paiement valide, excédent hors d
   await expect(page.getByRole("button", { name: "Imprimer la quittance" })).toBeEnabled();
   await page.emulateMedia({ media: "print" });
   await expect(document).toBeVisible();
+});
+
+test("quittance : le dernier champ du terme se tape d'un trait, sans perdre le focus", async ({ page }) => {
+  // Le premier chiffre du montant reçu complète le terme : la page passe de « à compléter » au document produit. Si les
+  // deux états n'ont pas la même racine, React remonte le formulaire à ce moment-là : le champ perd le focus et la suite
+  // de la frappe se perd (« 970 » tapé, « 9 » resté, racine de c347597). Frappe réelle, touche par touche.
+  await page.goto("/outils/quittance-de-loyer");
+  await quittancePrete(page);
+  await remplir(page, [["Date du paiement", "2026-09-03"], ["Loyer hors charges", "850"], ["Provision pour charges", "120"]]);
+  await expect(page.getByTestId("q-etat")).toHaveText("À compléter");
+  const recu = page.getByLabel("Montant reçu");
+  await recu.pressSequentially("970", { delay: 50 });
+  await expect(recu).toHaveValue("970");
+  await expect(recu).toBeFocused();
+  await expect(page.getByTestId("q-type")).toHaveText("Quittance de loyer");
+  await expect(page.getByTestId("q-total")).toHaveText(/970,00\s€/);
 });

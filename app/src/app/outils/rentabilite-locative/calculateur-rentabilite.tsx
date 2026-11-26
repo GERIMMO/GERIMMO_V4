@@ -160,7 +160,7 @@ export function CalculateurRentabilite() {
       <Groupe legende="Le financement" description="Sans emprunt, choisissez « Pas de crédit ».">
         <Segments
           nom="rt-credit"
-          libelle="Financement"
+          libelle="Mode de financement"
           valeur={modeCredit}
           onChange={setModeCredit}
           options={MODES_CREDIT}

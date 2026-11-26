@@ -147,8 +147,17 @@ export function GenerateurQuittance() {
     <CarteSaisie id="q-saisie" titre="Le terme">
       <Groupe legende="Période et paiement">
         <div className="grid gap-4 sm:grid-cols-2">
-          {/* Pas de texte indicatif : un champ de type « month » ne l'affiche pas (Chromium montre son propre gabarit). */}
-          <Champ id="q-periode" type="month" libelle="Mois" valeur={periode} onChange={setPeriode} />
+          {/* Pas de texte indicatif : Chromium (Chrome, Edge) affiche son propre gabarit de mois et ne le montre pas. Mais
+              Firefox et Safari sur ordinateur n'ont pas de champ « month » : il y devient un champ texte, sans gabarit ni
+              indication de format. D'où l'aide, toujours visible et reliée au champ (aria-describedby). */}
+          <Champ
+            id="q-periode"
+            type="month"
+            libelle="Mois"
+            valeur={periode}
+            onChange={setPeriode}
+            aide="Au format AAAA-MM (ex. 2026-09) si votre navigateur n'affiche pas de calendrier."
+          />
           <Champ id="q-date" type="date" libelle="Date du paiement" valeur={datePaiement} onChange={setDatePaiement} />
         </div>
         <div>
@@ -162,10 +171,12 @@ export function GenerateurQuittance() {
             Mois suivant
             <span aria-hidden>→</span>
           </button>
-          {/* Inactif, le bouton dit pourquoi : il part du mois saisi, et n'en invente pas. */}
+          {/* Inactif, le bouton dit pourquoi : il part du mois saisi, et n'en invente pas. Un mois saisi mais illisible
+              (champ texte de Firefox ou de Safari sur ordinateur, ex. « 09/2026 ») n'est pas un mois absent : le message
+              donne alors le format attendu. */}
           {!bornes && (
             <p id="q-mois-suivant-aide" className="mt-1.5 text-[12.5px] leading-snug text-[var(--texte-secondaire)]">
-              Saisissez d&apos;abord le mois.
+              {periode.trim() ? "Saisissez le mois au format AAAA-MM." : "Saisissez d'abord le mois."}
             </p>
           )}
         </div>
@@ -226,6 +237,11 @@ export function GenerateurQuittance() {
     </CarteSaisie>
   );
 
+  // Les deux retours (terme incomplet ci-dessous, document produit plus bas) gardent la MÊME racine : un <div> dont le
+  // premier enfant est <DispositionOutil>. Si la racine change de type d'un état à l'autre, React démonte et remonte tout
+  // le formulaire au moment où le terme devient complet, et le champ en cours de saisie perd le focus : en tapant
+  // « 970 » dans « Montant reçu » (dernier champ du terme), il restait « 9 » (racine de c347597, sans ce <div>).
+  // e2e : « quittance : le dernier champ du terme se tape d'un trait, sans perdre le focus » (e2e/outils.spec.ts).
   if (manquesTerme.length > 0 || !r || !bornes) {
     return (
       <div>
@@ -259,7 +275,7 @@ export function GenerateurQuittance() {
           Quittance incomplète :{" "}
           {manquesTerme.length > 0
             ? `renseignez ${enumerer(manquesTerme)}.`
-            : "vérifiez le loyer, les charges et le montant reçu (des montants non négatifs, un terme et un paiement supérieurs à zéro)."}
+            : "vérifiez le loyer, les charges et le montant reçu (des montants non négatifs, en euros et centimes, un terme et un paiement supérieurs à zéro)."}
         </p>
       </div>
     );
@@ -336,6 +352,7 @@ export function GenerateurQuittance() {
     </PanneauResultat>
   );
 
+  // Même racine que le terme incomplet (voir plus haut) : ne pas la changer de type.
   return (
     <div className="space-y-10">
       <DispositionOutil saisie={saisie} resultat={resultat} />

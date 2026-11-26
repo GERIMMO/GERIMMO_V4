@@ -1,6 +1,6 @@
 # Ce qui n'a pas été fait, et pourquoi
 
-- **Rédigé le** 25/11/2026, pour la version préparée `062296e2` (branche `claude/palier-1-preproduction` ; `89cb87ff` plus les corrections RET-01, L-01, l'écran du bail sur iPhone, l'avertissement d'annulation de l'artisan, et des tests rendus indépendants de la machine). **Rien n'est publié.**
+- **Rédigé le** 25/11/2026, pour la version préparée `062296e2` (branche `claude/palier-1-preproduction` ; `89cb87ff` plus les corrections RET-01, L-01, l'écran du bail sur iPhone, l'avertissement d'annulation de l'artisan, et des tests rendus indépendants de la machine). **Publiée en production le 25/11/2026 à 23:17Z (`main` `8f9dd9ce`) ; les réglages de la console R1 à R8 restent à faire.**
 - **Pour chaque ligne** : quoi, pourquoi, le risque, ce qu'il faudrait pour le faire.
 - **VÉRIFIÉ** veut dire lu ou rejoué, avec la source citée. **SUPPOSÉ** veut dire déduit, pas constaté.
 - **Aucun point de droit n'est présenté ici comme conforme.** Les renvois « JURISTE » visent `JURISTE.md` (partie · point).
@@ -95,7 +95,7 @@ Seconde passe complète de vérification (IA activée, puis coupée), sur `89cb8
 |---|---|---|---|
 | **Tout ce qui ne concerne que les agences** : seuil de délégation du mandat ; invitation d'un artisan par une agence ; domicile du bailleur sur les documents et l'état des lieux ; second facteur obligatoire pour les administrateurs d'agence ; relance à la main (Q95) ; activité du mandataire (Q108) ; honoraires (Q110) | Le palier 1 se limite au propriétaire, au locataire, à l'artisan et au super admin (`AUDIT.md`, « Hors plan »). Le code des agences existe mais n'a pas été revu. Les documents d'agence ne sont vérifiés que par des tests, sans dossier fictif d'agence (JOURNAL, lot 36). | Une agence qui utiliserait Gerimmo rencontrerait des écrans non revus. SUPPOSÉ faible aujourd'hui : une liste d'attente des agences existe (`liste_attente_agences`, à ne jamais toucher, Q36). | Une mission « palier 2 » à part, avec son propre audit, son plan et ses vérifications. |
 
-## 8. À faire avant la publication (rien n'est fait à ce jour)
+## 8. À faire avant la publication (fait le 25/11 : voir `PLAN-DE-PUBLICATION.md`, « Résultat de la publication »)
 
 | Quoi | Pourquoi | Risque | Ce qu'il faudrait |
 |---|---|---|---|

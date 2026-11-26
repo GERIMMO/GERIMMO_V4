@@ -1,6 +1,6 @@
 # Gerimmo, palier 1 : la version préparée en une page
 
-*Rédigé le 25/11/2026. **Rien n'est publié.** La production reste gelée jusqu'à votre message écrit « je valide la publication ».*
+*Rédigé le 25/11/2026. **Publié en production le 25/11/2026 à 23:17Z (00 h 17 à Paris)**, après votre message « Je valide la publication » : `main` = `8f9dd9ce`, identique à `062296e2` (`PLAN-DE-PUBLICATION.md`, « Résultat de la publication »). Restent les réglages de la console, R1 à R8.*
 *Mots utiles : un **commit** est une version enregistrée du code ; une **migration** change la base de données ; le **banc** est une copie d'essai chez l'agent, avec des données fictives ; un **parcours navigateur** est un robot qui clique dans l'application comme un utilisateur.*
 
 ## 1. La version préparée

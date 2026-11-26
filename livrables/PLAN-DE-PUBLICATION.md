@@ -1,10 +1,26 @@
 # Plan de publication en production — version préparée `062296e2`
 
-- **Rédigé le** 25/11/2026 par l'agent. **Rien de ce plan n'a été exécuté.**
-- **À exécuter seulement après votre message écrit « je valide la publication ».** Avant ce message, la production reste gelée.
+- **Rédigé le** 25/11/2026 par l'agent. **Exécuté le 25/11/2026 au soir, étapes É1 à É13, après votre message « Je valide la publication » : voir le résultat juste en dessous.** Les réglages de la console (§ 4, R1 à R8) restent à faire.
+- Avant ce message, la production était gelée.
 - **Aucun point juridique n'est présenté ici comme conforme.** Les points de droit ouverts sont cités avec leur renvoi à `JURISTE.md`.
 - **Aucun secret ni mot de passe dans ce document.** Seuls les noms des variables sont cités.
 - **Règle d'or du jour J : si une étape échoue, on s'arrête. On ne saute aucune étape.**
+
+**Résultat de la publication (25/11/2026, nuit)** — détail dans `JOURNAL.md`, entrée « 25/11/2026 (nuit) »
+
+| Étape | Résultat | Exécution |
+|---|---|---|
+| É1 à É3 | PR #358 fusionnée (squash, 21:15Z) : `main` = `8f9dd9ce09248a53bb4a56d9de678d4f6188f768`, identique à `062296e2` (`git diff` vide) | CI de la PR n° 45696719871 |
+| É4 | CI de `main` verte ; construction `dpl_p8CPxwFujan3vyqLjrKBReop6ssE` prête, sans domaine ; site encore sur `81740dec` | n° 45702663673 |
+| É5 | `prete_a_valider` | n° 45708465217 |
+| É6 | Simulation : tout joué puis annulé | n° 45708871873 |
+| É7 | Sauvegarde `20261125-2201` déposée et relue | n° 45709572024 |
+| É8 | 52 migrations appliquées (22:09Z), `COMMIT`, aucune erreur | n° 45710263565 |
+| É9 | 52 versions ; `accepter_cgu` inchangée ; accord à l'empreinte exigé ; A-01 : aucune ligne ; supervision : « Accès refusé » (prévu) | connecteur Supabase, lecture seule |
+| É10 | **`publiee_verifiee` à 23:17Z** | n° 45711136251 |
+| É11 | Santé OK sur `8f9dd9ce` ; 9 pages publiques en 200 ; conditions du 24/11 en vigueur ; ventes fermées ; 0 erreur Vercel | lecture |
+| É12 | Recette n° 58 réussie (67 parcours, 1 au second essai : renvoi vers la connexion après « Créer mon espace », défaut antérieur, enquête en cours) ; purge vérifiée | n° 45720418609 |
+| É13 | `log.md` et `JOURNAL.md` | — |
 
 **Légende**
 

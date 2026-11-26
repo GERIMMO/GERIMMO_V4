@@ -8319,3 +8319,11 @@ cahier V3 et le wiki (sans autre document). La décision la plus récente l'empo
 - P3 complété : l'agent peut jouer les retours de la base par le connecteur Supabase, après accord écrit du dirigeant à chaque fois ; plan (P3, § 5.4) et décisions mis à jour.
 - P4 fait par l'agent (lecture seule de Vercel et GitHub) : production servie par `81740dec` vérifiée ; résultats dans le plan, § 1 et § 7.
 - P6 b accepté par écrit par le dirigeant (points supposés A-05) ; plan et décisions mis à jour.
+
+## [2026-11-25] deploy | Publication unique du palier 1 : `062296e2` en production (PR #358, `main` `8f9dd9ce`)
+
+- **Accord** : message du dirigeant « Je valide la publication » ; quatre approbations GitHub (`GERIMMO`) : vérification, simulation, application, publication.
+- **Exécutions** : PR [#358](https://github.com/GERIMMO/GERIMMO_V4/pull/358) fusionnée en squash (21:15Z) ; CI de `main` n° 45702663673 ; contrôle n° 45708465217 (`prete_a_valider`) ; simulation n° 45708871873 ; sauvegarde n° 45709572024 (`20261125-2201`) ; application des 52 migrations n° 45710263565 (22:09Z, `COMMIT`, aucune erreur) ; publication n° 45711136251 (`publiee_verifiee`, 23:17Z) ; recette n° 58 (n° 45720418609) réussie, 1 parcours au second essai, purge vérifiée.
+- **Contrôles** : base relue en lecture seule (52 versions, `accepter_cgu` inchangée, accord à l'empreinte exigé, A-01 sans ligne) ; `/api/sante` sert `8f9dd9ce` ; neuf pages publiques en 200 ; conditions du 24/11 en vigueur ; ventes toujours fermées ; aucune erreur d'exécution Vercel jusqu'au 26/11 05:30Z.
+- **Constat** : renvoi vers la connexion après « Créer mon espace » au premier essai de la recette. Le code concerné est identique avant et après la publication (défaut antérieur) ; enquête en lecture seule en cours. Détail : `JOURNAL.md`, entrée du 25/11 (nuit).
+- **Reste** : gestes R1 à R8 du dirigeant dans la console, puis le parcours R4 bis ; pages du wiki à passer de « non publiée » à « en production ».

@@ -78,15 +78,15 @@ describe("une requête d'arrière-plan partie avec une session que le serveur vi
     expect(A.map(([nom]) => nom)).toEqual([`${CLE}.0`, `${CLE}.1`]);
   });
 
-  it.each(["/", "/conditions", "/connexion", "/nimporte-quoi"])("%s : la réponse n'efface pas la session du navigateur", async (chemin) => {
-    const r = await proxy(requete(chemin, A, "cors"));
+  it.each(["/", "/conditions", "/connexion", "/nimporte-quoi"].flatMap((c) => [[c, "cors"], [c, "same-origin"]]))("%s (%s) : la réponse n'efface pas la session du navigateur", async (chemin, mode) => {
+    const r = await proxy(requete(chemin, A, mode));
     expect(effaces(r)).toEqual([]);
   });
 
   it("la page est quand même rendue sans session : les cookies transmis au rendu sont vidés", async () => {
     const r = await proxy(requete("/conditions", A, "cors"));
     const transmis = r.headers.get("x-middleware-request-cookie") ?? "";
-    expect(transmis).toContain(`${CLE}.0=`);
+    expect(transmis.includes(`${CLE}.0=`)).toBe(true);
     expect(transmis.includes(A[0][1])).toBe(false);
   });
 
@@ -98,6 +98,34 @@ describe("une requête d'arrière-plan partie avec une session que le serveur vi
     // Les noms, puis l'égalité des valeurs : un échec n'affiche aucune valeur de cookie.
     expect([...bocal.keys()]).toEqual(B.map(([nom]) => nom));
     expect(B.every(([nom, valeur]) => bocal.get(nom) === valeur)).toBe(true);
+  });
+});
+
+describe("le symptôme de la recette n° 58 : la requête suivante ne mène plus à la connexion", () => {
+  /** GoTrue qui distingue les sessions par le session_id du jeton porteur : A est fermée, B est vivante. */
+  function gotrueParSession(vivante: string) {
+    vi.stubGlobal("fetch", vi.fn(async (entree: RequestInfo | URL, init?: RequestInit) => {
+      const { pathname } = new URL(String(entree));
+      const porteur = new Headers(init?.headers).get("authorization")?.replace(/^Bearer /, "") ?? "";
+      let sid = "";
+      try { sid = JSON.parse(Buffer.from(porteur.split(".")[1] ?? "", "base64url").toString()).session_id ?? ""; } catch { sid = ""; }
+      if (pathname === "/auth/v1/user") return sid === vivante ? json(200, sessionFictive(vivante, 3600).user) : sessionFermee();
+      if (pathname === "/rest/v1/memberships") return json(200, []);
+      if (pathname === "/rest/v1/rpc/ma_session_active") return json(200, sid === vivante ? [{ id: vivante, cree_le: new Date(Date.now() - 60_000).toISOString() }] : []);
+      if (pathname.startsWith("/rest/v1/")) return json(200, []);
+      throw new Error(`appel inattendu : ${pathname}`);
+    }));
+  }
+
+  it("réponse de l'action, puis réponse tardive d'un préchargement, puis « Mes espaces » : pas de renvoi vers /connexion", async () => {
+    gotrueParSession("session-mot-de-passe");
+    const A = cookiesDeSession("session-du-lien");
+    const B = cookiesDeSession("session-mot-de-passe");
+    const bocal = new Map<string, string>(A);
+    appliquer(bocal, B.map(([n, v]) => `${n}=${v}; Path=/; Max-Age=34560000; Secure; SameSite=lax`)); // réponse de l'action
+    appliquer(bocal, (await proxy(requete("/conditions", A, "cors"))).headers.getSetCookie()); // préchargement tardif
+    const suite = await proxy(requete("/espaces", [...bocal.entries()], "navigate"));
+    expect((suite.headers.get("location") ?? "").includes("/connexion")).toBe(false);
   });
 });
 
@@ -121,8 +149,13 @@ describe("la session fermée entre la lecture du compte et celle du registre (fe
     }));
   }
 
-  it.each(["/conditions", "/espaces"])("%s, arrière-plan, fermeture confirmée par Auth : aucun effacement", async (chemin) => {
-    fermetureParLeProxy(sessionFermee);
+  it.each([
+    ["/conditions", "204", () => new Response(null, { status: 204 })],
+    ["/espaces", "204", () => new Response(null, { status: 204 })],
+    ["/conditions", "403, déjà fermée", sessionFermee],
+    ["/espaces", "403, déjà fermée", sessionFermee],
+  ] as const)("%s, arrière-plan, fermeture confirmée par Auth (%s) : aucun effacement", async (chemin, _code, reponse) => {
+    fermetureParLeProxy(reponse);
     const r = await proxy(requete(chemin, cookiesDeSession("session-du-lien"), "cors"));
     expect(effaces(r)).toEqual([]);
     if (chemin === "/espaces") expect(r.headers.get("location")).toContain("raison=session-expiree");

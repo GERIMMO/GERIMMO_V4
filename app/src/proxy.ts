@@ -188,8 +188,11 @@ export async function proxy(request: NextRequest) {
   // navigation de document. Une requête d'arrière-plan (préchargement, navigation RSC, action) partie avec une session
   // qu'une action vient de remplacer arrive parfois APRÈS la réponse qui a posé la nouvelle : son effacement, sous les
   // mêmes noms (sb-<ref>-auth-token.0/.1), emportait la nouvelle. La page est rendue sans la session fermée (cookies de
-  // la requête vidés ci-dessous). Si c'est le proxy qui ferme (signOut local) et qu'Auth ne le confirme pas,
-  // l'effacement retenu part quand même, comme avant.
+  // la requête vidés ci-dessous ; seule la réécriture vers /_introuvable ne les transmet pas, et cette page ne lit pas
+  // la session). Si c'est le proxy qui ferme (signOut local) et que signOut renvoie une erreur, l'effacement retenu
+  // part quand même, comme avant. Limites connues (relecture du 26/11) : sans Sec-Fetch-Mode (navigateur ancien), rien
+  // ne change ; un cookie de session fermée reste dans le navigateur jusqu'à la prochaine navigation de document ou
+  // connexion, et chaque requête d'ici là refait un appel à Auth, refusé.
   let effacementsRetenus: { name: string; value: string; options: CookieOptions }[] = [];
 
   const supabase = createServerClient(
@@ -300,7 +303,7 @@ export async function proxy(request: NextRequest) {
 
   if (!sessionValide || absoluteExpired || inactivityExpired) {
     const { error: erreurDeconnexion } = await supabase.auth.signOut({ scope: "local" });
-    // Fermeture non confirmée par Auth : l'effacement retenu sur une requête d'arrière-plan part quand même (voir setAll).
+    // signOut en erreur : l'effacement retenu sur une requête d'arrière-plan part quand même (voir setAll).
     if (erreurDeconnexion) effacementsRetenus.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
     // Une ancienne session ne doit pas interdire la consultation du site vitrine.
     // Les mutations et les pages privées gardent la redirection de sécurité.

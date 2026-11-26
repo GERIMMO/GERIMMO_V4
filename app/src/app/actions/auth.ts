@@ -32,6 +32,7 @@ import { estPageInvitationLocataire } from "@/lib/invitations-locataire";
 import { baseEspace } from "@/lib/racine-espace";
 import { CHAMPS_PROFIL_INSCRIPTION, CLE_PROFIL_A_CONFIRMER, saisieProfilARetenir } from "@/lib/revalidation-inscription";
 import { autorisationNouveauMotDePasse } from "@/lib/autorisation-nouveau-mot-de-passe";
+import { traceFermetureAutresSessions } from "@/lib/compte";
 
 // La qualité voyage dans les métadonnées jusqu'à la fiche personne, dont la
 // liste est fermée (audit 29/09) : une valeur hors liste est laissée vide
@@ -224,12 +225,16 @@ export async function definirNouveauMotDePasse(
 
   // Sécurité : toute autre session active est invalidée — si quelqu'un était
   // connecté avec l'ancien mot de passe, il est éjecté
-  await supabase.auth.signOut({ scope: "others" });
+  //
+  // Lot L1 (26/11/2026) : l'erreur est lue. Quand Auth échoue ou ne répond pas, rien ne confirme qu'une autre session a
+  // été fermée, celle du lien comprise. L'échec est tracé avec le changement (la trace part avant toute sortie : un compte
+  // connecté l'écrit en son nom), et le premier choix ne garde la personne connectée que si la fermeture a abouti.
+  const { error: erreurAutresSessions } = await supabase.auth.signOut({ scope: "others" });
 
   // Trace technique (matrice A2 : « changement de mot de passe », 6 mois)
   await supabase.rpc("log_tech", {
     evenement: "changement_mot_de_passe",
-    details: {},
+    details: traceFermetureAutresSessions(erreurAutresSessions),
   });
 
   if (profil?.espace === "proprietaire_direct") suite = "/espaces";
@@ -242,15 +247,19 @@ export async function definirNouveauMotDePasse(
   // applique la politique de session et le second facteur comme à toute session. Le profil est lu dans le compte ; la
   // seule autre porte est la page d'une invitation de locataire (UX-1), où elle arrive directement pour l'accepter. Un
   // motif ou un témoin ajouté à l'envoi ne peut pas éviter la déconnexion d'une récupération.
-  if (sessionParMotDePasse) redirect(suite);
+  // Lot L1 : si la fermeture des autres sessions a échoué, celle du lien est peut-être encore ouverte côté Auth ; rester
+  // connecté ferait comme si elle était refermée. La personne prend alors le repli ci-dessous, comme quand la connexion par le
+  // nouveau mot de passe n'aboutit pas.
+  if (sessionParMotDePasse && !erreurAutresSessions) redirect(suite);
 
   // RÉCUPÉRATION D'UN COMPTE EXISTANT (mot de passe oublié), choix d'origine
   // inchangé : on repart d'une connexion propre avec le nouveau mot de passe.
   // (UX-1 ne l'a pas changé : le même mécanisme y serait sûr, mais rester connecté après une réinitialisation est un
   // choix de produit, et l'écran de connexion confirme le changement à qui reprend la main sur son compte.)
   // C'est aussi le repli du premier choix si la connexion avec le nouveau mot de passe n'a pas abouti (adresse
-  // absente, limite de fréquence, service indisponible) : le mot de passe et le profil sont enregistrés, toutes les
-  // sessions se ferment, celle du lien comprise, et la personne se connecte avec ce qu'elle vient de choisir.
+  // absente, limite de fréquence, service indisponible), ou si la fermeture des autres sessions a échoué (lot L1) : le
+  // mot de passe et le profil sont enregistrés, toutes les sessions se ferment, celle du lien comprise, et la personne se
+  // connecte avec ce qu'elle vient de choisir.
   await supabase.auth.signOut();
   (await cookies()).delete(ACTIVITY_COOKIE);
   redirect(`/connexion?raison=mot-de-passe-modifie${suite !== "/espaces" ? `&suite=${encodeURIComponent(suite)}` : ""}`);

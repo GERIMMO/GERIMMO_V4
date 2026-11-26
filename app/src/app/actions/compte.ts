@@ -3,7 +3,7 @@
 import { createClient as creerClientIsole } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { sansJargon } from "@/lib/erreurs";
-import { verdictMotDePasse } from "@/lib/compte";
+import { traceFermetureAutresSessions, verdictMotDePasse } from "@/lib/compte";
 
 export type EtatMotDePasse = { message?: string; erreur?: string };
 
@@ -90,13 +90,29 @@ export async function changerMonMotDePasse(
   // la personne qu'on veut justement écarter. La session courante est
   // conservée : changer son mot de passe ne doit pas éjecter de l'écran où on
   // est en train de travailler.
-  await supabase.auth.signOut({ scope: "others" });
+  //
+  // Lot L1 (26/11/2026) : l'erreur est lue. Quand Auth échoue ou ne répond pas,
+  // rien ne confirme qu'une session a été fermée, et l'écran affirmait pourtant
+  // « Vos autres appareils connectés ont été déconnectés ». L'échec est tracé
+  // avec le changement, et le message dit ce qui est vrai : le mot de passe est
+  // changé, la déconnexion des autres appareils n'est pas confirmée. Il nomme le
+  // geste qui la retente : « Se déconnecter » (bandeau de cette page) ferme la
+  // session sur tous les appareils, celui-ci compris (`seDeconnecter`, portée
+  // globale).
+  const { error: erreurFermeture } = await supabase.auth.signOut({ scope: "others" });
 
   // Matrice A2 : « changement de mot de passe », conservé six mois.
   await supabase.rpc("log_tech", {
     evenement: "changement_mot_de_passe",
-    details: { depuis: "compte" },
+    details: { depuis: "compte", ...traceFermetureAutresSessions(erreurFermeture) },
   });
+
+  if (erreurFermeture) {
+    return {
+      erreur:
+        "Mot de passe modifié, mais la déconnexion de vos autres appareils n'a pas pu être confirmée. Pour la retenter, utilisez « Se déconnecter » : la session se ferme sur tous vos appareils, celui-ci compris. Reconnectez-vous ensuite avec votre nouveau mot de passe.",
+    };
+  }
 
   return {
     message:

@@ -1,0 +1,93 @@
+← Meublé Audit SCI
+
+CONTRAT DE LOCATION · MEUBLÉ
+
+Meublé Audit SCI
+Brouillon
+Supprimer le brouillon
+Entrée le
+01/12/2026
+PRÉPARATION DU BAIL
+Étape 4 sur 7
+01
+Le bail
+1 à compléter
+02
+Personnes
+8 à compléter
+03
+Le logement
+6 à compléter
+04
+Loyer
+Saisie non enregistrée
+05
+Documents
+5 champs · pièces à vérifier
+06
+Clauses
+2 à compléter
+07
+Récapitulatif
+À relire
+ÉTAPE 04 / 7
+Loyer
+
+Montants, charges et paiement.
+
+Loyer et charges
+
+Saisissez 0 lorsqu’un montant est nul.
+
+Loyer hors charges (€) *
+Charges mensuelles (€) *
+Dépôt de garantie (€) *
+
+Le dépôt de garantie dépasse le plafond de 1 400,00 € pour ce type de bail.
+
+Le plafond est vérifié selon le type de bail et le caractère meublé du logement.
+
+Jour d’échéance *
+
+Chaque mois, entre le 1er et le 28.
+
+Mode de charges
+Provision avec régularisation annuelle
+Forfait sans régularisation
+Loyer + charges, par mois
+750,00 €
+Précédente location
+Situation du logement
+À confirmer
+Première location
+Ancien locataire parti depuis au moins 18 mois
+Ancien locataire parti depuis moins de 18 mois
+Révision et paiement
+Révision annuelle, fixation et modalités de paiement
+3 à compléter
+Révision annuelle du loyer (IRL)
+Oui
+Non
+Trimestre IRL
+À confirmer
+T1
+T2
+T3
+T4
+Valeur de l’IRL de référence
+Fixation initiale du loyer
+À confirmer
+Librement fixé
+Plafonnement en zone d’encadrement
+Réévaluation après travaux
+Paiement du loyer
+À échoir (d’avance)
+À terme échu
+Lieu ou modalités de paiement
+
+Exemple : virement au bailleur.
+
+Le dépôt de garantie dépasse le plafond de 1 400,00 € pour ce type de bail.
+
+Précédent
+Enregistrer et continuer

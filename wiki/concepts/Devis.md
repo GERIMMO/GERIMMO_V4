@@ -3,8 +3,8 @@ type: concept
 tags: [devis, incident, artisan]
 status: in-progress
 created: 2026-07-21
-updated: 2026-10-19
-sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-9-devis-et-facturation]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Propositions de fonctions majeures — version candidate du 13 octobre 2026]]"]
+updated: 2026-11-26
+sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-9-devis-et-facturation]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Propositions de fonctions majeures — version candidate du 13 octobre 2026]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "log.md — entrée « deploy » du 19/10/2026 (PR #212)", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)"]
 ---
 
 # Devis
@@ -67,7 +67,8 @@ PRO2-12), **en production depuis le 15/10/2026** (PR #187, fusion `8a168dd`, mig
 - **Échéance** : sans réponse, la tâche quotidienne `maintenance-artisans` (04 h 30 UTC)
   clôt la demande (« expirée »), le devis reste « révisé » et le gérant reçoit une alerte.
 - **Validité jugée au jour de Paris (19/10/2026, lot B5, migration `20261019124000`,
-  préparée et non déployée)** : `retenir_devis` compare « valable jusqu'au » au jour de Paris
+  préparée ce jour-là ; en production depuis le 19/10/2026, PR #212, `log.md`)** :
+  `retenir_devis` compare « valable jusqu'au » au jour de Paris
   (`public.aujourdhui_paris()`) et non plus au jour de la session (UTC) — un devis valable
   jusqu'au J le reste toute la journée de Paris et plus après, même entre minuit et 1-2 h.
   Le périmètre a été élargi le 19/10/2026 à `deposer_devis` : l'échéance par défaut
@@ -106,3 +107,37 @@ Chaîne critique « facture validée » : écriture selon imputation, solde ou r
 >   demandé/déposé/validé/refusé/expiré/**facturé** — « retenu » vs « validé → facturé »
 >   à réconcilier ([[Machines à états et événements]]).
 >
+
+## État dans l'application au 22/11/2026 — mission palier 1 (préproduction le 22/11 ; en production depuis le 25/11/2026, version `062296e2`)
+Trois lots de la mission touchent le devis ([[Mission palier 1 — audit du 22 novembre 2026]] ; détail dans
+`JOURNAL.md`). Vérifiés sur une base d'essai ; en production depuis le 25/11/2026 (version `062296e2`), après la
+validation du dirigeant.
+- **Garantie annoncée par l'artisan (lot 24).** L'[[Artisan]] peut écrire sur son devis la garantie qu'il annonce
+  (champ facultatif, 300 caractères au plus). Elle est imprimée sur le devis et lue par le gestionnaire quand il
+  compare, sur le devis retenu et sur la fiche de l'intervention, avec la mention « Engagement de l'artisan, pas de
+  Gerimmo ». Gerimmo ne garantit rien et ne vérifie pas ce texte ; aucun texte de loi n'est cité (question au juriste,
+  `JURISTE.md`, partie 4, point 7). Le [[Locataire]] ne la voit pas : il ne lit aucun devis (`QUESTIONS.md`, Q29).
+- **Lignes de devis gardées (lot 27).** L'artisan met de côté une ligne (libellé, prix, TVA) et la reprend dans ses
+  devis suivants, quantité 1, puis la modifie librement. Aucune IA n'intervient. Garder, modifier ou retirer une ligne
+  ne touche aucun devis déjà préparé ou déposé ; une ligne sans prix ou sans TVA reste « à saisir ». L'artisan seul
+  lit ses lignes ; 200 au plus. Elles ne sont proposées que dans le devis d'une demande reçue par Gerimmo.
+- **Repère de prix avant la demande (lot 30).** Au-dessus des artisans proposables, le [[Propriétaire bailleur]] lit
+  un ordre de grandeur pour le métier concerné, avec sa source et la date du relevé (12/10/2026), et la phrase :
+  « Ce n'est ni un tarif, ni un prix maximum, ni un engagement de Gerimmo ou de l'artisan : seul le devis de
+  l'artisan fixe le prix. » Ce sont les repères déjà utilisés depuis octobre pour aider l'artisan à préparer son
+  devis ; **trois métiers seulement** (plomberie, électricité, peinture). Pour les autres, rien ne s'affiche. Le repère
+  n'est jamais comparé au devis reçu.
+
+> [!warning] Points à trancher (relevés le 22/11/2026)
+> - **Repère de prix ≠ score de recommandation.** Le repère du lot 30 est une information, montrée au propriétaire
+>   seulement ; il n'entre dans aucun classement des devis. Sa formulation est soumise au juriste (`JURISTE.md`,
+>   partie 4, point 9) : elle n'est pas présentée comme validée. Étendre les repères à d'autres métiers demande des
+>   sources vérifiables (`QUESTIONS.md`, Q35).
+> - **Garantie** : texte libre de l'artisan, sans lien avec les garanties légales, que cette page ne décrit pas.
+
+## État dans l'application au 24/11/2026 (préproduction le 24/11 ; en production depuis le 25/11/2026, version `062296e2`) — le devis dans les documents
+
+L'ordre d'intervention décrit les travaux du devis rattaché à la mission (auteur, version, dates, montant TTC, travaux)
+et n'en cite aucune référence, parce qu'un même devis en a deux : celle de son PDF et celle de son fichier d'archive
+(`QUESTIONS.md`, Q51). Les prix des devis ne s'impriment plus avec seize décimales (lot 36). Voir
+[[Intervention et clôture]] et [[Mission palier 1 — audit du 22 novembre 2026]] (phase 3).

@@ -1,0 +1,20 @@
+particulier /espace/…                                → 404 /espace/… | h1=Cette page est introuvable | données d'autrui visibles=false
+particulier /espace/…/parc                           → 404 /espace/…/parc | h1=Cette page est introuvable | données d'autrui visibles=false
+particulier /espace/…/baux/…                         → 404 /espace/…/baux/… | h1=Cette page est introuvable | données d'autrui visibles=false
+particulier /espace/…/personnes/…                    → 404 /espace/…/personnes/… | h1=Cette page est introuvable | données d'autrui visibles=false
+particulier /quittance/…                             → 404 /quittance/… | h1=Cette page est introuvable | données d'autrui visibles=false
+particulier /locataire/…                             → 200 /espace/… | h1=Bonjour Paul | données d'autrui visibles=false
+particulier /admin                                   → 200 /espace/… | h1=Bonjour Paul | données d'autrui visibles=false
+sci         /espace/…                                → 404 /espace/… | h1=Cette page est introuvable | données d'autrui visibles=false
+sci         /espace/…/baux/…                         → 404 /espace/…/baux/… | h1=Cette page est introuvable | données d'autrui visibles=false
+sci         /quittance/…                             → 404 /quittance/… | h1=Cette page est introuvable | données d'autrui visibles=false
+sci         /espace/…/documents?sel=…                → 404 /espace/…/documents?sel=… | h1=Cette page est introuvable | données d'autrui visibles=false
+sci         /locataire/…                             → 200 /espace/… | h1=Bonjour Sophie | données d'autrui visibles=false
+sci         /admin                                   → 200 /espace/… | h1=Bonjour Sophie | données d'autrui visibles=false
+locataireP  /espace/…                                → 404 /espace/… | h1=Cette page est introuvable | données d'autrui visibles=false
+locataireP  /espace/…/loyers                         → 404 /espace/…/loyers | h1=Cette page est introuvable | données d'autrui visibles=false
+locataireP  /espace/…/baux/…                         → 404 /espace/…/baux/… | h1=Cette page est introuvable | données d'autrui visibles=false
+locataireP  /locataire/…                             → 200 /locataire/… | h1=Bonjour Léa, | données d'autrui visibles=false
+locataireP  /quittance/…                             → 404 /quittance/… | h1=Cette page est introuvable | données d'autrui visibles=false
+locataireP  /espace/…                                → 404 /espace/… | h1=Cette page est introuvable | données d'autrui visibles=false
+locataireP  /admin                                   → 200 /locataire/… | h1=Bonjour Léa, | données d'autrui visibles=false

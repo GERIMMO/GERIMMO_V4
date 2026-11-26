@@ -1,0 +1,7 @@
+Mot de passe oublié
+
+Indiquez votre adresse e-mail : si un compte existe, vous recevrez un lien de réinitialisation valable pour une durée limitée.
+
+Si un compte existe pour cette adresse, un e-mail de réinitialisation vient d'être envoyé. Pensez à vérifier vos courriers indésirables.
+
+Retour à la connexion

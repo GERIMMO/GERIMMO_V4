@@ -3,8 +3,8 @@ type: concept
 tags: [depot-de-garantie, bail, encaissement, restitution, plafond]
 status: draft
 created: 2026-07-24
-updated: 2026-10-16
-sources: ["[[2026-09-14-service-public-depot-colocation]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]", "[[Le jour de référence est le jour de Paris]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]"]
+updated: 2026-11-26
+sources: ["[[2026-09-14-service-public-depot-colocation]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]", "[[Le jour de référence est le jour de Paris]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Recueil des textes officiels (v6)]]", "DECISIONS-2026-11-24.md (Q49)", "QUESTIONS.md (Q49, Q109, Q111)", "JURISTE.md (partie 9, point 25)", "JOURNAL.md (lots D3, T2 et T3, 24-25/11/2026)", "livrables/notes-banc/ (notes-T2, notes-T3, relecture-T3R)", "livrables/recueil/analyse-refs-10-24.md (réf. 11 et 20)", "code de la branche fusionnée claude/palier-1-fusion (89cb87ff, lecture seule)", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)"]
 ---
 
 # Dépôt de garantie
@@ -39,6 +39,11 @@ clause réputée non écrite ([[Clauses abusives et clauses résolutoires]]), ta
 Dans les formulaires officiels, le montant s'écrit **en chiffres et en toutes lettres**
 (section VI) — détail à reprendre dans le gabarit
 ([[Structure du modèle-type de bail]]).
+
+*Textes fournis (25/11)* : le [[Recueil des textes officiels (v6)]] (non recontrôlé sur Légifrance) donne l'article 22
+(dépôt « ne peut être supérieur à un mois de loyer en principal », ne porte pas intérêt, aucune révision en cours de
+bail) et l'article 24 (clause résolutoire pour « non-versement du dépôt de garantie »). Il **ne contient pas**
+l'article 25-6 : le plafond de **deux mois en meublé**, déjà dans le code, n'a pas pu être relu (Q111).
 
 ## Règles d'encaissement (2.1)
 
@@ -111,3 +116,47 @@ deux mois ne constituent pas un nouveau parcours implémenté.
 > de restitution, date d'envoi du décompte) ; c'est une **interprétation** de la décision
 > du 15/10, **à faire ratifier par le dirigeant**. Les alertes du délai de restitution
 > restent au jour de la session. Voir [[Le jour de référence est le jour de Paris]].
+
+## État dans l'application au 24/11/2026 (préproduction ; en production depuis le 25/11/2026)
+
+Le chiffrage des retenues n'est plus imprimé dans l'[[État des lieux]] de sortie signé : il est dans le décompte de
+restitution et dans le décompte des retenues, datés de leur émission ([[Restitution du dépôt de garantie]] ;
+`QUESTIONS.md`, Q49 ; `JURISTE.md`, partie 5, point 14). Source : [[Mission palier 1 — audit du 22 novembre 2026]],
+phase 3 (lot 41).
+
+## Version préparée `062296e2`, en production depuis le 25/11/2026 — reçu, notice, espace du locataire
+
+> [!info] Ce qui est en production
+> Cette section est en production depuis le 25/11/2026 à 23:17Z (26/11 à 00 h 17, heure de Paris) : la version
+> préparée `062296e2` a été publiée par la PR #358 (`main` = `8f9dd9ce`, identique à `062296e2`), ses 52 migrations sont
+> appliquées (25/11, 22:09Z) et la recette de production n° 58 a réussi (`log.md`, entrée « deploy » du 25/11/2026).
+> Jusqu'au 25/11, la production servait la version du 21/11/2026 (`81740dec`), gelée depuis le 22/11, qui n'en
+> contenait rien. Ce qui suit est lu dans le code de la branche fusionnée `claude/palier-1-fusion` (`89cb87ff`, complétée jusqu'à `062296e2`, vérifiée en entier sur le banc et poussée le 25/11 sur la branche de préproduction ;
+> `JOURNAL.md`, entrée du 25/11) et dans les notes des lots T2, T3 et D3
+> (`livrables/notes-banc/`, `JOURNAL.md`). Aucun point de droit n'est donné pour acquis : la publication ne vérifie
+> rien de juridique.
+
+- **Reçu de dépôt : le plafond imprimé suit le bail** (écart R11-A2 du recueil), avec la règle même de la base : un
+  bail nu sur un logement coché « meublé » imprime « un mois » (avant : « deux mois »), un bail meublé sur un logement
+  non coché « deux mois » (avant : « un mois »). Aucun montant imprimé ne change. En-tête : « Article 22 de la loi
+  n° 89-462 du 6 juillet 1989 » pour un bail nu ; « Loi n° 89-462 du 6 juillet 1989 », sans article, pour un bail
+  meublé, puisque l'article 25-6 manque au recueil (reprise T3R-7).
+- **Résumé de la notice** (lot T2, écart R11-A1) : la phrase fausse « il produit intérêt au profit du locataire » est
+  remplacée par la majoration de 10 % du loyer mensuel hors charges par période mensuelle commencée en retard, « non
+  due si le retard vient de ce que le locataire n'a pas communiqué l'adresse de son nouveau domicile ». Les résumés
+  déjà rangés gardent leur fichier, donc l'ancienne phrase (Q109).
+- **Espace du [[Locataire]]** (écart R11-A3) : trois endroits disent maintenant un mois après un état des lieux de
+  sortie conforme à celui d'entrée, deux mois sinon — et non plus « 2 mois si des retenues sont justifiées ».
+- **Retenues** (décision Q49, lot D3) : chaque retenue doit avoir sa pièce, un devis suffit ; sans elle, ni le décompte
+  de restitution ni le décompte des retenues ne se produisent ([[Restitution du dépôt de garantie]]).
+- **Plafond à la saisie et en base** : inchangé (section du 09/09 et du 14/09).
+
+> [!warning] Points à trancher / contradictions (25/11/2026)
+> - **Plafond de deux mois en meublé** : gardé dans le code, la base, le reçu et le résumé de la notice, mais non relu
+>   (article 25-6 absent du recueil ; `JURISTE.md`, partie 9, point 25). Lu seul, le recueil laisse croire que
+>   l'article 22 (un mois) s'applique au meublé, puisqu'il figure dans la liste des articles applicables aux meublés.
+> - **Changement de propriétaire** : en cas de « mutation à titre gratuit ou onéreux des locaux loués », le texte fourni
+>   (art. 22) met la restitution à la charge du **nouveau bailleur** ; Gerimmo ne connaît pas ce cas (nouveauté relevée
+>   par l'analyse du recueil, non codée).
+> - **Pas de dépôt si le loyer est payable d'avance pour plus de deux mois** (art. 22) : sans objet aujourd'hui, les
+>   baux de Gerimmo étant à paiement mensuel.

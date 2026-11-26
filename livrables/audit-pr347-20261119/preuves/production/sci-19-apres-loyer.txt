@@ -1,0 +1,126 @@
+← Immeuble Audit 8C04
+
+CONTRAT DE LOCATION · NU
+
+Immeuble Audit 8C04
+Brouillon
+
+Locataire-Audit Noé
+
+Supprimer le brouillon
+Entrée le
+01/11/2026
+PRÉPARATION DU BAIL
+Étape 5 sur 7
+Le bail
+Renseigné
+02
+Personnes
+3 à compléter
+03
+Le logement
+1 à compléter
+Loyer
+Renseigné
+05
+Documents
+4 champs · pièces à vérifier
+06
+Clauses
+2 à compléter
+07
+Récapitulatif
+À relire
+
+Vérification automatique en cours…
+
+ÉTAPE 05 / 7
+Documents
+
+Pièces attendues et documents déjà enregistrés.
+
+Montants figurant sur le DPE
+
+À reprendre dans le rapport si ces informations ne sont pas encore renseignées.
+
+Dépenses annuelles minimales (€)
+Dépenses annuelles maximales (€)
+Année(s) des prix de l’énergie
+
+Par exemple : 2021, 2022 et 2023, selon le DPE.
+
+Les pièces attendues sont listées ci-dessous. Les documents du logement sont repris automatiquement ; seuls les éléments manquants restent à compléter.
+
+Diagnostics du logement et du bâtiment
+DPE
+Logement
+À ajouter
+Ajouter le rapport
+Électricité
+Logement
+À préciser
+Préciser l’installation
+Gaz
+Logement
+À préciser
+Préciser l’installation
+ERP — état des risques
+Bâtiment
+À ajouter
+Ajouter le rapport
+Plomb (CREP)
+Logement
+À ajouter
+Ajouter le rapport
+Amiante (privatif)
+Logement
+À disposition du locataire sur demande, sans annexion au bail.
+À tenir à disposition
+Ajouter le rapport
+Amiante (parties communes)
+Bâtiment
+À disposition du locataire sur demande, sans annexion au bail.
+À tenir à disposition
+Ajouter le rapport
+Gérer les diagnostics dans le lot
+Les assurances
+Assurance du propriétaire
+Facultative
+
+Recommandée · Hors copropriété
+
+Attestation couvrant votre responsabilité de bailleur pour ce logement (souvent appelée PNO).
+
+Ajouter l’attestation
+Assurance du locataire
+À ajouter
+
+Obligatoire · À la remise des clés
+
+Attestation d’assurance habitation couvrant les risques locatifs et les occupants de ce bail.
+
+Ajouter l’attestation
+À remettre avec le bail
+Notice d’information
+À générer
+
+Obligatoire · Avec le bail
+
+Les droits et obligations du propriétaire et du locataire. Gerimmo prépare le document.
+
+Générer la notice
+Extraits du règlement de copropriété
+Non concerné
+
+Bâtiment hors copropriété
+
+À l’entrée du locataire
+À préparer
+
+L’état des lieux d’entrée se complète et se signe avec le locataire lors de la remise des clés.
+
+Préparer l’état des lieux
+Autres pièces selon le logement
+Autres fichiers enregistrés0
+Précédent
+Enregistrer et continuer

@@ -4,7 +4,7 @@ tags: [strategie, feuille-de-route, marche, concurrence, aides, banque, europe, 
 status: draft
 created: 2026-11-26
 updated: 2026-11-26
-sources: ["[[Proposition de valeur]]", "[[Analyse concurrentielle]]", "[[Prêt à démarcher]]", "[[Grille tarifaire]]", "[[Calendrier de lancement — 30 novembre 2026]]", "Recherches web du 26/11/2026 (liste en fin de page)"]
+sources: ["[[Passation — état du 26 novembre 2026]]", "[[Proposition de valeur]]", "[[Analyse concurrentielle]]", "[[Prêt à démarcher]]", "[[Grille tarifaire]]", "[[Calendrier de lancement — 30 novembre 2026]]", "Recherches web du 26/11/2026 (liste en fin de page)"]
 ---
 
 # Feuille de route — plateforme de référence, 26 novembre 2026
@@ -20,7 +20,7 @@ sources: ["[[Proposition de valeur]]", "[[Analyse concurrentielle]]", "[[Prêt �
 > exécute le travail, mais n'encaisse pas de fonds pour le compte de tiers.
 
 **Statut : brouillon, à valider par le dirigeant.** Les faits viennent de deux sources :
-- le relevé du dépôt sur `main` `f9e874b` (26/11) ;
+- le relevé du dépôt sur `main` `f9e874b` (26/11), complété par la [[Passation — état du 26 novembre 2026]] ;
 - des recherches web du 26/11, détaillées en fin de page.
 
 Les chiffres marqués « (calcul) » sont des ordres de grandeur, pas des prévisions.
@@ -45,17 +45,20 @@ Les modèles de bail citent déjà le décret n° 2026-596, qui impose de nouvea
 ### Mais il ne rapporte encore rien
 
 - **La souscription payante est fermée** (pilote gratuit). L'inscription et l'essai de 2 mois restent ouverts.
-  Quatre verrous bloquent la vente :
-  1. le mode commercial de la production (`app/src/lib/verrou-pilote.ts`) ;
-  2. le réglage `souscriptions_payantes_ouvertes` ;
-  3. le type de vendeur, à choisir dans `/admin/parametres` ;
-  4. le médiateur de la consommation, ou à défaut une décision datée de vendre sans lui (migration `20261125106000`).
+  D'après la [[Passation — état du 26 novembre 2026]] (section d), il reste trois étapes avant la vente :
+  1. **le médiateur de la consommation** (d.4) : adhérer et saisir ses coordonnées, ce que la passation recommande. À
+     défaut, il faut une décision datée de vendre sans lui (migration `20261125106000`), avec un risque juridique ;
+  2. **l'en-tête des factures dans Stripe** (R7), puis un premier paiement réel remboursé (COM-2) ;
+  3. **l'ouverture des souscriptions** (R8, réglage `souscriptions_payantes_ouvertes` et mode commercial,
+     `app/src/lib/verrou-pilote.ts`). Ce geste revient au seul dirigeant : la consigne « Ne rouvre pas les
+     souscriptions payantes » interdit à l'agent de le faire.
 
-  Aucun paiement réel n'a été constaté. Pour le lancement, le [[Calendrier de lancement — 30 novembre 2026]] prévoit
-  un paiement réel de test, remboursé, avant l'ouverture.
+  L'identité du vendeur (R1) a été réglée par le dirigeant le 26/11. Aucun paiement réel n'est connu.
 - **Les agences** sont sur liste d'attente (décision du 20/10).
-- **4 espaces propriétaires sur 6 n'avaient créé aucun bien** au 21/11 (PR #354). Le site ne mesure pas son audience,
-  on ne sait donc pas pourquoi.
+- **Aucun client réel à ce jour.** Le recompte du 26/11 ne trouve aucun compte réel : selon le dirigeant (22/11), les
+  inscrits sont des comptes de test, à fermer avant la fin de leur essai, entre le 24 et le 29/12 (passation, d.1).
+  Le constat « 4 espaces sur 6 sans bien » (PR #354, 21/11) porte donc sur des comptes de test et ne dit rien du
+  comportement de vrais clients. Le site ne mesure pas son audience.
 - **Plusieurs automatismes codés sont éteints par défaut** :
   - avis d'échéance automatique ;
   - relances par e-mail ;
@@ -181,9 +184,10 @@ Calcul à partir des prix publics relevés le 26/11. Le prix de Qalimo au-delà 
 
 | # | Chantier | Pourquoi | Ce qu'il faut |
 |---|---|---|---|
-| 1.1 | **Ouvrir la vente** aux particuliers et aux SCI | Sans elle, aucun revenu | Deux décisions du dirigeant : le médiateur (ou une vente datée sans lui) et le type de vendeur. Ensuite, le mode commercial et le réglage, puis un premier paiement réel vérifié |
-| 1.2 | **Mesurer** l'audience du site et l'entonnoir : inscription → 1ᵉʳ bien → 1ᵉʳ bail → 1ᵉʳ loyer pointé → paiement | On ne sait pas pourquoi 4 espaces sur 6 sont vides | Choisir un outil de mesure d'audience sans cookie ; tableau hebdomadaire du revenu mensuel, de la conversion des essais et des départs |
-| 1.3 | **Activer** : faire créer le premier bien | 4 espaces sur 6 sont vides | Analyse des parcours abandonnés, aide au premier bien, relance pendant l'essai |
+| 1.0 | **Finir le lot 1 en cours** et préparer une séance guidée avec le dirigeant (fermer les comptes de test, essais courts) | Un logiciel « fonctionnel et sans défaut » est la consigne du dirigeant du 26/11 | Plan de la [[Passation — état du 26 novembre 2026]], section i |
+| 1.1 | **Ouvrir la vente** aux particuliers et aux SCI | Sans elle, aucun revenu | Médiateur (ou vente datée sans lui), en-tête Stripe (R7), premier paiement réel remboursé, puis ouverture par le dirigeant lui-même (R8) |
+| 1.2 | **Mesurer** l'audience du site et l'entonnoir : inscription → 1ᵉʳ bien → 1ᵉʳ bail → 1ᵉʳ loyer pointé → paiement | Sans mesure, on ne saura pas pourquoi de vrais inscrits décrochent | Choisir un outil de mesure d'audience sans cookie ; tableau hebdomadaire du revenu mensuel, de la conversion des essais et des départs |
+| 1.3 | **Trouver les premiers vrais clients**, puis les accompagner jusqu'au premier bien et au premier loyer | Aucun client réel aujourd'hui | Publicité et [[Parrainage]] auprès des particuliers (jamais de démarchage direct, décision du 19/09), démarchage permis des artisans et des agences ([[Prospection commerciale]]) ; suivi personnel des dix premiers |
 | 1.4 | **Allumer ce qui est déjà codé** : avis d'échéance, relances, rappels, signature | Tenir la promesse « le travail se fait tout seul » | Une décision d'ouverture par circuit |
 | 1.5 | **Suivre les textes qui changent** | Risque juridique et confiance | Règles du tiers payant de l'APL au 01/01/2027 (décret n° 2026-84, absent du dépôt) ; suivi du projet de loi sur les DPE, voté en première lecture le 24/11 (le droit n'a pas changé) |
 
@@ -234,7 +238,9 @@ Calcul à partir des prix publics relevés le 26/11. Le prix de Qalimo au-delà 
 
 ## 6. Décisions attendues du dirigeant
 
-1. Ouvrir la vente le 30/11 ? Si oui : médiateur ou vente datée sans lui ; type de vendeur.
+1. Ouvrir la vente le 30/11 ? Si oui : adhérer à un médiateur, ou vendre sans lui par une décision datée ; régler
+   l'en-tête Stripe (R7) ; faire vous-même l'ouverture (R8). Les autres décisions en attente sont dans la
+   [[Passation — état du 26 novembre 2026]], section d.
 2. Règle de priorité : le revenu d'abord, chaque module choisi pour ce qu'il rapporte.
 3. Outil de mesure d'audience, sans cookie de préférence.
 4. Ouverture des automatismes éteints, circuit par circuit.
@@ -244,20 +250,20 @@ Calcul à partir des prix publics relevés le 26/11. Le prix de Qalimo au-delà 
 
 ## 7. Ce que l'agent propose de lancer en premier
 
-Ces chantiers démarrent après la passation de l'ancienne session, pour ne pas modifier les mêmes fichiers en même temps :
+Ces chantiers reprennent la section i de la [[Passation — état du 26 novembre 2026]]. Le code n'est touché qu'une
+fois que l'ancienne session a fini, pour que deux sessions ne modifient pas les mêmes fichiers :
 
-1. ouvrir la vente dès les deux décisions du dirigeant, avec un premier paiement réel vérifié ;
-2. mettre en place la mesure d'audience et le tableau de l'entonnoir ;
-3. analyser les espaces sans bien et revoir le parcours du premier bien ;
+1. finir et publier le lot 1, avec l'accord écrit du dirigeant ;
+2. préparer, en français simple et avec les gestes exacts, la séance guidée avec le dirigeant : fermeture des comptes
+   de test, médiateur, en-tête Stripe, premier paiement réel remboursé. L'ouverture des souscriptions reste son geste ;
+3. mettre en place la mesure d'audience et le tableau de l'entonnoir ;
 4. appliquer les règles du tiers payant de l'APL au 01/01/2027 ;
 5. cadrer la synchronisation bancaire et le carnet du locataire.
 
 > [!warning] Points à trancher / contradictions
-> - La page [[Grille tarifaire]] (30/09) décrit encore les formules Solo à Patrimoine et un essai ramené à 1 mois au
->   01/01/2027. Le code applique l'abonnement unique (PR #286, 11/11) et un essai de 2 mois permanent (PR #335, 15/11).
->   La page est à mettre à jour.
-> - `log.md` s'arrête au 03/11. Les opérations de novembre restent à journaliser ; la note de passation de l'ancienne
->   session doit en fournir la liste.
+> - Ce relevé a d'abord été fait sur `main`, dont le wiki et `log.md` s'arrêtaient au 03/11. La branche de documentation
+>   `claude/audit-final-pr335` est à jour jusqu'au 26/11 ([[Grille tarifaire]] comprise). Elle n'est pas encore
+>   fusionnée dans `main` : une PR de documentation seule est à proposer au dirigeant (passation, section i).
 > - Rentila : un concurrent affirme que la connexion bancaire est disponible dès l'offre gratuite, alors que la page
 >   tarifs de Rentila la réserve à l'offre Gold.
 > - Qlower affiche deux grilles différentes (269/590 € et 299/599 €). Manda présente trois niveaux de prix selon les pages.

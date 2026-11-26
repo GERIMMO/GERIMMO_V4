@@ -3,7 +3,7 @@ type: concept
 tags: [identite, compte, adhesion, multi-tenant, socle]
 status: stable
 created: 2026-07-24
-updated: 2026-10-16
+updated: 2026-11-20
 sources: ["[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-architecture-lot-0]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-16-onboarding-et-invitations]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]"]
 ---
 
@@ -38,9 +38,30 @@ Points structurants :
 | Élément | Unicité | Portée |
 |---|---|---|
 | Email du compte | Strictement unique | **Toute la plateforme** (RM-A1.1) |
+| Email d'une fiche personne | Unique **par agence et par nature** : une société (SCI, SCI familiale, personne morale) peut partager l'adresse de la personne physique qui la gère ; deux personnes physiques, ou deux sociétés, jamais | Par agence (décision du 19/11/2026, à confirmer, voir plus bas) |
 | Personne | Nom + date de naissance, **alerte non bloquante** | Par agence |
 | SIRET artisan | Unique si vérifié, sinon état « non vérifié » | Globale |
 | Adhésion | Une seule par couple compte × agence | (RM-A1.3) |
+
+### Adresse e-mail partagée entre une société et son gérant (19/11/2026)
+
+Jusqu'au 19/11/2026, deux fiches vivantes d'un même espace ne pouvaient pas porter la même adresse. Or, à
+l'ouverture de l'espace d'une [[SCI]], deux fiches naissent : celle de la société (titulaire des lots) et celle de
+la personne physique qui la représente. En pratique, elles ont souvent la même adresse : celle du compte. La fiche
+de la société naissait donc **sans e-mail ni coordonnées** (constat SCI-2 de
+[[Audit après publication PR 347 — 8c0449c6 — 19 novembre 2026]]).
+
+La correction est **en production depuis le 19/11/2026 à 23 h 12 UTC** (PR #348) :
+- **Règle d'unicité par nature** : la société et la personne physique peuvent partager une adresse.
+  Deux personnes physiques, ou deux sociétés, ne le peuvent toujours pas.
+- **Fiche de la société complète** : elle reçoit l'adresse du compte à la création, puis les coordonnées du profil.
+- **Recherches par adresse sans ambiguïté** :
+  - l'import du parc retrouve un **locataire** : la personne physique passe d'abord ;
+  - la reprise comptable retrouve un **propriétaire** : la fiche qui détient des lots dans l'espace passe
+    d'abord, puis la société.
+
+Le compte, lui, reste unique sur toute la plateforme (RM-A1.1 inchangée). Détails :
+[[Corrections après l'audit PR 347 — 19 novembre 2026]].
 
 ## Les six cas résolus
 
@@ -104,6 +125,20 @@ nom + date de naissance en alerte **non bloquante** ; une personne ne se supprim
 jamais, elle s'archive (RM-0b.1.4). Le [[Dossier locataire]] illustre RM-A1.10 : les
 pièces suivent la personne **dans** l'agence, jamais entre agences.
 
+### Naissance du locataire : facultative sur la fiche (décision du dirigeant, 20/11/2026)
+
+La fiche d'un **locataire** n'exige plus sa date ni sa commune de naissance. Un locataire déjà en place a signé son
+bail ailleurs : ces deux mentions ne servent qu'au contrat que Gerimmo rédige, et le récapitulatif du [[Bail]] les
+réclame alors avant de préparer le PDF.
+
+- Le rôle reste ce qu'il est — un choix d'écran, jamais un champ de la fiche (RM-0b.1.1) : c'est l'étape « Locataire »
+  de l'assistant de création, ou l'étape « Personnes » du bail, qui lève l'exigence.
+- **Garant** et **propriétaire mandant** gardent l'exigence à la création.
+- À la modification, une naissance jamais renseignée peut le rester, pour toute fiche ; une naissance déjà enregistrée
+  ne s'efface pas.
+- Sans date de naissance, l'alerte de doublon (nom + date de naissance) ne peut pas se déclencher pour cette fiche.
+- Origine : [[Premiers clients — acquisition sans budget — 20 novembre 2026]] (PR #355).
+
 > [!note] Modèle VALIDÉ par l'humain (2026-07-25)
 > Le modèle canonique A1 est **validé** — aucune anomalie bloquante relevée par
 > l'agent. **Quatre points de vigilance à garder pendant l'implémentation** :
@@ -123,3 +158,11 @@ pièces suivent la personne **dans** l'agence, jamais entre agences.
 > Reste l'écart structurel avec le code (**`profiles` global unique** vs
 > accounts/persons/memberships) — matière de migration :
 > [[Divergences code et référentiel V3]].
+
+> [!warning] Points à trancher / contradictions
+> - **Adresse e-mail partagée par nature (19/11/2026).** Le dirigeant a délégué le choix (« fait au mieux »).
+>   L'agent a retenu l'unicité par nature décrite plus haut. Aucune source métier ne fonde cette règle : elle est à
+>   confirmer. L'autre voie, refusée, aurait laissé la fiche de la société sans adresse, ou imposé une seconde
+>   adresse à la création.
+> - Elle est en vigueur depuis le 19/11 à 23 h 12 UTC (migrations `20261119200000` à `20261119200300`). Un retour
+>   arrière est refusé dès qu'une société et son gérant partagent une adresse : il faudra corriger en avant.

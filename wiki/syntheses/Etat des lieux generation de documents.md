@@ -3,11 +3,18 @@ type: synthesis
 tags: [documents, generation, pdf, bail, templates, documents-0]
 status: in-progress
 created: 2026-08-30
-updated: 2026-09-16
-sources: ["[[Documents a generer et automatisation WhatsApp]]", "[[Structure du modèle-type de bail]]", "[[Mentions obligatoires du bail]]"]
+updated: 2026-11-26
+sources: ["[[Documents a generer et automatisation WhatsApp]]", "[[Structure du modèle-type de bail]]", "[[Mentions obligatoires du bail]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)"]
 ---
 
 # État des lieux — génération de documents (sprint Documents-0)
+
+> [!warning] Page d'août et de septembre 2026 — l'état du 24/11/2026 est ailleurs
+> Cette synthèse décrit le catalogue des documents tel qu'il était entre le 30/08 et le 16/09/2026 ; elle n'est pas
+> réécrite. L'état des documents générés au 24/11/2026 (préproduction le 24/11 ; en production depuis le 25/11/2026,
+> version `062296e2` : 46 modèles du palier 1 produits sur des dossiers fictifs, 97 défauts confirmés corrigés en lots
+> 35 à 49, aucun document présenté comme conforme) est dans [[Mission palier 1 — audit du 22 novembre 2026]], section
+> « Phase 3 — documents générés ».
 
 > [!note] Vérifié sur le schéma de PRODUCTION le 2026-08-31
 > À la demande de Tahir, les statuts « en base / manquant » ci-dessous ont été

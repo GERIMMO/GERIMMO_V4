@@ -3,7 +3,7 @@ type: synthesis
 tags: [charte, visuel, ux, design-system, vitrine, marque-blanche]
 status: stable
 created: 2026-09-17
-updated: 2026-09-24
+updated: 2026-11-20
 sources: ["[[2026-08-08-maquette-prototype-cliquable]]", "[[2026-09-04-maquette-v3-prototype]]"]
 ---
 
@@ -186,6 +186,13 @@ descendance.
 >   (toit et clé) ; les fichiers officiels n'ont jamais été transmis.
 > - Les noms de classes historiques (`.btn-or`, `.kpi.or`) désignent
 >   désormais du bleu ; renommer un jour, ou vivre avec.
+> - **20/11/2026 — charte supplantée pour les couleurs et la typographie.** Le
+>   code en production ne porte plus cette marque bleue `#2457f5` mais du bleu
+>   nuit `#14304f` et du champagne ; la refonte
+>   [[Refonte visuelle « Maison » et Design System — 20 novembre 2026]]
+>   prolonge ce second état (titres à empattements, papier chaud). Cette page
+>   reste valable pour l'histoire et pour ses deux leçons techniques (fenêtres
+>   en portail, repères des positions fixes).
 
 ## Relations
 
@@ -194,4 +201,6 @@ Supplante [[Charte visuelle de l'espace agent]] (valeurs) et la charte v2 de
 contrainte [[Marque blanche]] respectée · les écarts assumés de
 [[Coherence maquette-application|Cohérence maquette ↔ application]] restent
 valables pour la structure des écrans, plus pour leur habillage · documents :
-[[Etat des lieux generation de documents]].
+[[Etat des lieux generation de documents]] · supplantée pour les couleurs et
+la typographie par
+[[Refonte visuelle « Maison » et Design System — 20 novembre 2026]].

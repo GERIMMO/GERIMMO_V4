@@ -3,8 +3,8 @@ type: process
 tags: [restitution, depot-de-garantie, retenue, decompte, delai-legal, vetuste]
 status: draft
 created: 2026-07-24
-updated: 2026-10-16
-sources: ["[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[Le jour de référence est le jour de Paris]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]"]
+updated: 2026-11-26
+sources: ["[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[Le jour de référence est le jour de Paris]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Recueil des textes officiels (v6)]]", "DECISIONS-2026-11-24.md (Q49)", "QUESTIONS.md (Q40, Q49)", "JURISTE.md (partie 1, point 25 ; partie 2, point 4 ; partie 5, point 14 ; partie 8, point 1)", "JOURNAL.md (lots D3 et T3, 24-25/11/2026)", "livrables/notes-banc/ (notes-T3, relecture-T3R)", "livrables/recueil/analyse-refs-10-24.md (réf. 11, 14 et 15)", "code de la branche fusionnée claude/palier-1-fusion (89cb87ff, lecture seule)", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)"]
 ---
 
 # Restitution du dépôt de garantie
@@ -26,6 +26,11 @@ Source : [[2026-07-24-gerimmo-v3-module-2-garanties|Module 2]], parcours 2.4 / 2
   V1** (RM-2.4.10). Délais 1/2 mois depuis la remise des clés et majoration de retard
   confirmés par [[2026-08-05-bailpdf-contrat-de-bail|BailPDF]] (qui confirme aussi :
   chaque retenue justifiée par devis/facture, vétusté normale jamais imputable).
+- *Texte fourni (25/11)* : l'article 22 du [[Recueil des textes officiels (v6)]] (réf. 11, non recontrôlé sur
+  Légifrance) donne les mêmes délais (un mois « lorsque l'état des lieux de sortie est conforme à l'état des lieux
+  d'entrée », deux mois sinon, depuis la remise des clés), des retenues « dûment justifiées », et la majoration de 10 %
+  du loyer mensuel en principal « pour chaque période mensuelle commencée en retard ». Le décompte de Gerimmo imprime
+  ces règles ; il ne calcule pas la majoration. Le texte ne prévoit aucune suspension du délai.
 
 ## Le circuit (parcours nominal 2.4)
 
@@ -35,7 +40,8 @@ Source : [[2026-07-24-gerimmo-v3-module-2-garanties|Module 2]], parcours 2.4 / 2
    pas ») et saisit le coût de remise en état.
 4. Le système **applique la décote de vétusté** depuis la grille ([[Vétusté et décote]]).
 5. L'agent joint devis ou facture (**alerte si absent**, RM-2.4.6 — retenue acceptée
-   mais « difficilement défendable », absence tracée, US-2.4.2).
+   mais « difficilement défendable », absence tracée, US-2.4.2). *Depuis le 25/11/2026, version `062296e2` (Q49) :
+   sans pièce, aucun des deux décomptes ne se produit — voir la section du 25/11.*
 6. Le système calcule le solde ; l'agent valide et **génère le décompte** (PDF), envoyé
    au locataire (2.7).
 
@@ -51,7 +57,9 @@ Source : [[2026-07-24-gerimmo-v3-module-2-garanties|Module 2]], parcours 2.4 / 2
 - **Les impayés (loyers, charges) s'imputent sur le dépôt AVANT les retenues de
   dégradation** (RM-2.4.7).
 - **Provision de 20 % maximum** conservable si une régularisation de charges est en
-  attente, jusqu'à l'arrêté des comptes (RM-2.4.8).
+  attente, jusqu'à l'arrêté des comptes (RM-2.4.8). *Gerimmo ne propose pas cette
+  provision (aucune occurrence dans le code, selon l'analyse du recueil) ; le texte fourni
+  (art. 22) la permet dans un immeuble collectif, « dûment justifiée », sans clause au bail.*
 - Retenues > dépôt : autorisé — **le solde bascule en créance** sur le locataire
   (module 3).
 - **Colocation** : restitution unique, aux colocataires conjointement.
@@ -136,3 +144,74 @@ Voir [[Agenda et échéances]] (alerte liée à son événement d'origine).
 > de Paris ») étendue à la restitution : **à faire ratifier par le dirigeant**. Les alertes
 > de restitution (seuils J-7 et J+0 du délai légal) lisent encore le jour de la session.
 > Voir [[Le jour de référence est le jour de Paris]].
+
+## État dans l'application au 24/11/2026 (préproduction ; en production depuis le 25/11/2026) — décomptes et sortie (mission palier 1, phase 3)
+
+Relu dans le code après les lots 37, 41 et 45 ([[Mission palier 1 — audit du 22 novembre 2026]] ; `QUESTIONS.md`,
+Q49 ; `JURISTE.md`, partie 5, points 1 et 14).
+- **Les retenues ne figurent que dans les deux décomptes** (décompte de restitution et décompte des retenues), chacun
+  daté de son émission ; l'[[État des lieux]] de sortie signé ne les imprime plus.
+- **Une retenue sans justificatif** : le décompte de restitution imprime « Non fourni » (« Une retenue marquée « Non
+  fourni » n'est appuyée d'aucune pièce. ») ; le décompte des retenues, lui, **reste bloqué** tant qu'une retenue n'a
+  pas de justificatif (Q49, point 2). *Dépassé par la décision Q49 du 24/11 (lot D3) : « Non fourni » ne s'imprime
+  plus, les deux décomptes sont bloqués — section du 25/11.*
+- **Adresse de l'ancien locataire** : après sa sortie, les relances et la mise en demeure portent l'adresse qu'il a
+  donnée à l'état des lieux de sortie pour la restitution du dépôt ; sinon son nom seul, sans adresse inventée
+  (juriste, point 1). Le décompte de restitution, lui, n'imprime pas d'adresse du locataire, seulement celle du
+  logement. Voir [[Relances et mise en demeure]]. *Le champ s'intitule désormais « Adresse du nouveau domicile ou du
+  lieu d'hébergement du locataire » (lot T3) — même donnée.*
+
+> [!warning] Points à trancher / contradictions (24/11/2026)
+> - Les deux décomptes ne traitent pas de la même façon une retenue sans pièce (« Non fourni » d'un côté, refus de
+>   l'autre) : faut-il aligner ? (Q49, point 2). Le chiffrage doit-il rester visible avec l'état des lieux, dans un
+>   document distinct ? (Q49 ; juriste, point 14).
+>   → *Tranché le 24/11 par le dirigeant (Q49) : « aligne les deux décomptes : chaque retenue a son justificatif, un
+>   devis suffit. » Appliqué dans la version préparée `062296e2`, en production depuis le 25/11/2026 (section
+>   suivante).*
+
+## Version préparée `062296e2`, en production depuis le 25/11/2026 — justificatifs, état des lieux de sortie, textes fournis
+
+> [!info] Ce qui est en production
+> Cette section est en production depuis le 25/11/2026 à 23:17Z (26/11 à 00 h 17, heure de Paris) : la version
+> préparée `062296e2` a été publiée par la PR #358 (`main` = `8f9dd9ce`, identique à `062296e2`), ses 52 migrations sont
+> appliquées (25/11, 22:09Z) et la recette de production n° 58 a réussi (`log.md`, entrée « deploy » du 25/11/2026).
+> Jusqu'au 25/11, la production servait la version du 21/11/2026 (`81740dec`), gelée depuis le 22/11, qui n'en
+> contenait rien. Ce qui suit est lu dans le code de la branche fusionnée `claude/palier-1-fusion` (`89cb87ff`, complétée jusqu'à `062296e2`, vérifiée en entier sur le banc et poussée le 25/11 sur la branche de préproduction ;
+> `JOURNAL.md`, entrée du 25/11) et dans `JOURNAL.md` (lot D3), `QUESTIONS.md` (Q40,
+> Q49), `JURISTE.md` (parties 8 et 9) et les notes du lot T3. Aucun point de droit n'est donné pour acquis : la
+> publication ne vérifie rien de juridique.
+
+- **Une pièce par retenue, un devis suffit** (Q49, lot D3) : une retenue sans pièce bloque le décompte de restitution
+  **comme** le décompte des retenues, avec une ligne « À renseigner » par retenue ; « Non fourni » ne s'imprime plus.
+  Un même devis, ou l'[[État des lieux]] de sortie déjà rangé, peut justifier plusieurs retenues sans nouveau dépôt. La
+  base refuse une pièce venue du dossier d'un autre locataire, d'un autre logement ou d'un autre bail ; une pièce
+  purgée se remplace. L'écran dit que le blocage du PDF **n'arrête pas** le délai de restitution.
+- **Décomptes d'avant ce lot** : un décompte finalisé sans pièce ne se génère plus tant que la pièce manque ; les PDF
+  déjà rangés restent. Les pièces liées à un mandat et les rapports de diagnostic ne sont pas contrôlés (Q49).
+- **État des lieux de sortie** (lot T3, écart R15-A1) : l'adresse du locataire s'y intitule « Adresse du nouveau
+  domicile ou du lieu d'hébergement du locataire », libellé du décret n° 2016-382 (art. 2) tel que le donne le
+  [[Recueil des textes officiels (v6)]] ; elle est obligatoire à la saisie. Un état des lieux de sortie préparé pour la
+  signature électronique mais pas encore envoyé est refusé à l'envoi et se prépare de nouveau (Q40) ; en production,
+  aucun circuit n'était dans ce cas au contrôle du 24/11.
+- **RIB de l'ancien locataire** (reprise T3R-2) : les pièces demandables avant le bail sont limitées à la liste du décret
+  n° 2015-1437, où le RIB n'est pas ; un locataire sorti d'un bail signé garde, lui, le libellé libre, ce qui permet de
+  lui demander un RIB pour la restitution ([[Dossier locataire]]).
+- **Ce que le décompte n'imprime pas encore** (relevé par l'analyse du recueil, non codé) : la majoration « n'est pas
+  due » quand le retard vient de ce que le locataire n'a pas transmis l'adresse de son nouveau domicile (art. 22 ; le
+  résumé de la notice le dit, depuis le lot T2) ; la précision que les durées de vie de la ligne « Vétusté appliquée »
+  sont celles du bailleur, en l'absence de grille de vétusté convenue au bail (décret n° 2016-382 ; l'écran le dit,
+  le décompte non — [[Vétusté et décote]]).
+
+> [!warning] Points à trancher / contradictions (25/11/2026)
+> - **Référentiel V3 ≠ version `062296e2`** (en production depuis le 25/11/2026) : RM-2.4.6 / US-2.4.2 acceptent une
+>   retenue sans pièce, avec une alerte ; la version `062296e2` bloque les deux décomptes tant qu'une retenue n'a pas sa
+>   pièce.
+> - **Provision de 20 %** (RM-2.4.8, section « Règles d'imputation ») : décrite comme conservable, mais **non proposée**
+>   par l'application ; le texte fourni la permet sans clause. À décider par le dirigeant : l'ajouter ou non
+>   (`JURISTE.md`, partie 1, point 25).
+> - **Bloquer le décompte fait courir un risque** : le texte fourni ne suspend pas le délai et la majoration court par
+>   période mensuelle commencée (`JURISTE.md`, partie 8, point 1 (d)). Restent au juriste : un devis seul suffit-il, un
+>   devis pour plusieurs retenues, l'état des lieux de sortie comme seule pièce (partie 8, point 1 (a) à (c)).
+> - **Une usure normale rend-elle la sortie « non conforme »** (donc deux mois) ? Le texte fourni dit seulement
+>   « conforme » ; Gerimmo compte tout changement d'état, usure comprise, pour le délai de deux mois (`JURISTE.md`,
+>   partie 2, point 4).

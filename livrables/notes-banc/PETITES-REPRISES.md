@@ -1,0 +1,30 @@
+# Petites reprises à faire en un seul lot (après T2/T3), une seule relecture
+## Lot 60 (écrans artisan) — rapport : $S/phase3/correctifs/L60R/rapport.md
+R1 (libellé d'export trop généreux), R2 (« Sur place » : dire que le locataire lit la discussion seulement s'il a un compte), R3 (onglets 421-470 px), R4/R5 (tests qui ne prouvent pas l'avant), R6 (compteur d'agenda), R7 (LienAssistance), R8 (double mise en garde), R9 (facultatif).
+## Lot T1 (congés) — rapport : $S/recueil/T1R/rapport.md
+T1R-2 (`terme_bail_calcule` pour un bail commencé un 29 février : 27/02 au lieu du 28/02 → migration additive, tests), T1R-3 (texte locataire « 1 mois en zone tendue » : ajouter « et que votre lettre le précise et le justifie »), T1R-5 (empreinte dans la note), T1R-6 (« telle qu'elle figure au bail » → « Désignation des locaux loués : »). T1R-1 : au juriste. T1R-4 : plan de publication (migrations avant le code — déjà la règle).
+## Lot T2 (bail, caution, colocation) — rapport : $S/recueil/T2R/rapport.md (PDF témoins dans T2R/pdf)
+T2R-1 (important) : `formulaire-colocation.tsx:106` et `actions/baux.ts:983` affirment « solidarité 6 mois » sans condition → libellés conditionnels (ne s'applique pas aux époux/pacsés) ; le calcul de base reste (question au dirigeant : case « mariés ou pacsés »). T2R-2 : page de signatures seule (bail nu 2-3 locataires textes courts, meublé long) → le bloc de signatures emporte ce qui précède. T2R-3 : alinéas coupés (clause de solidarité, ligne règlement de copropriété) → break-inside: avoid. T2R-4 : message de refus (caution commune à deux époux). T2R-6 : fixture avec garantie financière, garder `manquants = []`. T2R-7 : un test permanent en base pour bail = appel (prorata) et un pour l'activation d'un bail signé à durée réduite. Preuve par rendu PDF réel.
+
+# LOT À PART (décision du dirigeant du 24/11, nuit) : case « mariés ou pacsés » au bail
+À faire dans $S/palier1 après les petites reprises. Donnée au bail (migration additive, retour arrière), saisie à la préparation du bail à deux locataires ou plus, clause du bail (art. 8-1 du recueil, r2), libellés des écrans de colocation, et calcul de `enregistrer_depart_colocataire` (pas de `date_solidarite_fin` à six mois pour des époux/pacsés : la solidarité dure jusqu'à la fin du bail — relire le texte), appels et relances qui filtrent sur cette date. Ne modifie aucun départ déjà enregistré. Argent/légal → double relecture. Rapport T2R-1 : $S/recueil/T2R/rapport.md.
+
+# REPRISE T3 (dépôt, charges, pièces) — rapport : $S/recueil/T3R/rapport.md (sondes dans T3R/tmp)
+À faire dans $S/palier1 après les petites reprises en cours. Argent/sécurité → relecture ensuite.
+- T3R-1 (important, régression) : `regulariser_charges` et sa jumelle acceptent par appel direct un complément d'exercice ancien sans confirmation. Correction : paramètre `p_exercice_ancien boolean default false` dans les deux fonctions et leurs deux enveloppes ; sans lui la base lève « confirmation nécessaire » (pas « prescrit »). Migration additive + retour, droits identiques, test en base (appel direct refusé / accepté avec confirmation).
+- T3R-2 (important) : le libellé libre des pièces est retiré aussi à un locataire sorti (bail terminé) et à un propriétaire mandant → régime libre quand la personne a un bail signé (même terminé) ou détient un lot/mandat, et n'est ni caution ni locataire en préparation. Tests des deux cas.
+- T3R-3 : refus du libellé libre tenu seulement par l'action serveur → le dire dans le test, ou déclencheur en base si simple.
+- T3R-4 : e-mail qui coupe le texte du décret à 300 caractères → pas de coupe pour ces notes, ou renvoi à l'espace.
+- T3R-5 : deux noms de pièce pas mot pour mot (II-B-1 « ou toute autre pièce équivalente », I-D-6) → aligner sur le recueil.
+- T3R-6 : pièce unique déjà reçue non redemandable (identité périmée) ; I-B et II-C même nom.
+- T3R-7 : reçu de dépôt « deux mois » sous le seul en-tête « Article 22 » (art. 25-6 absent du recueil) → ne pas citer d'article pour le meublé, ou formulation neutre.
+- T3R-8 : en-tête de migration et tests : le terme change aussi pour des baux étudiants de neuf mois (30/05, 31/05, 31/07, 31/12, 29/05) → le dire et le tester. Question au juriste : terme 28/02 et date limite 31/08.
+
+# REPRISE D4 (Q15, Q24) — rapport : $S/decisions/D4R/rapport.md
+À faire dans $S/palier1-t après le lot D5 en cours (pas de banc partagé ; base `gerimmo_ci_sonde_tquatre`). Contrat/sécurité → relecture ensuite si le changement dépasse quelques lignes.
+- D4R-01 (important) : `accepter_cgu` enregistre un accord pour une version `conditions_clients` non archivée et sans empreinte (ex. '2099-01-01'), ce qui satisfait ensuite `preuveConditionsEnVigueur`. Correction : la fonction de base refuse une version absente de `versions_conditions` pour la source « compte » ET un accord sans empreinte ne compte pas comme preuve. Migration additive + retour, droits identiques, test EN BASE (D4R-07).
+- D4R-02 (important) : l'article 16 des conditions promet un courriel et un mois de préavis avant l'effet d'une nouvelle version ; le code n'envoie rien et demande l'accord dès l'archivage ; l'écran dit « rien ne change ». Option prudente (aucun abonné réel aujourd'hui) : l'archivage d'une nouvelle version est REFUSÉ s'il existe au moins un abonné actif tant que l'annonce n'a pas été faite (pas de nouvelle fonction d'envoi dans ce lot) ; la console le dit ; l'écran d'accord ne dit plus « rien ne change » ; note pour JURISTE (article 16 alinéa 2 face à l'accord exprès). Contrôle à faire le jour J : zéro abonné avant d'archiver.
+- D4R-03 (important) : relance de loyer à la main — en cas d'échec d'envoi puis reprise autonome, l'e-mail part sans trace dans `relances`. Correction la plus simple : `repriseAutonome:false` pour ce type (comme avant), avec test.
+- D4R-04 : `demander_periodicite_suivante` appelable directement sans accord → garde dans la fonction, ou note écrite.
+- D4R-05 : relance à la main sans plafond par espace → noter comme question (plafond ?).
+- D4R-06 : rien à faire (LISEZ-MOI suffit).

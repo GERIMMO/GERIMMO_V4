@@ -126,5 +126,5 @@ recommandent est un département sain).
 
 ## Relations
 
-[[Expansion territoriale autonome]] (le pourquoi) · [[Onboarding et abonnement]] (où le code entre) · [[Organisation]] (le code y vit) ·
+[[Expansion territoriale autonome]] (le pourquoi) · [[Souscription de l'abonnement]] (où le code entre) · [[Organisation]] (le code y vit) ·
 [[Abonnement]] (l'avantage : avoir sur facture).

@@ -111,7 +111,7 @@ L'occupation d'un logement n'est pas un attribut du bien. Elle se lit dans les b
   logement entier est occupé, et compte les chambres louées et les chambres sans bail. Des chambres préparées dans un
   logement loué en entier ne sont pas vacantes.
 
-Voir [[Bail]] et [[Occupation d'un bien]].
+Voir [[Bail]] (l'ancienne page « Occupation d'un bien » y est fusionnée).
 
 ## Relations
 

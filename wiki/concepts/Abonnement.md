@@ -141,7 +141,7 @@ Plan juriste/DPO du 23/10 (lots 1 et 2) ; textes contractuels inchangés (versio
 
 ## Relations
 - Souscrit par [[Administrateur d'agence]] ou [[Propriétaire bailleur]] ; administré par [[Super Admin]].
-- Cycle de vie automatisé — voir [[Cycle de vie de l'abonnement]], [[Onboarding et abonnement]].
+- Cycle de vie automatisé — voir [[Cycle de vie de l'abonnement]], [[Souscription de l'abonnement]].
 
 > [!warning] Points à trancher / contradictions
 > - **26/11/2026 — grille corrigée** : cette page donnait encore la grille du 28/09 et l'offre de lancement comme en

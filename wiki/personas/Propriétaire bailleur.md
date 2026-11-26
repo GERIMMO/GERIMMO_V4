@@ -79,7 +79,7 @@ même si le lot change de propriétaire.
 création de son compte et de son organisation `independent_owner` → essai (14 jours ; **2 mois** depuis le 30/09/2026) →
 abonnement par bien via Stripe. Pas de commerciaux, indépendant de bout en bout.
 **Voie de secours :** le [[Super Admin]] peut aussi **créer manuellement tout
-profil**, PD compris (support, cas particuliers). Détail : [[Onboarding et abonnement]]. **Priorisé le 2026-08-19** :
+profil**, PD compris (support, cas particuliers). Détail : [[Souscription de l'abonnement]]. **Priorisé le 2026-08-19** :
 le S9 est scindé, le PD ouvre le bal — sprint **9a dédié** (auto-inscription +
 espace complet + livre recettes-dépenses + récap fiscal), le paiement Stripe au S11.
 

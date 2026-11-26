@@ -104,6 +104,15 @@ const nouveauLoyer = (i: Calculateur) =>
   tous(i).find((e) => e.type === ChiffreHero && e.props.testId === "irl-nouveau-loyer")?.props.valeur as string | undefined;
 const alertes = (i: Calculateur) => tous(i).filter((e) => e.type === Alerte).map((e) => texte(e.props.children));
 const boutonImprimer = (i: Calculateur) => tous(i).find((e) => e.type === "button" && texte(e.props.children).includes("Imprimer la lettre"));
+const raisonLettre = (i: Calculateur) => {
+  const el = tous(i).find((e) => e.props["data-testid"] === "irl-lettre-manque");
+  return el ? texte(el.props.children) : undefined;
+};
+/** Le message imprimé à la place d'une lettre incomplète (impression par le navigateur). */
+const raisonImprimee = (i: Calculateur) => {
+  const el = tous(i).find((e) => e.type === "p" && e.props.className === "hidden print:block");
+  return el ? texte(el.props.children) : undefined;
+};
 
 async function saisir(i: Calculateur, id: string, valeur: string) {
   (champ(i, id)!.props.onChange as (v: string) => void)(valeur);
@@ -131,9 +140,50 @@ describe("outil public IRL, saisie manuelle : le garde-fou refuse le loyer et la
     expect(alertes(i).some((a) => a.startsWith("Révision refusée : vérifiez les indices saisis."))).toBe(true);
     expect(tous(i).some((e) => e.type === "p" && texte(e.props.children) === "Aucun nouveau loyer n'est calculé avec ces indices.")).toBe(true);
     expect(boutonImprimer(i)?.props.disabled).toBe(true);
+    // Chaque mention de la lettre est remplie : plus rien ne manque à la lettre. Le bouton reste inactif à cause du
+    // garde-fou seul, et le message dit de corriger les indices, pas de « compléter » le calcul (tout y est saisi).
+    await saisir(i, "irl-bailleur-nom", "Durand Paul");
+    await saisir(i, "irl-bailleur-adresse", "3 rue Fictive, 75011 Paris");
+    await saisir(i, "irl-locataire-nom", "Martin Claire");
+    await saisir(i, "irl-logement", "8 avenue Exemple, 69003 Lyon");
+    await saisir(i, "irl-date-lettre", "2026-07-25");
+    await saisir(i, "irl-date-effet", "2026-08-01");
+    expect(champ(i, "irl-indice-ref")?.props.valeur).toBe("14,68");
+    expect(nouveauLoyer(i)).toBeUndefined();
+    expect(pastille(i)).toBe("À corriger");
+    expect(boutonImprimer(i)?.props.disabled).toBe(true);
+    expect(boutonImprimer(i)?.props["aria-describedby"]).toBe("irl-lettre-manque");
+    expect(raisonLettre(i)).toBe("Pour imprimer la lettre, corrigez d'abord les indices saisis.");
+    expect(raisonImprimee(i)).toBe("Pour imprimer la lettre, corrigez d'abord les indices saisis.");
+    // L'indice corrigé : le calcul revient, la lettre s'imprime, aucun message.
     await saisir(i, "irl-indice-ref", "146,68");
     expect(nouveauLoyer(i)).toMatch(/^859,79\s€$/);
     expect(pastille(i)).toBe("Indices cohérents");
+    expect(boutonImprimer(i)?.props.disabled).toBe(false);
+    expect(boutonImprimer(i)?.props["aria-describedby"]).toBeUndefined();
+    expect(raisonLettre(i)).toBeUndefined();
+    expect(raisonImprimee(i)).toBeUndefined();
+    i.demonter();
+  });
+
+  it("garde-fou et mentions manquantes : le message dit de corriger les indices, puis de renseigner ce qui manque", async () => {
+    const i = monter(CalculateurIrl, { serie: null }) as Calculateur;
+    i.stabiliser();
+    await i.vider();
+    await saisir(i, "irl-loyer", "850");
+    await cocher(i, "irl-trim-ref", "T2");
+    await saisir(i, "irl-annee-ref", "2025");
+    await saisir(i, "irl-indice-ref", "14,68");
+    await cocher(i, "irl-trim-nouv", "T2");
+    await saisir(i, "irl-annee-nouv", "2026");
+    await saisir(i, "irl-indice-nouv", "148,37");
+    await saisir(i, "irl-bailleur-nom", "Durand Paul");
+    expect(raisonLettre(i)).toBe(
+      "Pour imprimer la lettre, corrigez d'abord les indices saisis, puis renseignez l'adresse du bailleur, le nom du locataire, l'adresse du logement, la date de la lettre et la date d'effet de la révision."
+    );
+    // Un champ du calcul vide : c'est bien le calcul qui reste à compléter (message inchangé).
+    await saisir(i, "irl-loyer", "");
+    expect(raisonLettre(i)).toMatch(/^Pour imprimer la lettre, complétez d'abord le calcul du nouveau loyer, puis renseignez /);
     i.demonter();
   });
 });

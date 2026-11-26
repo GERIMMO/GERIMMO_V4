@@ -147,13 +147,28 @@ export function GenerateurQuittance() {
     <CarteSaisie id="q-saisie" titre="Le terme">
       <Groupe legende="Période et paiement">
         <div className="grid gap-4 sm:grid-cols-2">
-          <Champ id="q-periode" type="month" libelle="Mois" valeur={periode} onChange={setPeriode} placeholder="Ex. 2026-09" />
+          {/* Pas de texte indicatif : un champ de type « month » ne l'affiche pas (Chromium montre son propre gabarit). */}
+          <Champ id="q-periode" type="month" libelle="Mois" valeur={periode} onChange={setPeriode} />
           <Champ id="q-date" type="date" libelle="Date du paiement" valeur={datePaiement} onChange={setDatePaiement} />
         </div>
-        <button type="button" onClick={moisSuivantClic} className="btn-secondaire" disabled={!bornes}>
-          Mois suivant
-          <span aria-hidden>→</span>
-        </button>
+        <div>
+          <button
+            type="button"
+            onClick={moisSuivantClic}
+            className="btn-secondaire"
+            disabled={!bornes}
+            aria-describedby={bornes ? undefined : "q-mois-suivant-aide"}
+          >
+            Mois suivant
+            <span aria-hidden>→</span>
+          </button>
+          {/* Inactif, le bouton dit pourquoi : il part du mois saisi, et n'en invente pas. */}
+          {!bornes && (
+            <p id="q-mois-suivant-aide" className="mt-1.5 text-[12.5px] leading-snug text-[var(--texte-secondaire)]">
+              Saisissez d&apos;abord le mois.
+            </p>
+          )}
+        </div>
       </Groupe>
       <Groupe legende="Montants">
         <div className="grid gap-4 sm:grid-cols-2">
@@ -213,31 +228,40 @@ export function GenerateurQuittance() {
 
   if (manquesTerme.length > 0 || !r || !bornes) {
     return (
-      <DispositionOutil
-        saisie={saisie}
-        resultat={
-          <PanneauResultat
-            id="q-resultat"
-            titre="Document à compléter"
-            pastille={
-              <Pastille ton="neutre" testId="q-etat">
-                À compléter
-              </Pastille>
-            }
-          >
-            {manquesTerme.length > 0 ? (
-              <p data-testid="q-manque" className="rounded-[var(--rayon-bouton)] bg-[var(--filet-leger)] px-4 py-5 text-[14px] text-[var(--texte-secondaire)]">
-                Renseignez {enumerer(manquesTerme)} pour préparer le document.
-              </p>
-            ) : (
-              <Alerte gravite="attention">
-                Indiquez le loyer, les charges (0 si aucune) et le montant effectivement reçu. Le terme et le paiement
-                doivent être supérieurs à zéro. Utilisez des montants non négatifs, en euros et centimes.
-              </Alerte>
-            )}
-          </PanneauResultat>
-        }
-      />
+      <div>
+        <DispositionOutil
+          saisie={saisie}
+          resultat={
+            <PanneauResultat
+              id="q-resultat"
+              titre="Document à compléter"
+              pastille={
+                <Pastille ton="neutre" testId="q-etat">
+                  À compléter
+                </Pastille>
+              }
+            >
+              {manquesTerme.length > 0 ? (
+                <p data-testid="q-manque" className="rounded-[var(--rayon-bouton)] bg-[var(--filet-leger)] px-4 py-5 text-[14px] text-[var(--texte-secondaire)]">
+                  Renseignez {enumerer(manquesTerme)} pour préparer le document.
+                </p>
+              ) : (
+                <Alerte gravite="attention">
+                  Indiquez le loyer, les charges (0 si aucune) et le montant effectivement reçu. Le terme et le paiement
+                  doivent être supérieurs à zéro. Utilisez des montants non négatifs, en euros et centimes.
+                </Alerte>
+              )}
+            </PanneauResultat>
+          }
+        />
+        {/* L'écran est retiré du papier : sans ce message, l'impression par le navigateur sortait une page blanche. */}
+        <p data-testid="q-incomplet-imprime" className="hidden print:block">
+          Quittance incomplète :{" "}
+          {manquesTerme.length > 0
+            ? `renseignez ${enumerer(manquesTerme)}.`
+            : "vérifiez le loyer, les charges et le montant reçu (des montants non négatifs, un terme et un paiement supérieurs à zéro)."}
+        </p>
+      </div>
     );
   }
 

@@ -48,6 +48,31 @@ describe("éligibilité Visale", () => {
     ).toBe(true);
   });
 
+  it("30 ans et plus, situation non dite : ni possible ni exclue, « non évaluable », et la situation est demandée", () => {
+    // Avant : aucun motif d'exclusion, donc « éligible », sans que la situation qui seule ouvre Visale ait été dite.
+    for (const loyerCc of [600, 2000, null]) {
+      const r = evaluerVisale({ zone: "reste", moinsDe30Ans: false, situation: null, etudiantSansRevenus: false, loyerCc });
+      expect(r.statut, String(loyerCc)).toBe("non-evaluable");
+      expect(r.eligible, String(loyerCc)).toBe(false);
+      expect(r.motifs, String(loyerCc)).toEqual([]);
+      expect(r.manque, String(loyerCc)).toEqual(["la situation du locataire"]);
+      expect(r.plafond).toBe(1365);
+    }
+    // Les cas qui ont un verdict le gardent, avec leur statut.
+    expect(evaluerVisale({ zone: "reste", moinsDe30Ans: false, situation: "salarie-recent", etudiantSansRevenus: false, loyerCc: 600 })).toMatchObject({
+      statut: "possible",
+      eligible: true,
+      manque: [],
+    });
+    expect(evaluerVisale({ zone: "reste", moinsDe30Ans: false, situation: "autre", etudiantSansRevenus: false, loyerCc: 600 })).toMatchObject({
+      statut: "exclue",
+      eligible: false,
+      manque: [],
+    });
+    // Avant 30 ans, la situation n'est pas demandée : son absence ne gêne pas.
+    expect(evaluerVisale({ zone: "reste", moinsDe30Ans: true, situation: null, etudiantSansRevenus: false, loyerCc: 970 }).statut).toBe("possible");
+  });
+
   it("étudiant sans revenus : plafond réduit", () => {
     const r = evaluerVisale({ zone: "reste", moinsDe30Ans: true, situation: "autre", etudiantSansRevenus: true, loyerCc: 700 });
     expect(r.plafond).toBe(680);

@@ -40,8 +40,19 @@ export function SimulateurLmnp() {
   const [dureeTravaux, setDureeTravaux] = useState("");
   const [tmi, setTmi] = useState<string | null>(null);
 
-  // Une durée n'est demandée que pour un montant à amortir.
-  const aAmortir = (s: string) => (lireNombre(s) ?? 0) > 0;
+  const n = (s: string) => lireNombre(s) ?? 0;
+  const partTerrain = Math.min(100, Math.max(0, n(terrain))) / 100;
+  // Ce que le bâti amortit : le prix, plus les frais s'ils sont amortis avec lui, hors terrain (comme simulerReel).
+  const baseBati = (n(prix) + (fraisAmortis ? n(frais) : 0)) * (1 - partTerrain);
+  /**
+   * La durée d'un amortissement n'est demandée que pour un montant à amortir (bâti, mobilier, travaux). Pour un montant
+   * à amortir, une durée nulle ou négative est refusée : elle donnait un amortissement nul, sans le dire.
+   */
+  const duree = (saisie: string, montant: number, libelle: string, dureeAuDela: string): string[] => {
+    if (!(montant > 0)) return [];
+    const d = lireNombre(saisie);
+    return d == null ? [libelle] : d > 0 ? [] : [dureeAuDela];
+  };
   const manques = [
     ...nombresManquants([
       [recettes, "les loyers encaissés"],
@@ -52,15 +63,14 @@ export function SimulateurLmnp() {
       [prix, "le prix d'achat"],
       [frais, "les frais d'acquisition"],
       [terrain, "la part du terrain"],
-      [dureeBati, "la durée du bâti"],
-      [mobilier, "le mobilier"],
-      ...(aAmortir(mobilier) ? [[dureeMobilier, "la durée du mobilier"] as const] : []),
-      [travaux, "les travaux"],
-      ...(aAmortir(travaux) ? [[dureeTravaux, "la durée des travaux"] as const] : []),
     ]),
+    ...duree(dureeBati, baseBati, "la durée du bâti", "une durée du bâti supérieure à 0"),
+    ...nombresManquants([[mobilier, "le mobilier"]]),
+    ...duree(dureeMobilier, n(mobilier), "la durée du mobilier", "une durée du mobilier supérieure à 0"),
+    ...nombresManquants([[travaux, "les travaux"]]),
+    ...duree(dureeTravaux, n(travaux), "la durée des travaux", "une durée des travaux supérieure à 0"),
   ];
 
-  const n = (s: string) => lireNombre(s) ?? 0;
   const r =
     manques.length === 0 && tmi
       ? simulerLmnp({
@@ -69,7 +79,7 @@ export function SimulateurLmnp() {
           prix: n(prix),
           frais: n(frais),
           fraisAmortis,
-          partTerrain: Math.min(100, Math.max(0, n(terrain))) / 100,
+          partTerrain,
           dureeBati: n(dureeBati),
           mobilier: n(mobilier),
           dureeMobilier: n(dureeMobilier),

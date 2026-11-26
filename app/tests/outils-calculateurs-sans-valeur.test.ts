@@ -23,7 +23,7 @@ vi.mock("next/font/local", () => ({ default: () => ({ className: "police-documen
 import { ComparateurGliVisale } from "../src/app/outils/comparateur-gli-visale/comparateur";
 import { CalculateurRentabilite } from "../src/app/outils/rentabilite-locative/calculateur-rentabilite";
 import { SimulateurLmnp } from "../src/app/outils/simulateur-lmnp/simulateur";
-import { Case, Champ, Choix, Segments } from "../src/components/outils/champs";
+import { Case, Champ, Choix, Groupe, Segments } from "../src/components/outils/champs";
 import { Barres, Chiffre, ChiffreHero, LigneDetail, Pastille } from "../src/components/outils/resultats";
 import { monter, type Instance } from "./aide/hooks-sans-dom";
 
@@ -156,9 +156,77 @@ describe("simulateur LMNP : rien de prérempli (Q123)", () => {
     expect(tous(i).find((e) => e.type === Case && e.props.id === "lmnp-frais-amortis")?.props.coche).toBe(true);
     expect(pastille(i)).toBe("À compléter");
     expect(valeurDe(i, "lmnp-impot-reel")).toBeUndefined();
+    // Aucune durée n'est demandée tant qu'aucun montant à amortir n'est saisi (celle du bâti suit la même règle que
+    // celles du mobilier et des travaux : elle est demandée avec le prix, plus bas).
     expect(texte(parTestId(i, "lmnp-manque")?.props.children)).toBe(
-      "Renseignez les loyers encaissés, les charges déductibles, la tranche marginale d'imposition, le prix d'achat, les frais d'acquisition, la part du terrain, la durée du bâti, le mobilier et les travaux."
+      "Renseignez les loyers encaissés, les charges déductibles, la tranche marginale d'imposition, le prix d'achat, les frais d'acquisition, la part du terrain, le mobilier et les travaux."
     );
+  });
+
+  it("la durée du bâti n'est demandée que pour un prix (ou des frais amortis) à amortir", async () => {
+    const i = await demarrer(SimulateurLmnp);
+    for (const [id, v] of [
+      ["lmnp-recettes", "9600"],
+      ["lmnp-charges", "3800"],
+      ["lmnp-terrain", "20"],
+      ["lmnp-mobilier", "0"],
+      ["lmnp-travaux", "0"],
+    ]) {
+      await saisir(i, id, v);
+    }
+    await cocher(i, "lmnp-tmi", "0.3");
+    expect(texte(parTestId(i, "lmnp-manque")?.props.children)).toBe("Renseignez le prix d'achat et les frais d'acquisition.");
+    // Rien à amortir (ni prix ni frais) : pas de durée du bâti, le calcul se fait.
+    await saisir(i, "lmnp-prix", "0");
+    await saisir(i, "lmnp-frais", "0");
+    expect(parTestId(i, "lmnp-manque")).toBeUndefined();
+    expect(valeurDe(i, "lmnp-impot-reel")).toBeDefined();
+    // Des frais seuls, non amortis avec le bien : toujours rien à amortir.
+    await saisir(i, "lmnp-frais", "14000");
+    (tous(i).find((e) => e.type === Case && e.props.id === "lmnp-frais-amortis")!.props.onChange as (v: boolean) => void)(false);
+    await i.vider();
+    expect(parTestId(i, "lmnp-manque")).toBeUndefined();
+    // Amortis avec le bien, ils sont à amortir : la durée du bâti est demandée.
+    (tous(i).find((e) => e.type === Case && e.props.id === "lmnp-frais-amortis")!.props.onChange as (v: boolean) => void)(true);
+    await i.vider();
+    expect(texte(parTestId(i, "lmnp-manque")?.props.children)).toBe("Renseignez la durée du bâti.");
+    expect(valeurDe(i, "lmnp-impot-reel")).toBeUndefined();
+    // Un prix aussi.
+    await saisir(i, "lmnp-frais", "0");
+    await saisir(i, "lmnp-prix", "160000");
+    expect(texte(parTestId(i, "lmnp-manque")?.props.children)).toBe("Renseignez la durée du bâti.");
+    await saisir(i, "lmnp-duree-bati", "30");
+    expect(parTestId(i, "lmnp-manque")).toBeUndefined();
+  });
+
+  it("pour un montant à amortir, une durée de 0 est refusée (plus d'amortissement nul en silence)", async () => {
+    const i = await demarrer(SimulateurLmnp);
+    for (const [id, v] of exemple) await saisir(i, id, v);
+    await cocher(i, "lmnp-tmi", "0.3");
+    expect(valeurDe(i, "lmnp-impot-reel")).toMatch(/^0,00\s€$/);
+    // Durée du bâti à 0 pour 139 200 € à amortir : refusée, aucun impôt affiché (il donnait un amortissement du bâti nul).
+    await saisir(i, "lmnp-duree-bati", "0");
+    expect(pastille(i)).toBe("À compléter");
+    expect(valeurDe(i, "lmnp-impot-reel")).toBeUndefined();
+    expect(texte(parTestId(i, "lmnp-manque")?.props.children)).toBe("Renseignez une durée du bâti supérieure à 0.");
+    await saisir(i, "lmnp-duree-bati", "-5");
+    expect(texte(parTestId(i, "lmnp-manque")?.props.children)).toBe("Renseignez une durée du bâti supérieure à 0.");
+    await saisir(i, "lmnp-duree-bati", "30");
+    // Même règle pour le mobilier et les travaux.
+    await saisir(i, "lmnp-duree-mobilier", "0");
+    await saisir(i, "lmnp-duree-travaux", "0");
+    expect(texte(parTestId(i, "lmnp-manque")?.props.children)).toBe(
+      "Renseignez une durée du mobilier supérieure à 0 et une durée des travaux supérieure à 0."
+    );
+    expect(valeurDe(i, "lmnp-impot-reel")).toBeUndefined();
+    await saisir(i, "lmnp-duree-mobilier", "7");
+    await saisir(i, "lmnp-duree-travaux", "10");
+    expect(parTestId(i, "lmnp-manque")).toBeUndefined();
+    expect(valeurDe(i, "lmnp-impot-micro")).toMatch(/^2\s265,60\s€$/);
+    // Sans rien à amortir, une durée de 0 ne gêne pas (elle n'est pas demandée).
+    await saisir(i, "lmnp-mobilier", "0");
+    await saisir(i, "lmnp-duree-mobilier", "0");
+    expect(parTestId(i, "lmnp-manque")).toBeUndefined();
   });
 
   it("une durée n'est demandée que pour un montant à amortir ; saisi, l'exemple donne réel 0,00 €, micro 2 265,60 €, reporté 554,29 €", async () => {
@@ -232,6 +300,54 @@ describe("rentabilité locative : rien de prérempli (Q123)", () => {
     expect(valeurDe(i, "rt-brute")).toMatch(/^5,29\s%$/);
     expect(valeurDe(i, "rt-nette")).toMatch(/^4,08\s%$/);
     expect(valeurDe(i, "rt-cashflow")).toMatch(/^-350,44\s€$/);
+  });
+
+  it("le groupe s'intitule « Le financement » (le choix est requis : il n'est plus « facultatif »)", async () => {
+    const i = await demarrer(CalculateurRentabilite);
+    const legendes = tous(i)
+      .filter((e) => e.type === Groupe)
+      .map((e) => e.props.legende);
+    expect(legendes).toContain("Le financement");
+    expect(legendes).not.toContain("Le crédit (facultatif)");
+  });
+
+  it("crédit à calculer : un montant ou une durée à 0 est refusé (plus de « Sans crédit » pour un crédit choisi)", async () => {
+    const i = await demarrer(CalculateurRentabilite);
+    await saisirExemple(i);
+    await cocher(i, "rt-credit", "calcul");
+    await saisir(i, "rt-montant", "0");
+    await saisir(i, "rt-taux", "3,5");
+    await saisir(i, "rt-duree", "20");
+    expect(pastille(i)).toBe("À compléter");
+    expect(valeurDe(i, "rt-nette")).toBeUndefined();
+    expect(texte(parTestId(i, "rt-manque")?.props.children)).toBe("Renseignez un montant emprunté supérieur à 0.");
+    await saisir(i, "rt-montant", "160000");
+    await saisir(i, "rt-duree", "0");
+    expect(pastille(i)).toBe("À compléter");
+    expect(texte(parTestId(i, "rt-manque")?.props.children)).toBe("Renseignez une durée du crédit d'au moins un mois.");
+    await saisir(i, "rt-montant", "-1");
+    await saisir(i, "rt-taux", "-1");
+    expect(texte(parTestId(i, "rt-manque")?.props.children)).toBe(
+      "Renseignez un montant emprunté supérieur à 0, un taux annuel positif ou nul et une durée du crédit d'au moins un mois."
+    );
+    // Un taux de 0 reste admis (prêt à taux zéro).
+    await saisir(i, "rt-montant", "160000");
+    await saisir(i, "rt-taux", "0");
+    await saisir(i, "rt-duree", "20");
+    expect(parTestId(i, "rt-manque")).toBeUndefined();
+    expect(valeurDe(i, "rt-cashflow")).toMatch(/^-89,17\s€$/);
+    expect(pastille(i)).toBe("Cash-flow négatif");
+  });
+
+  it("mensualité choisie : 0 est refusé de même", async () => {
+    const i = await demarrer(CalculateurRentabilite);
+    await saisirExemple(i);
+    await cocher(i, "rt-credit", "mensualite");
+    await saisir(i, "rt-mensualite", "0");
+    expect(pastille(i)).toBe("À compléter");
+    expect(texte(parTestId(i, "rt-manque")?.props.children)).toBe("Renseignez une mensualité supérieure à 0.");
+    await saisir(i, "rt-mensualite", "500");
+    expect(pastille(i)).toBe("Cash-flow positif");
   });
 
   it("sans crédit : rien de plus à saisir ; mensualité choisie : elle est demandée", async () => {

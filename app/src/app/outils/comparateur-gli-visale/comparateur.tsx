@@ -60,7 +60,7 @@ export function ComparateurGliVisale() {
     ...(tauxSaisi != null && tauxSaisi >= 0 ? [] : ["le taux de la prime"]),
     ...(tmi ? [] : ["la tranche marginale d'imposition"]),
   ];
-  const visale =
+  const evaluation =
     manquesVisale.length === 0 && zone
       ? evaluerVisale({
           zone,
@@ -70,6 +70,10 @@ export function ComparateurGliVisale() {
           loyerCc: loyer,
         })
       : null;
+  // « Non évaluable » (une donnée manque encore à l'évaluation) n'est pas un verdict : ni « possible » ni « exclue »,
+  // le message dit quoi renseigner, comme pour un champ vide.
+  const visale = evaluation && evaluation.statut !== "non-evaluable" ? evaluation : null;
+  const aRenseignerVisale = manquesVisale.length > 0 ? manquesVisale : (evaluation?.manque ?? []);
   const gli =
     manquesGli.length === 0 && tauxSaisi != null && tmi
       ? coutGli({ loyerCc: loyer, taux: tauxSaisi / 100, tmi: Number(tmi) })
@@ -175,7 +179,7 @@ export function ComparateurGliVisale() {
           </>
         ) : (
           <p data-testid="cmp-visale-manque" className={MESSAGE_A_COMPLETER}>
-            Renseignez {enumerer(manquesVisale)}.
+            Renseignez {enumerer(aRenseignerVisale)}.
           </p>
         )}
       </section>

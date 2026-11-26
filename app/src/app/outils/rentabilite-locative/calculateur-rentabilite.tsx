@@ -29,6 +29,28 @@ const ECHELLE_MIN = 0.1;
 /** L'exemple d'un champ, en texte indicatif : « Ex. 150 000 ». */
 const ex = (n: number) => `Ex. ${formaterNombre(n)}`;
 
+/**
+ * Ce qui manque au crédit à calculer. Un crédit choisi ne se calcule pas sur un montant ou une durée nuls : la mensualité
+ * n'existait pas, et le résultat s'affichait « Sans crédit », alors que l'utilisateur avait choisi d'emprunter. Mêmes
+ * bornes que `mensualiteCredit` : montant positif, au moins un mois, taux positif ou nul.
+ */
+function manquesCredit(montant: string, taux: string, duree: string): string[] {
+  const m = lireNombre(montant);
+  const t = lireNombre(taux);
+  const d = lireNombre(duree);
+  return [
+    ...(m == null ? ["le montant emprunté"] : m > 0 ? [] : ["un montant emprunté supérieur à 0"]),
+    ...(t == null ? ["le taux annuel"] : t >= 0 ? [] : ["un taux annuel positif ou nul"]),
+    ...(d == null ? ["la durée du crédit"] : Math.round(d * 12) > 0 ? [] : ["une durée du crédit d'au moins un mois"]),
+  ];
+}
+
+/** Même règle pour une mensualité saisie : nulle, elle donnait aussi « Sans crédit ». */
+function manquesMensualite(mensualite: string): string[] {
+  const m = lireNombre(mensualite);
+  return m == null ? ["la mensualité"] : m > 0 ? [] : ["une mensualité supérieure à 0"];
+}
+
 export function CalculateurRentabilite() {
   // Décision du dirigeant du 25/11/2026 pour l'outil IRL (Q100), appliquée ici (Q123) : AUCUN champ ne démarre avec une
   // valeur. L'exemple (prix de 150 000 €, loyer de 750 €, crédit de 160 000 € à 3,5 % sur 20 ans…) était posé dans les
@@ -64,14 +86,8 @@ export function CalculateurRentabilite() {
       [gestion, "les frais de gestion"],
     ]),
     ...(modeCredit ? [] : ["le financement"]),
-    ...(modeCredit === "calcul"
-      ? nombresManquants([
-          [montant, "le montant emprunté"],
-          [taux, "le taux annuel"],
-          [duree, "la durée du crédit"],
-        ])
-      : []),
-    ...(modeCredit === "mensualite" ? nombresManquants([[mensualite, "la mensualité"]]) : []),
+    ...(modeCredit === "calcul" ? manquesCredit(montant, taux, duree) : []),
+    ...(modeCredit === "mensualite" ? manquesMensualite(mensualite) : []),
   ];
 
   const n = (s: string) => lireNombre(s) ?? 0;
@@ -141,7 +157,7 @@ export function CalculateurRentabilite() {
           <Champ id="rt-gestion" libelle="Frais de gestion" valeur={gestion} onChange={setGestion} suffixe="€" decimal placeholder={ex(e.fraisGestion)} />
         </div>
       </Groupe>
-      <Groupe legende="Le crédit (facultatif)" description="Sans emprunt, choisissez « Pas de crédit ».">
+      <Groupe legende="Le financement" description="Sans emprunt, choisissez « Pas de crédit ».">
         <Segments
           nom="rt-credit"
           libelle="Financement"

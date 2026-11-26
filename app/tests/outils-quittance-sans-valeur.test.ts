@@ -125,11 +125,43 @@ describe("outil public de quittance : rien de prérempli (Q123)", () => {
 
   it("l'exemple n'est qu'un texte indicatif dans un champ vide", async () => {
     const i = await demarrer();
+    // Pas de texte indicatif sur le champ du mois : un champ de type « month » ne l'affiche pas (Chromium).
+    expect(champ(i, "q-periode")?.props.type).toBe("month");
+    expect(champ(i, "q-periode")?.props.placeholder).toBeUndefined();
     expect(champ(i, "q-loyer")?.props.placeholder).toBe("Ex. 850");
     expect(champ(i, "q-charges")?.props.placeholder).toBe("Ex. 120");
     expect(champ(i, "q-recu")?.props.placeholder).toBe("Ex. 970");
     // Le montant reçu ne « suit » plus le total : l'aide le dit déclaré.
     expect(texte(champ(i, "q-recu")?.props.aide)).not.toMatch(/suit le total/i);
+  });
+
+  it("« Mois suivant » inactif dit pourquoi, par un texte relié au bouton ; actif, le texte disparaît", async () => {
+    const i = await demarrer();
+    const suivant = () => bouton(i, "Mois suivant");
+    const aide = () => tous(i).find((e) => e.props.id === "q-mois-suivant-aide");
+    expect(suivant()?.props.disabled).toBe(true);
+    expect(suivant()?.props["aria-describedby"]).toBe("q-mois-suivant-aide");
+    expect(texte(aide()?.props.children)).toBe("Saisissez d'abord le mois.");
+    await saisir(i, "q-periode", "2026-09");
+    expect(suivant()?.props.disabled).toBe(false);
+    expect(suivant()?.props["aria-describedby"]).toBeUndefined();
+    expect(aide()).toBeUndefined();
+  });
+
+  it("terme incomplet : l'impression par le navigateur sort un court message, pas une page blanche", async () => {
+    const i = await demarrer();
+    const imprime = () => parTestId(i, "q-incomplet-imprime");
+    // Caché à l'écran, montré seul sur papier (tout l'écran de saisie est retiré de l'impression).
+    expect(imprime()?.type).toBe("p");
+    expect(imprime()?.props.className).toBe("hidden print:block");
+    expect(texte(imprime()?.props.children)).toBe(
+      "Quittance incomplète : renseignez le loyer hors charges, la provision pour charges (0 si aucune), le montant reçu, le mois du terme et la date du paiement."
+    );
+    await remplirLeTerme(i);
+    expect(imprime()).toBeUndefined();
+    // Montants saisis mais invalides : le message le dit aussi.
+    await saisir(i, "q-loyer", "-1");
+    expect(texte(imprime()?.props.children)).toMatch(/^Quittance incomplète : vérifiez le loyer, les charges et le montant reçu/);
   });
 
   it("le montant reçu ne suit plus le total : il se saisit, ou se recopie à la demande", async () => {

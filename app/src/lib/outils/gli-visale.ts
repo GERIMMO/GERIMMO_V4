@@ -56,14 +56,27 @@ export type EntreeVisale = {
 };
 
 export type ResultatVisale = {
+  /**
+   * « possible » ou « exclue » : le verdict. « non-evaluable » : une donnée nécessaire manque (à 30 ans ou plus, la
+   * situation du locataire, seule à ouvrir Visale) ; il n'y a alors ni verdict ni motif, `eligible` vaut false et
+   * `manque` dit quoi renseigner.
+   */
+  statut: "possible" | "exclue" | "non-evaluable";
   eligible: boolean;
   plafond: number;
   motifs: string[];
+  /** Ce qui manque pour conclure ; vide sauf pour « non-evaluable ». */
+  manque: string[];
 };
 
 export function evaluerVisale(e: EntreeVisale): ResultatVisale {
   const p = PLAFONDS_VISALE_2026[e.zone];
   const plafond = e.etudiantSansRevenus ? p.etudiantSansRevenus : p.general;
+  // À 30 ans ou plus, Visale n'est ouverte que pour certaines situations : sans situation, rien ne permet de conclure.
+  // Avant, l'absence de motif d'exclusion donnait « éligible » sans que la situation ait été dite.
+  if (!e.moinsDe30Ans && e.situation == null) {
+    return { statut: "non-evaluable", eligible: false, plafond, motifs: [], manque: ["la situation du locataire"] };
+  }
   const motifs: string[] = [];
   if (!e.moinsDe30Ans && e.situation === "autre") {
     motifs.push(
@@ -77,7 +90,8 @@ export function evaluerVisale(e: EntreeVisale): ResultatVisale {
       }).`
     );
   }
-  return { eligible: motifs.length === 0, plafond, motifs };
+  const eligible = motifs.length === 0;
+  return { statut: eligible ? "possible" : "exclue", eligible, plafond, motifs, manque: [] };
 }
 
 /** Ce que couvre Visale (Action Logement, vérifié le 29/09/2026). */

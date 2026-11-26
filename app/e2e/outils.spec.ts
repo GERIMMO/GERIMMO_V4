@@ -35,7 +35,7 @@ async function quittancePrete(page: Page, mois = "2026-09") {
   await expect(async () => {
     await champ.fill(mois);
     await expect(suivant).toBeEnabled({ timeout: 1_000 });
-  }).toPass();
+  }).toPass({ timeout: 20_000 });
 }
 
 /**
@@ -47,7 +47,7 @@ async function premiereSaisie(page: Page, libelle: string, valeur: string, manqu
   await expect(async () => {
     await champ.fill(valeur);
     await expect(page.getByTestId(manque)).not.toContainText(cite, { timeout: 1_000 });
-  }).toPass();
+  }).toPass({ timeout: 20_000 });
 }
 
 async function remplir(page: Page, champs: [libelle: string, valeur: string][]) {
@@ -200,8 +200,19 @@ test("quittance : rien de prérempli ; 850 + 120, reçu 500 → reçu de paiemen
   await expect(page.getByTestId("q-total")).toHaveCount(0);
   await expect(page.getByRole("button", { name: /Imprimer (la quittance|le reçu)/ })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Mois suivant" })).toBeDisabled();
+  // Inactif, « Mois suivant » dit pourquoi ; le champ du mois n'a pas de texte indicatif (Chromium ne l'affiche pas).
+  await expect(page.getByRole("button", { name: "Mois suivant" })).toHaveAccessibleDescription("Saisissez d'abord le mois.");
+  await expect(page.getByLabel("Mois", { exact: true })).not.toHaveAttribute("placeholder");
+  // Terme incomplet : l'impression par le navigateur sort un court message, pas une page blanche.
+  await page.emulateMedia({ media: "print" });
+  await expect(page.getByTestId("q-incomplet-imprime")).toBeVisible();
+  await expect(page.getByTestId("q-incomplet-imprime")).toContainText("Quittance incomplète : renseignez le loyer hors charges");
+  await expect(page.getByLabel("Loyer hors charges")).toBeHidden();
+  await page.emulateMedia({ media: "screen" });
+  await expect(page.getByTestId("q-incomplet-imprime")).toBeHidden();
 
   await quittancePrete(page);
+  await expect(page.getByRole("button", { name: "Mois suivant" })).toHaveAccessibleDescription("");
   await remplir(page, [["Date du paiement", "2026-09-03"], ["Loyer hors charges", "850"], ["Provision pour charges", "120"]]);
   // Le montant reçu ne suit plus le total : il se saisit, ou se recopie à la demande.
   await expect(page.getByLabel("Montant reçu")).toHaveValue("");
@@ -250,6 +261,9 @@ test("quittance : rien de prérempli ; 850 + 120, reçu 500 → reçu de paiemen
   await quittancePrete(page);
   await bailleur.fill("Mme Durand");
   await retenir.check();
+  // L'écriture dans le stockage suit le rendu (effet) : recharger avant qu'elle ait eu lieu perdait la valeur retenue
+  // (CI de main : « Nom du bailleur » vide après rechargement). On attend qu'elle soit faite.
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("gerimmo_quittance"))).toContain("Mme Durand");
   await page.reload();
   await expect(bailleur).toHaveValue("Mme Durand");
   await expect(retenir).toBeChecked();
@@ -338,8 +352,13 @@ test("rentabilité : rien de prérempli ; brute 5,29 %, nette 4,08 %, cash-flow 
     ["Assurance propriétaire non occupant", "120"],
     ["Frais de gestion", "0"],
   ]);
+  await expect(page.getByRole("group", { name: "Le financement" })).toBeVisible();
   await page.getByRole("radio", { name: "Calculer la mensualité" }).check();
-  await remplir(page, [["Montant emprunté", "160000"], ["Taux annuel", "3,5"], ["Durée", "20"]]);
+  // Un crédit choisi ne se calcule pas sur une durée nulle : refusé, plus de « Sans crédit ».
+  await remplir(page, [["Montant emprunté", "160000"], ["Taux annuel", "3,5"], ["Durée", "0"]]);
+  await expect(page.getByTestId("rt-manque")).toHaveText("Renseignez une durée du crédit d'au moins un mois.");
+  await expect(page.getByTestId("rt-etat")).toHaveText("À compléter");
+  await remplir(page, [["Durée", "20"]]);
   await expect(page.getByTestId("rt-brute")).toHaveText(/5,29\s%/);
   await expect(page.getByTestId("rt-nette")).toHaveText(/4,08\s%/);
   await expect(page.getByTestId("rt-cashflow")).toHaveText(/-350,44\s€/);

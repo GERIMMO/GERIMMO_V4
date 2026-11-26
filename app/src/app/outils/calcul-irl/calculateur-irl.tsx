@@ -234,10 +234,15 @@ export function CalculateurIrl({ serie }: { serie: ObservationIrl[] | null }) {
     ...(formaterDateIso(dateEffet) ? [] : ["la date d'effet de la révision"]),
   ];
   const lettrePrete = r.ok && manquesLettre.length === 0;
+  const puisLettre = manquesLettre.length > 0 ? `, puis renseignez ${enumerer(manquesLettre)}` : "";
+  // Rien ne manque au calcul mais il est refusé : c'est le garde-fou de saisie (Q72). Le message le dit, au lieu de
+  // demander de « compléter » un calcul dont chaque champ est rempli.
   const raisonLettre = lettrePrete
     ? null
     : !r.ok
-      ? `Pour imprimer la lettre, complétez d'abord le calcul du nouveau loyer${manquesLettre.length > 0 ? `, puis renseignez ${enumerer(manquesLettre)}` : ""}.`
+      ? r.manque.length === 0
+        ? `Pour imprimer la lettre, corrigez d'abord les indices saisis${puisLettre}.`
+        : `Pour imprimer la lettre, complétez d'abord le calcul du nouveau loyer${puisLettre}.`
       : `Pour imprimer la lettre, renseignez ${enumerer(manquesLettre)}.`;
 
   const erreurs = r.alertes.some((a) => a.gravite === "erreur");

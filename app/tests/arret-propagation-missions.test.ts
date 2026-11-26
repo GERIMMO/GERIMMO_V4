@@ -98,7 +98,7 @@ describe("L’arrêt atteint le journal de mission", () => {
     expect(m.rpc.mock.calls.some(([nom]) => nom === "interrompre_mission_supervision")).toBe(false);
   });
 
-  const post: ApercuPost = { id: "post_test", titre: "TEST", chapo: null, facebook_texte: null, facebook_image_url: null, programmee_pour: "2026-10-20T09:00:00Z", veille: false, rattrapage: false, validation_obligatoire: true };
+  const post: ApercuPost = { id: "post_test", titre: "TEST", chapo: null, slug: null, origine: null, facebook_texte: null, facebook_image_url: null, programmee_pour: "2026-10-20T09:00:00Z", veille: false, rattrapage: false, validation_obligatoire: true };
   it("alerte marketing : garde terminale après premier contrôle ne devient pas un motif ordinaire", async () => {
     const db = client(99);
     let n = 0;

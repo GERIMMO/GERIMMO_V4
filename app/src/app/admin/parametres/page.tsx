@@ -35,6 +35,13 @@ export default async function PageParametres() {
   const reglageIA = await db.from("ia_plafond_reglage").select("ia_active").eq("singleton", true).maybeSingle();
   const iaActive = reglageIA.error || !reglageIA.data ? null : reglageIA.data.ia_active === true;
   const etatDeLIA = await etatIA(db);
+  // Défaut E107/E214 : la carte disait « Activée » d'après le seul réglage, même quand aucun appel ne peut partir de ce
+  // serveur (clé du fournisseur absente, mode pilote). Elle lit désormais aussi l'état constaté par les écrans.
+  const motifIA = motifIANonConnectee();
+  const libelleIA = iaActive === null ? 'État indisponible' : !iaActive ? 'Désactivée'
+    : etatDeLIA === 'active' ? 'Activée'
+    : etatDeLIA === 'non_connectee' ? (motifIA === 'pilote' ? 'Activée, mode pilote' : 'Activée, non connectée')
+    : 'Activée, état à vérifier';
   // Envois automatiques (audit palier 1, P1-08 ; Q37 du 24/11) : cinq interrupteurs, fermés à la livraison. Illisible = on n'affiche
   // aucun bouton plutôt qu'un état supposé.
   const reglageEnvois = await db.rpc("lire_envois_automatiques");
@@ -75,7 +82,7 @@ export default async function PageParametres() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="État des paramètres">
         <a className="loc-carte" href="#identite"><strong className="block">Identité de Gerimmo ↓</strong><span className="text-sm text-muted-foreground">{indisponible ? 'Lecture indisponible' : `${fournis} / ${exiges.length} fournis`}</span></a>
         <a className="loc-carte" href="#souscriptions"><strong className="block">Abonnements ↓</strong><span className="text-sm text-muted-foreground">Vérifier la règle d’ouverture</span></a>
-        <a className="loc-carte" href="#ia"><strong className="block">Fonctions assistées par l’IA ↓</strong><span className="text-sm text-muted-foreground">{iaActive === null ? 'État indisponible' : iaActive ? 'Activée' : 'Désactivée'}</span></a>
+        <a className="loc-carte" href="#ia"><strong className="block">Fonctions assistées par l’IA ↓</strong><span className="text-sm text-muted-foreground">{libelleIA}</span></a>
         <a className="loc-carte" href="#envois-automatiques"><strong className="block">Envois automatiques ↓</strong><span className="text-sm text-muted-foreground">{nbEnvoisOuverts === null ? 'État indisponible' : nbEnvoisOuverts === 0 ? 'Tous fermés' : `${nbEnvoisOuverts} ouvert${nbEnvoisOuverts > 1 ? 's' : ''} sur ${FLUX_ENVOIS_AUTOMATIQUES.length}`}</span></a>
         <a className="loc-carte" href="#reperes-fiscaux"><strong className="block">Repères fiscaux ↓</strong><span className="text-sm text-muted-foreground">{libelleVerification(reperesFiscaux, jourDeParis)}</span></a>
         <Link className="loc-carte" href="/admin/conservation"><strong className="block">Conservation</strong><span className="text-sm text-muted-foreground">Régler les durées par catégorie →</span></Link>
@@ -92,7 +99,7 @@ export default async function PageParametres() {
       </ConsoleSection>
 
       <section id="ia" className="scroll-mt-24">
-        <InterrupteurIA active={iaActive} etat={etatDeLIA} motif={motifIANonConnectee()} />
+        <InterrupteurIA active={iaActive} etat={etatDeLIA} motif={motifIA} />
       </section>
 
       <section id="envois-automatiques" className="scroll-mt-24">

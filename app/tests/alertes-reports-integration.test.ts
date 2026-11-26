@@ -88,12 +88,15 @@ it('réserve l’urgence et l’avis de veto au responsable actuel et bloque un 
  expect(await envoyerEmail({...p,cleIdempotence:randomUUID(),contexteMetier:{...p.contexteMetier,id:randomUUID()}})).toHaveProperty('erreur');
  await q('update marketing_reglages set actif=true,validation_obligatoire=true where singleton');
  const parution=new Date(Date.now()+3600000*6).toISOString();
+ const slug=randomUUID();
  const article=await id(`insert into publications(titre,slug,chapo,corps,statut,facebook_texte,programmee_pour,periode)
- values('Article fictif',$1,'Aperçu fictif',repeat('Information fictive pour la recette. ',10),'programmee','Texte fictif',$2,'recette') returning id`,[randomUUID(),parution]);
- const post={id:article,titre:'Article fictif',chapo:'Aperçu fictif',facebook_texte:'Texte fictif',facebook_image_url:null,programmee_pour:parution,validation_obligatoire:true,veille:false,rattrapage:false};
+ values('Article fictif',$1,'Aperçu fictif',repeat('Information fictive pour la recette. ',10),'programmee','Texte fictif',$2,'recette') returning id`,[slug,parution]);
+ const post={id:article,titre:'Article fictif',chapo:'Aperçu fictif',slug,origine:'ia' as const,facebook_texte:'Texte fictif',facebook_image_url:null,programmee_pour:parution,validation_obligatoire:true,veille:false,rattrapage:false};
  expect(await alerterSuperviseurDuPost(service,post)).toMatchObject({envoye:true});await alerterSuperviseurDuPost(service,post);
  expect(boite.map(m=>m.to)).toEqual([[chef.email],[chef.email]]);
  expect(boite[1].html).toContain('/admin/marketing#veto');
+ // Reprise du lot L4 : l'aperçu est le message envoyé à Facebook, lien de l'article compris.
+ expect(boite[1].html).toContain(`/journal/${slug}#gerimmo-${article}`);
  // Rejouer la préparation périmée avec une nouvelle date ne permet aucun envoi.
  const differee={...post,programmee_pour:new Date(Date.parse(parution)+3600000).toISOString()};
  await q('update publications set programmee_pour=$2,facebook_texte=$3 where id=$1',[article,differee.programmee_pour,'Version corrigée']);

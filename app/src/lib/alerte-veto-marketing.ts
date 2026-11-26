@@ -13,11 +13,16 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { envoyerEmail } from "./email";
 import { adresseDuSite } from "./site";
 import { formaterDateHeureLongueParis } from "./heure-paris";
+import { messageFacebookDiffuse, textePrepareFacebook } from "./apercu-post-facebook";
 
 export type ApercuPost = {
   id: string;
   titre: string;
   chapo: string | null;
+  /** Adresse de l'article : sans elle, aucun message ne peut être montré (repli : le texte préparé seul). */
+  slug: string | null;
+  /** `publications.origine` : « ia » termine le post par la mention (lib/facebook.ts). */
+  origine: "ia" | "manuel" | null;
   facebook_texte: string | null;
   facebook_image_url: string | null;
   programmee_pour: string;
@@ -30,6 +35,10 @@ function echapper(t: string): string {
   return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
+// Reprise du lot L4 (26/11/2026) : l'aperçu du courriel montrait le texte préparé seul. Il montre le message que la
+// mission enverra (lien de l'article et, pour un article d'origine « ia », la mention), comme la fenêtre de veto de la
+// console (lib/apercu-post-facebook.ts) ; sans adresse d'article, le même repli qu'elle. L'empreinte `apercu` du
+// contexte ne change pas : la base la recalcule sur ces quatre champs (20261116201223_alertes_direction_et_reports.sql).
 export function htmlAlerteVeto(post: ApercuPost, lienEcran: string): string {
   const quand = formaterDateHeureLongueParis(post.programmee_pour);
   const consigne = post.validation_obligatoire
@@ -42,7 +51,7 @@ export function htmlAlerteVeto(post: ApercuPost, lienEcran: string): string {
   <p style="margin:0 0 16px;color:#53617a">Parution prévue le <strong>${echapper(quand)}</strong>. ${echapper(consigne)}</p>
   ${post.facebook_image_url ? `<img src="${echapper(post.facebook_image_url)}" alt="${echapper(post.titre)}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border-radius:12px;margin:0 0 16px">` : ""}
   <p style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:#53617a;margin:0 0 6px">Texte Facebook</p>
-  <p style="white-space:pre-wrap;margin:0 0 16px;line-height:1.5">${echapper(post.facebook_texte?.trim() || `${post.titre}\n\n${post.chapo ?? ""}`)}</p>
+  <p style="white-space:pre-wrap;margin:0 0 16px;line-height:1.5">${echapper(messageFacebookDiffuse(post) ?? textePrepareFacebook(post))}</p>
   <p style="margin:0 0 20px">
     <a href="${echapper(lienEcran)}" style="display:inline-block;background:#2457f5;color:#fff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:600">Publier maintenant, modifier, reporter ou refuser</a>
   </p>

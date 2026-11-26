@@ -61,8 +61,10 @@ Chaque geste écrit un événement dans `incident_evenements`. Le fil d'activit�
 - **Pas de fin d'intervention sans photo du travail réalisé** (RM-7.5.2).
 - **La réouverture repasse par la qualification** : `clos → rouvert → qualifie`, jamais `clos → declare`.
 - **Devis obligatoire pour confier une mission** : la mission naît du devis retenu (`retenir_devis` est la seule
-  fonction qui crée `incident_interventions`). Le seuil de délégation du [[Mandat de gestion]] prévu par le module 7
-  n'a pas été retrouvé dans ce geste (à vérifier).
+  fonction qui crée `incident_interventions`). Le module 7 prévoyait le devis au-delà du seuil de délégation du
+  [[Mandat de gestion]]. Ce seuil existe sur le mandat (`mandats.seuil_delegation`,
+  `20260731_sprint3_mandat_gestion_fondation.sql`) et s'imprime dans le mandat
+  (`app/src/lib/documents/modeles/mandat-gestion.ts`), mais `retenir_devis` ne le lit pas.
 - **Filtre des artisans** : métier, zone, validation de la plateforme, listes noires, et décennale selon la nature des
   travaux (RM-8.2.9). La base le calcule ; voir [[Demande et sélection de devis]].
 - **Le locataire informé avant l'intervention**, sa contestation tracée sans bloquer (RM-7.2.4/5) : [[Incident]].
@@ -101,8 +103,9 @@ Côté [[Artisan]], le compte rendu se fait depuis le chantier, photo au centre 
 >   par le métier : à vérifier.
 > - **Annulation d'une mission en cours** : la base ramène l'incident à « qualifié », alors que la table des
 >   transitions de l'écran ne le prévoit pas ([[Incident]], encadré).
-> - **Seuil de délégation du mandat** (module 7 : devis obligatoire au-delà du seuil) : non retrouvé dans le code ; en
->   pratique, toute mission passe par un devis retenu. À vérifier.
+> - **Seuil de délégation du mandat** (module 7 : devis obligatoire au-delà du seuil) : le seuil est enregistré sur le
+>   mandat, mais aucun geste du parcours ne le lit. En pratique, toute mission passe par un devis retenu, quel que
+>   soit le montant. Est-ce voulu ? À vérifier.
 > - **Intention produit v0** ([[2026-07-21-fonctionnalites-par-persona-v0]]) : escalade au propriétaire en l'absence
 >   d'accord sur la date. Non retrouvée dans le code. L'arbitrage du rendez-vous revient au gestionnaire
 >   ([[Planification d'intervention]]).

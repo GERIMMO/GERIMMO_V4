@@ -112,6 +112,11 @@ l'acte passe comme avant. Détail : [[Conditions générales]]. *26/11 : la vers
   Stripe**, à faire par le dirigeant (Q80 ; réglage R7, pas encore fait au 26/11). Un client Stripe existant ne reçoit le nouveau pied qu'à sa prochaine
   souscription ou hausse (T4R-10). Factures gardées dix ans depuis le 25/11/2026 ([[Registre des traitements]],
   P2).
+- **Ensuite** : [[Cycle de vie de l'abonnement]]. Révision tarifaire notifiée au moins un mois avant (conditions,
+  article 8.9) ; résiliation par la seule page « Résilier votre contrat » ([[Résiliation de l'abonnement]]) ;
+  rétractation par le bouton « Renoncer au contrat ici » ([[Rétractation en ligne]]) ; impayé :
+  [[Impayé de l'abonnement]]. [[Parrainage]] : un mois offert au parrain à la conversion de son filleul (depuis le
+  30/09/2026), rien de plus pour le filleul.
 
 ## Gestes du jour de la publication (plan de publication ; publication faite le 25/11/2026)
 1. Migrations avant le code (dont `20261125106000` : type de vendeur et vente sans médiateur), puis le code. **Fait**

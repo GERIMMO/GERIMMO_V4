@@ -3,8 +3,8 @@ type: concept
 tags: [dossier-locataire, pieces, assurance, garant, versioning, decret-2015-1437]
 status: draft
 created: 2026-07-24
-updated: 2026-11-25
-sources: ["[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-a2-conservation-rgpd]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Recueil des textes officiels (v6)]]", "[[Garantie]]", "QUESTIONS.md (Q113, Q114)", "JURISTE.md (partie 9, points 20 et 23)", "JOURNAL.md (entrées du 24-25/11/2026)", "livrables/notes-banc/ (notes-T3 et sa reprise, relecture-T3R, fusion/relecture-contrats)", "livrables/recueil/analyse-refs-10-24.md (réf. 16, 18 et 19)", "code de la branche réunie : app/src/lib/pieces-regime.ts"]
+updated: 2026-11-26
+sources: ["[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-a2-conservation-rgpd]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Recueil des textes officiels (v6)]]", "[[Garantie]]", "QUESTIONS.md (Q113, Q114)", "JURISTE.md (partie 9, points 20 et 23)", "JOURNAL.md (entrées du 24-25/11/2026)", "livrables/notes-banc/ (notes-T3 et sa reprise, relecture-T3R, fusion/relecture-contrats)", "livrables/recueil/analyse-refs-10-24.md (réf. 16, 18 et 19)", "code de la branche réunie : app/src/lib/pieces-regime.ts", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)"]
 ---
 
 # Dossier locataire
@@ -42,8 +42,8 @@ commence quand le locataire est déjà retenu.
 Une catégorie peut contenir plusieurs pièces (trois bulletins de salaire) ; formats
 PDF/JPG/PNG, 10 Mo. **Un dossier incomplet n'empêche pas le [[Bail]]** — il alerte
 (RM-0b.2.3).
-*Version préparée (lot T3, non publiée) : ce qu'un bailleur peut demander à un candidat ou à une caution est limité à la
-liste du décret n° 2015-1437 — voir § « Version préparée ».*
+*En production depuis le 25/11/2026 (lot T3, version `062296e2`) : ce qu'un bailleur peut demander à un candidat ou à
+une caution est limité à la liste du décret n° 2015-1437 — voir § « En production depuis le 25/11/2026 ».*
 
 ## Versioning intégral
 
@@ -61,7 +61,7 @@ porté par le bail** (RM-0b.3.3, confirmé par RM-2.2.1) : la fin du bail l'éte
 effacer la fiche. L'engagement s'active par l'acte de cautionnement signé (Yousign dans le référentiel ; Zoho Sign ou
 papier dans l'application — [[Signature électronique]]) ;
 garanties Visale/GLI sans garant personne : voir [[Garantie]] (module 2). En colocation, le garant doit être rattaché à
-un locataire du bail pour que l'acte se prépare (version préparée, [[Garantie]]).
+un locataire du bail pour que l'acte se prépare (en production depuis le 25/11/2026, [[Garantie]]).
 
 ## L'attestation d'assurance — cycle annuel critique
 
@@ -84,8 +84,8 @@ peut invoquer le défaut d'assurance que s'il prouve avoir réclamé le document
 (RM-0b.6.4). Aucune alerte si le bail se termine avant l'échéance. Plus de six mois
 sans attestation : alerte critique à l'admin agence. Seuils intégrés au module 14
 ([[Agenda et échéances]]).
-*Version préparée (lot T3) : le courrier de rappel d'assurance sépare les deux voies du texte fourni — résiliation de
-plein droit, qui suppose une clause et « ne produit effet qu'un mois après un commandement demeuré infructueux » ;
+*En production depuis le 25/11/2026 (lot T3) : le courrier de rappel d'assurance sépare les deux voies du texte
+fourni — résiliation de plein droit, qui suppose une clause et « ne produit effet qu'un mois après un commandement demeuré infructueux » ;
 ou assurance souscrite par le bailleur pour le compte du locataire un mois après une mise en demeure restée sans effet,
 mise en demeure qui « vaut renoncement à la mise en œuvre de la clause ». À rapprocher du « motif possible de
 résiliation » à J+15 du tableau ci-dessus (référentiel), qui ne dit rien de ces deux procédures.*
@@ -110,15 +110,16 @@ caractère personnel (« Bail nº 1287, lot 47 »). Un contentieux gèle le cycl
 Voir [[RGPD]].
 
 ## État dans l'application au 23/11/2026 — pièces demandées avant le bail (mission palier 1, lot 33)
-En préproduction, **non publié** ([[Mission palier 1 — audit du 22 novembre 2026]], point P0-04 ; détail dans
-`JOURNAL.md`).
+En préproduction le 23/11 ; en production depuis le 25/11/2026 dans la version `062296e2`, modifié par le lot T3 (voir
+ci-dessous) ([[Mission palier 1 — audit du 22 novembre 2026]], point P0-04 ; détail dans `JOURNAL.md`).
 - Le gestionnaire peut **demander** une pièce à une personne depuis sa fiche (onglet « Demander à la personne » du
   volet des justificatifs). Le bouton « RIB » n'y est plus proposé d'un clic, ni donné en exemple.
 - Tant que la personne n'a pas de bail signé (candidat), un rappel s'affiche : les pièces qu'un bailleur peut demander à
   un candidat ou à sa caution sont encadrées par la réglementation ; vérifier la liste sur le site officiel de
   l'administration ; Gerimmo ne contrôle pas ce qui est demandé. Le libellé de la pièce reste **libre**.
-- *Remplacé dans la version préparée (lot T3, 25/11) :* pour un candidat ou une caution, le libellé libre cède la place
-  à la liste du décret — voir ci-dessous. En production aujourd'hui, ni ce rappel ni la liste.
+- *Remplacé dans la version en production depuis le 25/11/2026 (lot T3) :* pour un candidat ou une caution, le libellé
+  libre cède la place à la liste du décret — voir ci-dessous. Jusqu'au 25/11, la version `81740dec` n'avait ni ce rappel
+  ni la liste.
 
 > [!warning] Liste officielle des pièces non relue (23/11/2026)
 > L'agent n'a pas pu ouvrir le texte qui fixe la liste des pièces exigibles (sites officiels inaccessibles depuis son
@@ -127,13 +128,15 @@ En préproduction, **non publié** ([[Mission palier 1 — audit du 22 novembre 
 > *25/11 : le décret n° 2015-1437 et ses deux annexes sont dans le recueil fourni (réf. 19, non recontrôlé sur
 > Légifrance) ; la liste est fermée et le RIB n'y figure pas.*
 
-## Version préparée, à publier — pièces du décret n° 2015-1437 (lot T3 et sa reprise, au 25/11/2026)
+## En production depuis le 25/11/2026 — pièces du décret n° 2015-1437 (lot T3 et sa reprise)
 
-**En production aujourd'hui** (version du 21/11, `81740dec`) : rien de ce qui suit, ni le rappel du lot 33. **Version
-préparée** : lot T3 et sa reprise, dans la branche réunie `claude/palier-1-fusion` (`89cb87ff`, complétée jusqu'à `062296e2`), vérifiée en entier sur
-le banc et poussée le 25/11 sur la branche de préproduction `claude/palier-1-preproduction` (`JOURNAL.md`, entrée du
-25/11) ; non publiée en production. Référence : le [[Recueil des textes officiels (v6)]], **fourni par le dirigeant, non
-recontrôlé sur Légifrance**.
+**Jusqu'au 25/11** (version du 21/11, `81740dec`) : rien de ce qui suit, ni le rappel du lot 33. **En production depuis
+le 25/11/2026** à 23:17Z (26/11 à 00 h 17, heure de Paris) : lot T3 et sa reprise, dans la branche réunie
+`claude/palier-1-fusion` (`89cb87ff`, complétée jusqu'à `062296e2`), vérifiée en entier sur le banc et poussée le 25/11
+sur la branche de préproduction `claude/palier-1-preproduction` (`JOURNAL.md`, entrée du 25/11), puis publiée par la
+PR #358 (`main` = `8f9dd9ce`, identique à `062296e2`) ; recette de production n° 58 réussie (`log.md`, entrée « deploy »
+du 25/11). Référence : le [[Recueil des textes officiels (v6)]], **fourni par le dirigeant, non recontrôlé sur
+Légifrance** (la publication n'y change rien).
 
 - **Texte fourni** (décret n° 2015-1437, art. 1er) : la liste des pièces « pouvant être exigées par le bailleur de chacun
   des candidats à la location figure en annexe 1 », celle des cautions « en annexe 2 » ; « Les pièces produites peuvent
@@ -156,7 +159,8 @@ recontrôlé sur Légifrance**.
 
 > [!warning] Points à trancher / contradictions (25/11/2026)
 > - **Hors périmètre ou non ?** La définition ci-dessus dit le module 0b hors prospection et sélection du locataire
->   (« le locataire est déjà retenu ») ; la version préparée encadre pourtant les pièces demandées à un **candidat**.
+>   (« le locataire est déjà retenu ») ; la version en production depuis le 25/11 encadre pourtant les pièces demandées
+>   à un **candidat**.
 > - **Identité de la caution** (annexe II, A) : dans le recueil, la liste s'arrête au permis de conduire et finit par un
 >   point-virgule, sans le document de séjour cité pour le candidat ; ligne sautée à l'extraction ? Gerimmo s'en tient
 >   aux trois documents (`JURISTE.md`, partie 9, point 20).

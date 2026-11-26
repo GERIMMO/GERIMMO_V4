@@ -3,8 +3,8 @@ type: business-rule
 tags: [bail, mentions-obligatoires, alur, dpe, identifiant-fiscal, modele-type, notice, contrat-type]
 status: draft
 created: 2026-08-05
-updated: 2026-11-25
-sources: ["[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Recueil des textes officiels (v6)]]", "DECISIONS-2026-11-24.md (Q46)", "QUESTIONS.md (Q40, Q46, Q77, Q102, Q107 à Q111)", "JURISTE.md (partie 9, points 15 à 19)", "JOURNAL.md (entrées du 24-25/11/2026)", "livrables/notes-banc/ (notes-T1, notes-T2, relecture-T2R, notes-mariage, fusion/relecture-contrats)", "livrables/recueil/analyse-refs-01-09.md (réf. 05 à 09)"]
+updated: 2026-11-26
+sources: ["[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Recueil des textes officiels (v6)]]", "DECISIONS-2026-11-24.md (Q46)", "QUESTIONS.md (Q40, Q46, Q77, Q102, Q107 à Q111)", "JURISTE.md (partie 9, points 15 à 19)", "JOURNAL.md (entrées du 24-25/11/2026)", "livrables/notes-banc/ (notes-T1, notes-T2, relecture-T2R, notes-mariage, fusion/relecture-contrats)", "livrables/recueil/analyse-refs-01-09.md (réf. 05 à 09)", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)"]
 ---
 
 # Mentions obligatoires du bail
@@ -82,7 +82,8 @@ Source : [[2026-08-05-bailpdf-contrat-de-bail|BailPDF]].
 >   production n'est pas établie ici.
 
 ## État dans l'application au 23/11/2026 — notice d'information et congé du bailleur (mission palier 1, lot 33)
-En préproduction, **non publié** ([[Mission palier 1 — audit du 22 novembre 2026]], points P0-07 et P0-08).
+Fait en préproduction ; **en production depuis le 25/11/2026** avec la version `062296e2` (PR #358, `main` = `8f9dd9ce`),
+qui le complète (sections ci-dessous) ([[Mission palier 1 — audit du 22 novembre 2026]], points P0-07 et P0-08).
 - **Notice d'information.** Le document que Gerimmo prépare est un **résumé** : il le dit en tête (« Ce document est un
   résumé établi par Gerimmo. Il ne remplace pas la notice d'information officielle, dont le texte complet est fixé par
   arrêté : le bailleur la remet au locataire avec le bail. »). L'écran du bail parle de « résumé » et demande de
@@ -92,7 +93,7 @@ En préproduction, **non publié** ([[Mission palier 1 — audit du 22 novembre 
   l'adresse du bénéficiaire et les raisons de la reprise ; Gerimmo ne la prépare pas tant que le nom du bénéficiaire,
   son lien avec le bailleur, son adresse et les raisons ne sont pas saisis (choix de prudence de l'agent, pas une règle
   citée). Le motif « légitime et sérieux » n'a pas ce rappel.
-- *Version préparée (lot T1, `89cb87ff`, complétée jusqu'à `062296e2`, non publiée) :* le congé pour vendre d'un logement nu reproduit mot pour
+- *Version préparée (lot T1, `89cb87ff`, complétée jusqu'à `062296e2`), en production depuis le 25/11/2026 :* le congé pour vendre d'un logement nu reproduit mot pour
   mot les cinq alinéas de l'article 15 II du texte fourni (« Les termes des cinq alinéas précédents sont reproduits à
   peine de nullité dans chaque notification ») et exige les conditions de la vente ; la lettre annonce la notice de
   l'arrêté du 13 décembre 2017, que le bailleur joint lui-même (Q102) ; le rappel « à faire relire » est gardé. Détail :
@@ -106,7 +107,7 @@ En préproduction, **non publié** ([[Mission palier 1 — audit du 22 novembre 
 > douteux : « 30 0000 € », adresses coupées — non imprimée) et la notice du bail entière (site miroir — non imprimée,
 > Q77). Aucun de ces textes n'est recontrôlé sur Légifrance.*
 
-## État dans l'application au 24/11/2026 (préproduction, non publié) — notice, travaux, durée, colocation (mission palier 1, phase 3)
+## État dans l'application au 24/11/2026 (préproduction ; en production depuis le 25/11/2026) — notice, travaux, durée, colocation (mission palier 1, phase 3)
 
 Relu dans le code après les lots 40, 45 et 48 ([[Mission palier 1 — audit du 22 novembre 2026]] ; `QUESTIONS.md`, Q46
 et Q53 ; `JURISTE.md`, partie 5, points 9 à 12).
@@ -133,17 +134,21 @@ et Q53 ; `JURISTE.md`, partie 5, points 9 à 12).
 >   rester joint à la signature électronique ? ») est précisé, pas tranché.
 >   *Décision du 24/11 (Q46) : « joins la notice officielle entière, dans la version en vigueur à la signature. En
 >   attendant, le bailleur la dépose lui-même, et l'envoi en signature électronique est bloqué sans elle. » Solution
->   d'attente appliquée en préproduction (lot D3) : voir ci-dessous. Reste ouvert : Gerimmo ne joint pas lui-même le
+>   d'attente appliquée en préproduction (lot D3), en production depuis le 25/11/2026 : voir ci-dessous. Reste ouvert : Gerimmo ne joint pas lui-même le
 >   texte officiel ; la signature sur papier n'est pas bloquée.*
 
-## Version préparée, à publier — contrat type et notice relus sur le texte fourni (au 25/11/2026)
+## Version préparée `062296e2`, en production depuis le 25/11/2026 — contrat type et notice relus sur le texte fourni
 
-**En production aujourd'hui** (version du 21/11, `81740dec`) : rien de ce qui suit. **Version préparée** : lot D3, en
+**En production depuis le 25/11/2026** (23:17Z, soit le 26/11 à 00 h 17, heure de Paris) : ce qui suit, avec la version
+préparée `062296e2`, publiée par la PR #358 (`main` = `8f9dd9ce`, identique à `062296e2`) ; ses 52 migrations sont
+appliquées (25/11, 22:09Z) et la recette de production n° 58 a réussi (`log.md`, entrée « deploy » du 25/11/2026).
+Jusqu'au 25/11, la production servait la version du 21/11 (`81740dec`), qui n'en contenait rien. **Version
+préparée** : lot D3, en
 préproduction depuis le 24/11 (`fde4cbb4`) ; lots T1 et T2 et case « mariés ou pacsés », réunis avec lui dans la branche
 `claude/palier-1-fusion` (`89cb87ff`, complétée jusqu'à `062296e2`), vérifiée en entier sur le banc et poussée le 25/11 sur la branche de
-préproduction `claude/palier-1-preproduction` (`JOURNAL.md`, entrée du 25/11) ; non publiée en production. Référence :
+préproduction `claude/palier-1-preproduction` (`JOURNAL.md`, entrée du 25/11). Référence :
 le [[Recueil des textes officiels (v6)]], **fourni par le dirigeant, non recontrôlé sur Légifrance** — « suit le texte
-fourni » n'équivaut pas à « conforme ».
+fourni » n'équivaut pas à « conforme », et la publication ne vérifie rien de juridique.
 
 ### Notice d'information (D3, puis T2)
 - Le bailleur **dépose la notice** (PDF) à l'étape Documents du bail ; sans elle, préparation et envoi en signature

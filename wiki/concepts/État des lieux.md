@@ -3,8 +3,8 @@ type: concept
 tags: [edl, etat-des-lieux, bail, depot-de-garantie, mobile]
 status: draft
 created: 2026-07-24
-updated: 2026-11-25
-sources: ["[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]", "[[Notification et valeur probante]]", "log.md — entrées « decision » du 23/10/2026 (« Cautionnement et état des lieux signés dans Gerimmo ») et du 24/10/2026 (choix délégué n° 8), « deploy » du 24/10/2026 (PR #246)", "app/docs/signature-electronique-bail.md", "app/src/lib/textes-signature-actes.ts", "[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Recueil des textes officiels (v6)]]", "livrables/recueil/analyse-refs-10-24.md (réf. 11, 14 et 15)", "livrables/notes-banc/notes-T3.md et relecture-T3R.md", "JOURNAL.md — lots 18, 23, D3 et T3 (22 au 25/11/2026)", "DECISIONS-2026-11-24.md (Q11, Q40, Q49)", "QUESTIONS.md — Q40, Q49", "JURISTE.md — partie 2, points 1 à 5, 14 à 16", "code de la branche fusionnée claude/palier-1-fusion (89cb87ff, lecture seule) : lib/documents/modeles/edl.ts"]
+updated: 2026-11-26
+sources: ["[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]", "[[Notification et valeur probante]]", "log.md — entrées « decision » du 23/10/2026 (« Cautionnement et état des lieux signés dans Gerimmo ») et du 24/10/2026 (choix délégué n° 8), « deploy » du 24/10/2026 (PR #246)", "app/docs/signature-electronique-bail.md", "app/src/lib/textes-signature-actes.ts", "[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Recueil des textes officiels (v6)]]", "livrables/recueil/analyse-refs-10-24.md (réf. 11, 14 et 15)", "livrables/notes-banc/notes-T3.md et relecture-T3R.md", "JOURNAL.md — lots 18, 23, D3 et T3 (22 au 25/11/2026)", "DECISIONS-2026-11-24.md (Q11, Q40, Q49)", "QUESTIONS.md — Q40, Q49", "JURISTE.md — partie 2, points 1 à 5, 14 à 16", "code de la branche fusionnée claude/palier-1-fusion (89cb87ff, lecture seule) : lib/documents/modeles/edl.ts", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)"]
 ---
 
 # État des lieux
@@ -103,8 +103,9 @@ constat du refus, portée affaiblie · colocation → un seul EDL, signé par le
 passé ne reçoit pas l'alerte « État des lieux d'entrée à signer » — l'entrée a eu lieu avant Gerimmo. L'état des lieux
 de sortie n'est pas concerné. Prête dans la PR [#357](https://github.com/GERIMMO/GERIMMO_V4/pull/357), pas encore
 publiée au 22/11. Voir [[Bail]]. *25/11 : la publication du lot #357 a été arrêtée par le gel de la production
-(JOURNAL.md, 22/11) ; sa migration `20261122090000_bail_repris_dpe_g_et_edl_entree` fait partie de la version préparée
-(branche fusionnée), non publiée.*
+(JOURNAL.md, 22/11) ; sa migration `20261122090000_bail_repris_dpe_g_et_edl_entree` fait partie de la version `062296e2`
+(branche fusionnée), en production depuis le 25/11/2026 : elle est l'une des 52 migrations appliquées en production
+ce jour-là (22:09Z).*
 
 ## Relations
 
@@ -132,11 +133,11 @@ au congé ([[Agenda et échéances]]) ; grille issue du [[Lot]] ; écarts consom
   fumée structuré, nouvelle adresse du locataire et chiffrage en sortie —
   et l'ajout d'une pièce « découverte sur place » à une grille en cours
   (régénérer remplace toute la grille).
-  *Relu le 25/11 : en production, l'adresse existe à la sortie sous le libellé « Adresse de restitution du dépôt de
-  garantie » (champ `adresse_restitution_depot`, ajouté après ce relevé par la migration
-  `20260921060000_edl_champs_pdf_complets` du 21/09) ; la version préparée la renomme et ajoute une photo par élément
-  (voir « Version préparée, à publier » en fin de page) ; le chiffrage est sorti de l'état des lieux (section du
-  24/11).*
+  *Relu le 25/11 : jusqu'au 25/11, en production (`81740dec`), l'adresse existait à la sortie sous le libellé « Adresse
+  de restitution du dépôt de garantie » (champ `adresse_restitution_depot`, ajouté après ce relevé par la migration
+  `20260921060000_edl_champs_pdf_complets` du 21/09) ; la version en production depuis le 25/11 (`062296e2`) la renomme
+  et ajoute une photo par élément (voir « En production depuis le 25/11/2026 » en fin de page) ; le chiffrage est sorti
+  de l'état des lieux (section du 24/11).*
 - Garde d'audit 09/09 : un EDL de **sortie** ne se crée et ne se signe que
   pendant le préavis — signé trop tôt, il rendait le congé inannulable ; la
   grille s'enregistre désormais en une seule transaction
@@ -211,7 +212,7 @@ Voir [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] pou
 
 Point vérifié sur l’article 3-2 : les dix jours courent depuis l’établissement, pas depuis une signature tardive. Une signature ultérieure ne suspend pas ce droit.
 
-## État dans l'application au 24/11/2026 (préproduction, non publié) — le document imprimé (mission palier 1, phase 3)
+## État dans l'application au 24/11/2026 (préproduction ce jour-là ; publié le 25/11/2026, complété par la section finale) — le document imprimé (mission palier 1, phase 3)
 
 Relu dans le code après les lots 36, 37, 40, 41 et 45 ([[Mission palier 1 — audit du 22 novembre 2026]] ;
 `QUESTIONS.md`, Q47 et Q49 ; `JURISTE.md`, partie 5, points 13, 14, 16 et 17).
@@ -251,16 +252,18 @@ Relu dans le code après les lots 36, 37, 40, 41 et 45 ([[Mission palier 1 — a
 >   - *25/11 — date* : le décret du recueil demande « Sa date d'établissement » ; c'est la date du constat que Gerimmo
 >     imprime (ci-dessus).
 
-## Version préparée, à publier (branche fusionnée du 25/11/2026, non publiée)
+## En production depuis le 25/11/2026 (branche fusionnée, version `062296e2`)
 
-Fait dans la branche `claude/palier-1-fusion` (`89cb87ff`, complétée jusqu'à `062296e2`, poussée le 25/11 sur la branche de préproduction `claude/palier-1-preproduction`), vérifié sur le banc local avec des données fictives, **pas
-en production**. Les textes cités viennent du recueil fourni par le dirigeant, **non recontrôlé sur Légifrance**
-([[Recueil des textes officiels (v6)]]) ; aucun point n'est tenu pour acquis au regard de la loi.
+Fait dans la branche `claude/palier-1-fusion` (`89cb87ff`, complétée jusqu'à `062296e2`, poussée le 25/11 sur la branche de préproduction `claude/palier-1-preproduction`), vérifié sur le banc local avec des données fictives, puis
+**publié en production le 25/11/2026** à 23:17Z (26/11 à 00 h 17, heure de Paris) par la PR #358 (`main` = `8f9dd9ce`,
+identique à `062296e2`) ; recette de production n° 58 réussie (`log.md`, entrée « deploy » du 25/11). Les textes cités
+viennent du recueil fourni par le dirigeant, **non recontrôlé sur Légifrance** ([[Recueil des textes officiels (v6)]]) ;
+aucun point n'est tenu pour acquis au regard de la loi : la publication n'y change rien.
 
 - **Adresse à la sortie** (lot T3, écart R15-A1) : la saisie, la consultation, le message d'erreur et le document de
   sortie disent « Adresse du nouveau domicile ou du lieu d'hébergement du locataire », mots du décret n° 2016-382,
-  article 2, 2°, a, tel que reproduit par le recueil, au lieu de « Adresse de restitution du dépôt de garantie » (en
-  production aujourd'hui). Même donnée en base (`adresse_restitution_depot`), rien n'est réécrit ; sans adresse, le
+  article 2, 2°, a, tel que reproduit par le recueil, au lieu de « Adresse de restitution du dépôt de garantie » (libellé
+  en production jusqu'au 25/11). Même donnée en base (`adresse_restitution_depot`), rien n'est réécrit ; sans adresse, le
   document de sortie reste « incomplet ». Elle sert aussi à l'article 22 (le locataire indique « l'adresse de son
   nouveau domicile » à la remise des clés) : voir [[Restitution du dépôt de garantie]] et [[Dépôt de garantie]].
 - **Date de l'entrée sur le document de sortie** (lot 18) : « État des lieux d'entrée établi le … » quand l'entrée est
@@ -287,7 +290,9 @@ en production**. Les textes cités viennent du recueil fourni par le dirigeant, 
 > [!warning] Points à trancher / contradictions (25/11/2026)
 > - La « Mise à jour d'implémentation (2026-09-09) » rangeait la nouvelle adresse du locataire parmi les absents ; elle
 >   a été ajoutée ensuite (migration `20260921060000_edl_champs_pdf_complets`, 21/09) sous le libellé « adresse de
->   restitution du dépôt », que le recueil ne reprend pas (libellé corrigé dans la version préparée seulement).> - **Majoration de 10 % du dépôt rendu en retard** : selon l'article 22 du recueil, elle n'est pas due si le locataire
+>   restitution du dépôt », que le recueil ne reprend pas (libellé corrigé dans la version en production depuis le
+>   25/11 seulement).
+> - **Majoration de 10 % du dépôt rendu en retard** : selon l'article 22 du recueil, elle n'est pas due si le locataire
 >   n'a pas transmis l'adresse de son nouveau domicile ; noté par le lot T3, **non codé**.
 > - **Grille de vétusté** : le décret du recueil réserve ce nom à une grille que les parties conviennent dès la
 >   signature du bail, choisie parmi celles d'un accord collectif ; les durées retenues par le bailleur seul n'en sont

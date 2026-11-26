@@ -3,8 +3,8 @@ type: concept
 tags: [bail, contrat, alur, signature, colocation, preavis, conge, epoux-pacs]
 status: in-progress
 created: 2026-07-22
-updated: 2026-11-25
-sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Recueil des textes officiels (v6)]]", "DECISIONS-2026-11-24.md", "QUESTIONS.md (Q4, Q11, Q23, Q34, Q40, Q43, Q46, Q77, Q102 à Q107, Q111, Q115, Q116, Q121, Q122)", "JURISTE.md (partie 9)", "JOURNAL.md (entrées du 24-25/11/2026)", "livrables/notes-banc/ (notes-T1, notes-T2, notes-T3, notes-mariage, notes-D5, relecture-T1R, relecture-T2R, fusion/fusion-notes, fusion/relecture-contrats, fusion/relecture-argent, fusion/corrections-fusion-notes)", "livrables/recueil/analyse-refs-01-09.md", "livrables/recueil/analyse-refs-10-24.md"]
+updated: 2026-11-26
+sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Recueil des textes officiels (v6)]]", "DECISIONS-2026-11-24.md", "QUESTIONS.md (Q4, Q11, Q23, Q34, Q40, Q43, Q46, Q77, Q102 à Q107, Q111, Q115, Q116, Q121, Q122)", "JURISTE.md (partie 9)", "JOURNAL.md (entrées du 24-25/11/2026)", "livrables/notes-banc/ (notes-T1, notes-T2, notes-T3, notes-mariage, notes-D5, relecture-T1R, relecture-T2R, fusion/fusion-notes, fusion/relecture-contrats, fusion/relecture-argent, fusion/corrections-fusion-notes)", "livrables/recueil/analyse-refs-01-09.md", "livrables/recueil/analyse-refs-10-24.md", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)"]
 ---
 
 # Bail
@@ -34,7 +34,7 @@ change rien aux baux en cours.
 | Aspect | Bail nu | Bail meublé |
 |---|---|---|
 | Durée minimale | 3 ans (personne physique, RM-1.1.8 ; aussi **SCI familiale** et **indivision de personnes physiques**) — **6 ans** si un bailleur est une personne morale autre qu'une SCI familiale (art. 10 et 13 de la loi du 6 juillet 1989, audit des parcours métier du 29/09) | **1 an — 9 mois étudiant** (sans reconduction) ; reconduction tacite **d'1 an** hors étudiant ([[2026-08-05-bailpdf-modele-bail-meuble]], section III) |
-| Préavis locataire | 3 mois (1 mois en zone tendue — version préparée : seulement si la lettre de congé précise et justifie le motif, voir § « Version préparée ») | **1 mois toujours** |
+| Préavis locataire | 3 mois (1 mois en zone tendue — depuis le 25/11/2026, version `062296e2` : seulement si la lettre de congé précise et justifie le motif, voir § « Version préparée ») | **1 mois toujours** |
 | Préavis bailleur | 6 mois | 3 mois |
 | [[Dépôt de garantie]] max | **1 mois** hors charges | **2 mois** — jamais révisé en cours de bail (RM-2.1.5) ; l'article 25-6 qui le fixe manque au [[Recueil des textes officiels (v6)\|recueil]] : plafond gardé, non relu (Q111) |
 | Inventaire mobilier | — | **Obligatoire, structuré** (pas un PDF joint) ; mobilier minimum décret 2015 sinon alerte de requalification. Exigence légale : « inventaire et état détaillé du mobilier » **annexés**, établis à la remise des clés ([[2026-08-05-bailpdf-modele-bail-meuble]], section XI) — l'inventaire structuré Gerimmo rend cette annexe générable |
@@ -126,8 +126,10 @@ Réponse du dirigeant du 22/11/2026 : « 1A - 2B - 3A - 4 ok »
   (PR [#357](https://github.com/GERIMMO/GERIMMO_V4/pull/357)), retour arrière fourni. **Au 22/11/2026 : prête, ni
   fusionnée ni publiée** — la publication attend l'accord du dirigeant. *Mise à jour du 25/11 :* le lot a été fusionné
   dans `main` (`e1e442dc`) le 22/11, puis sa publication a été arrêtée par le gel de la production ; il partira avec la
-  publication unique de fin de mission (`QUESTIONS.md`, Q4, option confirmée le 24/11). En production aujourd'hui : la
-  version du 21/11 (`81740dec`).
+  publication unique de fin de mission (`QUESTIONS.md`, Q4, option confirmée le 24/11). Jusqu'au 25/11, la production
+  servait la version du 21/11 (`81740dec`). *Mise à jour du 26/11 :* **en production depuis le 25/11/2026**, avec la
+  version `062296e2` (PR #358, `main` = `8f9dd9ce`) ; la migration fait partie des 52 appliquées le 25/11 à 22:09Z
+  (`log.md`, entrée « deploy » du 25/11/2026).
 
 > [!warning] Points à trancher / contradictions
 > - **DPE classé G (décision 2B)** : aucune source du wiki n'établit ce que l'interdiction de louer un logement classé
@@ -186,7 +188,7 @@ conservation calée sur le bail — hypothèse à confirmer). Voir
   **enregistre son départ** à la date d'effet de son congé. Sa solidarité s'éteint
   **six mois** après cette date, ou à cette date si un **nouveau colocataire figurant
   au bail** le remplace. Le garant qui le couvre reste rattaché au bail et son
-  engagement s'éteint à la même date. *(Version préparée : plus de fin de solidarité pour deux époux ou partenaires de
+  engagement s'éteint à la même date. *(Depuis le 25/11/2026, version `062296e2` : plus de fin de solidarité pour deux époux ou partenaires de
   PACS déclarés au bail — case « mariés ou pacsés », voir § « Version préparée ».)*
 - Couple marié/pacsé : solidarité légale automatique (référentiel). *Le texte fourni (loi de 1989, art. 8-1 I,
   [[Recueil des textes officiels (v6)]], non recontrôlé sur Légifrance) exclut de la colocation « la location consentie
@@ -208,7 +210,7 @@ bail + zone **figée au bail**, RM-1.10.7), en jours calendaires, depuis la **r�
 du congé. 8 motifs dérogatoires → 1 mois, **justificatif obligatoire sinon blocage**
 (RM-1.10.5). Le locataire reste redevable jusqu'au terme du préavis ; relocation
 pendant le préavis l'interrompt. → alerte d'[[État des lieux]] de sortie.
-*Version préparée (lot T1) : en zone tendue, un mois seulement si la lettre du locataire précise et justifie le motif,
+*Depuis le 25/11/2026, version `062296e2` (lot T1) : en zone tendue, un mois seulement si la lettre du locataire précise et justifie le motif,
 trois mois sinon ; l'état des lieux de sortie demande l'« adresse du nouveau domicile ou du lieu d'hébergement » (lot T3).
 Voir § « Version préparée ».*
 
@@ -225,7 +227,7 @@ Le PDF du congé (audit des parcours métier du 29/09) prend pour date d'effet l
 par la base** — la même règle que l'enregistrement du congé, durée selon la qualité
 des bailleurs — pour la date de présentation prévue (le terme suivant si le préavis
 n'y tient plus) ; il imprime le prix et refuse un congé pour vente d'un logement nu
-sans prix. *Version préparée (lot T1) : date de **réception** prévue (et non plus de présentation), date limite comptée
+sans prix. *Depuis le 25/11/2026, version `062296e2` (lot T1) : date de **réception** prévue (et non plus de présentation), date limite comptée
 jusqu'au dernier jour du bail, cinq alinéas de l'article 15 II reproduits, reprise refusée à une société non familiale —
 voir § « Version préparée ».*
 
@@ -260,9 +262,10 @@ colocataires.
 
 > [!warning] Bail déjà en cours — points laissés ouverts (20/11/2026, mis à jour le 22/11)
 > - **État des lieux d'entrée** : tranché le 22/11/2026 (décision 3A) — plus d'alerte pour un bail repris en cours.
->   En attente de publication (PR #357) ; d'ici là, l'activation pose encore l'alerte, datée de l'entrée.
-> - **DPE classé G** : tranché le 22/11/2026 (décision 2B) — simple alerte pour un bail déjà en cours. En attente de
->   publication (PR #357) ; d'ici là, il bloque encore. Aucune source du wiki n'établit l'effet de l'interdiction de
+>   En production depuis le 25/11/2026 (PR #357, publiée avec la version `062296e2`) ; jusque-là, l'activation posait
+>   encore l'alerte, datée de l'entrée.
+> - **DPE classé G** : tranché le 22/11/2026 (décision 2B) — simple alerte pour un bail déjà en cours. En production
+>   depuis le 25/11/2026 (PR #357, publiée avec la version `062296e2`) ; jusque-là, il bloquait encore. Aucune source du wiki n'établit l'effet de l'interdiction de
 >   louer sur un bail en cours : la décision reste à faire confirmer par un professionnel.
 > - **Date d'entrée déclarée** : un bail daté de la veille échappe au blocage des diagnostics. Conséquence directe de la
 >   décision ; les actions à mener restent affichées.
@@ -292,7 +295,7 @@ colocataires.
 > - Le module 1 saisit la « date de réception » du congé ; la matrice demande le champ
 >   « **date de première présentation** » (RM-A3.5, rattachement prioritaire n° 1) —
 >   formulation à aligner en développement. *25/11 : le texte fourni (art. 15 I et 25-8, recueil, non recontrôlé) fait
->   courir le délai « à compter du jour de la réception » ; la version préparée (lot T1) dit « réception » partout pour
+>   courir le délai « à compter du jour de la réception » ; la version `062296e2` (lot T1), en production depuis le 25/11/2026, dit « réception » partout pour
 >   le congé du bailleur, la colonne garde le nom `date_premiere_presentation`. La matrice reste contredite.*
 
 > [!info] Champs manquants pour générer un bail conforme (ingest bailpdf, 2026-08-01)
@@ -367,7 +370,7 @@ Recette : 8 essais SQL ciblés (double activation, plafond, chevauchement, dépa
 > projeté » (réalisation du 14/09) : le dernier barème connu s'applique désormais aux
 > années suivantes, à réviser à chaque arrêté. Source : [[Audit complet du 29 septembre 2026]].
 
-## État dans l'application au 24/11/2026 (préproduction, non publié) — documents du bail (mission palier 1, phase 3)
+## État dans l'application au 24/11/2026 (préproduction ; en production depuis le 25/11/2026) — documents du bail (mission palier 1, phase 3)
 
 Relu dans le code après les lots 35, 38, 40, 45 et 46 ([[Mission palier 1 — audit du 22 novembre 2026]] ;
 `QUESTIONS.md`, Q40, Q46 et Q47 ; `JURISTE.md`, partie 5, points 3, 4, 8, 10 et 12).
@@ -380,14 +383,14 @@ Relu dans le code après les lots 35, 38, 40, 45 et 46 ([[Mission palier 1 — a
   même dans le PDF préparé pour la signature (deux avenants identiques sur un même bail ont donc la même référence :
   Q47, point 3). L'avenant de remplacement d'un colocataire ne vaut que pour un contrat commun, choisit le sortant parmi
   les titulaires et prévoit les signatures du bailleur, du sortant, de l'entrant et des colocataires restants ; faut-il
-  aussi celles des cautions ? (juriste, point 12). *Version préparée : refusé, et plus proposé, pour un bail coché
+  aussi celles des cautions ? (juriste, point 12). *Depuis le 25/11/2026, version `062296e2` : refusé, et plus proposé, pour un bail coché
   « mariés ou pacsés » (relecture de la fusion, C-01).*
 - **Colocation** : un colocataire parti n'est plus traité comme locataire dans les documents. Le contrat individuel
   parle du « loyer maximal applicable au logement entier » (voir [[Mentions obligatoires du bail]]).
 - **Attestations d'un bail en préavis** : elles donnent la date de fin (« Un congé est enregistré : le contrat prend fin
   le … ») ; faut-il dire qui a donné le congé ? (juriste, point 8).
 - **Notice** : un résumé joint à part, pas la notice officielle (Q46 ; [[Mentions obligatoires du bail]]). *Décidé le
-  24/11 (Q46) et appliqué en préproduction (lot D3) : le bailleur dépose la notice, jointe comme annexe ; l'envoi en
+  24/11 (Q46) et appliqué en préproduction (lot D3), en production depuis le 25/11/2026 : le bailleur dépose la notice, jointe comme annexe ; l'envoi en
   signature électronique est bloqué sans elle — voir § « Version préparée ».*
 - **Baux préparés avant la publication** : l'ancienne mise en page est gardée pour contrôler l'empreinte d'un bail signé
   à son activation (même empreinte vérifiée sur 70 dossiers) ; un circuit de signature préparé mais pas encore envoyé
@@ -401,17 +404,21 @@ Relu dans le code après les lots 35, 38, 40, 45 et 46 ([[Mission palier 1 — a
 >   application des articles 17 ou 25-9 » ; la règle vaut partout, reste à dire ce que vaut ce loyer hors encadrement
 >   (`livrables/recueil/analyse-refs-10-24.md`, réf. 17).*
 
-## Version préparée, à publier — congés, contrat, solidarité, signature (au 25/11/2026)
+## Version préparée `062296e2`, en production depuis le 25/11/2026 — congés, contrat, solidarité, signature
 
-**En production aujourd'hui** : la version du 21/11/2026 (`81740dec`) ; rien de ce qui suit n'y est encore. **Version
-préparée** : la branche réunie `claude/palier-1-fusion` (`89cb87ff`, complétée jusqu'à `062296e2`), vérifiée en entier sur le banc et poussée le
+**En production depuis le 25/11/2026** (23:17Z, soit le 26/11 à 00 h 17, heure de Paris) : la version préparée
+`062296e2`, publiée par la PR #358 (`main` = `8f9dd9ce`, identique à `062296e2`) ; ses 52 migrations sont appliquées
+(25/11, 22:09Z) et la recette de production n° 58 a réussi (`log.md`, entrée « deploy » du 25/11/2026 ; `JOURNAL.md`,
+entrée du 25/11 (nuit)). Elle remplace la version du 21/11/2026 (`81740dec`), qui ne contenait rien de ce qui suit.
+**Version préparée** : la branche réunie `claude/palier-1-fusion` (`89cb87ff`, complétée jusqu'à `062296e2`), vérifiée en entier sur le banc et poussée le
 25/11 (03:16 UTC) sur la branche de préproduction `claude/palier-1-preproduction` (`JOURNAL.md`, entrée du 25/11
 « Fusion des deux arbres et corrections »). Elle réunit (a) les décisions D1 à D3 (signature proposée en premier,
 révision du loyer, notice déposée), déjà en préproduction le 24/11 (`fde4cbb4`, vérifiée ce jour-là) ; (b) les lots T1
 à T3 tirés du recueil, la case « mariés ou pacsés », le retrait de l'ancien parcours de signature (D5) et les
-corrections des deux relectures de la fusion (`livrables/notes-banc/fusion/`). Rien ne part en production sans le message « je valide la publication »
-(`DECISIONS-2026-11-24.md`). Les règles ci-dessous suivent le [[Recueil des textes officiels (v6)]], **texte fourni par
-le dirigeant, non recontrôlé sur Légifrance** : elles ne sont pas présentées comme conformes.
+corrections des deux relectures de la fusion (`livrables/notes-banc/fusion/`). Publiée après le message du dirigeant
+« Je valide la publication » du 25/11 (`JOURNAL.md`, entrée du 25/11 (nuit)). Les règles ci-dessous suivent le [[Recueil des textes officiels (v6)]], **texte fourni par
+le dirigeant, non recontrôlé sur Légifrance** : elles ne sont pas présentées comme conformes ; la publication ne
+vérifie rien de juridique.
 
 ### Congés (lot T1)
 - **Date limite du [[Congé du bailleur|congé du bailleur]]** : la date de réception plus le préavis (six mois en nu, trois en meublé) doit
@@ -438,7 +445,8 @@ le dirigeant, non recontrôlé sur Légifrance** : elles ne sont pas présentée
   confirme que la lettre précise le motif et le justifie** — texte fourni : « A défaut, le délai de préavis applicable à
   ce congé est de trois mois. » Aucun justificatif déposé n'est exigé pour la zone tendue (Q103) ; les autres motifs
   gardent leur pièce obligatoire ; zone inconnue : inchangé (un mois accepté, alerte « à vérifier »). À la publication,
-  la migration passe avant le code (sinon l'ancienne base accorde un mois d'office).
+  la migration est passée avant le code (sinon l'ancienne base accordait un mois d'office) : migrations appliquées le
+  25/11 à 22:09Z, code publié ensuite (publication vérifiée à 23:17Z).
 - Amende pénale citée dans les mots du texte ; protection du locataire âgé complétée (personne à charge, exception du
   bailleur).
 
@@ -466,7 +474,8 @@ le dirigeant, non recontrôlé sur Légifrance** : elles ne sont pas présentée
   d'avant la case.
 - **Calcul en base** : au départ de l'un des deux époux ou partenaires présents à la signature, **aucune fin de
   solidarité** n'est enregistrée, pour lui comme pour sa caution ; appels et relances (caution comprise au second
-  niveau) continuent de les viser. Au brouillon coché, un troisième locataire est refusé et le bail ne sort du brouillon
+  niveau) continuent de les viser (au 26/11, l'envoi par e-mail des relances de loyer impayé, automatique ou à la main,
+  reste fermé tant que le dirigeant ne l'a pas ouvert dans la console : réglage R5 du plan de publication). Au brouillon coché, un troisième locataire est refusé et le bail ne sort du brouillon
   qu'à deux. L'ajout d'un tiers après la signature est accepté avec un avertissement : ce tiers et son garant suivent la
   règle de la colocation ; après « Corriger » et nouvelle signature, comptent les personnes présentes à cette signature.
   L'**avenant de remplacement** n'est plus proposé pour un bail coché. Un bail déjà signé ne peut pas recevoir la case.
@@ -476,21 +485,23 @@ le dirigeant, non recontrôlé sur Légifrance** : elles ne sont pas présentée
   « Colocataire » dans le circuit de signature électronique.
 
 ### Signature et notice (D1, D3, D5)
-- **Q11, préproduction** : la [[Signature électronique]] est proposée en premier là où elle peut servir (propriétaire qui
+- **Q11, en production depuis le 25/11/2026** : la [[Signature électronique]] est proposée en premier là où elle peut servir (propriétaire qui
   gère lui-même, service ouvert), avec « Signature sur papier, toujours possible » ; en agence ou service fermé, le papier
-  reste la voie présentée. L'ouverture du service est un réglage du jour de la publication.
-- **Q46, préproduction** : le bailleur dépose la notice d'information (PDF) à l'étape Documents du bail ; sans elle, la
+  reste la voie présentée. L'ouverture du service est un réglage du jour de la publication ; il ne figure pas parmi les
+  réglages R1 à R8 du plan de publication, et son état en production depuis le 25/11 n'est pas relu.
+- **Q46, en production depuis le 25/11/2026** : le bailleur dépose la notice d'information (PDF) à l'étape Documents du bail ; sans elle, la
   préparation et l'envoi en signature électronique sont bloqués ; déposée, elle est jointe comme annexe. Le papier n'est
-  pas bloqué (rappel à l'écran). Depuis le lot T2 (version préparée `89cb87ff`, complétée jusqu'à `062296e2`), l'écran dit la version à déposer : annexe de l'arrêté
+  pas bloqué (rappel à l'écran). Depuis le lot T2 (version `062296e2`, en production depuis le 25/11/2026), l'écran dit la version à déposer : annexe de l'arrêté
   du 29 mai 2015 dans sa rédaction issue de l'arrêté du 9 octobre 2026, pour un contrat conclu ou renouvelé depuis le
   18 octobre 2026. Gerimmo ne vérifie
   ni le fichier ni sa version ; il n'imprime pas la notice du recueil (site miroir, adresses coupées, tableaux : Q77).
-- **D5, version préparée `89cb87ff`, complétée jusqu'à `062296e2`** : l'ancien parcours « télécharger, signer, redéposer » est retiré de l'espace du locataire
+- **D5, version `062296e2`, en production depuis le 25/11/2026** : l'ancien parcours « télécharger, signer, redéposer » est retiré de l'espace du locataire
   (carte, action, e-mail « Document à signer ») ; la signature électronique et le dépôt du bail signé sur papier restent.
   En base rien n'est supprimé (trois droits retirés). Contrôle de production du 24/11 : aucune ancienne demande ; à refaire
-  en lecture seule le jour de la publication, avant la migration.
+  en lecture seule le jour de la publication, avant la migration (contrôle C1 du plan de publication ; son résultat
+  n'est pas repris dans le compte rendu de la publication, `JOURNAL.md`, entrée du 25/11 (nuit)).
 
-### Révision du loyer (D2, préproduction) — détail : [[Révision annuelle IRL]]
+### Révision du loyer (D2, en production depuis le 25/11/2026) — détail : [[Révision annuelle IRL]]
 Date limite affichée (un an après la date de révision), second rappel 30 jours avant, refus au-delà ; nouveau loyer au
 premier terme qui suit la demande, écrit dans la lettre (Q43) ; date limite au calendrier du propriétaire (Q34). Délai
 d'un an lu sur la fiche de service-public le 24/11, pas sur l'article de loi ; l'article 17-1 figure depuis au recueil
@@ -512,7 +523,8 @@ d'un an lu sur la fiche de service-public le 24/11, pas sur l'article de loi ; l
 >   `7180794e`), non vérifiées en entier. → *Tranché le 25/11 : la nouvelle entrée du journal (« Fusion des deux arbres
 >   et corrections ») précise que ces entrées datent d'avant la fusion ; `89cb87ff`, complétée jusqu'à `062296e2`, qui contient les deux commits, est
 >   vérifiée en entier sur le banc (16 506 tests réussis, seuls 2 fichiers en échec attendus ; 355 parcours réussis,
->   3 ignorés) et poussée sur la branche de préproduction. Non publiée en production.*
+>   3 ignorés) et poussée sur la branche de préproduction. Publiée en production le 25/11/2026 (PR #358, `main` =
+>   `8f9dd9ce`).*
 > - **Révision** : la fiche officielle lue le 24/11 applique le loyer révisé « à partir de la date de la demande » ;
 >   Gerimmo l'applique au terme suivant, choix plus favorable au locataire (Q43 ; `JURISTE.md`, partie 6, point 16). Le
 >   gel en classe F ou G est appliqué à tout bail, alors que le texte fourni ne le prévoit que pour les contrats conclus,

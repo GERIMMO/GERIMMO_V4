@@ -3,8 +3,8 @@ type: business-rule
 tags: [rgpd, conservation, retention, purge, litige, alertes, conformite]
 status: draft
 created: 2026-10-24
-updated: 2026-11-25
-sources: ["[[RGPD]]", "[[Registre des traitements]]", "[[Conservation et exploitation — 22 octobre 2026]]", "app/supabase/migrations/20261024140000_conservation_et_prospection.sql", "app/supabase/migrations/20261024130000_fermeture_comptes.sql", "log.md — entrées « decision » des 23 et 24/10/2026, « deploy » du 24/10/2026 (PR #246 et PR #248, migration 20261024150000_activation_inactivite_v1)", "[[Recueil des textes officiels (v6)]]", "livrables/recueil/analyse-refs-25-37.md (réf. 31 et 34)", "livrables/notes-banc/notes-T4.md et relecture-T4R.md", "DECISIONS-2026-11-24.md (Q39, Q46 ; vendeur entrepreneur individuel)", "JOURNAL.md — lots T4 et D3 (24-25/11/2026)", "QUESTIONS.md — Q39, Q84, Q86, Q87", "JURISTE.md — partie 3, A16 ; partie 9, point 28", "code de la branche fusionnée claude/palier-1-fusion (89cb87ff, lecture seule) : migrations 20261125103000 et 20261125105000 ; code en ligne 81740dec"]
+updated: 2026-11-26
+sources: ["[[RGPD]]", "[[Registre des traitements]]", "[[Conservation et exploitation — 22 octobre 2026]]", "app/supabase/migrations/20261024140000_conservation_et_prospection.sql", "app/supabase/migrations/20261024130000_fermeture_comptes.sql", "log.md — entrées « decision » des 23 et 24/10/2026, « deploy » du 24/10/2026 (PR #246 et PR #248, migration 20261024150000_activation_inactivite_v1)", "[[Recueil des textes officiels (v6)]]", "livrables/recueil/analyse-refs-25-37.md (réf. 31 et 34)", "livrables/notes-banc/notes-T4.md et relecture-T4R.md", "DECISIONS-2026-11-24.md (Q39, Q46 ; vendeur entrepreneur individuel)", "JOURNAL.md — lots T4 et D3 (24-25/11/2026)", "QUESTIONS.md — Q39, Q84, Q86, Q87", "JURISTE.md — partie 3, A16 ; partie 9, point 28", "code de la branche fusionnée claude/palier-1-fusion (89cb87ff, lecture seule) : migrations 20261125103000 et 20261125105000 ; code en ligne jusqu'au 25/11/2026 : 81740dec", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)"]
 ---
 
 # Durées de conservation
@@ -24,12 +24,13 @@ déjà.
 > proposée par le plan, pas une certification ; aucune source juridique n'a pu être ouverte
 > le 23/10.
 >
-> *Mise à jour du 25/11/2026* : les tableaux décrivent ce qui est **en production aujourd'hui**, à une correction près
-> (`compte:inactif`, active depuis le 24/10, voir son tableau). La **version préparée** de la mission palier 1 (branche
-> fusionnée, non publiée) ne change, d'après les notes des lots, qu'une durée — les factures passent de six à dix ans —
-> et **n'active aucune règle**
+> *Mise à jour du 25/11/2026, revue le 26/11* : les tableaux décrivent ce qui était **en production jusqu'au 25/11**
+> (version `81740dec`), à une correction près (`compte:inactif`, active depuis le 24/10, voir son tableau). La **version
+> préparée** de la mission palier 1 (`062296e2`), **en production depuis le 25/11/2026** (`log.md`, entrée « deploy » du
+> 25/11/2026), ne change, d'après les notes des lots, qu'une durée — les factures passent de six à dix ans (ligne
+> `archive:facture`, qui donne les deux valeurs) — et **n'active aucune règle**
 > (décision du dirigeant du 24/11, Q39 : « N'active aucune règle de conservation ») : voir la section « Version
-> préparée, à publier ».
+> préparée `062296e2` ».
 
 ## Principes retenus le 23/10 (plan juriste/DPO, valeurs acceptées par le dirigeant)
 - **Gestion directe : 36 mois** après la fin du bail et la clôture de ses comptes pour les
@@ -40,7 +41,8 @@ déjà.
   fiscale de **six ans** (livre des procédures fiscales, art. L. 102 B), et non les dix ans
   du code de commerce ; la **preuve du contrat** conclu en ligne reste **dix ans** (code de
   la consommation, L. 213-1).
-  *25/11 : six ans est la règle en production aujourd'hui ; la version préparée passe à **dix ans** d'après le texte
+  *25/11 : six ans était la règle en production jusqu'au 25/11 (`81740dec`) ; la version préparée `062296e2`, en
+  production depuis le 25/11/2026, passe à **dix ans** d'après le texte
   du recueil (loi n° 2026-534, article 36), voir plus bas. Le vendeur est un entrepreneur individuel (nom commercial
   SAUVEXPERT, activité déclarée 85.59A), selon l'avis Sirene transmis par le dirigeant le 24/11
   (`DECISIONS-2026-11-24.md`).*
@@ -98,7 +100,7 @@ les écritures (lot 5) ; le premier terme possible tombe en **novembre 2028**.
 | `compte:inscription_non_confirmee` | 1 mois | Création de l'inscription | Non |
 | `compte:invitation_jamais_utilisee` | 3 mois | Expiration, refus ou annulation de la dernière invitation | Non |
 | `archive:preuve_contrat` | 120 mois | Fin du dernier abonnement payé | Oui |
-| `archive:facture` | 72 mois (production) ; **120 mois, plancher 120** (version préparée) | Fin de l'exercice de la facture, à défaut fin du dernier abonnement payé ; jamais moins de dix ans après l'émission (version préparée) | Oui |
+| `archive:facture` | 72 mois (production jusqu'au 25/11/2026) ; **120 mois, plancher 120** (version `062296e2`, en production depuis le 25/11/2026) | Fin de l'exercice de la facture, à défaut fin du dernier abonnement payé ; jamais moins de dix ans après l'émission (version `062296e2`) | Oui |
 | `contrat:retractation` | 120 mois | Date de la rétractation | Oui |
 | `contrat:intention_conge` | 24 mois | Traitement | Oui |
 | `journal:effacements_a_reappliquer` | 4 mois | Exécution de la fermeture | Oui |
@@ -190,7 +192,7 @@ des pièces dont la règle est active.
 >   publication de la V1.
 >   - *25/11* : fait le 24/10 pour `compte:inactif` (PR #248, log.md). Les autres règles inactives le restent : le
 >     dirigeant a décidé le 24/11 de n'en activer aucune pendant la mission (Q39).
-> - **Factures : six ans (production) ou dix ans (version préparée)** : le recueil fourni par le dirigeant (non
+> - **Factures : six ans (production jusqu'au 25/11/2026) ou dix ans (version `062296e2`, en production depuis le 25/11/2026)** : le recueil fourni par le dirigeant (non
 >   recontrôlé sur Légifrance) donne l'article modificateur (loi n° 2026-534, article 36), pas la rédaction de L. 102 B
 >   au 1er janvier 2027 : le point de départ des dix ans retenu par Gerimmo reste à confirmer (JURISTE.md, partie 9,
 >   point 28 ; partie 3, A16). Le texte ne vise que les documents soumis au contrôle de l'administration : aucune
@@ -239,13 +241,16 @@ cohérence d’une décision avec les engagements contractuels et la finalité d
 État : **en cours de validation locale, non publié**. Migration
 `20261024105901_reglages_conservation_superadmin.sql`, après `20261024150000` dans le
 manifeste. Preuves de contrôle et publication : `log.md`.
-*Relu le 25/11 : l'écran (`app/src/app/admin/conservation/`) et sa migration figurent dans le code en ligne
-(`81740dec`, publié le 21/11) ; l'application de la migration en production n'est pas relue dans les sources de ce
-jour. Dans la version préparée, le réglage des factures ne peut plus descendre sous 120 mois.*
+*Relu le 25/11, complété le 26/11 : l'écran (`app/src/app/admin/conservation/`) et sa migration figurent dans le code en
+ligne (`81740dec`, publié le 21/11, puis `062296e2`, qui contient `81740dec`, en production depuis le 25/11/2026) ; l'application de
+la migration en production n'est pas relue dans les sources de ce jour. Dans la version préparée `062296e2`, en
+production depuis le 25/11/2026, le réglage des factures ne peut plus descendre sous 120 mois.*
 
-## Version préparée, à publier : factures conservées dix ans (lot T4, non publié)
+## Version préparée `062296e2`, en production depuis le 25/11/2026 : factures conservées dix ans (lot T4)
 
-Fait dans la branche `claude/palier-1-fusion` (`89cb87ff`, complétée jusqu'à `062296e2`, poussée le 25/11 sur la branche de préproduction `claude/palier-1-preproduction`), vérifié sur le banc local, **pas en production**. On
+Fait dans la branche `claude/palier-1-fusion` (`89cb87ff`, complétée jusqu'à `062296e2`, poussée le 25/11 sur la branche de préproduction `claude/palier-1-preproduction`), vérifié sur le banc local, **en
+production depuis le 25/11/2026** (PR #358, `main` = `8f9dd9ce` ; les deux migrations ci-dessous font partie des 52
+appliquées le 25/11 à 22:09Z ; `log.md`, entrée « deploy » du 25/11/2026). On
 allonge, on ne raccourcit rien, on ne supprime rien.
 
 - **Texte** (recueil fourni par le dirigeant, **non recontrôlé sur Légifrance** ;
@@ -262,9 +267,12 @@ allonge, on ne raccourcit rien, on ne supprime rien.
 - **Migration `20261125105000_archive_compte_apres_client_stripe`** (reprise T4R-01) : la purge ne supprime plus une
   archive de compte fermé dont le client Stripe n'a pas encore été supprimé. Sans elle, preuve du contrat et dernière
   facture échéant le même jour (dix ans), la fiche du client et ses factures seraient restées chez Stripe sans limite.
-- **Textes alignés** : article 9 des conditions générales (version du 24/11/2026, « au moins dix ans »), page
+- **Textes alignés** : article 9 des conditions générales (version du 24/11/2026, « au moins dix ans » ; `/conditions`
+  affiche « Version du 24 novembre 2026, en vigueur depuis cette date » ; son archivage dans la console, réglage R2 du
+  plan de publication, n'est pas encore fait au 26/11), page
   confidentialité, console de fermeture d'un compte ([[Fermeture de compte]], [[Conditions générales]]).
 - **Rien n'a pu être supprimé à six ans** : aucune facture n'a six ans avant 2032 (raisonnement par les dates,
-  production non lue). Les migrations sont à appliquer avant le 1er janvier 2027 au plus tard.
+  production non lue). Les migrations devaient être appliquées avant le 1er janvier 2027 au plus tard : elles le sont
+  depuis le 25/11/2026 (22:09Z).
 - **Inchangé** : la preuve du contrat (dix ans après la fin du dernier abonnement payé) ; toutes les autres durées ;
   aucune règle n'est activée (Q39).

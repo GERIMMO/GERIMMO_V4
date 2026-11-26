@@ -190,6 +190,9 @@ const CLES_LIBELLES: Record<string, string> = {
   resultat: "accès", requete: "requête", geste: "geste", rubrique: "rubrique", motif: "motif", org_demandee: "organisation demandée",
   // Recherche par référence de la console (X18) : la forme de la saisie, le nombre d'objets trouvés, les identifiants relevés.
   forme: "recherche par", reference: "référence", resultats: "objets trouvés", organisations: "organisations concernées", objets: "identifiants relevés",
+  // Lot L1 (26/11/2026) : l'échec de la fermeture des autres sessions, noté dans le détail d'un changement de mot de passe
+  // (lib/compte.ts, traceFermetureAutresSessions).
+  fermeture_autres_sessions: "fermeture des autres sessions",
 };
 // Liste d'attente des agences (20/10/2026) : les quatre statuts d'une inscription, posés sous « avant » / « apres » par
 // liste_attente_statut_modifie. Aucune autre trace ne met ces codes sous ces clés (états d'organisation : essai, active,
@@ -206,6 +209,7 @@ const VALEURS_LIBELLES: Record<string, Record<string, string>> = {
   forme: { identifiant: "identifiant", numero: "numéro d’incident", libelle: "nom ou référence interne" },
   avant: STATUTS_LISTE_ATTENTE_TRACE,
   apres: STATUTS_LISTE_ATTENTE_TRACE,
+  fermeture_autres_sessions: { echec: "échec" },
 };
 
 export function detailsExpurges(details: unknown): string | null {

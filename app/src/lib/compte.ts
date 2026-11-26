@@ -36,6 +36,28 @@ export function verdictMotDePasse(
   return null;
 }
 
+/**
+ * Ce que la trace d'un changement de mot de passe dit de la fermeture des AUTRES sessions (lot L1, 26/11/2026).
+ *
+ * `signOut({ scope: "others" })` rend une erreur quand Auth échoue ou ne répond pas (erreur du service, limite de
+ * fréquence, réseau ; le SDK tait lui-même un 401, 403 ou 404), et rien ne dit alors qu'une session a été fermée.
+ * L'échec part dans le détail de l'événement « changement_mot_de_passe » (sauf dans definirNouveauMotDePasse quand le
+ * signOut() global suit aussitôt : voir actions/auth.ts) : un compte connecté n'écrit au journal
+ * technique qu'une liste fermée d'événements (migration 20260927141000). Seuls la nature de l'erreur et son statut
+ * y figurent, jamais son message ; la console n'affiche de toute façon que des codes courts et des nombres. Quand la
+ * fermeture a abouti, rien n'est ajouté : la trace d'un changement ordinaire reste celle d'avant.
+ */
+export function traceFermetureAutresSessions(
+  erreur: { code?: string; name?: string; status?: number } | null
+): Record<string, string | number> {
+  if (!erreur) return {};
+  return {
+    fermeture_autres_sessions: "echec",
+    erreur: erreur.code ?? erreur.name ?? "inconnue",
+    ...(typeof erreur.status === "number" ? { statut: erreur.status } : {}),
+  };
+}
+
 export type FacteurTotp = {
   id: string;
   friendly_name?: string | null;

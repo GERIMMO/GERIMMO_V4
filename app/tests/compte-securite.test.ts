@@ -84,6 +84,41 @@ describe("Sécurité du compte : changer son mot de passe sans passer par un ema
     );
   });
 
+  // Lot L1 (26/11/2026) : la fermeture des autres sessions peut échouer (Auth en panne, limite de fréquence, réseau).
+  // Elle ne ferme alors rien, et l'écran affirmait pourtant « Vos autres appareils connectés ont été déconnectés ».
+  it("la déconnexion des autres appareils échoue : le message dit la vérité, nomme le geste qui retente leur fermeture, et l’échec est tracé", async () => {
+    mocks.signOut.mockResolvedValue({ error: { name: "AuthApiError", code: "unexpected_failure", status: 500, message: "Internal Server Error" } });
+    const etat = await changerMonMotDePasse({}, saisie(ANCIEN, NOUVEAU));
+    expect(etat.message).toBeUndefined();
+    expect(etat.erreur).toMatch(/^Mot de passe modifié, mais la déconnexion de vos autres appareils n'a pas pu être confirmée/);
+    // Le message décrit ce que fait le bouton, sans affirmer le résultat (décision du 26/11/2026).
+    expect(etat.erreur).toContain("utilisez « Se déconnecter » : ce bouton ferme la session sur tous vos appareils, celui-ci compris.");
+    expect(etat.erreur).not.toMatch(/la session se ferme/);
+    expect(etat.erreur).not.toMatch(/ont été déconnectés/);
+    expect(etat.erreur).not.toMatch(/unexpected_failure|500|Internal/);
+    expect(mocks.signOut).toHaveBeenCalledExactlyOnceWith({ scope: "others" });
+    expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("log_tech", {
+      evenement: "changement_mot_de_passe",
+      details: { depuis: "compte", fermeture_autres_sessions: "echec", erreur: "unexpected_failure", statut: 500 },
+    });
+  });
+
+  it("une panne du réseau vers Auth (erreur sans code) est tracée par sa nature", async () => {
+    mocks.signOut.mockResolvedValue({ error: { name: "AuthRetryableFetchError", status: 0, message: "fetch failed" } });
+    const etat = await changerMonMotDePasse({}, saisie(ANCIEN, NOUVEAU));
+    expect(etat.erreur).toMatch(/n'a pas pu être confirmée/);
+    expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("log_tech", {
+      evenement: "changement_mot_de_passe",
+      details: { depuis: "compte", fermeture_autres_sessions: "echec", erreur: "AuthRetryableFetchError", statut: 0 },
+    });
+  });
+
+  it("la déconnexion des autres appareils aboutit : le message et la trace d’avant, inchangés", async () => {
+    const etat = await changerMonMotDePasse({}, saisie(ANCIEN, NOUVEAU));
+    expect(etat).toEqual({ message: "Mot de passe modifié. Vos autres appareils connectés ont été déconnectés ; celui-ci reste ouvert." });
+    expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("log_tech", { evenement: "changement_mot_de_passe", details: { depuis: "compte" } });
+  });
+
   it("dit pourquoi un mot de passe est refusé, sans jargon ni code d’erreur", async () => {
     mocks.updateUser.mockResolvedValue({ error: { code: "weak_password", message: "Password is known to be weak" } });
     const etat = await changerMonMotDePasse({}, saisie(ANCIEN, NOUVEAU));

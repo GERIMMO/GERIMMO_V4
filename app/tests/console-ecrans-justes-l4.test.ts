@@ -23,13 +23,19 @@ const banc = vi.hoisted(() => ({
   reglage: { blocageIdentiteActif: true, venteSansMediateurLe: null as string | null, revision: 1 as number | null, indisponible: false },
   iaActive: true as boolean | null,
   iaDisponible: true,
+  /** Lecture de `ia_disponible` : réponse normale, erreur rendue par la base, ou appel qui lève. */
+  iaLecture: "ok" as "ok" | "erreur" | "exception",
   copies: { data: [] as unknown, error: null as unknown, count: 0 as number | null },
 }));
 vi.mock("@/lib/editeur-serveur", () => ({ lireEditeur: async () => banc.identite }));
 vi.mock("@/lib/reglage-souscription-serveur", () => ({ lireReglageSouscription: async () => banc.reglage }));
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({
-    rpc: async (nom: string) => ({ data: nom === "ia_disponible" ? banc.iaDisponible : null, error: null }),
+    rpc: async (nom: string) => {
+      if (nom === "ia_disponible" && banc.iaLecture === "exception") throw new Error("réseau fictif indisponible");
+      if (nom === "ia_disponible" && banc.iaLecture === "erreur") return { data: null, error: { message: "fonction indisponible" } };
+      return { data: nom === "ia_disponible" ? banc.iaDisponible : null, error: null };
+    },
     from: (table: string) => {
       const q: Record<string, unknown> = {};
       for (const m of ["select", "like", "in", "is", "gte", "gt", "order", "limit", "eq", "contains", "range"]) q[m] = () => q;
@@ -79,8 +85,43 @@ describe("E096/E204 — /admin/sante : l'envoi du cautionnement suit la connexio
   });
 
   it("tout ouvert : « Activé », comme la rubrique des signatures", () => {
-    expect(caution(OUVERT)).toMatchObject({ information: "Activé", detail: "interrupteur ouvert — la configuration Zoho et les contrôles du document restent applicables" });
+    // Reprise du lot L4 : l'attente d'origine (« la configuration Zoho et les contrôles du document restent
+    // applicables ») ne disait pas que cette ligne ne lit pas le budget. Elle est durcie : le détail le dit.
+    expect(caution(OUVERT)).toMatchObject({ information: "Activé", detail: "interrupteur ouvert, hors budget — le plafond du mois (« Budget des signatures ») et les contrôles du document restent applicables" });
     expect(ouvertureSignatures(OUVERT, budget).documents.find((d) => d.code === "cautionnement")?.ouvert).toBe(true);
+  });
+
+  it("budget épuisé ou illisible : la ligne reste « Activé » et dit qu'elle ne lit pas le budget ; la rubrique, elle, ferme", () => {
+    // Les deux lectures ne s'accordent que sur les réglages (lib/reglages-signature.ts) : c'est écrit, pas caché.
+    expect(caution(OUVERT)?.detail).toContain("hors budget");
+    expect(ouvertureSignatures(OUVERT, { plafond: 800, utilise: 800, devisActif: true }).documents.find((d) => d.code === "cautionnement"))
+      .toMatchObject({ ouvert: false, motif: "Plafond mensuel atteint" });
+    expect(ouvertureSignatures(OUVERT, null).documents.find((d) => d.code === "cautionnement"))
+      .toMatchObject({ ouvert: false, motif: "Budget non disponible" });
+  });
+
+  describe("organisations de la liste d'essai (SIGNATURE_BAIL_ORGS_ESSAI) : elles passent outre les interrupteurs des baux et des actes", () => {
+    const ESSAI = "44444444-4444-4444-8444-444444444444";
+    it.each([
+      ["ZOHO_SIGN_BAIL_ACTIF fermé", { ...OUVERT, ZOHO_SIGN_BAIL_ACTIF: undefined, SIGNATURE_BAIL_ORGS_ESSAI: ESSAI }, "envoi des baux désactivé"],
+      ["ZOHO_SIGN_DOCUMENTS_ACTIF fermé", { ...OUVERT, ZOHO_SIGN_DOCUMENTS_ACTIF: "false", SIGNATURE_BAIL_ORGS_ESSAI: ` ${ESSAI} ` }, "envoi des autres actes désactivé"],
+    ])("%s, liste d'essai valide : la raison le dit, comme « Suspendu » parle des essais", (_, env, raison) => {
+      expect(caution(env)).toMatchObject({ information: "Désactivé", detail: `interrupteur ouvert — nouveaux envois fermés : ${raison} (hors organisations de la liste d’essai)` });
+    });
+
+    it("connexion absente : la liste d'essai n'y change rien, aucune mention des essais", () => {
+      expect(caution({ ...OUVERT, ZOHO_SIGN_ENV: "sandbox", SIGNATURE_BAIL_ORGS_ESSAI: ESSAI })?.detail).toBe("interrupteur ouvert — nouveaux envois fermés : connexion Zoho à configurer");
+    });
+
+    it("liste invalide (les essais sont refusés) ou vide : aucune mention des essais", () => {
+      for (const liste of ["pas-un-identifiant", `${ESSAI},pas-un-identifiant`, "", " , "]) {
+        expect(caution({ ...OUVERT, ZOHO_SIGN_BAIL_ACTIF: undefined, SIGNATURE_BAIL_ORGS_ESSAI: liste })?.detail, liste).toBe("interrupteur ouvert — nouveaux envois fermés : envoi des baux désactivé");
+      }
+    });
+
+    it("cautionnement suspendu : « y compris pour les essais », inchangé", () => {
+      expect(caution({ ...OUVERT, ZOHO_SIGN_CAUTIONNEMENT_FERME: "true", SIGNATURE_BAIL_ORGS_ESSAI: ESSAI })).toMatchObject({ information: "Suspendu", detail: expect.stringContaining("suspendu, y compris pour les essais") });
+    });
   });
 
   it("interrupteur propre fermé : « Suspendu », quel que soit l'amont", () => {
@@ -97,6 +138,7 @@ describe("E107/E214 — /admin/parametres : la carte de l'IA dit l'état constat
   beforeEach(() => {
     banc.iaActive = true;
     banc.iaDisponible = true;
+    banc.iaLecture = "ok";
     poser({ OPENAI_API_KEY: "", OPEN_AI_KEY: "", GERIMMO_PILOTE_LIMITE: "", GERIMMO_PAIEMENTS_DESACTIVES: "", GERIMMO_PREPRODUCTION_VALIDEE: "" });
   });
   afterEach(() => { vi.unstubAllEnvs(); });
@@ -117,6 +159,13 @@ describe("E107/E214 — /admin/parametres : la carte de l'IA dit l'état constat
     expect(carteIA(await rendreServeur(await PageParametres()))).toBe("Activée");
   });
 
+  it.each(["erreur", "exception"] as const)("activée, état de l'IA illisible (ia_disponible : %s) : « Activée, état à vérifier »", async (lecture) => {
+    // Le réglage dit « activée », mais l'état constaté ne peut pas être lu : ni « Activée », ni « Désactivée ».
+    poser({ OPENAI_API_KEY: "sk-fictif" });
+    banc.iaLecture = lecture;
+    expect(carteIA(await rendreServeur(await PageParametres()))).toBe("Activée, état à vérifier");
+  });
+
   it("désactivée, ou réglage illisible : inchangé", async () => {
     banc.iaActive = false;
     banc.iaDisponible = false;
@@ -127,8 +176,9 @@ describe("E107/E214 — /admin/parametres : la carte de l'IA dit l'état constat
 });
 
 describe("E189 — /admin/journaux : la couleur des sauvegardes suit leur dernier résultat", () => {
-  const ton = async () => /<details[^>]*id="copies"[^>]*data-tone="([^"]+)"|<details[^>]*data-tone="([^"]+)"[^>]*id="copies"/
-    .exec(await rendreServeur(await PreuvesSupervision({ p: {} })))?.slice(1).find(Boolean);
+  const tonDe = (html: string) => /<details[^>]*id="copies"[^>]*data-tone="([^"]+)"|<details[^>]*data-tone="([^"]+)"[^>]*id="copies"/
+    .exec(html)?.slice(1).find(Boolean);
+  const ton = async () => tonDe(await rendreServeur(await PreuvesSupervision({ p: {} })));
   const copie = (echecs: number | undefined) => ({ id: "11111111-1111-4111-8111-111111111111", evenement: "tache_sauvegarde", details: echecs === undefined ? {} : { echecs }, created_at: "2026-11-25T03:00:00Z" });
 
   it("dernière relecture réussie : vert", async () => {
@@ -144,6 +194,58 @@ describe("E189 — /admin/journaux : la couleur des sauvegardes suit leur dernie
   ])("%s : ambre, jamais vert", async (_, copies) => {
     banc.copies = copies;
     expect(await ton()).toBe("ambre");
+  });
+
+  describe("reprise du lot L4 : une vue filtrée ou une page suivante ne colore pas l'état des sauvegardes", () => {
+    /** La couleur et le texte de l'en-tête (« summary ») de la rubrique, pour des paramètres d'adresse donnés. */
+    const rubrique = async (p: Record<string, string>) => {
+      const html = await rendreServeur(await PreuvesSupervision({ p }));
+      return { ton: tonDe(html), entete: texte(/<details[^>]*id="copies"[\s\S]*?<summary[^>]*>([\s\S]*?)<\/summary>/.exec(html)?.[1] ?? "") };
+    };
+
+    it.each([
+      ["filtre « Relecture réussie » (vert d'office avant)", { copie: "reussie" }, [copie(0)]],
+      ["filtre « Échec » (ambre d'office avant)", { copie: "echec" }, [copie(2)]],
+      ["filtre « Depuis »", { depuis: "2026-11-01" }, [copie(0)]],
+      ["filtre « Depuis », dernière copie en échec", { depuis: "2026-11-01" }, [copie(2)]],
+    ])("%s : couleur neutre, « Vue filtrée »", async (_, p, data) => {
+      banc.copies = { data, error: null, count: data.length };
+      const r = await rubrique(p);
+      expect(r.ton).toBe("bleu");
+      expect(r.entete).toContain("Vue filtrée");
+      expect(r.entete).not.toContain("réussi");
+      expect(r.entete).not.toContain("À vérifier");
+    });
+
+    it.each([[copie(0)], [copie(2)]])("page 2 (copies plus anciennes) : couleur neutre, « Page 2 »", async (premiere) => {
+      banc.copies = { data: [premiere], error: null, count: 30 };
+      const r = await rubrique({ pageCopies: "2" });
+      expect(r.ton).toBe("bleu");
+      expect(r.entete).toContain("Page 2");
+    });
+
+    it("page demandée au-delà des copies : la première page est montrée, la règle d'E189 s'applique", async () => {
+      banc.copies = { data: [copie(0)], error: null, count: 1 };
+      expect((await rubrique({ pageCopies: "2" })).ton).toBe("vert");
+      banc.copies = { data: [copie(2)], error: null, count: 1 };
+      expect((await rubrique({ pageCopies: "2" })).ton).toBe("ambre");
+    });
+
+    it("paramètres que la requête ignore (résultat inconnu, date mal formée) : ce n'est pas un filtre, règle d'E189", async () => {
+      banc.copies = { data: [copie(0)], error: null, count: 1 };
+      for (const p of [{ copie: "autre" }, { depuis: "hier" }, { copie: "" }] as Record<string, string>[]) {
+        const r = await rubrique(p);
+        expect(r.ton, JSON.stringify(p)).toBe("vert");
+        expect(r.entete, JSON.stringify(p)).toContain("Dernier résultat affiché : réussi");
+      }
+    });
+
+    it("lecture impossible, filtre actif : ambre, « Lecture indisponible »", async () => {
+      banc.copies = { data: null, error: { message: "indisponible" }, count: null };
+      const r = await rubrique({ copie: "reussie" });
+      expect(r.ton).toBe("ambre");
+      expect(r.entete).toContain("Lecture indisponible");
+    });
   });
 });
 
@@ -201,6 +303,9 @@ describe("Couverture du réseau à 390 px : aucune colonne coupée", () => {
   it("sous `sm`, les trois colonnes de chiffres sont repliées sous le nom de la commune, sans rien perdre", () => {
     const enTetes = [...html.matchAll(/<th scope="col" class="([^"]*)">([^<]*)<\/th>/g)].map(([, classe, nom]) => [nom, classe]);
     expect(enTetes).toEqual([
+      // Reprise du lot L4 : l'en-tête « Couverture » porte désormais une classe (marge droite retirée sous `sm`) ; la liste
+      // exacte l'inclut, elle n'en devient que plus stricte.
+      ["Couverture", "max-sm:pr-0"],
       ["Artisans proposés / déclarés", "nombre hidden sm:table-cell"],
       ["Intérêts / biens", "nombre hidden sm:table-cell"],
       ["Demandes réseau", "nombre hidden sm:table-cell"],
@@ -212,6 +317,10 @@ describe("Couverture du réseau à 390 px : aucune colonne coupée", () => {
       ["mt-1 block text-xs sm:hidden", "Artisans proposés / déclarés : 2 / 3 · Intérêts / biens : 4 / 1 · Demandes réseau : 5"],
       ["mt-1 block text-xs sm:hidden", "Artisans proposés / déclarés : 0 / 1 · Intérêts / biens : 0 / 0 · Demandes réseau : 0"],
     ]);
+    // Reprise du lot L4 : sous `sm`, « Couverture » est la dernière colonne affichée, mais pas la dernière cellule de la
+    // rangée (les trois suivantes sont masquées) : la règle `.tableau td:last-child` ne lui retirait pas sa marge droite
+    // de 18 px (mesurée dans Chromium à 390 px). Elle la perd sous `sm` seulement ; dès `sm`, rien ne change.
+    expect([...html.matchAll(/<\/td><td( class="[^"]*")?><span class="puce /g)].map(([, classe]) => classe)).toEqual(communes.map(() => ' class="max-sm:pr-0"'));
     // La ligne et le lien de la commune restent ceux du tableau (e2e/reseau-couverture.spec.ts les cherche).
     expect(html).toMatch(/<tr><td><a [^>]*href="\/admin\/couverture\?departement=91&amp;metier=electricite&amp;commune=91377#artisans-commune"[^>]*>Massy<\/a>/);
   });

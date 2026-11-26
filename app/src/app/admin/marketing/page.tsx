@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { etatIA } from "@/lib/etat-ia";
 import { campagnesFacebook, depenseFacebookDuMois, santeFacebook } from "@/lib/marketing-meta";
 import { etatPageFacebook } from "@/lib/diffusion-facebook";
-import { texteFacebook } from "@/lib/facebook";
+import { messageFacebookDiffuse } from "@/lib/apercu-post-facebook";
 import { DiffusionFacebookMasquee } from "@/components/diffusion-facebook-masquee";
 import { sansJargon } from "@/lib/erreurs";
 import { formaterDateHeureLongueParis } from "@/lib/heure-paris";
@@ -70,17 +70,9 @@ export default async function PageAgentMarketing() {
   ]);
   // Lot D1 (relecture du 24/11) : l'aperçu montrait le texte préparé seul, sans le lien de l'article ni la mention
   // « Rédigé avec l’aide de l’IA » qui terminent le post. Il montre désormais le message que la mission enverra : même
-  // fonction (texteFacebook), mêmes champs que diffuserPostsEchus (lib/missions-planifiees/marketing.ts).
-  // Sans adresse d'article (ou adresse refusée par texteFacebook), aucun message ne peut être montré : null.
-  const messageDiffuse = (p: PostProgramme) => {
-    if (!p.slug) return null;
-    try {
-      return texteFacebook({ id: p.id, titre: p.titre, chapo: p.chapo, slug: p.slug, facebookTexte: p.facebook_texte, facebookImageUrl: p.facebook_image_url, origine: p.origine === "ia" ? "ia" : "manuel" });
-    } catch {
-      return null;
-    }
-  };
-  const programmes = ((programmesResultat.data ?? []) as PostProgramme[]).map((p) => ({ ...p, texte_diffuse: messageDiffuse(p) }));
+  // fonction (texteFacebook), mêmes champs que diffuserPostsEchus (lib/missions-planifiees/marketing.ts), lus par
+  // lib/apercu-post-facebook.ts, que le courriel de veto lit aussi. Sans adresse d'article : null (texte préparé seul).
+  const programmes = ((programmesResultat.data ?? []) as PostProgramme[]).map((p) => ({ ...p, texte_diffuse: messageFacebookDiffuse(p) }));
   const campagnes = (campagnesResultat.data ?? []) as Campagne[];
   const publications = (publicationsResultat.data ?? []) as Publication[];
   const reglages = (reglagesResultat.data ?? { actif: false, publication_automatique: false, publicite_active: false, jours_semaine: [2, 5], heure_paris: 9, heure_preparation_paris: 18, budget_mensuel_cents: 0, validation_obligatoire: false, veille_mots_inclus: [], veille_mots_exclus: [] }) as Reglages;

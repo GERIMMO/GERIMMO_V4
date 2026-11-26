@@ -1,6 +1,6 @@
 import { iaDesactiveeParLeSuperviseur } from "./etat-ia";
 import { fermetureModeleSignature } from "./signature-interrupteurs";
-import { motifFermetureSelonReglages } from "./ouverture-signatures";
+import { motifFermetureSelonReglages, MOTIFS_LEVES_EN_ESSAI } from "./reglages-signature";
 import { signatureEnEssai } from "./signature-essai";
 import { REGIME_TVA } from "@/lib/editeur";
 import type { RegimeTva } from "@/lib/tarifs";
@@ -267,19 +267,23 @@ export function etatConfiguration(env: Env, regimeTva: RegimeTva | null = REGIME
       information: actif ? "Activé" : "Désactivé",
       detail: actif ? `interrupteur activé — ${attendu}` : "interrupteur désactivé" });
   }
+  const essais = (env.SIGNATURE_BAIL_ORGS_ESSAI ?? "").split(",").map(v => v.trim()).filter(Boolean);
+  const essaisValides = essais.length > 0 && signatureEnEssai(essais[0], env);
   const cautionFermee = Boolean(fermetureModeleSignature("cautionnement", env));
   // Défaut E096/E204 : la ligne disait « Activé » dès que l'interrupteur propre au cautionnement était ouvert, sans
   // regarder la connexion Zoho ni ZOHO_SIGN_BAIL_ACTIF et ZOHO_SIGN_DOCUMENTS_ACTIF, qui ferment aussi cet acte. Même
-  // lecture que la rubrique des signatures de cette page (lib/ouverture-signatures.ts), hors budget lu en base.
+  // lecture des réglages que la rubrique « Budget des signatures » de cette page (lib/reglages-signature.ts), mais sans
+  // le budget lu en base : « Activé » le dit (« hors budget »).
   const cautionFermeeEnAmont = cautionFermee ? null : motifFermetureSelonReglages("cautionnement", env);
+  // Reprise du lot L4 : une organisation de la liste d'essai passe outre ZOHO_SIGN_BAIL_ACTIF et ZOHO_SIGN_DOCUMENTS_ACTIF
+  // (pas la connexion) ; le détail le dit, comme « Suspendu » dit « y compris pour les essais ».
+  const horsEssais = essaisValides && cautionFermeeEnAmont && MOTIFS_LEVES_EN_ESSAI.has(cautionFermeeEnAmont) ? " (hors organisations de la liste d’essai)" : "";
   verifications.push({ cle: "ZOHO_SIGN_CAUTIONNEMENT_FERME", usage: "Envoi du cautionnement", estConnexion: false,
     etat: "ok",
     information: cautionFermee ? "Suspendu" : cautionFermeeEnAmont ? "Désactivé" : "Activé",
     detail: cautionFermee ? "suspendu, y compris pour les essais — PDF et suivi existant conservés" :
-      cautionFermeeEnAmont ? `interrupteur ouvert — nouveaux envois fermés : ${cautionFermeeEnAmont[0].toLowerCase()}${cautionFermeeEnAmont.slice(1)}` :
-      "interrupteur ouvert — la configuration Zoho et les contrôles du document restent applicables" });
-  const essais = (env.SIGNATURE_BAIL_ORGS_ESSAI ?? "").split(",").map(v => v.trim()).filter(Boolean);
-  const essaisValides = essais.length > 0 && signatureEnEssai(essais[0], env);
+      cautionFermeeEnAmont ? `interrupteur ouvert — nouveaux envois fermés : ${cautionFermeeEnAmont[0].toLowerCase()}${cautionFermeeEnAmont.slice(1)}${horsEssais}` :
+      "interrupteur ouvert, hors budget — le plafond du mois (« Budget des signatures ») et les contrôles du document restent applicables" });
   verifications.push({ cle: "SIGNATURE_BAIL_ORGS_ESSAI", usage: "Périmètre des essais de signature", estConnexion: false,
     etat: essais.length > 0 && !essaisValides ? "attention" : "ok",
     detail: essaisValides ? "liste explicite configurée — aucun identifiant affiché ; aucun autre compte autorisé par cette liste" :

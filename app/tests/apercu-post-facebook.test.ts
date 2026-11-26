@@ -49,6 +49,7 @@ vi.mock("@/app/admin/marketing/actions", () => {
   return { deciderPostProgramme: rien, enregistrerReglagesMarketing: rien, programmerCampagne: rien };
 });
 import PageMarketing from "@/app/admin/marketing/page";
+import { htmlAlerteVeto, type ApercuPost } from "@/lib/alerte-veto-marketing";
 
 /** Le paragraphe de l'aperçu, sous le titre du post programmé (texte rendu, entités décodées). */
 const apercu = (html: string) => /<h3[^>]*>Post programmé fictif<\/h3><p[^>]*>([\s\S]*?)<\/p>/.exec(html)?.[1]
@@ -85,5 +86,49 @@ describe("« Marketing et contenus » : l'aperçu d'un post programmé est le me
     banc.programmes = [{ ...programme, slug: null, origine: "ia" }];
     const texte = apercu(renderToStaticMarkup(await PageMarketing()));
     expect(texte).toBe("Texte fictif préparé");
+  });
+});
+
+/**
+ * Reprise du lot L4 (26/11/2026), relecture du point D1 : le courriel de veto envoyé la veille au superviseur
+ * (lib/alerte-veto-marketing.ts) montrait encore le texte préparé seul. Il montre le même message que la console :
+ * celui que la mission enverra, et le même repli qu'elle quand aucun message ne peut être montré.
+ */
+describe("courriel de veto : le message envoyé à Facebook, comme l'aperçu de la console", () => {
+  beforeEach(() => { vi.unstubAllEnvs(); vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://www.gerimmo.app"); });
+
+  /** Le paragraphe sous « Texte Facebook » du courriel (texte, entités de `echapper` décodées). */
+  const apercuCourriel = (html: string) => /Texte Facebook<\/p>\s*<p[^>]*>([\s\S]*?)<\/p>/.exec(html)?.[1]
+    ?.replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+  type PostDuCourriel = Omit<ApercuPost, "veille" | "rattrapage" | "validation_obligatoire">;
+  const courriel = (p: PostDuCourriel) => apercuCourriel(htmlAlerteVeto(
+    { ...p, veille: false, rattrapage: false, validation_obligatoire: true }, "https://www.gerimmo.app/admin/marketing#veto"));
+
+  it("article d'origine « ia » : le lien de l'article puis la mention, mot pour mot ce que la mission enverrait", () => {
+    const p = { ...programme, origine: "ia" as const };
+    expect(courriel(p)).toBe(`Texte fictif préparé\n\nLire l’article : https://www.gerimmo.app/journal/post-fictif#gerimmo-${ID}\n\n${MENTION_IA_ARTICLE}`);
+    expect(courriel(p)).toBe(texteFacebook({ id: ID, titre: p.titre, chapo: p.chapo, slug: p.slug, facebookTexte: p.facebook_texte, facebookImageUrl: null, origine: "ia" }));
+  });
+
+  it.each([
+    ["origine « ia »", { origine: "ia" as const }],
+    ["écrit à la main", { origine: "manuel" as const }],
+    ["origine inconnue", { origine: null }],
+    ["sans texte préparé", { facebook_texte: null, origine: "ia" as const }],
+    ["sans adresse d'article", { slug: null, origine: "ia" as const }],
+    ["sans adresse ni texte préparé", { slug: null, facebook_texte: null, origine: "ia" as const }],
+    ["adresse refusée par texteFacebook (lien trop long)", { slug: "a".repeat(5000), origine: "ia" as const }],
+  ])("%s : le courriel montre exactement l'aperçu de la console", async (_, variation) => {
+    const p: PostDuCourriel = { ...programme, ...variation };
+    banc.programmes = [p];
+    const console_ = apercu(renderToStaticMarkup(await PageMarketing()));
+    expect(console_).toBeTruthy();
+    expect(courriel(p)).toBe(console_);
+  });
+
+  it("sans message possible, le repli est le texte préparé : aucun lien inventé", () => {
+    expect(courriel({ ...programme, slug: null, origine: "ia" })).toBe("Texte fictif préparé");
+    expect(courriel({ ...programme, slug: "a".repeat(5000), origine: "ia" })).toBe("Texte fictif préparé");
+    expect(courriel({ ...programme, slug: null, facebook_texte: null, origine: "ia" })).toBe("Post programmé fictif\n\nChapô fictif");
   });
 });

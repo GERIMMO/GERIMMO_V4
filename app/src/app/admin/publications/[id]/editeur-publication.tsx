@@ -182,84 +182,91 @@ export function EditeurPublication(p: Props) {
           />
         </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="corps" className="libelle-champ">Corps de l&apos;article (markdown)</Label>
-          {/* La hauteur suit le texte (24/09) : 26 lignes fixes laissaient
-              580 px de blanc sous cinq lignes écrites. */}
-          <textarea
-            id="corps"
-            name="corps"
-            value={corps}
-            onChange={(e) => setCorps(e.target.value)}
-            className="min-h-56 w-full rounded-[10px] border border-[var(--filet)] bg-[var(--ivoire)] p-3 font-mono text-base leading-relaxed [field-sizing:content] sm:text-[13px]"
-          />
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
+        {/* Reprise du lot L4 (26/11/2026) : sous `lg`, la colonne de contrôle passe avant le formulaire ; quand le haut du
+            formulaire arrivait en bas de l'écran, la barre collante (bas de page, plus bas) remontait jusqu'au haut du
+            formulaire et couvrait « Titre ». Un élément collant ne sort pas de son bloc parent : la barre vit donc dans
+            ce bloc, qui commence après « Titre » et « Chapô » ; elle ne peut plus passer au-dessus d'eux, et reste
+            visible pendant la saisie du corps (audit C18). */}
+        <div data-bloc-barre-collante className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="slug" className="libelle-champ">Adresse</Label>
-            <Input
-              id="slug"
-              name="slug"
-              defaultValue={p.slug ?? ""}
-              placeholder="déduite du titre si vide"
+            <Label htmlFor="corps" className="libelle-champ">Corps de l&apos;article (markdown)</Label>
+            {/* La hauteur suit le texte (24/09) : 26 lignes fixes laissaient
+                580 px de blanc sous cinq lignes écrites. */}
+            <textarea
+              id="corps"
+              name="corps"
+              value={corps}
+              onChange={(e) => setCorps(e.target.value)}
+              className="min-h-56 w-full rounded-[10px] border border-[var(--filet)] bg-[var(--ivoire)] p-3 font-mono text-base leading-relaxed [field-sizing:content] sm:text-[13px]"
             />
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="seo_description" className="libelle-champ">
-              Description pour les moteurs
-            </Label>
-            <Input
-              id="seo_description"
-              name="seo_description"
-              defaultValue={p.seoDescription ?? ""}
-              maxLength={160}
-            />
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="slug" className="libelle-champ">Adresse</Label>
+              <Input
+                id="slug"
+                name="slug"
+                defaultValue={p.slug ?? ""}
+                placeholder="déduite du titre si vide"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="seo_description" className="libelle-champ">
+                Description pour les moteurs
+              </Label>
+              <Input
+                id="seo_description"
+                name="seo_description"
+                defaultValue={p.seoDescription ?? ""}
+                maxLength={160}
+              />
+            </div>
           </div>
-        </div>
 
-        {p.facebook === "relie" ? (
-          <section className="space-y-4 rounded-xl border border-[var(--filet)] bg-[var(--filet-leger)] p-4 shadow-[var(--ombre-portee)]">
-            <div>
-              <p className="libelle-champ">Diffusion Facebook</p>
-              {/* E198 : la phrase affirmait toujours une « Page Facebook connectée », même « À relier » dans Marketing. */}
-              <p className="mt-1 text-[12px] text-[var(--texte-secondaire)]">Gerimmo ajoute automatiquement le lien de l’article. La diffusion utilise la Page Facebook reliée à Gerimmo.</p>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="facebook_texte" className="libelle-champ">Texte de la publication</Label>
-              <textarea id="facebook_texte" name="facebook_texte" rows={5} defaultValue={p.facebookTexte ?? ""}
-                placeholder="Texte préparé au nom de Gerimmo"
-                className="w-full rounded-[10px] border border-[var(--filet)] bg-[var(--ivoire)] p-3 text-base leading-relaxed sm:text-sm" />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="facebook_image_url" className="libelle-champ">Adresse de l’image à publier</Label>
-              <Input id="facebook_image_url" name="facebook_image_url" type="url" defaultValue={p.facebookImageUrl ?? ""}
-                placeholder="https://www.gerimmo.app/marketing/visuel.png" />
-            </div>
-          </section>
-        ) : (
-          // Décision du 25/11/2026 : Page « À vérifier » ou « À relier », la diffusion est masquée, pas grisée. Le texte
-          // préparé pour Facebook repart tel quel à l'enregistrement (enregistrerPublication relit le champ : absent, il
-          // serait effacé) ; l'image reste modifiable, car c'est aussi l'illustration de l'article dans le journal.
-          <section className="space-y-4 rounded-xl border border-[var(--filet)] bg-[var(--filet-leger)] p-4 shadow-[var(--ombre-portee)]">
-            <div className="space-y-1.5">
-              <Label htmlFor="facebook_image_url" className="libelle-champ">Adresse de l’illustration de l’article</Label>
-              <Input id="facebook_image_url" name="facebook_image_url" type="url" defaultValue={p.facebookImageUrl ?? ""}
-                placeholder="https://www.gerimmo.app/marketing/visuel.png" />
-            </div>
-            <input type="hidden" name="facebook_texte" value={p.facebookTexte ?? ""} />
-            <DiffusionFacebookMasquee etat={p.facebook} className="text-[12px] leading-snug text-[var(--texte-secondaire)]" />
-          </section>
-        )}
+          {p.facebook === "relie" ? (
+            <section className="space-y-4 rounded-xl border border-[var(--filet)] bg-[var(--filet-leger)] p-4 shadow-[var(--ombre-portee)]">
+              <div>
+                <p className="libelle-champ">Diffusion Facebook</p>
+                {/* E198 : la phrase affirmait toujours une « Page Facebook connectée », même « À relier » dans Marketing. */}
+                <p className="mt-1 text-[12px] text-[var(--texte-secondaire)]">Gerimmo ajoute automatiquement le lien de l’article. La diffusion utilise la Page Facebook reliée à Gerimmo.</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="facebook_texte" className="libelle-champ">Texte de la publication</Label>
+                <textarea id="facebook_texte" name="facebook_texte" rows={5} defaultValue={p.facebookTexte ?? ""}
+                  placeholder="Texte préparé au nom de Gerimmo"
+                  className="w-full rounded-[10px] border border-[var(--filet)] bg-[var(--ivoire)] p-3 text-base leading-relaxed sm:text-sm" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="facebook_image_url" className="libelle-champ">Adresse de l’image à publier</Label>
+                <Input id="facebook_image_url" name="facebook_image_url" type="url" defaultValue={p.facebookImageUrl ?? ""}
+                  placeholder="https://www.gerimmo.app/marketing/visuel.png" />
+              </div>
+            </section>
+          ) : (
+            // Décision du 25/11/2026 : Page « À vérifier » ou « À relier », la diffusion est masquée, pas grisée. Le texte
+            // préparé pour Facebook repart tel quel à l'enregistrement (enregistrerPublication relit le champ : absent, il
+            // serait effacé) ; l'image reste modifiable, car c'est aussi l'illustration de l'article dans le journal.
+            <section className="space-y-4 rounded-xl border border-[var(--filet)] bg-[var(--filet-leger)] p-4 shadow-[var(--ombre-portee)]">
+              <div className="space-y-1.5">
+                <Label htmlFor="facebook_image_url" className="libelle-champ">Adresse de l’illustration de l’article</Label>
+                <Input id="facebook_image_url" name="facebook_image_url" type="url" defaultValue={p.facebookImageUrl ?? ""}
+                  placeholder="https://www.gerimmo.app/marketing/visuel.png" />
+              </div>
+              <input type="hidden" name="facebook_texte" value={p.facebookTexte ?? ""} />
+              <DiffusionFacebookMasquee etat={p.facebook} className="text-[12px] leading-snug text-[var(--texte-secondaire)]" />
+            </section>
+          )}
 
-        {/* Au téléphone, le bouton reste collé en bas de l'écran (audit C18) :
-            il arrivait à 2 000 px sous le formulaire. Le marqueur réserve
-            sa hauteur au défilement du focus (globals.css) : sans lui, Tab
-            laissait « Titre », « Adresse » et « Chapeau » sous la barre
-            (audit du 13/10, DES-B-08). */}
-        <div data-barre-collante className="sticky bottom-[calc(72px+env(safe-area-inset-bottom,0px))] z-10 space-y-2 rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-3 shadow-[var(--ombre-portee)] sm:max-w-xs lg:hidden">
-          {boutonEnregistrer}
-          {retourEnregistrement}
+          {/* Au téléphone, le bouton reste collé en bas de l'écran (audit C18) :
+              il arrivait à 2 000 px sous le formulaire. Le marqueur réserve
+              sa hauteur au défilement du focus (globals.css) : sans lui, Tab
+              laissait « Titre », « Adresse » et « Chapeau » sous la barre
+              (audit du 13/10, DES-B-08). */}
+          <div data-barre-collante className="sticky bottom-[calc(72px+env(safe-area-inset-bottom,0px))] z-10 space-y-2 rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-3 shadow-[var(--ombre-portee)] sm:max-w-xs lg:hidden">
+            {boutonEnregistrer}
+            {retourEnregistrement}
+          </div>
         </div>
       </form>
 

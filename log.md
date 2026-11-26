@@ -8343,3 +8343,9 @@ cahier V3 et le wiki (sans autre document). La décision la plus récente l'empo
 - Accord du dirigeant : « Publie le correctif Q125 », sous condition de CI verte et de relectures sans point bloquant (remplie). CI de la PR n° 45781383488 et de `main` n° 45786610412 vertes sans reprise ; publication contrôlée n° 45792561969 `publiee_verifiee` à 09:50Z (aucune migration) ; santé et pages publiques relues depuis une autre adresse ; 0 erreur Vercel.
 - Recettes de production n° 59, 60, 61 réussies (68 parcours chacune au premier essai, purge vérifiée). Action du correctif VÉRIFIÉE en production par une sonde à session factice : effacement en navigation de document, aucun en arrière-plan.
 - Incident annexe : contrôle anti-robot de Vercel sur l'adresse de la machine de l'agent depuis 09:29Z (public non concerné, vérifié). Détail : `JOURNAL.md`, 26/11.
+
+## [2026-11-26] deploy | Correctif de l'adresse du bailleur en production (PR #360, `main` `f9e874b`)
+
+- Accord du dirigeant : « Publie ce correctif, fais une reprise de données, fais le reste » (Q126). CI de la PR n° 45868044631 verte sans reprise ; CI de `main` n° 45875096490 verte (un parcours public, `e2e/outils.spec.ts:159`, passé au second essai, sans lien avec le correctif) ; publication contrôlée n° 45881769432 `publiee_verifiee` à 19:14Z (aucune migration).
+- Santé relue depuis une autre adresse : `/api/sante` sert `f9e874b` ; 0 erreur Vercel. Reprise des données : recompte en lecture seule, 0 vrai compte à reprendre, rien d'écrit en base.
+- Recette de production n° 62 (n° 45882154250) réussie, de 19:14Z à 19:26:49Z, purge comprise. Détail : `JOURNAL.md`, 26/11 (soir).

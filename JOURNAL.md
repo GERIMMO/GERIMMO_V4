@@ -757,4 +757,4 @@ La première passe de recette a relu de nouveau tous les documents produits. Ell
 - **Publication contrôlée** n° 45881769432 (aucune migration), approuvée par vous (`GERIMMO`) : **`publiee_verifiee` à 19:14Z**. Construction `dpl_CKrJ3P3L8N1283Pem7tDLTdsn8w8`, sans domaine avant la publication ; `www.gerimmo.app` et `gerimmo.app` dessus après.
 - **Après, VÉRIFIÉ depuis une autre adresse que celle de l'agent** : `/api/sante` sert `f9e874b` (base OK, pas de maintenance) ; accueil, inscription, conditions en 200. Aucune erreur d'exécution Vercel depuis 19:10Z.
 - **Reprise des données, recompte en lecture seule après la mise en ligne** : 0 vrai compte à reprendre ; seule reste la fiche du compte fictif du parcours (fermeture demandée). Rien n'est écrit en base.
-- Recette de production n° 62 (n° 45882154250) lancée.
+- **Recette de production n° 62** (n° 45882154250, sur `f9e874b`) : **réussie**, de 19:14Z à 19:26:49Z. Cinq comptes éphémères, sessions artisan et supervision avec un vrai second facteur, parcours des espaces sur téléphone, puis suppression des comptes, des dossiers et de la supervision : toutes les étapes vertes.

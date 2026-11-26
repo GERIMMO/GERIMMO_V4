@@ -718,3 +718,22 @@ La première passe de recette a relu de nouveau tous les documents produits. Ell
   - Recettes n° 60 (n° 45798190513) et n° 61 (n° 45798196475) réussies : 68 parcours chacune au premier essai, inscription comprise, purge vérifiée. Pas plus que la n° 59, elles ne montrent la situation à risque dans les journaux de Supabase. Les seules requêtes refusées après une fermeture concernent la partie « récupération », où la déconnexion complète est voulue.
   - **Preuve directe en production (VÉRIFIÉ)** : session **factice** (jeton expiré, jeton de renouvellement inventé, aucun compte réel ; renouvellement refusé par Supabase) envoyée à `/conditions` depuis un vrai navigateur, une fois en navigation de document, une fois en requête d'arrière-plan. Avec `Sec-Fetch-Mode: navigate`, la réponse efface `sb-rddlxunppddzpsaatdaz-auth-token` ; avec `Sec-Fetch-Mode: cors`, elle ne l'efface pas. L'en-tête atteint donc bien le proxy derrière Vercel, et le correctif agit en production.
   - Limite : l'en-tête est posé par l'outil de la sonde ; en vrai, c'est le navigateur qui le pose (préchargements et navigations du routeur en mode « cors », SUPPOSÉ d'après le code de Next et la spécification Fetch).
+
+## 26/11/2026 — Adresse du bailleur non reprise sur sa fiche : cause, correctif préparé (non publié)
+
+- **Votre demande** : « Fais tout ça ». Les gestes de la console (fermeture du compte fictif, essai de l'IA, R5 à R8) ne peuvent pas être faits par l'agent : ils demandent votre compte avec la double vérification, ou votre compte Stripe, ou une décision à vous. L'agent a pris le défaut noté au parcours A.
+- **Cause, VÉRIFIÉE dans le code de `1dca28b`** :
+  - « D'abord, vos coordonnées de bailleur » (`completerCoordonneesBailleur`) n'écrit que l'espace. La recopie SCI-2 vers la fiche ne vise que les sociétés.
+  - Les documents d'un propriétaire direct lisent le domicile du bailleur sur la fiche « personne » de chaque détenteur (`documents/modeles/communs.ts`, `bail-nu.ts`, `bail-meuble.ts`).
+  - Pour un particulier qui n'a pas ouvert le bloc facultatif de l'inscription, la fiche reste donc sans adresse. VÉRIFIÉ en base pour `TEST-PUBLICATION` (Personne physique, fiche du compte sans adresse).
+- **Effet, VÉRIFIÉ dans le code** :
+  - Bloqués : la génération du bail en PDF, la préparation de la signature électronique et tous les PDF du bail (avis, quittance PDF, reçus, courriers), jusqu'à une seconde saisie de l'adresse dans la fiche.
+  - Pas bloqués : la quittance délivrée en ligne (adresse de l'espace) et l'activation par dépôt d'un bail signé sur papier.
+  - Aucun document n'est émis avec une adresse vide : les documents incomplets sont refusés.
+- **Correctif préparé** : branche `claude/correctif-adresse-bailleur`, commit `efb5094`, partie de `main`.
+  - Le geste recopie rue, code postal et ville sur la fiche du compte, si elle est la seule, n'est pas une société et n'a aucune adresse.
+  - Jamais par-dessus une saisie, jamais une autre fiche. Aucune migration.
+  - Tests : 16 cas nouveaux sur l'action (5 échouent sans le correctif), 2 qui figent la règle des documents. eslint et typage sans erreur ; 18 fichiers voisins : 596 réussis, 12 ignorés.
+  - CI n° 45818153847 et deux relectures indépendantes en cours.
+- **Non couvert par le correctif** : les comptes qui ont déjà saisi leur adresse de cette façon (en production, des comptes de test, Q64) gardent une fiche sans adresse. Le bouton « Compléter » de la carte « Propriétaire » du bail permet de la saisir. Une reprise automatique serait une décision à part.
+- **Publication** : seulement avec votre accord écrit.

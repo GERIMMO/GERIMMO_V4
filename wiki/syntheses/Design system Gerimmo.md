@@ -1,262 +1,370 @@
 ---
 type: synthesis
-tags: [design-system, charte, ux, ergonomie, animation, marque-blanche, personas]
+tags: [design-system, charte, maison, couleurs, typographie, logo, marque-blanche, accessibilite, ux]
 status: stable
 created: 2026-09-24
-updated: 2026-09-29
-sources: ["[[Charte visuelle v3 bleue]]", "[[Charte visuelle de l'espace agent]]", "[[2026-08-08-maquette-prototype-cliquable]]", "[[Marque blanche]]"]
+updated: 2026-11-26
+sources: ["[[Refonte visuelle « Maison » et Design System — 20 novembre 2026]]", "[[Vision de l'écosystème Gerimmo]]", "[[Marque blanche]]", "[[Charte visuelle v3 bleue]]", "[[Charte visuelle de l'espace agent]]", "livrables/refonte-design-20261120/DESIGN-SYSTEM.md", "app/docs/design-system.md", "Code : app/src/app/{prestige,systeme,globals,harmonie,proprietaire,experience-unifiee,vitrine,ambiances}.css, app/src/app/layout.tsx, app/src/lib/charte-gerimmo.ts, app/src/lib/marque-organisation.ts, app/src/components/marque-gerimmo.tsx", "Artefact claude.ai : Logo officiel (29/09)"]
 ---
 
 # Design system Gerimmo
 
-**En une phrase :** la page unique qui réunit ce que trois pages disaient
-séparément — les **principes d'usage** (charte v1, août), la **structure des
-écrans** (maquette v2, août) et les **valeurs** (charte v3 bleue, septembre) —
-après la remise au propre du 24/09/2026 : une feuille de style sans couches
-mortes, des cibles tactiles à 44 px, une couche de mouvement nommée, et 60
-défauts d'ergonomie corrigés persona par persona.
+**En une phrase :** le design system **en production depuis le 20/11/2026** (PR #350, version `d315257d`) est
+la direction **« A — Maison »** : papier chaud, bleu nuit `#14304f`, trait de champagne, titres Fraunces, appliquée aux
+133 pages et à toutes les sessions ([[Refonte visuelle « Maison » et Design System — 20 novembre 2026]]). Cette page
+remplace la version du 24/09, qui décrivait la charte bleue.
 
 > [!info] Ce qui fait foi
-> Pour une valeur (couleur, police, rayon, durée) : cette page, puis le code
-> (`app/src/app/globals.css`, section `:root`). Pour l'histoire d'une décision :
-> [[Charte visuelle v3 bleue]] et [[Charte visuelle de l'espace agent]], qui
-> restent en lecture. En cas de désaccord, le code l'emporte et cette page se
-> corrige.
+> Pour une valeur, **le code d'abord**, puis cette page. Les couleurs sont dans le premier bloc de
+> `app/src/app/prestige.css`. La typographie, les rayons, les ombres et les règles communes sont dans
+> `app/src/app/systeme.css`, la dernière feuille chargée par `app/src/app/layout.tsx`. Les couleurs d'état et les
+> durées sont dans `app/src/app/globals.css`. La documentation pour les développeurs est `app/docs/design-system.md`,
+> et le résumé pour le dirigeant `livrables/refonte-design-20261120/DESIGN-SYSTEM.md`. En cas de désaccord, le code
+> l'emporte et cette page se corrige.
+>
+> **Piège :** le premier bloc `:root` de `globals.css` déclare encore la palette bleue de septembre
+> (`--marque: #2457f5`…). `prestige.css`, chargée après, l'écrase. Ne lisez jamais une couleur dans `globals.css` seul.
 
-## 1. Principes
+## 1. Les principes de la direction « Maison »
 
-1. **Concevoir pour un agent immobilier débutant.** L'écran enseigne le métier
-   en même temps qu'il le fait faire ([[Charte visuelle de l'espace agent]]).
-2. **La couleur a une fonction, elle ne décore pas.** Le bleu dit « action » ou
-   « actif » ; le turquoise dit « information » ; vert / ambre / rouge disent un
-   **état** ; tout le reste est blanc et gris perle. Une tuile de chiffre porte
-   le ton de la puce du même statut, pour qu'une couleur vue en haut se
-   retrouve dans la liste en dessous.
-3. **Une seule grande surface colorée par écran** : le bandeau d'accueil. Les
-   cartes restent blanches.
-4. **Le mouvement dit trois choses et rien d'autre** : un écran est arrivé, un
-   geste a été pris, un contenu s'est ouvert. Tout s'éteint sous
+Gerimmo est **une maison bien tenue** : du papier chaud, du bleu nuit, un trait de champagne, des titres à
+empattements. On y lit d'abord ce qu'il y a à faire, puis le détail (`app/docs/design-system.md`, § 1).
+
+1. **Une seule voix.** Les titres, les boutons et les cartes sont les mêmes dans toutes les sessions : propriétaire
+   (particulier et SCI), agence, locataire, artisan, supervision et pages publiques.
+2. **L'action d'abord.** Un écran a **une seule** action principale. Elle est en bleu nuit et visible sans défiler.
+3. **La couleur a un sens.** Le rouge, l'ambre et le vert ne servent qu'aux états métier. Le champagne est l'accent de
+   la marque : repère, étape en cours, liseré.
+4. **Le mouvement explique.** Une animation montre un changement. Elle ne décore pas et s'éteint sous
    `prefers-reduced-motion`.
-5. **Marque blanche** ([[Marque blanche]]) : aucune couleur en dur. Toute nuance
-   intermédiaire s'écrit en `color-mix()` **dans la règle**, jamais en jeton
-   dérivé posé sur `:root` — un jeton dérivé ne suivrait pas une agence qui
-   redéfinit `--marque` sur son espace.
-6. **Français intégral, aucun code interne à l'écran** : les références
-   `RM-x.y.z` vivent en commentaire de code, les valeurs d'enum passent par une
-   table de libellés avec un repli en français.
-7. **Une alerte est une obligation non tenue**, jamais un état vide. Une
-   pastille rouge partout n'alerte plus.
+5. **Lisible au doigt.** Tout ce qui se touche mesure 44 px. Aucun texte sous 12 px, aucun débordement à 375 px.
 
-## 2. Jetons
+Deux règles transversales :
+- **Marque blanche** ([[Marque blanche]]) : la couleur d'une agence colore toujours son action principale. Le bandeau
+  de retour vers l'espace ne nomme pas la marque.
+- **Règle d'or** : aucune couleur, aucun rayon et aucune ombre en dur dans une page, un composant ou un module CSS.
+  On passe toujours par un jeton (en-tête de `systeme.css` ; `app/docs/design-system.md`, § 2).
 
-### Couleurs (`:root`, `globals.css`)
+Trois directions ont été maquettées le 20/11 :
+- **A — Maison**, retenue : « la marque existante, mieux tenue » ;
+- **B — Clarté**, écartée : très blanche, en bleu vif, elle efface ce qui distingue Gerimmo ;
+- **C — Nuit et or**, écartée : ses fonds sombres fatiguent au quotidien et ses contrastes sont difficiles.
+
+Le choix est réversible, puisqu'il tient dans les jetons (`livrables/refonte-design-20261120/DESIGN-SYSTEM.md`).
+
+## 2. Les couleurs
+
+### Marque, surfaces et texte (`app/src/app/prestige.css`, premier bloc)
 
 | Rôle | Jeton | Valeur |
 |---|---|---|
-| Marque (action, actif) | `--marque` / `--marque-sombre` / `--marque-clair` | `#2457f5` / `#1a44cf` / `#dfe9ff` |
-| Texte sur la marque | `--sur-marque` | `#ffffff` |
-| Information | `--turquoise` / `--turquoise-doux` / `--turquoise-texte` | `#0d9488` / `#d7f3ee` / `#0b6b62` |
-| Marine des titres | `--encre` / `--graphite` | `#0f2352` / `#17306b` |
-| Corps / secondaire / libellé | `--corps` / `--texte-secondaire` / `--libelle` | `#151b2b` / `#4b5870` / `#53617a` |
-| Fond de page / carte | `--creme` / `--ivoire` | `#f2f5fb` / `#ffffff` |
-| Filets | `--filet` / `--filet-leger` / `--or-filet` | `#d9e1ef` / `#e9eef7` / `#cfdbff` |
-| Survol d'un rang | `--survol` | `#edf2ff` |
-| État : en ordre | `--success` / `--success-soft` | `#0f7a55` / `#e3f6ec` |
-| État : attention | `--warning` / `--warning-soft` | `#b26d12` / `#fff1dc` |
-| État : critique | `--destructive` / `--destructive-soft` | `#d13c3c` / `#fdeaea` |
+| Bleu nuit : action principale, menus, titres forts | `--marque` = `--prestige-nuit` = `--encre-profond` | `#14304f` |
+| Survol de l'action principale | `--marque-sombre` (= `--graphite`, `--bleu`) | `#293a51` |
+| Fond pâle de sélection | `--marque-clair` | `#edf0f4` |
+| Texte sur le bleu nuit | `--sur-marque`, `--sur-encre` | `#fff` |
+| Champagne : décor (liseré, pastille, icône), **jamais en texte** | `--prestige-champagne` = `--or` | `#b7975a` |
+| Champagne lisible : surtitres, anneau de focus (5:1 sur blanc) | `--prestige-champagne-texte` = `--or-texte` = `--or-sombre` | `#826838` |
+| Champagne vif : liseré et repère **posés sur le bleu nuit** | `--champagne-vif` (dans `systeme.css`) | `#d5b777` |
+| Fond champagne très pâle, filet champagne | `--or-clair`, `--or-filet` | `#fbf8f1`, `#e3d6bc` |
+| Texte sur un aplat champagne | `--sur-or` | `#16243a` |
+| Papier (fond de page) | `--creme` (= `--background`) | `#f7f5f0` |
+| Carte, champ | `--carte` = `--ivoire` | `#fff` |
+| Contour de carte, séparateur | `--filet` | `#e2ddd3` |
+| En-tête de tableau, fond discret | `--filet-leger` (= `--ardoise`) | `#efebe3` |
+| Contour des champs (3:1 sur blanc, WCAG 1.4.11) | `--filet-champ` (dans `systeme.css`) | `#9a9387` |
+| Survol d'un rang | `--survol` | `#f4f1ea` |
+| Texte | `--encre` = `--corps` | `#16243a` |
+| Texte d'appoint, libellé (7:1 sur le papier) | `--texte-secondaire` = `--libelle` | `#4b5870` |
 
-Les alias de la coquille (`--surface`, `--trait`, `--texte-2`…) et les alias
-historiques (`--or`, `--ardoise`, `--bleu`…) pointent sur ces jetons ; les
-composants les lisent, une agence en marque blanche ne redéfinit que
-`--marque`, `--encre` et leurs dérivés (`lib/marque-organisation.ts`).
+### Menus des espaces (`app/src/app/systeme.css`)
 
-**Il n'y a pas de mode sombre.** Le bloc `.dark` de shadcn a été retiré le
-24/09 : il n'avait ni basculeur ni jetons de marque.
-
-### Typographie
-
-- **Manrope** (`--font-titres`) : titres, mot-marque, chiffres clés. Chiffres
-  toujours alignés (`lining-nums tabular-nums`).
-- **Figtree** (`--font-interface`) : tout le reste. Les libellés en capitales
-  (sur-titres, en-têtes de tableau) suivent **une seule métrique** : 11 px,
-  600, interlettrage 0,08 em.
-- Échelle nommée (`--pas-*`) : affiche 44 · titre 29 · section 20 ·
-  sous-titre 16 · corps 14 · appui 13 · mention 11 px.
-  Attention Tailwind : une taille s'écrit `text-[length:var(--pas-section)]` ;
-  `text-[var(--pas-section)]` est compilé en **couleur** (défaut trouvé sur 20
-  titres de la console le 24/09).
-
-### Formes, élévation, cibles
-
-- Rayons : contrôles 10 px (`--radius`), cartes 14–16 px, bandeaux 16–24 px.
-- Deux élévations, teintées de marine : `--ombre-portee` (carte posée),
-  `--ombre-flottante` (fenêtre, tiroir).
-- **`--cible-tactile: 44px`** : au doigt (`pointer: coarse`), boutons, champs,
-  sélecteurs, pastilles cliquables, liens-boutons **et liens discrets** montent
-  à 44 px. C'était 40 px jusqu'au 24/09, sous le seuil que la charte
-  elle-même fixait.
-
-### Mouvement
-
-| Jeton | Valeur | Sert à |
+| Rôle | Jeton | Valeur |
 |---|---|---|
-| `--duree-rapide` | 0,15 s | survol, pression, couleur |
-| `--duree` | 0,24 s | ouverture, dépliage, pastille, fenêtre |
-| `--duree-lente` | 0,36 s | arrivée d'un écran |
-| `--courbe` | `cubic-bezier(0.2, 0.7, 0.2, 1)` | tout ce qui se déplace |
+| Fond du menu | `--nuit-menu` | `#14304f` |
+| Lien au repos | `--sur-nuit-doux` | `#cad4e1` |
+| Survol, entrée active | `--nuit-menu-survol`, `--nuit-menu-actif` | `#1c3d62`, `#234870` |
 
-Ce que fait la couche de mouvement (fin de `globals.css`) :
-tuiles de chiffres et KPI **en cascade** (50 ms d'écart, six rangs au plus) ·
-`details` qui se déplient en glissant · fenêtres qui se posent (voile en fondu,
-fenêtre qui monte d'un souffle) · jauges qui se remplissent depuis la gauche ·
-pastilles de compte qui apparaissent d'un petit rebond (le seul « pop » du
-produit) · boutons qui s'enfoncent d'un pixel à l'appui · flèches de lien qui
-avancent au survol. Jamais de rotation décorative, jamais de rebond ailleurs.
+L'entrée active porte un liseré de champagne vif (`box-shadow: inset 3px 0 var(--champagne-vif)`). Au pied du menu,
+la photo de saison est posée en vignette de 230 px sous un voile bleu nuit (`--vignette-menu`).
 
-## 3. Composants et primitives
+### États métier (`app/src/app/globals.css`, `:root`)
 
-| Primitive | Classe / composant | Règle |
+| État | Couleur / fond doux / texte sur fond doux | Valeurs |
 |---|---|---|
-| Coquille des espaces | `.coquille`, `barre-laterale.tsx` | Colonne 232 px → rail d'icônes < 1024 px → **barre basse de 4 entrées + tiroir « Menu »** < 640 px. Les 4 entrées sont **choisies par rôle** (`navigation-espace.ts`), pas les 4 premières. **Agenda et Statistiques sont des entrées principales** (retour du porteur, 24/09 : « un clic en trop » derrière « Plus ») |
-| Espace locataire | `.loc-*`, `nav-locataire.tsx` | Même barre basse que l'agence sur téléphone (24/09) ; nom de l'agence et « Espace locataire » l'un sous l'autre |
-| Bandeau d'accueil | `.accueil-bandeau` | Encre → bleu, texte blanc ; photo à droite sous un voile qui s'ouvre vers elle ; sans photo, des anneaux. **C'est la seule photo d'un espace** : le « repère photographique » qui coiffait chaque page a été retiré partout (retour du porteur, 24/09 : « le bandeau est en trop ») |
-| Agenda | `agenda/page.tsx`, `.agenda-calendrier`, `.agenda-jour` | **Calendrier mensuel** : une case par jour, le chiffre dit combien de rendez-vous commencent ce jour-là, un clic sur le jour lit ses rendez-vous dessous (retour du porteur, 24/09). Les vues « Dates à confirmer » et « À vérifier » restent des listes |
-| Rang de liste | `.rang`, `.rang-lot` | **Tout le rang se clique** (`width: 100%`), jamais seulement le texte (retour du porteur, 24/09 : « je veux que tout le carré soit cliquable ») |
-| Compte sans espace | `espaces/choix-espace.tsx` | « Que voulez-vous faire ? » : ouvrir son espace propriétaire en une étape (même RPC idempotente que l'inscription), inscrire son entreprise d'artisan, ou apprendre que l'agence invite |
-| Tuile de chiffre | `.tuile.{ok,attention,probleme,accent,neutre}` | Fond, chiffre et pastille d'icône au ton de l'état ; grille `auto-fit` sur la largeur du **conteneur** |
-| KPI (fiches) | `.kpi.{vert,ambre,rouge,bleu}` + `.grille-kpi` | Liseré gauche 4 px, jamais `sm:grid-cols-3` |
-| Assistant | `.assistant`, `.assistant-tete` | En-tête bleu plein : c'est lui qui parle. Il explique et propose, il ne décide pas |
-| Puce de statut | `ui/statut.tsx`, `.puce` | Nommée par le sens (ok / attention / problème / accent / neutre) ; à préférer au `BadgeStatut` texte quand un geste est attendu |
-| Fenêtre | `ui/modale.tsx` | **En-tête blanc** à filet (plus d'aplat marine, 24/09) ; variante critique : liseré rouge. Montée dans `<body>` par portail |
-| Tiroir | `ui/tiroir.tsx` | Feuille montante du téléphone : menu, filtre, choix |
-| Titre de page | `.entete-page` | Dans la coquille : un titre et un filet, pas de boîte. Hors coquille (locataire, portails) : bandeau clair à liseré bleu |
-| Carte | `[data-slot="card"]`, `.loc-carte`, `.artisan-carte` | Un seul habillage : blanc, filet, `--ombre-portee`, 16 px |
-| État vide | `.vide`, `.vide-guide` | Guide vers l'action ; « rien pour l'instant » ≠ « aucun résultat avec ces filtres » |
-| Erreur | `.err`, `role="alert"` | **À côté du bouton qui a échoué** ; jamais `form action={async () => …}` qui avale l'erreur |
+| À jour, encaissé, loué | `--success` / `--success-soft` / `--success-soft-foreground` | `#0f7a55` / `#e3f6ec` / `#0b5c40` |
+| En attente, en préparation | `--warning` / `--warning-soft` / `--warning-soft-foreground` | `#b26d12` / `#fff1dc` / `#7a4a08` |
+| Critique, retard, impayé | `--destructive` / `--destructive-soft` / `--destructive-soft-foreground` | `#d13c3c` / `#fdeaea` / `#a12a2a` |
 
-Les six patterns de l'espace agent (« À faire maintenant », section repliée +
-pastille, ligne actionnable, questionnaire progressif, proposé / validé en un
-clic, alerte = obligation non tenue) restent décrits dans
-[[Charte visuelle de l'espace agent]].
+Ces valeurs datent de la charte de septembre. La direction « Maison » ne les a pas redéfinies.
 
-## 4. La remise au propre du 24/09 — ce qui a été fait
+### Marque blanche (`app/src/lib/marque-organisation.ts`, fonction `styleMarque`)
 
-### La feuille de style
+Une agence qui a défini ses couleurs les pose sur son espace :
+- sa **couleur principale**, assombrie si besoin jusqu'à un contraste de 5:1 sur le blanc, remplace `--marque`, `--or`,
+  `--primary` et `--ring`. Elle remplace aussi `--bouton-principal`, `--bouton-principal-survol` et
+  `--sur-bouton-principal`, que lit le bouton principal (`.btn-or`, dans `prestige.css`) ;
+- sa **couleur secondaire** remplace `--encre`.
 
-`globals.css` empilait six couches (v3, v4, v4.1, v4.2, v4.3, « contraste »,
-« grammaire ») qui se redéfinissaient : un audit sélecteur par sélecteur a
-compté ~60 déclarations mortes, 8 classes inutilisées, 30 couleurs en dur hors
-jetons (dont un `#1c3fb8` qui n'était aucun jeton et échappait à la marque
-blanche), un bloc `.dark` sans basculeur et 25 commentaires périmés
-(« laiton », « Plex Mono », « serif »). Résultat : **une définition par
-composant**, 2 800 lignes au lieu de 2 960 malgré la couche de mouvement
-ajoutée, zéro couleur en dur hors `:root`, deux composants morts supprimés
-(`nav-proprietaire`, `nav-agence-premium`), la page d'erreur de fichier passée
-de la palette v2 (crème, laiton) à la v3.
+Sans couleur d'agence, rien ne change.
 
-### L'ergonomie, persona par persona
+### Couleurs de décor, sans valeur d'état
 
-Deux audits en lecture du code ont relevé **82 défauts** ; **~60 corrigés** le
-jour même, dont les plus graves :
+- **Tons de rubrique** (`app/src/app/harmonie.css`) : bleu, or, vert et violet. L'attribut `data-ton` les pose sur
+  l'icône d'un titre d'écran ou d'une rubrique, par quatre jetons `--ton-*-fond`, `-fin`, `-filet` et `-encre`. Pour
+  l'or, par exemple : `#f8ebce`, `#fffbf2`, `#e5d2aa`, `#785b2c`. Ces tons ne remplacent jamais un état métier.
+- **Ambiances de saison** (`app/src/app/ambiances.css`) : une couche décorative qui suit le calendrier de Paris (composant
+  `AmbianceSite`). Par défaut, l'accent vaut `#d5b777`, l'encre `#74603c` et le fond `#faf7f1`. Chaque saison ou fête
+  change ces trois valeurs et ajoute un motif. Aucun jeton de marque, d'alerte ou d'état n'est modifié, et rien ne
+  s'imprime.
+- **Pas de mode sombre.** Le bloc `.dark` de shadcn a été retiré le 24/09 (`globals.css`).
 
-- **Artisan** — les codes postaux étaient **impossibles à saisir au
-  téléphone** (`inputMode="numeric"` sur une liste séparée par des virgules :
-  le clavier iOS n'a pas de virgule) ; un jeton `--danger` inexistant laissait
-  une erreur sans couleur ; un état vide s'affichait malgré un échec de
-  lecture ; décimales au point ; « le gérant » pour « l'agence ».
-- **Propriétaire direct** — l'accueil affirmait « tout est en ordre » et
-  « 0 lot » quand ses lectures **échouaient** ; un abonnement suspendu
-  s'affichait « actif » en vert ; la fenêtre du lot lui parlait de mandat et
-  d'honoraires.
-- **Locataire** — jargon de gestionnaire (« imputation », « qualification »,
-  « opposable », « lot ») ; « Gerimmo » qui parlait à la place de l'agence en
-  marque blanche ; numéros d'urgence non cliquables ; erreurs loin de leur
-  bouton ; deux noms pour la même page (« Mes signalements » / « Mes
-  demandes »).
-- **Agent / administrateur** — des codes internes visibles (six `RM-x.y.z`,
-  `depot_garantie`, types d'alerte bruts) ; les **alertes absentes de la barre
-  basse** du téléphone ; « Agenda & alertes » qui ne menait qu'aux alertes ;
-  un bouton « Corriger » qui **supprimait** ; des erreurs avalées sur l'ajout
-  de pièces ; un essai terminé caché à l'agent ; « arrive avec le chantier
-  rôles » lu par un client.
-- **Super admin** — pas d'écran de chargement ; deux pastilles « À
-  surveiller » écrites en dur ; 20 titres sans taille (`text-[var(--pas-…)]`
-  compilé en couleur) ; des dizaines de couleurs en dur sur Marketing et
-  Territoire ; « Journal » à côté de « Journaux et conservation » ; les
-  titres des bandeaux Marketing et Territoire, **marine sur bleu sombre**
-  (illisibles, défaut antérieur vu sur les captures), passés en blanc.
-- **Portes d'entrée** — `minLength={12}` bloquait la connexion d'un mot de
-  passe plus court ; toute erreur devenait « Identifiants invalides » ; un
-  compte sans accès tombait dans un cul-de-sac.
+## 3. La typographie
 
-Vérification : typage, lint, 1 562 tests unitaires, build de production, et
-captures des cinq personas à 1 280 et 390 px avant / après.
+Les polices sont **embarquées** dans `app/src/app/polices/`, sous licence OFL. `app/src/app/layout.tsx` les déclare par
+`next/font/local` : aucun téléchargement externe.
 
-### Le tour du site du 24/09 — 120 écrans, 469 corrections
+| Police | Variable | Fichiers | Emploi |
+|---|---|---|---|
+| **Fraunces** (axe optique, sans italique) | `--font-affiche` et `--font-affiche-etendue`, réunies dans `--font-display` (`systeme.css`) ; repli Georgia | `fraunces-latin-opsz-normal.woff2` (67 Ko), `fraunces-latin-ext-opsz-normal.woff2` (59 Ko) | Titres `h1` et `h2`, titres de fenêtre, titres de `<Card>` (`[data-slot="card-title"]`, dans `prestige.css`) |
+| **Figtree** | `--font-interface` (classe Tailwind `font-sans`) | `figtree-latin-wght-normal.woff2`, `figtree-latin-ext-wght-normal.woff2` | Tout le reste : texte, libellés, boutons, champs, `h3`, titres de carte `h2.titre-carte` |
+| **Manrope** | `--font-titres` (classe Tailwind `font-heading`) | `manrope-latin-wght-normal.woff2`, `manrope-latin-ext-wght-normal.woff2` | Chiffres des tableaux de bord (`.loc-kpi .v`, tuiles), toujours alignés (`lining-nums tabular-nums`) |
+| **Caladea** | `policeDocument` (`app/src/components/outils/police-document.ts`) | `caladea-latin-400-normal.woff2`, `caladea-latin-700-normal.woff2` | Documents : PDF en 10,5 pt (`app/src/lib/documents/gabarit.ts`) et feuille imprimable des outils gratuits (lettre de révision, quittance) |
+| **Cormorant Garamond** | aucune : la police n'est pas chargée | aucun | **Uniquement dans le logo**, où le nom et la devise sont dessinés dans l'image ([[Vision de l'écosystème Gerimmo]], § 10). Aucune page ne l'emploie. C'était la police de titre de la charte v2 d'août, abandonnée le 17/09 : ses chiffres elzéviriens faisaient lire « II » pour « 11 » (commentaire de `globals.css`). |
 
-Après les premiers retours du porteur sur la version en ligne, tout le site a été relu écran par écran, persona par persona : 120 écrans capturés à 1280 px et 390 px, 1 176 relevés bruts, 562 défauts uniques, 501 confirmés par deux vérificateurs indépendants (réel dans le code du jour ? voulu ?), 469 corrigés et recapturés. Par zone : public 34, locataire 45, artisan 36, console 92, accueil et parc 47, personnes 46, argent 60, suivi 56, réglages 40, composants partagés 13.
+**Échelle et réglages** (`systeme.css`, `prestige.css`, `globals.css`) :
 
-Ce que le tour a fixé comme règles, en plus des principes du § 1 :
+| Élément | Valeur |
+|---|---|
+| Titre d'écran, le même dans tous les espaces (`--titre-1`) | `clamp(26px, 2.2vw, 34px)` |
+| Titre de section ou de fenêtre (`--titre-2`) | `22px` |
+| Titre de carte (`--titre-3`) | `16px`, Figtree 600 |
+| Graisse des titres en Fraunces (`--graisse-titre`) | `430` |
+| `h1` et `h2` | interlettrage `-0.02em`, interligne 1,2, couleur `--encre`, `text-wrap: balance`, chiffres alignés |
+| Corps de texte | 15 px, interligne 1,6 (bloc RESPIRATION de `globals.css`) |
+| Champ de saisie | 14 px ; 16 px sous 640 px de large |
+| Libellé de champ | 12 px, graisse 600 |
+| Surtitre (`.eyebrow`) | 12 px, graisse 600, capitales espacées de `0.13em`, couleur `#826838` |
+| Plus petit texte (`--pas-mention`) | `0.75rem` (12 px) ; un `<small>` ne descend jamais sous 12 px |
+| Héros de l'accueil public (`--vitrine-affiche`, dans `vitrine.css`) | `clamp(38px, 4.6vw, 62px)` |
 
-- **Un seul bandeau par écran.** Le bandeau d'accueil d'un espace est la seule surface colorée pleine largeur ; toute page de second niveau porte l'en-tête standard (titre, mention, action, filet). Supprimés : les heros de l'espace artisan, du journal, de la console, le filet dégradé sous la barre haute (`.coquille-haut::after`), la photo du parcours de démarrage, le hero « P » de l'accueil propriétaire, la tête teintée de l'assistant.
-- **Tout le carré se clique.** Un rang, une carte, une tuile qui mène quelque part est un lien entier (`.rang`, `.rang-lot`, `.agenda-rendezvous`, cartes d'article, tuiles KPI) ; le mot-flèche à droite reste un signe, pas la seule zone active.
-- **Pas de clic pour rien.** Le plan du jour s'ouvre seul jusqu'à cinq actions (`SEUIL_PLAN_OUVERT`) ; chez le propriétaire, le livre et les statistiques sont au menu principal, Paramètres dans « Plus » ; « Menu » s'allume quand la page vit dessous ; le sélecteur d'organisation est dans le tiroir sur téléphone.
-- **L'aide sans recouvrir.** Le rond flottant « Aide et retours » n'est plus dans l'espace agence (barre haute + tiroir « Menu ») ; ailleurs il se pose là où rien n'est dessous (au-dessus de la barre d'onglets artisan, dans la gouttière de la console, masqué sur le téléphone locataire dont le tiroir l'a).
-- **44 px au doigt, partout.** `pointer-coarse:min-h-11` sur les tailles de `<Button>` ; `.btn-secondaire`, `a.lien-bandeau`, `summary.puce`, les liens de la barre haute rejoignent le filet tactile de `globals.css` ; `.lien-texte` pour un lien au milieu d'une phrase (taille du texte, sans hauteur tactile qui creuserait l'interligne).
-- **Les mots du persona.** Le propriétaire direct lit « votre parc », « Mes lots », « Locataires & garants », jamais « votre agence » ni « mandat » ; un état a un seul nom (« Rendez-vous à fixer ») ; les codes internes ne s'affichent pas (« Bloquant / Majeur / Mineur » plutôt que N1-N3, « document_test » retiré du dépôt).
-- **Les chiffres tiennent.** `eur()` pose une espace insécable avant « € » ; la valeur d'une `.ligne-info` ne se coupe jamais ; trois tuiles sur téléphone font 2 + 1 pleine largeur (`.tuiles`, `.grille-kpi`).
+Au téléphone (640 px et moins), dans les espaces, les `h2` passent en Figtree 18 px, graisse 600, et les surtitres
+perdent leurs capitales (fin de `prestige.css`).
 
-## 5. Ce qui reste ouvert
+**Deux règles de chargement** (`layout.tsx` ; `app/docs/design-system.md`, § 3) :
+- **une police déclarée est une police préchargée** : on n'écrit jamais `preload: false`. Dans Safari, une police
+  déclarée mais pas encore chargée figeait l'affichage tant que les scripts n'étaient pas arrivés ;
+- **pas de fichier italique** : il pesait 81 Ko pour une seule phrase. Un `em` dans un titre reste droit
+  (`font-synthesis: none`) et l'emphase se marque par la couleur.
 
-> [!info] Suite du 25/09
-> Le tour d'écrans a été refait le 25/09 sur 134 écrans après la nuit de travail du porteur avec ChatGPT : 129 défauts uniques, ≈110 corrigés (dont le bandeau photo réapparu sur chaque en-tête, retiré). Relevé, corrections et restes dans [[Audit complet du 25 septembre 2026]].
+Ces deux règles sont gardées par `app/tests/polices-prechargees.test.ts` et par le parcours WebKit
+`e2e/bouton-envoi-hydratation`.
 
-> [!info] Nuit du 25 au 26/09 — retour à la respiration du 24/09
-> Le porteur, devant la version en ligne du 25/09 : « le visuel est trop strict, pas assez respirant, le menu est déroulant, je veux le menu fixe », puis « je veux vraiment l'ancien visuel ». La référence redevient l'état approuvé du 24/09 (`fbde628`), le contenu du 25/09 est gardé. 136 écrans comparés (ancien / nouveau, bureau et téléphone), quatre périmètres corrigés :
-> - **Jetons de respiration** (bloc `RESPIRATION` en fin de `globals.css`) : corps 15 px / interligne 1,6, filets plus clairs (`--filet`, `--filet-leger`), rythmes `--rythme-3/4/5` (18, 28, 48 px), cartes 26 × 28 px et rayon 18, rangs 16 × 18 px, tuiles 18 × 20 px, boutons 10 × 18 px, colonnes de la console et des espaces 36 × 44 px sur ordinateur, 28 px entre deux cartes empilées — **jamais dans une grille** (`:is(.grille-kpi, .tuiles, .grid, .flex) > .loc-carte + .loc-carte`). Le titre de carte reste au pas de 16 px (`--pas-sous-titre`), le `h2` de 21 px est celui de l'écran.
-> - **Menus fixes** : plus aucun accordéon dans la console (rubriques = titres discrets `.admin-menu-titre`, 10,5 px gris) ni dans l'espace agence (« Plus » = titre de section `.coquille-groupe > p`, entrées toujours visibles ; caché sur le rail d'icônes, tiroir téléphone inchangé).
-> - **Formulaires** : libellés, aides et erreurs de 12 à 14 px, champs fichier natifs remplacés par `ChampFichier` (français), un pas de plus entre les groupes d'un formulaire long ; `.ligne-info` à 13,5 px / 11 px et qui passe à la ligne sous 640 px.
-> - **Console** : les boîtes ad hoc (`rounded-xl border`, `bg-white`, bleu/ambre Tailwind) deviennent `.loc-carte`, `.colonne-liste` + `.rang` et les jetons de la palette ; doctrine repliée sous un `summary` commun ; Territoire ne déborde plus à 390 px.
-> - **Artisan et public** : cartes artisan au même pas que les autres ; tableau des prestataires (pages légales) empilé en fiches sur téléphone (`.tableau-fiches`).
+## 4. Espacement, rayons, ombres et composants de base
 
-> [!info] 26/09 — le plan de la console, dessiné par le porteur
-> Sept entrées dans la colonne : Vue d'ensemble, Utilisateurs, Veille, Marketing, Développement, puis, sous un filet, Historique et conservation et Paramètres. Les pages d'une rubrique sont des **onglets** sous le bandeau (`.admin-onglets`, soulignement bleu sur l'onglet ouvert, défilement horizontal au téléphone). Le menu dit où l'on est, les onglets disent quoi regarder. Un seul tableau (`lib/rubriques-supervision.ts`) sert les deux ; les badges (décisions attendues, artisans à valider) s'affichent sur l'entrée ET sur l'onglet.
+### Espacement
 
-> [!warning] Points à trancher / à faire
-> - **La coquille est hors couche CSS** : ses règles priment sur les
->   utilitaires des pages. La faire entrer dans `@layer components` est un
->   chantier à part, écran par écran, avec le garde-fou visuel.
-> - **Références visuelles** (`e2e/visuel.spec.ts-snapshots`) à régénérer sur
->   le banc après cette passe : le bandeau et la barre du locataire ont changé.
-> - **Symbole du logo** : toujours le tracé provisoire d'août.
-> - **Tablette au doigt (641–1023 px)** : le rail n'affiche que des icônes avec
->   un `title` que le doigt ne voit pas ; garder un mot court sous l'icône.
-> - **22 défauts non corrigés** de l'audit (P2/P3 structurels) : scission
->   des relances hors du long formulaire de profil, liste des lots sans
->   titulaire, actions sur la page Santé, pastille de niveau des sections du
->   dossier de bail, recherche et pagination des listes de la console.
-> - **PDF** : ils gardent leur charte (bleu, or, ivoire). Aligner ou non reste
->   une décision du porteur.
+- **Rythme vertical** (`--rythme-1` à `--rythme-6`, dans `globals.css`, après le bloc RESPIRATION du 25/09) :
+  4 · 8 · 18 · 28 · 48 · 72 px. Dans l'ordre : dans un rang, entre libellé et valeur, dans une carte, entre deux
+  cartes, entre deux sections, entre deux sections de la vitrine.
+- **Contenu d'un espace** (`prestige.css`) : marges de 32 px en haut, 36 px sur les côtés et 64 px en bas, pour une
+  largeur maximale de 1 400 px. Au téléphone : 22, 16 et 88 px. L'espace propriétaire va jusqu'à 1 480 px
+  (`proprietaire.css`).
+- **Cartes** : marge intérieure de 28 px par défaut (`prestige.css`), 22 px dans les espaces unifiés
+  (`experience-unifiee.css`), 18 px chez le propriétaire (`proprietaire.css`), 14 à 16 px au téléphone.
+- **Rangs de liste** : 14 px × 16 px (`harmonie.css`, `experience-unifiee.css`).
+- **Coquille** : menu de 275 px de large (`--largeur-late`, dans `prestige.css`), 248 px chez le propriétaire ; en-tête
+  de 76 px (`--hauteur-haut`).
 
-### Après le tour du 24/09 — les décisions (prises le soir même, à la demande du porteur)
+### Rayons (`systeme.css`)
 
-Le porteur a demandé de trancher « de manière logique » : à chaque fois, la promesse déjà faite à l'utilisateur ou la règle déjà écrite l'emporte.
+| Jeton | Valeur | Emploi |
+|---|---|---|
+| `--rayon-champ`, `--rayon-bouton` | `10px` | Champs, boutons, onglets d'un dossier |
+| `--rayon-carte` | `14px` | Cartes, panneaux, listes, tuiles, chiffres clés |
+| `--rayon-fenetre` | `18px` | Fenêtres, tiroirs, recherche |
+| `--radius`, pour Tailwind (dans `globals.css`) | `0.625rem` (10 px) | Échelle de `--radius-sm` à `--radius-4xl`, calculée à partir de lui |
 
-- **Abonnement pendant l'essai** — *tenu* : la session Stripe reçoit `trial_end` (fin de l'essai, si elle est à plus de 48 h) ; la carte n'est débitée qu'à la fin de l'essai, et la page le redit avec la date. Sous 48 h, prélèvement immédiat et phrase adaptée.
-- **Fin d'essai et bien offert** — *les conditions l'emportent* : `org_ecriture_ouverte` laisse l'écriture ouverte quand la quantité facturable est nulle (propriétaire d'un seul bien, agence sans lot sous mandat actif — personne ne doit rien). Migration `20260924200000_essai_fini_rien_a_payer`, appliquée ; tests SQL mis à jour. *(**Supplanté le 28/09/2026** : aucun bien n'est plus offert ; essai de 14 jours puis gel en lecture seule jusqu'au paiement — [[Grille tarifaire]], [[2026-09-28-decision-tarification]].)*
-- **Comptabilité de l'agent** — *la décision du 12/09 tient, sans impasse* : hors du menu principal, mais « Écritures & rapports » dans son groupe « Plus », puisque la validation des rapports de gestion n'existe que là et que son tableau de bord l'y envoie.
-- **Barre basse à quatre entrées** — *inchangée* : la règle du § 3 ; « Menu » s'allume et porte les compteurs des entrées qu'il cache.
-- **Titres d'onglet « — Gerimmo »** — *inchangés* dans l'espace agence (l'équipe d'une agence se sert de l'outil Gerimmo).
-- **Migrations « nom de l'agent »** — *non appliquées* : les comptes d'agent n'ont pas de nom en base (`accounts` ne porte qu'un e-mail), la tuyauterie resterait vide. À traiter comme un manque de modèle (un nom d'affichage sur le compte ou l'adhésion).
-- **Libellés** — *gardés* : « Sans rôle en cours » / « Sans bail en cours », carte « Mandats » masquée sur la fiche d'un locataire, « Fiche mandant » réduit à la flèche sur téléphone, « Conservé 5 ans », « Validé Gerimmo », compteur de créneaux au-dessus du bouton.
-- **Restes** — *faits* : `mesure-autonomie` de la console (liste sous 640 px, grille, titre paramétrable, « Par activité » ouvert, libellés lisibles), impression de la quittance depuis « Mes documents » (`?imprimer=1`), « ex. 12 rue des Lilas », libellés du formulaire de bail (« Loyer hors charges », « Trimestre de l'indice de référence des loyers (IRL) », « Révision annuelle du loyer (IRL) »), dates des diagnostics affichées en français ; et le **compteur d'alertes** : l'accueil, le badge « Alertes » et la page Alertes lisent le même calcul (`lib/actions-du-jour.ts`), la page montrant aussi les rangs « À débloquer sur les baux ».
+### Ombres (`systeme.css`)
+
+| Jeton | Valeur | Emploi |
+|---|---|---|
+| `--ombre-1` (alias historique `--ombre-portee`) | `0 1px 2px rgb(22 36 58 / 0.04), 0 3px 12px rgb(22 36 58 / 0.04)` | Carte au repos |
+| `--ombre-2` | `0 2px 6px rgb(22 36 58 / 0.06), 0 12px 28px rgb(22 36 58 / 0.09)` | Carte survolée, menu flottant |
+| `--ombre-3` | `0 24px 70px rgb(20 48 79 / 0.22)` | Fenêtre, tiroir |
+
+### Cible tactile et mouvement (`globals.css`, `systeme.css`)
+
+- `--cible-tactile: 44px` s'applique aux boutons, aux champs, aux liens de menu, aux lignes qui se déplient au doigt,
+  au bouton de recherche et au lien de retour.
+- Durées : `--duree-rapide` 0,15 s (survol, pression, couleur), `--duree` 0,24 s (ouverture, dépliage), `--duree-lente`
+  0,36 s (jauge, grande transition). Courbe : `--courbe`, soit `cubic-bezier(0.2, 0.7, 0.2, 1)`.
+- Mouvements en place :
+  - un bouton s'enfonce d'un pixel quand on appuie ;
+  - une carte qui est un lien monte de 2 px au survol, avec `--ombre-2` ;
+  - l'entrée active du menu change en transition ;
+  - un champ actif prend un contour bleu nuit et un halo de champagne vif de 3 px ;
+  - une valeur qui change (`ValeurVivante`) reçoit un halo champagne de 1,2 s, annoncé aux lecteurs d'écran.
+- **Aucune animation à l'arrivée d'un écran.** Tout mouvement s'éteint sous `prefers-reduced-motion: reduce`.
+
+### Composants de base (`app/docs/design-system.md`, § 4 ; règles dans `systeme.css` et `prestige.css`)
+
+| Besoin | Composant ou classe | Rendu |
+|---|---|---|
+| Action principale | `<Button>`, `<BoutonEnvoi>`, `.btn-or` | Bleu nuit (ou `--bouton-principal` de l'agence), texte blanc, 44 px de haut, rayon 10 px, 13 px graisse 600, marge intérieure de 10 × 18 px |
+| Action secondaire | `<Button variant="outline">`, `.btn-secondaire` | Fond blanc, contour `--filet-champ` ; au survol, contour bleu nuit et fond `--survol` |
+| Action dangereuse | `<Button variant="destructive">` | Rouge `--destructive` |
+| Champ | `input`, `select`, `textarea` | 44 px de haut, contour de 1 px en `--filet-champ`, rayon 10 px, 14 px ; en erreur (`aria-invalid`), contour `--destructive` |
+| Carte | `<Card>`, `.loc-carte` | Blanche, filet `--filet`, rayon 14 px, `--ombre-1` ; une carte qui est un lien se soulève au survol |
+| Carte d'état | `data-tone="warning"`, `"destructive"` ou `"success"` | Bord gauche de 3 px à la couleur de l'état, réservé aux états |
+| Titre d'écran | `TitreEcran` (icône et `h1`) dans `.entete-page` | `--titre-1`, icône dans une tuile au ton de la rubrique |
+| Titre de carte | `<h2 class="titre-carte">` | Figtree 16 px |
+| Lien de retour | `.lien-retour` | « ← Libellé de la page d'arrivée », 14 px, au-dessus du titre, 44 px de haut |
+| Statut | `.puce` (avec `.puce-loue`, `-prep`, `-rouge` ou `-grise`), `<Statut>` | Toujours accompagné d'un libellé, chiffres alignés |
+| Liste | `.colonne-liste` et `.rang` | Rayon 14 px ; tout le rang est cliquable |
+| Tableau | `.tableau` dans `.tableau-defilant` | En-tête sur `--filet-leger` |
+| Onglets d'un dossier | `.dossier-nav`, avec `aria-current="page"` sur l'onglet ouvert | Onglet ouvert en bleu nuit plein |
+| Chiffre de tableau de bord | `<ValeurVivante>` | Manrope, halo champagne quand la valeur change |
+| État vide | `.vide-guide` | Un titre, une explication et un geste ; motif du toit et de la clé dans l'angle |
+| Erreur de formulaire | `<AlerteFormulaire>` | Encadré d'erreur commun |
+| Fenêtre, panneau | `<Modale>`, `<Tiroir>` | Rayon 18 px, `--ombre-3` |
+| Chargement | `loading.tsx` de l'espace (squelette), `<Spinner>` dans un bouton | Jamais d'écran blanc |
+| Erreur d'écran, page introuvable | `<EcranErreur>`, `<EcranIntrouvable>` | Affichés dans la coquille de l'espace : menu, en-tête et marque restent en place |
+| Retour vers l'espace | `ContinuiteEspace` (`.retour-espace`) | Bandeau bleu nuit collant de 48 px, « Revenir à mon espace… », sur une page publique ouverte depuis une session ; ne nomme jamais la marque |
+
+**Navigation** : les quatre espaces ont la même structure. À gauche, un menu bleu nuit ; en haut, un en-tête blanc ;
+le contenu est posé sur le papier. Au téléphone, une barre basse de quatre entrées et un bouton « Menu ».
+
+## 5. Les règles d'usage
+
+| À faire | À ne pas faire |
+|---|---|
+| Passer par un jeton pour toute couleur, tout rayon, toute ombre | Écrire une couleur en dur dans une page, un composant ou un module CSS ; écrire `Georgia` en dur (écrire plutôt `font: var(--graisse-titre) 24px/1.25 var(--font-display)`) |
+| Une seule action principale par écran, visible sans défiler | Deux actions principales ; un bouton principal qui ne fait que naviguer |
+| Le rouge, l'ambre et le vert pour un état métier, avec son libellé | Du rouge pour autre chose qu'une suppression ou une alerte ; une couleur d'état sans libellé |
+| `#b7975a` pour un décor sur fond clair, `#826838` pour un texte champagne, `#d5b777` sur le bleu nuit | `#b7975a` en couleur de texte |
+| Des cartes blanches avec un filet | Un fond en dégradé ; un bord gauche coloré qui ne signale aucun état |
+| Un seul `h1` par écran (`TitreEcran`), puis des `h2` | Un `h1` nu ou d'une taille propre à la page ; un `h3` juste sous le `h1` ; un `h2` de carte en Fraunces |
+| L'emphase d'un titre par la couleur | De l'italique dans un titre |
+| Précharger toute police déclarée | `preload: false` dans `localFont` |
+| Un lien de retour « ← Page d'arrivée » | « ‹ » ; `router.back()` sans solution de repli ; un libellé qui ne correspond pas à la destination |
+| Erreur et page introuvable dans la coquille de l'espace | Une erreur qui fait disparaître le menu ; une page hors coquille pour afficher un détail |
+| Une animation qui explique un changement | Un fondu à l'arrivée d'un écran : le texte, semi-transparent, passe sous le contraste requis ; un compteur qui défile au chargement |
+| Un tableau dans `.tableau-defilant` | Plus de 4 colonnes au téléphone ; un tableau qui fait défiler toute la page |
+| Un état vide `.vide-guide` avec un geste | Une liste vide sans explication ni action |
+| `aria-current="page"` sur l'onglet ouvert | Une classe « actif » sans `aria-current` |
+
+**Accessibilité, niveau WCAG 2.2 AA** (`app/docs/design-system.md`, § 7) :
+- contraste d'au moins 4,5:1 pour le texte et 3:1 pour le contour des champs ;
+- focus toujours visible : anneau de 3 px en `--prestige-champagne-texte`, décalé de 3 px, et en `--champagne-vif` sur
+  le bleu nuit ;
+- cibles tactiles de 44 px ;
+- aucun texte sous 12 px. Exceptions tenues : pastilles de compteur, raccourcis clavier, libellés de la barre basse du
+  téléphone (10 à 10,5 px) et miniatures d'écran de la vitrine ;
+- un `h1`, puis des `h2` ;
+- le nom accessible d'un bouton contient son libellé visible ;
+- une information ne passe jamais par la couleur seule.
+
+## 6. Les règles du logo
+
+Les règles viennent de l'artefact claude.ai « Logo officiel » du 29/09/2026, résumé dans
+[[Vision de l'écosystème Gerimmo]], § 10. Elles sont appliquées dans `app/src/components/marque-gerimmo.tsx`,
+`app/src/lib/charte-gerimmo.ts` et `app/src/app/prestige.css`.
+
+- **Dessin** : un toit en arc, une clé et une ligne de sol. Dessous, le nom **GERIMMO** en capitales espacées
+  (Cormorant Garamond, graisse 500), puis la devise **« L'immobilier en confiance »** en petites capitales espacées.
+  Le texte est vectorisé : aucune police à installer.
+- **Couleurs** : or champagne `#D3B677` sur encre `#14304F`. Le nuancier de l'artefact ajoute une encre profonde
+  `#0F2640`, un bleu accent `#2F6FB0` et une teinte claire `#E8EEF4`.
+- **Déclinaisons** prévues par l'artefact :
+  - horizontale, pour les en-têtes de site, les documents et les signatures ;
+  - symbole seul, pour le favicon, les icônes et la barre latérale réduite ;
+  - verticale sans devise, pour les petits formats.
+- **Règles d'usage** de l'artefact :
+  - toujours l'or en aplat sur l'encre. Sur un fond clair, utiliser la version transparente **posée sur un aplat
+    d'encre**, jamais l'or seul sur du blanc ;
+  - zone de protection : au moins un tiers de la hauteur du symbole de chaque côté ;
+  - sous 120 px de large, le symbole seul ; sous 220 px, la version sans devise ;
+  - ne pas déformer, ne pas recolorer, ne pas ajouter d'ombre ni de contour.
+- **Dans le code, le logo est une image.** `MarqueGerimmo` affiche `public/logo/gerimmo-officiel-transparent.png`
+  (1 410 × 1 115 px), avec le texte alternatif « Gerimmo — L'immobilier en confiance ».
+  - Sur un fond sombre (menu, bandeau bleu nuit), l'option `surEncre` l'affiche sans tuile.
+  - Sur un fond clair, l'option `tuile` le pose sur une tuile bleu nuit `#152f4b`, avec une marge de 4 × 12 px. C'est la
+    décision D28 A de l'audit du 13/10 : le doré posé directement sur un fond clair n'offrait qu'un contraste d'environ
+    1,5:1, contre 13,6:1 dans la tuile (garde : `app/tests/marque-tuile.test.ts`).
+  - Largeurs : 170 px dans les menus, 180 px sur le panneau de connexion, 56 à 88 px dans l'en-tête public, 64 à
+    72 px au téléphone et sur le rail de la tablette.
+  - Icônes d'onglet et d'écran d'accueil : le même logo réduit (`gerimmo-icone-96.png`, `gerimmo-icone-228.png`).
+- **Signature graphique** : le motif du toit et de la clé, tracé en champagne vif `#d5b777` à 55 % d'opacité, occupe
+  l'angle des états vides (`.vide-guide`, dans `systeme.css`).
+
+## Historique
+
+- **Août** : les principes d'usage de la [[Charte visuelle de l'espace agent]], puis la charte v2 de la maquette
+  (encre, laiton `#C9A227`, crème, Cormorant Garamond).
+- **17/09** : la [[Charte visuelle v3 bleue]] remplace cette identité par un **bleu électrique `#2457f5`**, du blanc,
+  du gris perle, Manrope et Figtree. Elle est validée le 18/09, puis remise au propre le 24/09 dans la première version
+  de cette page. Le compte rendu de cette remise au propre est dans `log.md`, aux entrées du 24/09.
+- **Octobre** : la charte bleue reste la référence écrite. Dans le code, le bleu nuit et l'or du logo officiel (29/09)
+  reviennent pourtant, d'abord avec la tuile bleu nuit du logo (décision D28 A, audit du 13/10). Le 16/11,
+  l'[[Audit avant vente — ergonomie, visuel et fonctions — 16 novembre 2026|audit avant vente]] décrit déjà une
+  identité « bleu nuit, or champagne, titres à empattements ».
+- **20/11** : la direction **« A — Maison »** fait de cet état un design system et part en production.
+
+Les deux chartes sont archivées depuis le 26/11. Elles gardent la mémoire des décisions, plus les valeurs.
 
 ## Relations
 
-Réunit et supplante pour les **valeurs** [[Charte visuelle v3 bleue]] et
-[[Charte visuelle de l'espace agent]] (qui restent la mémoire des décisions) ·
-contrainte [[Marque blanche]] · personas [[Agent immobilier]],
-[[Administrateur d'agence]], [[Propriétaire bailleur]], [[Locataire]],
-[[Artisan]], [[Super Admin]] · prolonge
-[[État des lieux du design et des parcours]] (relevé du 11/09 : « chaque écran
-l'a fait dans son coin ») · documents : [[Etat des lieux generation de documents]].
+Résume, pour les valeurs, [[Refonte visuelle « Maison » et Design System — 20 novembre 2026]] (le chantier) et la
+charte du logo ([[Vision de l'écosystème Gerimmo]], § 10) · contrainte [[Marque blanche]] · personas
+[[Propriétaire bailleur]], [[Agent immobilier]], [[Administrateur d'agence]], [[Locataire]], [[Artisan]],
+[[Super Admin]] · mémoire des décisions : [[Charte visuelle v3 bleue]], [[Charte visuelle de l'espace agent]],
+[[État des lieux du design et des parcours]], [[Audit UX-UI complet — dca39641 — 18 novembre 2026]].
+
+> [!warning] Points à trancher / contradictions
+> - **Quatre teintes d'or, et le code n'utilise pas celle de la charte du logo.**
+>   - Ce qu'utilise le code : à l'écran, l'or posé sur le bleu nuit est **`#D5B777`** (`--champagne-vif`, dans
+>     `systeme.css`). C'est aussi la couleur du motif des états vides et de l'ambiance par défaut. Sur fond clair,
+>     l'interface emploie `#b7975a` en décor et `#826838` en texte.
+>   - `#D3B677`, l'or de la charte du logo (artefact du 29/09, [[Vision de l'écosystème Gerimmo]]), n'apparaît nulle
+>     part dans le code. Le logo est une image : ses pixels varient autour de cette teinte.
+>   - `#C9A227`, le laiton de la charte v2 d'août, ne survit que dans les PDF (`laitonFilet`, dans
+>     `app/src/lib/documents/gabarit.ts`) et dans deux fichiers SVG qu'aucun écran ne charge.
+>   - Une même intention, « l'or posé sur l'encre », a donc deux valeurs (`#D5B777` et `#D3B677`). Il faut en choisir
+>     une.
+> - **Plusieurs bleus nuit.** La charte et `--marque` donnent `#14304f`. La tuile du logo est écrite en dur en
+>   `#152f4b` (`prestige.css`). Le fond du PNG officiel vaut `#1b2f4d` (relevé sur le fichier). L'artefact du logo
+>   ajoute une « encre profonde » `#0F2640`. Le mot « encre » lui-même change de sens : il désigne `#14304F` dans la
+>   charte du logo et dans les PDF, mais `#16243a`, la couleur du texte, dans les jetons de l'interface.
+> - **`globals.css` garde la palette bleue de septembre** dans son premier `:root`, sous l'en-tête « Charte graphique
+>   GERIMMO v3 — bleu » (`--marque: #2457f5`, `--encre: #0f2352`, `--creme: #f2f5fb`), ainsi que le `--filet: #e2e8f3`
+>   du bloc RESPIRATION. `prestige.css` écrase ces valeurs : elles sont sans effet, mais trompeuses. L'ancienne version
+>   de cette page s'y fiait. À nettoyer.
+> - **`app/src/lib/charte-gerimmo.ts`**, qu'utilisent les écrans de secours, annonce « les mêmes couleurs que
+>   prestige.css ». Trois valeurs diffèrent pourtant : crème `#f7f8fa` au lieu de `#f7f5f0`, texte secondaire `#626f82`
+>   au lieu de `#4b5870`, filet `#dce2e9` au lieu de `#e2ddd3`.
+> - **Le turquoise « information »** de la v4.3 (19/09) est toujours défini dans `globals.css` (`--turquoise` `#0d9488`,
+>   `--turquoise-doux` `#d7f3ee`, `--turquoise-texte` `#0b6b62`). Il y sert une quinzaine de fois : tuile neutre,
+>   suggestion de l'assistant, avatar, outils. Il ne fait pas partie de la palette « Maison » documentée.
+> - **Titre de carte.** La documentation prévoit Figtree 16 px, graisse 600 (`h2.titre-carte`, 57 usages). Mais
+>   `<CardTitle>` (59 usages) s'affiche par défaut en Fraunces 22 px (`prestige.css`), sauf sur les écrans qui le
+>   corrigent un par un.
+> - **Taille du logo.** Le code affiche toujours le logo complet avec sa devise, entre 56 et 180 px de large. La charte
+>   demande le symbole seul sous 120 px et la version sans devise sous 220 px. `public/logo/` ne contient ni l'une ni
+>   l'autre de ces versions : les icônes sont le logo complet réduit.
+> - **Logo de l'en-tête public.** Il est posé directement sur l'en-tête clair, et un filtre assombrit son or
+>   (`brightness(.67) saturate(1.25)`, dans `vitrine.css`). Cela revient à recolorer le logo et à poser l'or sur du
+>   blanc, deux usages que la charte interdit. Partout ailleurs, la tuile bleu nuit (D28 A) est la règle.
+>   `app/tests/marque-tuile.test.ts` inscrit l'en-tête public comme exception, avec la mention « décision
+>   antérieure ».
+> - **SVG périmés.** `public/logo/gerimmo-mark.svg` et `gerimmo-logo-horizontal.svg` portent l'ancien tracé (toit, G et
+>   clé), le laiton `#C9A227` et le nom en Manrope 800. Aucun écran ne les charge. Il faut les retirer, ou les
+>   remplacer par le logo officiel vectorisé (le « gerimmo-logo-pack » de l'artefact).
+> - **Les PDF ont leur propre charte** : Caladea 10,5 pt, encre `#14304f`, laiton lisible `#854f0b`, filet or
+>   `#c9a227`, crème `#faf7f0` (`app/src/lib/documents/gabarit.ts`). Le commentaire du fichier affirme qu'ils reflètent
+>   les jetons de `globals.css`, ce qui n'est plus vrai. Faut-il les aligner ? La décision revient au dirigeant ; elle
+>   est ouverte depuis le 24/09.
+> - **Restes du 20/11** (`livrables/refonte-design-20261120/DESIGN-SYSTEM.md`,
+>   [[Refonte visuelle « Maison » et Design System — 20 novembre 2026]]) :
+>   - aucun jeton de rayon pour les petites tuiles d'icône (8 à 12 px) ni pour les puces ;
+>   - les essais « téléphone » sont tous simulés, aucun n'a eu lieu sur un vrai iPhone ou Android ;
+>   - le titre sans italique de l'accueil public attend la validation du dirigeant.

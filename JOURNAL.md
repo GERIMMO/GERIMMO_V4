@@ -749,3 +749,12 @@ La première passe de recette a relu de nouveau tous les documents produits. Ell
   - **CI n° 45821988599 sur `bf2c6ad` : verte, sans reprise ni test instable** (16 677 tests, 355 parcours, 4 envois, 75 WebKit mobile, 9 PostgREST, 2 invitation). Localement : 19 fichiers voisins, 615 réussis ; eslint et typage sans erreur.
   - **Pas fait** : un parcours navigateur de bout en bout sur ce chemin (banc local indisponible dans cette session ; les tests unitaires couvrent l'action et la règle) ; la reprise des comptes déjà touchés (Q126).
   - **Rien de publié.** Question Q126.
+
+## 26/11/2026 (soir) — Correctif de l'adresse du bailleur publié (`main` `f9e874b`)
+
+- **Accord** : « Publie ce correctif » (Q126). PR [#360](https://github.com/GERIMMO/GERIMMO_V4/pull/360) : CI de la PR n° 45868044631 verte sans reprise ; fusion « squash » à 18:20Z → `main` = `f9e874bf647bb521d5af53ed79769415ff7f9784`, identique à `bf2c6ad`.
+- **CI de `main`** n° 45875096490 : verte. 16 677 tests ; 354 parcours au premier essai et **1 au second essai** : `e2e/outils.spec.ts:159` (outil public de quittance, mobile), le nom du bailleur mémorisé n'est pas retrouvé après rechargement. Ce parcours ne touche pas le correctif ; il est mis à l'étude dans le lot 1 (outils publics), cause non encore établie. Le même parcours était passé sur les CI précédentes.
+- **Publication contrôlée** n° 45881769432 (aucune migration), approuvée par vous (`GERIMMO`) : **`publiee_verifiee` à 19:14Z**. Construction `dpl_CKrJ3P3L8N1283Pem7tDLTdsn8w8`, sans domaine avant la publication ; `www.gerimmo.app` et `gerimmo.app` dessus après.
+- **Après, VÉRIFIÉ depuis une autre adresse que celle de l'agent** : `/api/sante` sert `f9e874b` (base OK, pas de maintenance) ; accueil, inscription, conditions en 200. Aucune erreur d'exécution Vercel depuis 19:10Z.
+- **Reprise des données, recompte en lecture seule après la mise en ligne** : 0 vrai compte à reprendre ; seule reste la fiche du compte fictif du parcours (fermeture demandée). Rien n'est écrit en base.
+- Recette de production n° 62 (n° 45882154250) lancée.

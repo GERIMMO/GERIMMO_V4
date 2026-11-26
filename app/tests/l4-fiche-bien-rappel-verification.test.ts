@@ -17,6 +17,7 @@ const banc = vi.hoisted(() => ({
   blocages: [] as { lot_id: string; blocages: string[] | null }[],
   erreurBlocages: false,
   estProprietaire: false,
+  traverseeLectureSeule: false,
 }));
 
 const ORG = "7f0a3b8e-6d1c-4e2f-9a5b-0c1d2e3f4a5b";
@@ -53,7 +54,7 @@ const client = {
       : { data: null, error: null },
 };
 vi.mock("@/lib/espace", () => ({
-  verifierAccesEspace: async () => ({ supabase: client, role: "gerant", estProprietaire: banc.estProprietaire, traverseeLectureSeule: false }),
+  verifierAccesEspace: async () => ({ supabase: client, role: "gerant", estProprietaire: banc.estProprietaire, traverseeLectureSeule: banc.traverseeLectureSeule }),
 }));
 vi.mock("@/lib/lecture-consommations", () => ({ lireLiensConsommations: async () => ({ data: [], error: null }) }));
 
@@ -90,6 +91,7 @@ beforeEach(() => {
   banc.blocages = [];
   banc.erreurBlocages = false;
   banc.estProprietaire = false;
+  banc.traverseeLectureSeule = false;
 });
 
 describe("fiche bien : « La mise en location vérifie une dernière fois… » seulement si une mise en location est possible", () => {
@@ -126,5 +128,12 @@ describe("fiche bien : « La mise en location vérifie une dernière fois… » 
     banc.lots = [lot(LOT_A, "Lot A")];
     banc.estProprietaire = true;
     expect((await fiche()).phrase).toBe(false);
+  });
+
+  it("traversée en lecture seule : aucun bouton d'état n'est posé, la phrase n'est pas affichée non plus", async () => {
+    banc.traverseeLectureSeule = true;
+    const { phrase, boutons: poses } = await fiche();
+    expect(poses).toEqual([]);
+    expect(phrase).toBe(false);
   });
 });

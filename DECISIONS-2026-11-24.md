@@ -131,3 +131,9 @@ mot pour mot :
   points supposés A-05 (objets créés par le nouveau code puis lus par l'ancien, IA réelle, e-mails réels, tâches
   planifiées, vrai PostgREST/Supabase, affichage des refus de la base) ; la case `base_compatible` peut être cochée à É10.
   La consigne A-01 reste : aucune révision de loyer ni lettre « Révision du loyer » entre É8 et le succès de É10.
+
+## Réponses du 26/11 — après la publication
+
+- **Parcours de vérification** : « Tu peux faire tout ça à la place ? » → l'agent fait la partie A en production avec un compte fictif et des boîtes de test (`JOURNAL.md`, 26/11).
+- **Q125, préparer le correctif** : « Oui » → branche `claude/correctif-q125-inscription` (commit `4ed6760`), sans fusion ni publication.
+- **Q125, publier le correctif** : à la question « « Fais-le » : que dois-je faire ? … Je peux en revanche publier le correctif du renvoi vers la connexion (Q125), seulement si la vérification complète de GitHub est verte et les trois relectures sans point bloquant. Ce serait une publication sans changement de la base, avec une seule approbation de votre part dans GitHub. », réponse choisie mot pour mot : **« Publie le correctif Q125 »**. Conditions : CI verte, aucune relecture bloquante ; une approbation GitHub du dirigeant ; arrêt et alerte en cas d'échec. PR [#359](https://github.com/GERIMMO/GERIMMO_V4/pull/359).

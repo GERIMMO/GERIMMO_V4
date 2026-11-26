@@ -8377,3 +8377,13 @@ cahier V3 et le wiki (sans autre document). La décision la plus récente l'empo
   de test dont l'essai finit, suivi d'une rétractation (conseil COM-2).
 - Point de droit toujours ouvert, jamais présenté comme conforme : L612-1 et L616-1 (`JURISTE.md`, 7·6 et 9·26).
 - Pas-à-pas : `livrables/OUVERTURE-VENTE-30-NOVEMBRE.md`. Rien n'est publié ni fusionné.
+
+## [2026-11-26] lint   | Vision unique de l'écosystème et plan de ménage du wiki
+- Demande du dirigeant : reprendre toutes les discussions et en extraire une vision d'écosystème propre, pour faire le
+  ménage. Les conversations claude.ai elles-mêmes ne sont pas lisibles d'ici ; l'export reçu (sommaire de 7 fichiers)
+  n'a pas pu être téléchargé : claude.ai demande une vérification de navigateur, aucun contournement tenté.
+- Trois lectures, sans rien modifier : vision du wiki et des décisions ; 14 artefacts claude.ai Gerimmo ; inventaire
+  des 217 pages du wiki (121 à jour, 48 historiques, 18 supplantées, 4 doublons, 8 orphelines, 18 à vérifier).
+- Page créée : [[Vision de l'écosystème Gerimmo]] (brouillon à valider). Ambition du 26/11 recopiée mot pour mot dans
+  `DECISIONS-2026-11-24.md` et dans la [[Feuille de route — plateforme de référence, 26 novembre 2026]].
+- Plan de ménage en 7 décisions à valider : `livrables/MENAGE-WIKI-2026-11-26.md`. Rien n'est déplacé ni supprimé.

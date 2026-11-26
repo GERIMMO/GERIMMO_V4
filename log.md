@@ -8327,3 +8327,8 @@ cahier V3 et le wiki (sans autre document). La décision la plus récente l'empo
 - **Contrôles** : base relue en lecture seule (52 versions, `accepter_cgu` inchangée, accord à l'empreinte exigé, A-01 sans ligne) ; `/api/sante` sert `8f9dd9ce` ; neuf pages publiques en 200 ; conditions du 24/11 en vigueur ; ventes toujours fermées ; aucune erreur d'exécution Vercel jusqu'au 26/11 05:30Z.
 - **Constat** : renvoi vers la connexion après « Créer mon espace » au premier essai de la recette. Le code concerné est identique avant et après la publication (défaut antérieur) ; enquête en lecture seule en cours. Détail : `JOURNAL.md`, entrée du 25/11 (nuit).
 - **Reste** : gestes R1 à R8 du dirigeant dans la console, puis le parcours R4 bis ; pages du wiki à passer de « non publiée » à « en production ».
+
+## [2026-11-26] lint | Réglages de la console R1 à R4 et wiki après la publication
+
+- R1 (identité), R2 (archivage des conditions du 24/11, 05:56Z), R4 (repères fiscaux 15 000 € / 30 %, source BOFiP relue le 26/11) faits par le dirigeant et vérifiés par l'agent (pages publiques, base en lecture seule) ; R3 : IA activée en base. Détail : `JOURNAL.md`, entrée du 26/11 (matin).
+- Wiki : `index.md` et 19 pages passées de « version préparée, non publiée » à « en production depuis le 25/11/2026 » (commits `ed02ee5`, `333aec9`, `2e1ba72`) ; relecture hostile : 14 pages oubliées et 5 reprises, seconde passe en cours.

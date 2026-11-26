@@ -8387,3 +8387,31 @@ cahier V3 et le wiki (sans autre document). La décision la plus récente l'empo
 - Page créée : [[Vision de l'écosystème Gerimmo]] (brouillon à valider). Ambition du 26/11 recopiée mot pour mot dans
   `DECISIONS-2026-11-24.md` et dans la [[Feuille de route — plateforme de référence, 26 novembre 2026]].
 - Plan de ménage en 7 décisions à valider : `livrables/MENAGE-WIKI-2026-11-26.md`. Rien n'est déplacé ni supprimé.
+
+## [2026-11-26] lint   | Ménage du wiki exécuté (décisions du dirigeant : « tout oui, 6 A »)
+- Décision 1 : 71 pages historiques (67 synthèses, 3 sources, l'ancien contenu d'« État du projet ») déplacées dans
+  `wiki/archives/AAAA-MM/`, statut `archived`, renvoi `superseded-by` et encadré ; page [[Historique des audits]] ;
+  règle d'archivage ajoutée au schéma (`CLAUDE.md`) ; page « Bilan #264 » renommée sans « # » ; chemins en clair
+  corrigés (`app/CLAUDE.md`, `GUIDE-DE-REPRISE.md`, `app/docs/`, `audit-palier-1/`). Aucune page supprimée.
+- Décision 2 : « État du projet et décisions ouvertes » devient une page de renvoi ; page source
+  [[Décisions du dirigeant]]. Le renommage de `DECISIONS-2026-11-24.md` attend la fin de l'ancienne session (elle y écrit
+  encore). Le fichier reste à la racine : `raw/` est immuable, ce registre reçoit encore des décisions.
+- Décision 3 : `index.md` réécrit (en-tête de 3 lignes, une ligne de 200 caractères au plus par page, 150 pages
+  vivantes couvertes, aucune entrée morte) ; [[Accueil]] réécrit ; [[Design system Gerimmo]] réécrit d'après « Maison »
+  et le code (11 écarts signalés).
+- Décision 4 : pages réécrites d'après le code actuel : [[Modèle de données]], [[Modèle de rôles et permissions]],
+  [[Organisation]], [[Isolation multi-organisation]], [[Période de loyer]], [[Incident]], [[Bien]],
+  [[Cycle de vie d'un incident]], [[Recette de production]], [[Canaux de communication]] ; [[Patrimoine et résidences]]
+  devient un renvoi.
+- Décision 5 : quatre fusions (Onboarding → [[Souscription de l'abonnement]] ; Demandes sur les données →
+  [[Fermeture de compte]] ; Intervention → [[Intervention et clôture]] ; Occupation d'un bien → [[Bail]]).
+- Corrections de contradictions : [[Abonnement]], [[Super Admin]], [[Artisan]], [[Analyse concurrentielle]],
+  [[Proposition de valeur]] (encadré « État au 26/11 »), [[Cycle de vie de l'abonnement]] (règle R3 de l'essai).
+- Décision 6 (A) : preuves de `livrables/` laissées en place ; avertissement en tête de `REPONSES-JURISTE.md` (rédigé par
+  Claude, pas un avis de juriste) ; `AUDIT.md`, `JOURNAL.md`, `audit-palier-1/` et la page Mission palier 1 seront
+  archivés à la clôture de la mission (lot 1 en cours de publication). Décision 7 : aucun artefact supprimé.
+- Contrôle des liens : aucun lien cassé par les déplacements ; restent des liens vers des pages à créer (SCI,
+  Entrepreneur individuel, Médiation de la consommation, Congé du bailleur, Appel de loyer, Encaissement).
+- Restes repérés, non traités : encadrés périmés dans [[Cycle de vie de l'abonnement]] (28/09), [[Comptabilité]]
+  (« non implémentée »), [[Relais du dirigeant]] (relevé du 16/10) ; [[Référentiel du palier 1]] R-ABO-01 et R-ABO-03
+  à aligner sur l'abonnement unique.

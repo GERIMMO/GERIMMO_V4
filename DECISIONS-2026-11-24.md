@@ -148,3 +148,9 @@ mot pour mot :
   particuliers sans médiateur »), R7 (Stripe) et R8 (« Ouvrir les souscriptions ») ; l'agent ne les fait pas (« Ne
   rouvre pas les souscriptions payantes »). Point de droit toujours ouvert, jamais présenté comme conforme : L612-1 et
   L616-1 cités par le recueil (`JURISTE.md`, 7·6 et 9·26). Pas-à-pas : `livrables/OUVERTURE-VENTE-30-NOVEMBRE.md`.
+- **Ambition, 26/11 (soir), session « Discussion Gerimmo »**, texte reçu mot pour mot : « Ok, toi ta seule et unique
+  mission c'est : FAIRE DE GERIMMO LA PLATEFORME PRINCIPALE DE GESTION IMMOBILIÈRE DE FRANCE ET POTENTIELLEMENT
+  D'EUROPE. Toutes les entrées possible, carnet du locataire, aide pour les aides, gestion de l'administratif, des
+  incidents, des artisans, des factures, des finances. L'objectif est que toute la gestion immobilière se passe sur
+  Gerimmo. ME RENDRE RICHE !! » → [[Feuille de route — plateforme de référence, 26 novembre 2026]] et
+  [[Vision de l'écosystème Gerimmo]] (brouillons à valider). Aucun interdit levé.

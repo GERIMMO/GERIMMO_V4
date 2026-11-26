@@ -10,10 +10,10 @@ sources: ["[[Passation — état du 26 novembre 2026]]", "[[Proposition de valeu
 # Feuille de route — plateforme de référence, 26 novembre 2026
 
 > [!info] L'ambition fixée par le dirigeant le 26/11/2026
-> « Faire de Gerimmo la plateforme principale de gestion immobilière de France, et potentiellement d'Europe. Toutes les
-> entrées possibles : carnet du locataire, aide pour les aides, gestion de l'administratif, des incidents, des artisans,
-> des factures, des finances. L'objectif est que toute la gestion immobilière se passe sur Gerimmo. » Le dirigeant y
-> attache un objectif de revenu explicite.
+> Mot pour mot : « FAIRE DE GERIMMO LA PLATEFORME PRINCIPALE DE GESTION IMMOBILIÈRE DE FRANCE ET POTENTIELLEMENT
+> D'EUROPE. Toutes les entrées possible, carnet du locataire, aide pour les aides, gestion de l'administratif, des
+> incidents, des artisans, des factures, des finances. L'objectif est que toute la gestion immobilière se passe sur
+> Gerimmo. ME RENDRE RICHE !! » La vision d'ensemble est rangée dans [[Vision de l'écosystème Gerimmo]].
 >
 > Cette ambition prolonge l'énoncé fondateur du 10/09 ([[Proposition de valeur]]) : « faire le travail d'une agence de
 > gestion locative — en mieux, plus rapide, et moins cher ». La frontière tranchée le 10/09 reste valable : Gerimmo

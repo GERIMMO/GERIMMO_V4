@@ -81,7 +81,7 @@ Les colonnes « Reproduire, Fichiers, Piste » ne sont remplies que pour ce qui 
 | Q10 | Recommandé électronique AR24 | publié (fonction masquée sans compte) | #358 (lot 8) | — | — | — |
 | Q11 | Signature électronique proposée en premier | publié | #358 (D1) | — | — | — |
 | Q12 | IA activée par défaut | décidé ; IA activée en base (R3, 26/11) | — | — | — | — |
-| Q13 | Mention « Rédigé avec l'aide de l'IA » | publié ; l'aperçu du post Facebook ne la montre pas encore : corrigé non publié dans `claude/lot1-l4a` (D1) | #358 (D1) ; SHA_FINAL_L4A | — | — | — |
+| Q13 | Mention « Rédigé avec l'aide de l'IA » | publié ; l'aperçu du post Facebook ne la montre pas encore : corrigé non publié dans `claude/lot1-l4a` (D1) | #358 (D1) ; `claude/lot1-l4a` `929ab95` (console et courriel de veto) | — | — | — |
 | Q14 | Facture de l'artisan fabriquée par Gerimmo | décidé : reporté après publication, rien codé | — | — | — | Lot sous interrupteur fermé après accord d'un expert-comptable |
 | Q15 | Nouvelle version des conditions, accord exprès | publié (D4) ; version du 24/11 archivée (R2) | #358 | — | — | — |
 | Q16 | Mode pilote ou commercial | décidé ; `GERIMMO_MODE` = commercial, **déduit** le 25/11 (P4) : la valeur est masquée chez Vercel et n'a pas été lue | — | — | — | — |
@@ -140,7 +140,7 @@ Les colonnes « Reproduire, Fichiers, Piste » ne sont remplies que pour ce qui 
 | Q69 | Ancien locataire lit le motif de sa note | ouvert (choix ; un test tient le comportement) | #358 | — | `app/src/lib/evaluation-retiree.ts` (À VÉRIFIER) | Garder |
 | Q70 | Bail repris : indice d'origine ou mis à jour | ouvert | #358 | Bail repris dont l'indice a déjà été révisé ailleurs : révision refusée | `app/supabase/migrations/20261124150000_revision_loyer_seconde_reprise_d2.sql` | Case « indice d'origine ou déjà mis à jour » à la saisie (L2, recommandé) |
 | Q71 | Garde-fou 0,8 à 1,25 sur les indices | ouvert (choix ; en place) | #358 | Révision avec un rapport d'indices hors plage : « vérifiez les indices saisis » | `20261124150000_revision_loyer_seconde_reprise_d2.sql` | Garder |
-| Q72 | Outil public de l'IRL non aligné | **corrigé non publié en partie** (garde 0,8 à 1,25 quand on saisit ses indices, branche `claude/lot1-l4c`) ; le reste est ouvert | SHA_FINAL_L4C | En production, `/outils/calcul-irl` accepte un rapport d'indices hors plage ; l'alerte de `app/src/lib/outils/irl.ts` (l. 90 sur `main`, l. 103 sur `claude/lot1-l4c`) dit de prendre l'indice de la dernière révision, l'application prend le même trimestre de l'année précédente | `app/src/lib/outils/irl.ts`, `app/src/app/outils/calcul-irl/page.tsx` | Publier L4c ; aligner année perdue, premier mois révisé et délai d'un an après le juriste (7·1, 7·2, 7·4) |
+| Q72 | Outil public de l'IRL non aligné | **corrigé non publié en partie** (garde 0,8 à 1,25 quand on saisit ses indices, branche `claude/lot1-l4c`) ; le reste est ouvert | `claude/lot1-l4c` `4b65597` | En production, `/outils/calcul-irl` accepte un rapport d'indices hors plage ; l'alerte de `app/src/lib/outils/irl.ts` (l. 90 sur `main`, l. 103 sur `claude/lot1-l4c`) dit de prendre l'indice de la dernière révision, l'application prend le même trimestre de l'année précédente | `app/src/lib/outils/irl.ts`, `app/src/app/outils/calcul-irl/page.tsx` | Publier L4c ; aligner année perdue, premier mois révisé et délai d'un an après le juriste (7·1, 7·2, 7·4) |
 | Q73 | Répartition fiscale selon l'ordre de saisie | ouvert (**majeur**, lot L6) | — | Saisir les paiements de deux termes (700 € et 720 €) dans le désordre : parts loyer et charges différentes ; totaux justes | `app/src/lib/fiscal.ts` (l. 74, 96-101), `app/src/app/actions/loyers.ts` (l. 489-497), `capturer_composantes_fiscales` (`20261112120300…`, l. 997-1070), `retrouver_ventilation_fiscale` (`20261012224000_fiscalite_historique_qualifiee.sql`) | Imputer par date de paiement, l'ordre de saisie ne départageant que deux dates égales ; avis de l'expert-comptable ; ne réécrire aucune part figée sans comptage, sauvegarde et décision écrite |
 | Q74 | Adresse imprimée sur le PDF de la quittance | ouvert | — | Propriétaire direct : quittance en ligne (adresse de l'espace) et PDF (adresse de la fiche) ; depuis #360, un déménagement signalé sans rien écraser peut les faire diverger | `app/src/lib/documents/modeles/quittance.ts`, `app/src/lib/documents/modeles/communs.ts` | Attendre le juriste (5·19 ; même émetteur suggéré) ; d'ici là, option B (rien ne change) |
 | Q75 | Médiateur : la décision contredit la règle « tout respecte les textes » | ouvert (geste R6 du dirigeant) | #358 (D7) | `/admin/parametres`, « Vente aux particuliers sans médiateur de la consommation » | `app/src/lib/garde-souscription.ts` | Voir d.4 |
@@ -157,7 +157,7 @@ Les colonnes « Reproduire, Fichiers, Piste » ne sont remplies que pour ce qui 
 | Q86 | Factures gardées dix ans : prévenir les comptes fermés | ouvert | — | — | — | Compter en lecture seule les comptes payants fermés (SUPPOSÉ : aucun ; 0 abonnement Stripe au 15/11) |
 | Q87 | Écran de simulation du nettoyage : compte faux | ouvert (cosmétique) | — | `/admin/donnees`, simulation : une archive que la purge fait attendre est comptée | `20261024140000_conservation_et_prospection.sql` (l. 1234) contre `20261125103000_factures_conservation_dix_ans.sql` (l. 104-130) | Aligner le compte (L4, recommandé) |
 | Q88 | « Ma fiche entreprise » ou « Mon entreprise » | ouvert | #358 | Menu latéral de l'artisan | `app/src/components/nav-artisan.tsx` (l. 102-115) | Titres des pages partout (L4, recommandé) |
-| Q89 | « Factures » et « Ma facturation » : deux noms | **corrigé non publié** (`claude/lot1-l4b`, onglet « Facturation ») ; relecture : préférer « Ma facturation », mesure à 390 px demandée | SHA_FINAL_L4B | Barre du téléphone de l'artisan | `app/src/components/nav-artisan.tsx` | Trancher le libellé dans la reprise de L4b |
+| Q89 | « Factures » et « Ma facturation » : deux noms | **corrigé non publié** (`claude/lot1-l4b`, onglet « Facturation ») ; mesuré dans Chromium : à 390 px, « Ma facturation » est tronqué (73 px pour 70), « Facturation » tient ; choix par délégation : « Facturation » | `claude/lot1-l4b` `0ad214f` | Barre du téléphone de l'artisan | `app/src/components/nav-artisan.tsx` | Le dirigeant peut demander « Ma facturation » : il faut alors retoucher la mise en page de l'onglet |
 | Q90 | Export de l'artisan incomplet | ouvert (fonction nouvelle) | #358 (libellé corrigé) | Export JSON de l'artisan : ni messages, ni créneaux, ni photos | non localisé | Export complet et lisible dans un lot à part, si le dirigeant le veut |
 | Q91 | Abonné qui ne répond pas aux nouvelles conditions | ouvert (choix pour une future version) | #358 (D4) | — | déclaration de la version des conditions (`app/src/lib/conditions-versions.json`, À VÉRIFIER) | Garder « rappel, accord au prochain acte » |
 | Q92 | Actes qui redemandent l'accord | ouvert (choix) ; portail Stripe non examiné | #358 | — | `app/src/lib/nouvelle-version-conditions.ts` | Garder ; examiner le portail avec R7 |
@@ -191,7 +191,7 @@ Les colonnes « Reproduire, Fichiers, Piste » ne sont remplies que pour ce qui 
 | Q120 | Exiger l'empreinte au rappel des inactifs et à l'écran « les conditions évoluent » | ouvert | — | Une acceptation sans empreinte écrite par le compte lui-même est comptée | `app/src/lib/nouvelle-version-conditions.ts` | Même correctif que Q119 |
 | Q121 | Remplacer l'un des époux ou partenaires | ouvert (juriste 9·39) | #358 (C-01) | Avenant de remplacement refusé pour un bail coché | non localisé | Conduite à fixer après le juriste |
 | Q122 | Bail signé de nouveau après « Corriger » | ouvert (choix ; juriste 9·41) | #358 (X-01) | — | non localisé | Confirmer la règle en place |
-| Q123 | Outils publics préremplis | **corrigé non publié** (`claude/lot1-l4c` : quatre outils vides, exemple en grisé) | SHA_FINAL_L4C | En production, `/outils/quittance-de-loyer` s'ouvre avec 850 €, 120 € et 970 € et « Imprimer la quittance » actif sans saisie | `app/src/app/outils/quittance-de-loyer/generateur-quittance.tsx` et les outils GLI/Visale, LMNP, rentabilité | Publier L4c après sa relecture adverse |
+| Q123 | Outils publics préremplis | **corrigé non publié** (`claude/lot1-l4c` : quatre outils vides, exemple en grisé) | `claude/lot1-l4c` `4b65597` | En production, `/outils/quittance-de-loyer` s'ouvre avec 850 €, 120 € et 970 € et « Imprimer la quittance » actif sans saisie | `app/src/app/outils/quittance-de-loyer/generateur-quittance.tsx` et les outils GLI/Visale, LMNP, rentabilité | Publier L4c (relectures faites, verdict « bon ») |
 | Q124 | Quittance d'un loyer payé en partie par la CAF | ouvert (**majeur**, lot L2 ; juriste 9·44) | — | Terme de 600 € dont 210 € de la CAF : « déclare avoir reçu de [locataire] la somme de 600 € » ; signature seule en page 2 | `app/src/lib/documents/modeles/quittance.ts` (l. 118-125, 211-212), `app/src/lib/quittance-conforme.ts` (l. 161-186), `app/src/app/actions/reception-loyer.ts` (l. 43, 186-192), `20261026110449_reception_loyer_idempotence_durable.sql` (l. 77), `app/src/lib/pointage-loyers.ts` (l. 81-96) | Phrase qui distingue la part du locataire et celle de la CAF ; accepter « caf » dans l'action et la base **en remplaçant la fonction par la méthode contrôlée** (sinon on perd la garde de `20261112195752_relances_apres_decompte.sql`) ; double relecture |
 | Q125 | Inscription : renvoi vers « Connexion » après « Créer mon espace » | publié le 26/11 à 09:50Z ; action VÉRIFIÉE en production par une sonde à session factice | #359 (`1dca28b`) | — | `app/src/proxy.ts` | — |
 | Q126 | Adresse du bailleur non reprise sur sa fiche | publié le 26/11 vers 19:14Z ; recompte : 0 compte réel à reprendre | #360 (`f9e874b`) | — | `app/src/lib/fiche-titulaire.ts` | — |
@@ -210,7 +210,7 @@ complétude** (fin du document), qui corrige plusieurs points. Chaque lot est pu
 
 | Lot | Thème | Statut | Branche ou commit | Reproduire | Fichiers | Piste |
 |---|---|---|---|---|---|---|
-| L1 | Sessions et mots de passe | corrigé non publié (lot 1) | `claude/lot1-l1`, SHA_FINAL_L1 | Voir section c | Voir section c | Voir section c |
+| L1 | Sessions et mots de passe | corrigé non publié (lot 1) | `claude/lot1-l1` `960285b` | Voir section c | Voir section c | Voir section c |
 | L2 | Loyers, quittances, documents de gestion (Q124, Q36-4, Q45, Q54, Q58, Q60, Q70, Q109, D2, lot 54, puis Q117 et Q118) | ouvert, non commencé ; attend les réponses du dirigeant (et du juriste pour Q124) | — | Voir les lignes Q du tableau b.1 | Voir les lignes Q | Migrations additives seulement ; double relecture (documents légaux) ; ne pas régénérer un document en signature (Q40) |
 | L3 | Conditions, accords, abonnement, sans rouvrir les ventes (Q93, Q96, Q119, Q120, E024/E145) | ouvert ; décisions du dirigeant attendues | — | Voir Q93, Q96, Q119 | `app/src/lib/conditions-versions-serveur.ts`, `app/src/lib/nouvelle-version-conditions.ts`, page de rétractation | Faire L3 avant tout changement du texte des conditions archivées |
 | L4 | Écrans justes (défauts mineurs vérifiés) | corrigé non publié **en partie** (L4a, L4b, L4c du lot 1) ; reste ouvert : E040/E154, E027/E146, E025/E147, E135, motif « zone tendue » inconnue, `.lien-discret`, Q87, Q88, reste du lot 61, code postal « 75000 » accepté, délai de la case « mariés ou pacsés », photo de l'évaluation contestée, pages publiques E059, E061, E066, E067, E169, E176, E178 | `claude/lot1-l4a`, `-l4b`, `-l4c` | Voir section c | Voir le plan, § L4 | Un lot « L4 bis » après le relevé d'écrans de L5 |
@@ -283,21 +283,39 @@ quatre copies de travail, chacune partie de `main` `1dca28b`, à pousser sur des
 sur la délégation du dirigeant du 26/11 (« fais le reste… débrouille toi »), qui couvre les choix d'affichage sans
 enjeu juridique, sans argent réel et sans effacement ; chaque choix fait par délégation doit être écrit dans la PR.
 
-| Copie | Commit initial | Tête finale | Ce qu'elle corrige | Relecture adverse | Reste à faire |
+| Branche (sur GitHub) | Commit initial | Tête finale | Ce qu'elle corrige | Relectures | Reste |
 |---|---|---|---|---|---|
-| `claude/lot1-l1` | `8a82db9` | SHA_FINAL_L1 | Les deux fermetures de session en portée « others » (`app/src/app/actions/auth.ts`, `definirNouveauMotDePasse` ; `app/src/app/actions/compte.ts`, changement de mot de passe) lisent leur erreur et la tracent dans `log_tech` (nouvelle fonction `traceFermetureAutresSessions` dans `app/src/lib/compte.ts`). « Mon compte » ne dit plus que les autres appareils sont déconnectés quand Auth a échoué. | Acceptable avec réserves : repli au premier mot de passe trop coûteux en cas de panne d'Auth (**décision : revenir à la trace seule**) ; fausse alerte de trace au mot de passe oublié ; accent du libellé de la console ; formulation du message | Reprise en cours ; ne pas affaiblir PRO-5 ; tests : `signOut` simulé en erreur (message vrai, trace écrite), parcours d'inscription, de mot de passe oublié et de changement de mot de passe |
-| `claude/lot1-l4a` | `edfe721` | SHA_FINAL_L4A | Console de supervision : ligne « Envoi du cautionnement » de la santé (E096/E204), carte IA des paramètres (E107/E214), couleur des preuves de sauvegarde (E189), compteurs des mentions légales, tableau de couverture à 390 px, aperçu réel du post Facebook (D1) | Acceptable avec réserves : D1 incomplet côté courriel de veto ; barre « Enregistrer » de l'éditeur de publication qui recouvre le titre à 390 px ; mention des organisations d'essai ; module trop lourd ; couleur liée au filtre ; tests manquants ; E094, E095, E097, E109, E213 non traités, faute du constat d'origine (perdu) | Reprise en cours ; E094 à E213 manquants : à retrouver par le relevé d'écrans de L5 |
-| `claude/lot1-l4b` | `c959a34` | SHA_FINAL_L4B | Espaces propriétaire, locataire, artisan : bouton « Mettre en location » désactivé sur un lot bloqué, avec la raison (E049/E160) ; FAQ « Mon bailleur » (E026) ; relances au futur quand l'envoi est fermé ; FAQ du locataire sans « jamais de surprise » (E132) ; carte « Dates proposées » de l'artisan ; chevron du volet ; message de `/facture` ; boucle de la page de panne (R9 du lot 60) ; onglet « Facturation » (Q89) | Acceptable avec réserves : Q89 (« Facturation » au lieu de « Ma facturation », mesure en navigateur demandée) ; titre d'onglet de la page de panne ; compte sans fiche ; phrase voisine dans la fiche du bien ; formulation « S'il vous est proposé » ; commentaires périmés | Reprise en cours |
-| `claude/lot1-l4c` | `c347597` | SHA_FINAL_L4C | Pages publiques : quatre outils gratuits vides au départ (quittance, GLI/Visale, LMNP, rentabilité ; Q123) ; garde-fou des indices saisis dans l'outil IRL (partie de Q72 : rapport 0,8 à 1,25 comme l'application) ; espace manquant « 24 moisaprès » de la politique de confidentialité (E057 = E170), avec la date de la page passée au 26/11 et l'empreinte relevée (règle Q99) ; parcours e2e des outils adapté, dont le test instable `e2e/outils.spec.ts:159` (quittance : « Nom du bailleur » vide après rechargement ; vu sur la CI de `main` n° 45875096490, passé au second essai) | **En cours** au moment de la rédaction | Attendre la relecture ; vérifier que la cause de l'instabilité de `outils.spec.ts:159` est établie, pas seulement contournée |
+| `claude/lot1-l1` | `8a82db9` | `960285b` | Les deux fermetures de session en portée « others » (`app/src/app/actions/auth.ts`, `definirNouveauMotDePasse` ; `app/src/app/actions/compte.ts`, changement de mot de passe) lisent leur erreur et la tracent dans `log_tech` (`traceFermetureAutresSessions`, `app/src/lib/compte.ts`) ; libellé « fermeture des autres sessions : échec » dans la console. « Mon compte » ne dit plus que les autres appareils sont déconnectés quand Auth a échoué : il nomme le bouton « Se déconnecter », qui retente la fermeture sur tous les appareils. | 1re : acceptable avec réserves ; reprise `3741b31` ; 2e : « à reprendre légèrement » (commentaires trop affirmatifs) ; retouche `960285b` par l'agent principal (commentaires seulement, 82 tests verts) | Choix par délégation à écrire dans la PR (ci-dessous) |
+| `claude/lot1-l4a` | `edfe721` | `929ab95` | Console de supervision : ligne « Envoi du cautionnement » de la santé (E096/E204, avec la mention des organisations d'essai et « hors budget ») ; carte IA des paramètres (E107/E214) ; couleur des preuves de sauvegarde (E189 ; neutre quand un filtre ou une page est actif) ; compteurs des mentions légales (« 9 à fournir · 3 à compléter ») ; tableau de couverture à 390 px ; aperçu réel du post Facebook dans la console **et** dans le courriel de veto (D1) ; barre « Enregistrer » de l'éditeur d'article qui ne recouvre plus Titre et Chapô ; module léger `reglages-signature.ts` (la page de santé n'importe plus la signature des baux) | 1re : acceptable avec réserves ; reprise `1bfe208` ; 2e : « à reprendre » (la marge de « Couverture » ne changeait rien dans la vraie console et son e2e aurait échoué en CI) ; retrait par l'agent principal `929ab95` (69 tests verts) | E094, E095, E097, E109, E213 non traités : leur constat d'origine est perdu, à retrouver par le relevé d'écrans de L5 |
+| `claude/lot1-l4b` | `c959a34` | `0ad214f` | Espaces propriétaire, locataire, artisan : « Mettre en location » désactivé sur un lot bloqué, avec la raison (E049/E160), et la fiche du lot passe enfin `bloque` ; rappel « La mise en location vérifie une dernière fois… » seulement si un lot en brouillon est libre de blocage, et jamais en traversée en lecture seule ; FAQ « Mon bailleur » (E026) ; relances au futur quand l'envoi est fermé (« S'il vous est proposé… ») ; FAQ du locataire sans « jamais de surprise » (E132) ; carte « Dates proposées » de l'artisan (dates à venir seulement) ; chevron du volet ; message de `/facture` ; boucle de la page de panne (R9 du lot 60) et titre d'onglet juste ; onglet « Facturation » (Q89, mesuré) | 1re : acceptable avec réserves ; reprise `9a66f1d` ; 2e : **bon** ; mineurs repris par l'agent principal `0ad214f` (45 tests verts) | À 320 px, « Facturation » est tronqué d'un pixel, comme « Aujourd'hui » (défaut connu, non corrigé) |
+| `claude/lot1-l4c` | `c347597` | `4b65597` | Pages publiques : quatre outils gratuits vides au départ (quittance, GLI/Visale, LMNP, rentabilité ; Q123) ; garde-fou des indices saisis dans l'outil IRL (partie de Q72 : rapport 0,8 à 1,25 comme l'application) ; espace manquant « 24 moisaprès » de la politique de confidentialité (E057 = E170 ; date de la page au 26/11 et empreinte relevée, règle Q99) ; quittance : aide de format du mois, message imprimable quand le terme est incomplet, frappe du dernier champ sans perte de focus ; Visale « non évaluable » sans situation ; durées LMNP et crédit à 0 refusés ; e2e des outils sans saisie perdue avant l'hydratation | 1re : acceptable avec réserves ; reprise `3e3b3f5` ; 2e : à reprendre (aide e2e inopérante avant l'hydratation, format du mois) ; reprise `4b65597` ; 3e : **bon** | `app/src/lib/outils/irl.ts:103` (indice de référence après une année perdue) attend le juriste (Q72, `JURISTE.md` 7·1) |
 
-**État vu à la vérification de cette note (26/11, vers 19:50Z).** Les quatre branches sont **locales** au conteneur
-de l'agent principal (une copie de travail chacune) : aucune n'est encore sur GitHub (`git ls-remote`). Aucune ne
-contient de migration (`git diff --name-only 1dca28b..<branche> -- app/supabase/migrations` vide). Deux reprises sont
-déjà commitées : L1 `3741b31c` (19:32Z : retour à la trace seule au premier mot de passe, plus de fausse alerte au mot
-de passe oublié, libellé de la console) ; L4c `3e3b3f51` (19:44Z : relecture de L4c faite, reprise de ses réserves ;
-cause de `outils.spec.ts:159` donnée comme une course au rechargement, le test attend désormais que la valeur soit
-enregistrée dans le navigateur avant de recharger ; 7/7 trois fois sans second essai en local). L4a et L4b sont
-encore à leur commit initial. Les têtes finales (colonne « Tête finale ») restent à reporter.
+**Cause du test instable `e2e/outils.spec.ts:159` (VÉRIFIÉ le 26/11 par sonde).** Une saisie faite avant que la page
+ait « pris la main » (hydratation de React) puis refaite à l'identique n'atteint jamais l'état de la page : la boucle
+de rattrapage de l'aide ne rattrapait donc rien. L'aide vide maintenant le champ avant chaque saisie : ancienne aide
+4 échecs sur 4, nouvelle 4 réussites sur 4 (scripts retenus puis libérés). Avant le rechargement qui doit retrouver le
+nom retenu, le test attend aussi que la valeur soit écrite dans le navigateur. Résultats locaux sur un build Turbopack
+comme la CI : `outils.spec.ts` 8/8 trois fois, tests de quittance 30/30 en `--repeat-each=10`, sans second essai.
+
+**Intégration (VÉRIFIÉ le 26/11 vers 20:50Z).** Branche `claude/lot1-integration`, tête `ef14afa`
+(`ef14afad850fc05fcca29340c199cf4bc1961483`) : `main` `f9e874b` plus les quatre branches, fusionnées sans conflit.
+Aucune migration (`git diff --name-only origin/main -- app/supabase/migrations` vide) ; 70 fichiers, +3 912 / −489.
+Contrôles locaux : `npm run lint` et `tsc --noEmit` sans erreur ; vitest complet 12 271 tests réussis, 0 en échec ;
+19 fichiers ne démarrent pas hors CI faute de base PostgreSQL ou de navigateur (les mêmes sur `main`). CI GitHub
+lancée à la main (workflow_dispatch, sans PR) : run n° 45894260072, résultat CI_INTEGRATION_RESULTAT.
+
+**Choix faits par délégation dans le lot 1, à écrire dans la PR et à signaler au dirigeant.**
+- Premier mot de passe : si la fermeture des autres sessions échoue, la personne reste connectée (comme avant) et
+  l'échec est seulement tracé. Au mot de passe oublié, l'échec n'est pas tracé, car une fermeture de toutes les
+  sessions suit aussitôt ; si Auth est en panne, rien n'est tracé (point aveugle connu).
+- Barre « Enregistrer » : elle ne peut plus recouvrir Titre et Chapô ; « Adresse », placée après le corps de
+  l'article, n'est pas protégée (la protéger aurait obligé à réordonner le formulaire).
+- Onglet de l'artisan : « Facturation » plutôt que « Ma facturation » (tronqué à 390 px).
+- Page de panne de l'artisan : titre « Lecture rétablie » quand la lecture marche sans fiche ; une mission dont toutes
+  les dates proposées sont passées va dans « Rendez-vous à fixer ».
+- Outils publics : la quittance ne s'imprime qu'avec le mode de paiement, les noms et les adresses ; le montant reçu se
+  saisit (ou se recopie par un bouton) ; LMNP et rentabilité ne donnent un résultat qu'avec tous leurs champs et le
+  financement choisi ; Visale « non évaluable » à 30 ans ou plus sans situation, même au-dessus du plafond.
 
 **Branche à ne pas confondre.** `claude/lot1-corrections-recette` (`c618aa8`, dernier commit le 12/11) existe sur
 GitHub. Ce n'est **pas** une branche de ce lot 1 : c'est la tête de la PR brouillon
@@ -308,16 +326,15 @@ ni à l'identique (`git cherry`). Une reprise partielle de son contenu par une a
 Ne pas la supprimer sans cette vérification et l'accord du dirigeant.
 
 **Ce qui reste avant la publication du lot 1.**
-1. Pousser les quatre branches sur GitHub, puis finir les reprises des quatre copies (réserves ci-dessus ; L1 et L4c
-   ont déjà un commit de reprise).
-2. Intégrer `main` `f9e874b` dans chaque branche (aucun conflit attendu, SUPPOSÉ).
-3. Revérifier qu'aucune migration n'est ajoutée (`git diff --name-only origin/main... -- app/supabase/migrations`) :
-   aucune le 26/11 vers 19:50Z (VÉRIFIÉ) ; si une reprise en ajoute, suivre le circuit complet des migrations.
-4. Contrôles locaux, puis CI **verte sans reprise** sur le SHA de tête (un parcours passé au second essai n'est pas
-   « sans reprise »).
-5. Une PR (ou une par branche), qui liste les choix faits par délégation.
-6. **Accord écrit du dirigeant**, puis fusion squash au SHA exact, CI de `main`, publication contrôlée (une
-   approbation), santé, recette de production, `log.md` et `JOURNAL.md`.
+1. CI verte **sans reprise** sur la tête de `claude/lot1-integration` (un parcours passé au second essai n'est pas
+   « sans reprise ») ; si elle est rouge, corriger sur la branche concernée et réintégrer.
+2. Ouvrir **une** PR de `claude/lot1-integration` vers `main` (une seule publication, un seul clic d'approbation), qui
+   liste les choix ci-dessus. Aucune PR n'est ouverte le 26/11 : la passation l'a demandé.
+3. **Accord écrit du dirigeant**, puis fusion squash au SHA exact, CI de `main`, publication contrôlée (une
+   approbation ; aucune migration, donc pas de sauvegarde préalable obligatoire), santé, recette de production,
+   `log.md` et `JOURNAL.md`.
+4. Si la publication glisse après le 26/11, la date de la politique de confidentialité (`CONFIDENTIALITE_DATE`,
+   `app/src/lib/editeur.ts`) reste celle de la modification, le 26/11 (règle Q99) : rien à changer.
 
 **Lots suivants prévus** : le reste de L4 (b.2), puis L5 (aucune décision nécessaire), puis L2 et L3 dès les réponses
 du dirigeant, puis L7, L6 et L8 quand les éléments extérieurs arrivent (textes officiels, juriste, expert-comptable,
@@ -570,9 +587,10 @@ Stripe, approuver à la place du dirigeant dans GitHub.
 - Workflows planifiés : sauvegarde quotidienne, disponibilité publique (section f).
 - Effacement du compte fictif : 14 jours après sa programmation dans la console (pas encore programmée).
 
-**Travaux en cours** : reprises des copies du lot 1 (section c ; L4a et L4b à leur commit initial vers 19:50Z).
-Recette n° 62 : terminée. Aucun autre traitement en arrière-plan relevé par cette note : À VÉRIFIER dans la session de
-l'agent principal.
+**Travaux en cours** (fin de la session de l'agent principal, 26/11 vers 21 h Z) : la CI de
+`claude/lot1-integration` (run n° 45894260072, voir section c). Recette n° 62 : terminée, réussie. Aucun autre
+traitement en arrière-plan : les reprises et relectures du lot 1 sont toutes terminées. L'agent principal ne lance
+plus de nouveau travail sur le dépôt après cette note (demande de la session « Discussion Gerimmo »).
 
 **PR ouvertes sur GitHub** (48 le 26/11, lecture GitHub ; la liste fournie à l'auteur n'en citait qu'une partie).
 - Dependabot (9) : #349 (outils de développement), #301, #300, #274, #265, #262, #261, #260, #237.
@@ -586,8 +604,9 @@ l'agent principal.
 - À garder : `main` ; `claude/audit-final-pr335` (documentation : `JOURNAL.md`, `QUESTIONS.md`, `DECISIONS-2026-11-24.md`,
   `livrables/`, wiki à jour ; environ 140 commits que `main` n'a pas, **uniquement des documents**, aucun fichier de
   `app/` ni de `.github/` VÉRIFIÉ par `git diff --name-only` ; non fusionnée, d'où le `log.md` de `main` arrêté au
-  03/11) ; les quatre branches du lot 1 (`claude/lot1-l1`, `-l4a`, `-l4b`, `-l4c`), **encore locales au conteneur de
-  l'agent principal le 26/11 vers 19:50Z, à pousser sur GitHub** (sinon elles sont perdues avec le conteneur) ; les
+  03/11) ; les quatre branches du lot 1, **poussées sur GitHub** le 26/11 (`claude/lot1-l1` `960285b`,
+  `claude/lot1-l4a` `929ab95`, `claude/lot1-l4b` `0ad214f`, `claude/lot1-l4c` `4b65597`) et leur intégration
+  `claude/lot1-integration` `ef14afa` (à publier par une seule PR) ; les
   repères `claude/depart-palier-1` et `claude/production-2026-11-22` ; les sauvegardes
   `claude/sauvegarde-banc-principal`, `claude/sauvegarde-banc-vendeur`, `claude/sauvegarde-fusion`.
   `claude/palier-1-preproduction` n'est plus sur GitHub (VÉRIFIÉ par `git ls-remote` le 26/11).
@@ -680,19 +699,20 @@ au 14/11.
 | 26/11 | deploy | Correctif Q125 | #359 (`1dca28b`) | `publiee_verifiee` 09:50Z ; recettes n° 59 à 61 réussies ; action vérifiée par sonde |
 | 26/11 | incident (`JOURNAL.md`) | Pare-feu Vercel sur l'adresse de l'agent | — | public non concerné |
 | 26/11 | plan (hors log) | Plan de correction des défauts restants, avec sa critique | — (commit `4984c18`) | lots L1 à L8 |
-| 26/11 | développement (hors log) | Lot 1 : quatre copies L1, L4a, L4b, L4c | — | non publiées, reprises en cours |
+| 26/11 | développement (hors log) | Lot 1 : quatre copies L1, L4a, L4b, L4c, deux à trois tours de relecture adverse chacune | — | non publiées ; dernières relectures : bon ou retouches faites (section c) |
 | 26/11 | deploy | Correctif de l'adresse du bailleur | #360 (`f9e874b`) | `publiee_verifiee` vers 19:14Z ; recette n° 62 réussie ; recompte : 0 reprise |
 | 26/11 | documentation (hors log) | Registre : Q72 et Q123 sur la branche du lot 1 ; point posé au juriste | — (commit `5546c23a`) | fait |
 | 26/11 | documentation | `log.md` et `JOURNAL.md` de la branche de documentation : recette n° 62 réussie | — (commit `af0a2563`, tête de `claude/audit-final-pr335` à 19:27Z) | fait |
-| 26/11 | documentation (hors log) | Cette note de passation | — | écrite ; pas encore commitée lors de sa vérification (19:50Z) |
+| 26/11 | documentation (hors log) | Cette note de passation | — | premier état `8a9acea`, version finale sur `claude/audit-final-pr335` |
+| 26/11 | correction (hors log) | Lot 1 : quatre branches et leur intégration poussées, sans PR ni publication | — | contrôles locaux verts ; CI run n° 45894260072 : CI_INTEGRATION_RESULTAT |
 
 ---
 
 ## i. Prochaines actions recommandées, par ordre de priorité
 
-1. **Finir et publier le lot 1** : d'abord pousser les quatre branches sur GitHub (elles ne sont que locales), puis
-   reprises de L4a et L4b, `main` intégré, CI verte sans reprise, PR(s), puis accord écrit du dirigeant et
-   publication contrôlée avec recette (section c).
+1. **Publier le lot 1** : lire le résultat de la CI de `claude/lot1-integration` (run n° 45894260072) ; si
+   elle est verte sans reprise, ouvrir une PR vers `main` qui liste les choix par délégation, puis accord écrit du
+   dirigeant et publication contrôlée avec recette (section c). Les quatre branches et l'intégration sont sur GitHub.
 2. **Séance guidée avec le dirigeant** pour les gestes courts : fermeture du compte fictif et des comptes de test (d.1,
    d.6) avant le 24/12, essai de l'interrupteur de l'IA, puis décision sur R5 après un essai avec une vraie boîte (d.3).
 3. **Lever la réserve N10** (d.2) : environnement dédié aux secrets Supabase, rotation coordonnée, puis sauvegarde et

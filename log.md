@@ -8365,3 +8365,15 @@ cahier V3 et le wiki (sans autre document). La décision la plus récente l'empo
   dans [[Proposition de valeur]].
 - Branche : `claude/inspiring-faraday-nz2i4q`, qui intègre la branche de documentation `claude/audit-final-pr335`
   (documents seulement, aucun fichier de `app/` ni de `.github/`). Rien n'est fusionné dans `main` ni publié.
+
+## [2026-11-26] decision | Ouverture de la vente le 30/11, entrepreneur individuel, sans médiateur
+- Réponse du dirigeant, mot pour mot : « Oui, on ouvre le 30/11, entrepreneur individuel, sans médiateur » ; recopiée
+  dans `DECISIONS-2026-11-24.md` (réponses du 26/11).
+- Gestes du dirigeant : R7 (en-tête des factures dans Stripe), R6 (« Ouvrir la vente aux particuliers sans
+  médiateur »), R8 (« Ouvrir les souscriptions », le 30/11), puis une souscription d'essai avec sa carte, résiliée
+  aussitôt. L'agent ne fait aucun de ces gestes ; il contrôle la santé et la recette de production le matin du 30/11.
+- Constaté dans le code : une souscription pendant l'essai ne prélève rien avant la fin de l'essai. Premier revenu
+  attendu vers la fin janvier 2027 pour un inscrit du 30/11. Premier débit réel proposé fin décembre, depuis un espace
+  de test dont l'essai finit, suivi d'une rétractation (conseil COM-2).
+- Point de droit toujours ouvert, jamais présenté comme conforme : L612-1 et L616-1 (`JURISTE.md`, 7·6 et 9·26).
+- Pas-à-pas : `livrables/OUVERTURE-VENTE-30-NOVEMBRE.md`. Rien n'est publié ni fusionné.

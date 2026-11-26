@@ -141,3 +141,10 @@ mot pour mot :
   - publication du correctif de l'adresse du bailleur : PR [#360](https://github.com/GERIMMO/GERIMMO_V4/pull/360) ;
   - reprise des données : comptée en lecture seule, une seule fiche concernée, celle du compte fictif `TEST-PUBLICATION` (fermeture demandée), donc pas de reprise ; recompte prévu après la mise en ligne ;
   - « le reste » : les gestes de la console (double vérification), de Stripe et l'ouverture des souscriptions ne sont pas faisables ou pas permis à l'agent (« Ne rouvre pas les souscriptions payantes ») ; l'agent poursuit la chasse aux défauts connus, sur branches vérifiées, et présente chaque publication.
+- **Ouverture de la vente, 26/11 (soir), session « Discussion Gerimmo »**, réponse mot pour mot : « Oui, on ouvre le
+  30/11, entrepreneur individuel, sans médiateur » → ouverture de la vente aux particuliers et aux SCI fixée au lundi
+  30/11/2026, vendeur entrepreneur individuel, sans médiateur de la consommation (confirme la réponse du 24/11 « on peux
+  ouvrir les ventes même sans ce dernier »). Les gestes restent ceux du dirigeant : R6 (« Ouvrir la vente aux
+  particuliers sans médiateur »), R7 (Stripe) et R8 (« Ouvrir les souscriptions ») ; l'agent ne les fait pas (« Ne
+  rouvre pas les souscriptions payantes »). Point de droit toujours ouvert, jamais présenté comme conforme : L612-1 et
+  L616-1 cités par le recueil (`JURISTE.md`, 7·6 et 9·26). Pas-à-pas : `livrables/OUVERTURE-VENTE-30-NOVEMBRE.md`.

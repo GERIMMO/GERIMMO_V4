@@ -86,7 +86,7 @@ describe("Sécurité du compte : changer son mot de passe sans passer par un ema
 
   // Lot L1 (26/11/2026) : la fermeture des autres sessions peut échouer (Auth en panne, limite de fréquence, réseau).
   // Elle ne ferme alors rien, et l'écran affirmait pourtant « Vos autres appareils connectés ont été déconnectés ».
-  it("la déconnexion des autres appareils échoue : le message dit la vérité, nomme le geste qui les ferme, et l’échec est tracé", async () => {
+  it("la déconnexion des autres appareils échoue : le message dit la vérité, nomme le geste qui retente leur fermeture, et l’échec est tracé", async () => {
     mocks.signOut.mockResolvedValue({ error: { name: "AuthApiError", code: "unexpected_failure", status: 500, message: "Internal Server Error" } });
     const etat = await changerMonMotDePasse({}, saisie(ANCIEN, NOUVEAU));
     expect(etat.message).toBeUndefined();

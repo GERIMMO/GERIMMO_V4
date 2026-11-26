@@ -214,8 +214,8 @@ export async function definirNouveauMotDePasse(
   // devait ressaisir sur /connexion le mot de passe qu'elle venait de choisir avant de pouvoir accepter. Son compte n'a
   // pas de profil à confirmer : c'est la suite qui la reconnaît. Cette suite vient de l'envoi, mais elle ne décide que
   // de l'issue d'après l'enregistrement : la session ouverte est celle que donnerait /connexion avec le mot de passe que
-  // l'auteur de l'envoi vient de choisir, et celle du lien se ferme de la même façon. La récupération ordinaire (« mot de
-  // passe oublié », suite /espaces) n'est pas concernée.
+  // l'auteur de l'envoi vient de choisir, et la fermeture des autres sessions vise celle du lien de la même façon (son
+  // échec est tracé, lot L1). La récupération ordinaire (« mot de passe oublié », suite /espaces) n'est pas concernée.
   let suite = destinationSure(String(formData.get("suite") ?? ""));
   const premierChoix = !!profil || estPageInvitationLocataire(suite);
   let sessionParMotDePasse = false;
@@ -224,16 +224,18 @@ export async function definirNouveauMotDePasse(
     sessionParMotDePasse = !erreurConnexion;
   }
 
-  // Sécurité : toute autre session active est invalidée — si quelqu'un était
-  // connecté avec l'ancien mot de passe, il est éjecté
+  // Sécurité : toute autre session active est visée — si quelqu'un était
+  // connecté avec l'ancien mot de passe, il doit être éjecté (le résultat est lu ci-dessous)
   //
   // Lot L1 (26/11/2026) : l'erreur est lue. Quand Auth échoue ou ne répond pas, rien ne confirme qu'une autre session a
   // été fermée, celle du lien comprise. L'échec n'est tracé que si la personne reste connectée (premier choix, session
   // « mot de passe » ouverte ci-dessus) : c'est le seul cas où rien d'autre ne vise ces sessions après cet appel. Dans
   // tous les autres (mot de passe oublié, repli du premier choix), le signOut() global ci-dessous suit aussitôt et vise
   // toutes les sessions du compte, autres comprises ; noter « echec » ici signalerait une session restée ouverte que cette
-  // fermeture globale vise encore (fausse alerte, décision du 26/11/2026). Le résultat du signOut() global, lui, n'est
-  // toujours pas lu. La trace part avant toute sortie : un compte connecté l'écrit en son nom.
+  // fermeture globale vise encore (fausse alerte quand cette fermeture globale aboutit ; si Auth est en panne, elle
+  // échoue aussi et rien n'est tracé : décision du 26/11/2026). Le résultat du signOut() global, lui, n'est toujours pas
+  // lu : le SDK efface la session de ce navigateur même en cas d'échec, et le journal technique exige un compte
+  // connecté. La trace part avant toute sortie : un compte connecté l'écrit en son nom.
   const { error: erreurAutresSessions } = await supabase.auth.signOut({ scope: "others" });
 
   // Trace technique (matrice A2 : « changement de mot de passe », 6 mois)

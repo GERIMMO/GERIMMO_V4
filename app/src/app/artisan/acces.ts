@@ -451,7 +451,10 @@ export async function verifierAccesArtisan() {
   const { supabase, user, fiche, erreur } = await chargerFicheArtisan();
   if (!user) redirect("/connexion?suite=%2Fartisan");
   const compte = user.id;
-  if (erreur) redirect("/artisan/panne");
+  // Reprise du lot 60 (R9) : `?essai=1` dit à la page de panne que la garde vient d'échouer à lire la fiche. Une
+  // lecture qui réussit là-bas ne renvoie alors plus ici d'elle-même (panne/page.tsx) : une alternance échec/succès
+  // ne peut plus enchaîner les renvois entre /artisan et /artisan/panne.
+  if (erreur) redirect("/artisan/panne?essai=1");
   if (!fiche) {
     // /espaces mène seul à l'espace du compte (entrée directe quand il n'en a qu'un).
     if (await aUnAutreEspaceActif(supabase, compte)) redirect("/espaces");

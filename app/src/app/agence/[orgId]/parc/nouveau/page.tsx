@@ -9,6 +9,8 @@ import { FormulaireAvecBrouillon } from "./formulaire-avec-brouillon";
 import { CoordonneesBailleur } from "./coordonnees-bailleur";
 import { euros, offreAbonnementUnique, offreParticulier, parPeriode, type Periodicite } from "@/lib/tarifs";
 import { baseEspace } from "@/lib/racine-espace";
+import { adresseFicheComplete, type FicheTitulaire } from "@/lib/fiche-titulaire";
+import { estBailleurSociete } from "@/lib/qualite-bailleur";
 
 export const metadata = { title: "Ajouter un bien — Gerimmo" };
 
@@ -29,6 +31,10 @@ export default async function PageNouveauBien(
   // Grille du 28/09/2026 : au-delà de la capacité payée, le prix du bien
   // suivant se montre AVANT le formulaire, et se confirme sur « Mon abonnement ».
   let depassement: { capacite: number; apres: number; offre: ReturnType<typeof offreParticulier>; periodicite: Periodicite } | null = null;
+  // 26/11/2026 : la fiche « personne » du compte d'un particulier sans adresse complète (lib/fiche-titulaire.ts). L'espace
+  // peut être complet alors que la fiche ne l'est pas (fiche à une autre adresse, code postal étranger refusé, plusieurs
+  // fiches) : le bail la demandera ; on le dit ici, avant le premier bien, avec le lien vers la fiche.
+  let ficheSansAdresse: { id: string } | null = null;
   if (role === "proprietaire_direct") {
     const [{ data: etatBrut }, { data: paiementBrut }] = await Promise.all([
       supabase.rpc("etat_abonnement", { p_org: orgId }),
@@ -53,6 +59,13 @@ export default async function PageNouveauBien(
       city: profil?.city ?? "",
       email_contact: profil?.email_contact?.trim() || user.email || "",
     };
+    if (manquants.length === 0) {
+      const { data: fiches } = await supabase.from("persons")
+        .select("id, qualite, address_line1, postal_code, city")
+        .eq("organization_id", orgId).eq("account_id", user.id).is("archived_at", null);
+      const fiche = fiches?.length === 1 ? (fiches[0] as FicheTitulaire) : null;
+      if (fiche && !estBailleurSociete(fiche.qualite) && !adresseFicheComplete(fiche)) ficheSansAdresse = { id: fiche.id };
+    }
   }
 
   return (
@@ -89,6 +102,20 @@ export default async function PageNouveauBien(
             <Link href={`${base}/abonnement?biens=${depassement.apres}`} className="btn-or">
               Voir et confirmer le nouveau montant
             </Link>
+          </div>
+        </div>
+      )}
+      {manquants.length === 0 && ficheSansAdresse && (
+        <div className="loc-carte mb-4" role="status">
+          <p className="mesure-lecture text-sm">
+            <b className="font-semibold">Votre fiche de bailleur n&apos;a pas d&apos;adresse complète.</b>{" "}
+            <span className="text-muted-foreground">
+              Le bail, les quittances et les courriers prennent votre domicile sur cette fiche : complétez-la avant de
+              préparer un bail.
+            </span>
+          </p>
+          <div className="mt-3">
+            <Link href={`${base}/personnes/${ficheSansAdresse.id}`} className="btn-or">Compléter ma fiche</Link>
           </div>
         </div>
       )}

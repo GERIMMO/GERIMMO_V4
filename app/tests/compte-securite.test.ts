@@ -91,7 +91,9 @@ describe("Sécurité du compte : changer son mot de passe sans passer par un ema
     const etat = await changerMonMotDePasse({}, saisie(ANCIEN, NOUVEAU));
     expect(etat.message).toBeUndefined();
     expect(etat.erreur).toMatch(/^Mot de passe modifié, mais la déconnexion de vos autres appareils n'a pas pu être confirmée/);
-    expect(etat.erreur).toContain("« Se déconnecter »");
+    // Le message décrit ce que fait le bouton, sans affirmer le résultat (décision du 26/11/2026).
+    expect(etat.erreur).toContain("utilisez « Se déconnecter » : ce bouton ferme la session sur tous vos appareils, celui-ci compris.");
+    expect(etat.erreur).not.toMatch(/la session se ferme/);
     expect(etat.erreur).not.toMatch(/ont été déconnectés/);
     expect(etat.erreur).not.toMatch(/unexpected_failure|500|Internal/);
     expect(mocks.signOut).toHaveBeenCalledExactlyOnceWith({ scope: "others" });

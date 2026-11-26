@@ -96,9 +96,11 @@ export async function changerMonMotDePasse(
   // « Vos autres appareils connectés ont été déconnectés ». L'échec est tracé
   // avec le changement, et le message dit ce qui est vrai : le mot de passe est
   // changé, la déconnexion des autres appareils n'est pas confirmée. Il nomme le
-  // geste qui la retente : « Se déconnecter » (bandeau de cette page) ferme la
-  // session sur tous les appareils, celui-ci compris (`seDeconnecter`, portée
-  // globale).
+  // geste qui la retente : « Se déconnecter » (bandeau de cette page) demande la
+  // fermeture de la session sur tous les appareils, celui-ci compris
+  // (`seDeconnecter`, portée globale, qui dit à son tour si elle n'a pas pu être
+  // confirmée). Le message décrit ce que fait ce bouton, sans en promettre le
+  // résultat (décision du 26/11/2026).
   const { error: erreurFermeture } = await supabase.auth.signOut({ scope: "others" });
 
   // Matrice A2 : « changement de mot de passe », conservé six mois.
@@ -110,7 +112,7 @@ export async function changerMonMotDePasse(
   if (erreurFermeture) {
     return {
       erreur:
-        "Mot de passe modifié, mais la déconnexion de vos autres appareils n'a pas pu être confirmée. Pour la retenter, utilisez « Se déconnecter » : la session se ferme sur tous vos appareils, celui-ci compris. Reconnectez-vous ensuite avec votre nouveau mot de passe.",
+        "Mot de passe modifié, mais la déconnexion de vos autres appareils n'a pas pu être confirmée. Pour la retenter, utilisez « Se déconnecter » : ce bouton ferme la session sur tous vos appareils, celui-ci compris. Reconnectez-vous ensuite avec votre nouveau mot de passe.",
     };
   }
 

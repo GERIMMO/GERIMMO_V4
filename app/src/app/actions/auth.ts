@@ -205,8 +205,9 @@ export async function definirNouveauMotDePasse(
   // valable quinze minutes) : gardée telle quelle, la session née du lien rouvrait /nouveau-mot-de-passe, où quiconque
   // l'utilisait (bouton Retour, poste partagé) pouvait reposer le mot de passe sans connaître l'actuel. La connexion
   // avec le mot de passe qui vient d'être choisi ouvre une nouvelle session (`amr` = password, cookies réécrits) ; la
-  // fermeture des « autres » sessions ci-dessous emporte alors celle du lien. Un lien e-mail ne sert qu'à un seul choix,
-  // comme avant PRO-5. Jamais une marque dans les métadonnées du compte : son titulaire peut les écrire lui-même.
+  // fermeture des « autres » sessions ci-dessous vise alors celle du lien (son échec est lu, lot L1). Un lien e-mail ne
+  // sert qu'à un seul choix, comme avant PRO-5. Jamais une marque dans les métadonnées du compte : son titulaire peut les
+  // écrire lui-même.
   //
   // UX-1 (19/11/2026) : la personne invitée comme locataire est dans le même cas. Le lien de son e-mail d'invitation
   // (lib/lien-mot-de-passe.ts, `suiteInvitationLocataire`) mène ici avec pour suite la page de CETTE invitation ; elle
@@ -227,14 +228,18 @@ export async function definirNouveauMotDePasse(
   // connecté avec l'ancien mot de passe, il est éjecté
   //
   // Lot L1 (26/11/2026) : l'erreur est lue. Quand Auth échoue ou ne répond pas, rien ne confirme qu'une autre session a
-  // été fermée, celle du lien comprise. L'échec est tracé avec le changement (la trace part avant toute sortie : un compte
-  // connecté l'écrit en son nom), et le premier choix ne garde la personne connectée que si la fermeture a abouti.
+  // été fermée, celle du lien comprise. L'échec n'est tracé que si la personne reste connectée (premier choix, session
+  // « mot de passe » ouverte ci-dessus) : c'est le seul cas où rien d'autre ne vise ces sessions après cet appel. Dans
+  // tous les autres (mot de passe oublié, repli du premier choix), le signOut() global ci-dessous suit aussitôt et vise
+  // toutes les sessions du compte, autres comprises ; noter « echec » ici signalerait une session restée ouverte que cette
+  // fermeture globale vise encore (fausse alerte, décision du 26/11/2026). Le résultat du signOut() global, lui, n'est
+  // toujours pas lu. La trace part avant toute sortie : un compte connecté l'écrit en son nom.
   const { error: erreurAutresSessions } = await supabase.auth.signOut({ scope: "others" });
 
   // Trace technique (matrice A2 : « changement de mot de passe », 6 mois)
   await supabase.rpc("log_tech", {
     evenement: "changement_mot_de_passe",
-    details: traceFermetureAutresSessions(erreurAutresSessions),
+    details: traceFermetureAutresSessions(sessionParMotDePasse ? erreurAutresSessions : null),
   });
 
   if (profil?.espace === "proprietaire_direct") suite = "/espaces";
@@ -243,23 +248,26 @@ export async function definirNouveauMotDePasse(
   // PREMIER CHOIX APRÈS LA CONFIRMATION DE L'ADRESSE : LA PERSONNE RESTE CONNECTÉE (relevé du 23/10, PRO-5).
   // Elle vient de prouver l'accès à sa boîte et de poser son mot de passe : la renvoyer vers la connexion
   // (« Mot de passe modifié. Connectez-vous avec votre nouveau mot de passe. ») lui faisait ressaisir ce qu'elle venait
-  // de choisir. Elle continue avec la session « mot de passe » ouverte ci-dessus (celle du lien est fermée) ; le proxy
-  // applique la politique de session et le second facteur comme à toute session. Le profil est lu dans le compte ; la
-  // seule autre porte est la page d'une invitation de locataire (UX-1), où elle arrive directement pour l'accepter. Un
-  // motif ou un témoin ajouté à l'envoi ne peut pas éviter la déconnexion d'une récupération.
-  // Lot L1 : si la fermeture des autres sessions a échoué, celle du lien est peut-être encore ouverte côté Auth ; rester
-  // connecté ferait comme si elle était refermée. La personne prend alors le repli ci-dessous, comme quand la connexion par le
-  // nouveau mot de passe n'aboutit pas.
-  if (sessionParMotDePasse && !erreurAutresSessions) redirect(suite);
+  // de choisir. Elle continue avec la session « mot de passe » ouverte ci-dessus (la fermeture des autres sessions vise
+  // celle du lien) ; le proxy applique la politique de session et le second facteur comme à toute session. Le profil est
+  // lu dans le compte ; la seule autre porte est la page d'une invitation de locataire (UX-1), où elle arrive directement
+  // pour l'accepter. Un motif ou un témoin ajouté à l'envoi ne peut pas éviter la déconnexion d'une récupération.
+  //
+  // Lot L1 (décision du 26/11/2026) : elle continue aussi quand la fermeture des autres sessions a échoué ; l'échec est
+  // tracé ci-dessus. La session du lien peut alors rester ouverte côté Auth. Ce navigateur ne la présente plus (la
+  // connexion ci-dessus a réécrit ses cookies), mais une copie de son cookie prise avant ce choix resterait utilisable
+  // tant qu'Auth ne l'a pas fermée. Le repli ci-dessous n'y apporterait presque rien : en panne d'Auth, son signOut()
+  // global peut échouer de la même façon (le SDK n'efface alors que la session de ce navigateur), et la personne,
+  // déconnectée, ne pourrait pas se reconnecter.
+  if (sessionParMotDePasse) redirect(suite);
 
   // RÉCUPÉRATION D'UN COMPTE EXISTANT (mot de passe oublié), choix d'origine
   // inchangé : on repart d'une connexion propre avec le nouveau mot de passe.
   // (UX-1 ne l'a pas changé : le même mécanisme y serait sûr, mais rester connecté après une réinitialisation est un
   // choix de produit, et l'écran de connexion confirme le changement à qui reprend la main sur son compte.)
   // C'est aussi le repli du premier choix si la connexion avec le nouveau mot de passe n'a pas abouti (adresse
-  // absente, limite de fréquence, service indisponible), ou si la fermeture des autres sessions a échoué (lot L1) : le
-  // mot de passe et le profil sont enregistrés, toutes les sessions se ferment, celle du lien comprise, et la personne se
-  // connecte avec ce qu'elle vient de choisir.
+  // absente, limite de fréquence, service indisponible) : le mot de passe et le profil sont enregistrés, le signOut()
+  // global vise toutes les sessions, celle du lien comprise, et la personne se connecte avec ce qu'elle vient de choisir.
   await supabase.auth.signOut();
   (await cookies()).delete(ACTIVITY_COOKIE);
   redirect(`/connexion?raison=mot-de-passe-modifie${suite !== "/espaces" ? `&suite=${encodeURIComponent(suite)}` : ""}`);

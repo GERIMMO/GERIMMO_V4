@@ -454,7 +454,9 @@ describe("PRO-5, suite — le premier choix referme la porte du lien : la sessio
 
   /**
    * Lot L1 (26/11/2026) — la fermeture des « autres » sessions n'était pas lue. Quand Auth la refuse ou ne répond pas,
-   * elle ne ferme rien, celle du lien comprise : la personne restait connectée comme si la porte du lien était refermée.
+   * elle ne ferme rien, celle du lien comprise, et rien ne le signalait. Décision du mainteneur (26/11) : au premier
+   * choix, la personne continue comme avant (ce navigateur ne présente plus la session du lien) et l'échec est tracé ;
+   * quand le signOut() global suit aussitôt (mot de passe oublié, repli), rien n'est tracé : ce serait une fausse alerte.
    */
   const ERREUR_AUTH = { name: "AuthApiError", code: "unexpected_failure", status: 500, message: "Internal Server Error" };
   const TRACE_ECHEC = { fermeture_autres_sessions: "echec", erreur: "unexpected_failure", statut: 500 };
@@ -465,29 +467,45 @@ describe("PRO-5, suite — le premier choix referme la porte du lien : la sessio
   };
   const traces = () => rpc.mock.calls.filter(([nom]) => nom === "log_tech");
 
-  it("la fermeture des autres sessions échoue : la personne ne reste pas connectée, tout se ferme (celle du lien comprise), l'échec est tracé", async () => {
+  it("la fermeture des autres sessions échoue : la personne continue vers son espace comme avant, et l'échec est tracé", async () => {
     const banc = authAvecSessions();
     fermetureDesAutresEnEchec();
-    await expect(definirNouveauMotDePasse({}, formulaire())).rejects.toThrow(/^REDIRECT \/connexion\?raison=mot-de-passe-modifie$/);
-    // Le mot de passe et le profil sont enregistrés ; le repli d'avant ferme toutes les sessions, celle du lien comprise.
+    await expect(definirNouveauMotDePasse({}, formulaire())).rejects.toThrow(/^REDIRECT \/espaces$/);
     expect(auth.updateUser).toHaveBeenCalledExactlyOnceWith({ password: MOT_DE_PASSE, data: expect.objectContaining({ nom: "Corrigé", profil_a_confirmer: null }) });
-    expect(auth.signOut).toHaveBeenCalledWith({ scope: "others" });
-    expect(auth.signOut).toHaveBeenLastCalledWith();
-    expect(banc.sessions.size).toBe(0);
-    expect(mocks.supprimerCookie).toHaveBeenCalledWith(ACTIVITY_COOKIE);
-    // La trace part pendant que la session « mot de passe » est encore ouverte : un compte connecté l'écrit en son nom.
+    // Une seule fermeture, celle des autres : aucune sortie globale, le témoin d'activité reste.
+    expect(auth.signOut.mock.calls).toEqual([[{ scope: "others" }]]);
+    expect(mocks.supprimerCookie).not.toHaveBeenCalled();
+    // Ce navigateur présente la session « mot de passe » (cookies réécrits par la connexion). Auth n'ayant rien fermé, celle
+    // du lien reste ouverte de son côté : c'est ce que la trace signale.
+    expect(banc.presentee()).toBe("mot-de-passe");
+    expect([...banc.sessions.keys()]).toEqual(["lien", "mot-de-passe"]);
     expect(traces()).toEqual([["log_tech", { evenement: "changement_mot_de_passe", details: TRACE_ECHEC }]]);
-    const rangTrace = rpc.mock.invocationCallOrder[rpc.mock.calls.findIndex(([nom]) => nom === "log_tech")];
-    expect(rangTrace).toBeLessThan(auth.signOut.mock.invocationCallOrder.at(-1)!);
   });
 
-  it("mot de passe oublié, la fermeture des autres sessions échoue : le parcours d'avant (tout se ferme, puis la connexion), l'échec est tracé", async () => {
+  it("mot de passe oublié, la fermeture des autres sessions échoue : le signOut global suit aussitôt, la trace ne dit pas « echec »", async () => {
     const banc = authAvecSessions({ nom: "Valide", espace: "proprietaire_direct" });
     fermetureDesAutresEnEchec();
     await expect(definirNouveauMotDePasse({}, formulaireRecuperation())).rejects.toThrow(/^REDIRECT \/connexion\?raison=mot-de-passe-modifie$/);
     expect(auth.signInWithPassword).not.toHaveBeenCalled();
+    // La fermeture des autres (en échec), puis aussitôt la fermeture globale, qui vise toutes les sessions.
+    expect(auth.signOut.mock.calls).toEqual([[{ scope: "others" }], []]);
     expect(banc.sessions.size).toBe(0);
-    expect(traces()).toEqual([["log_tech", { evenement: "changement_mot_de_passe", details: TRACE_ECHEC }]]);
+    expect(mocks.supprimerCookie).toHaveBeenCalledWith(ACTIVITY_COOKIE);
+    expect(traces()).toEqual([["log_tech", { evenement: "changement_mot_de_passe", details: {} }]]);
+  });
+
+  it("premier choix, la connexion par le nouveau mot de passe et la fermeture des autres échouent : le repli d'avant, sans « echec » dans la trace", async () => {
+    const banc = authAvecSessions();
+    auth.signInWithPassword.mockResolvedValueOnce({ data: { session: null, user: null }, error: { code: "over_request_rate_limit", message: "Request rate limit reached" } });
+    fermetureDesAutresEnEchec();
+    await expect(definirNouveauMotDePasse({}, formulaire())).rejects.toThrow(/^REDIRECT \/connexion\?raison=mot-de-passe-modifie$/);
+    expect(auth.signOut.mock.calls).toEqual([[{ scope: "others" }], []]);
+    expect(banc.sessions.size).toBe(0);
+    expect(mocks.supprimerCookie).toHaveBeenCalledWith(ACTIVITY_COOKIE);
+    expect(traces()).toEqual([["log_tech", { evenement: "changement_mot_de_passe", details: {} }]]);
+    // La trace part avant la fermeture globale : la session est encore ouverte, un compte connecté l'écrit en son nom.
+    const rangTrace = rpc.mock.invocationCallOrder[rpc.mock.calls.findIndex(([nom]) => nom === "log_tech")];
+    expect(rangTrace).toBeLessThan(auth.signOut.mock.invocationCallOrder.at(-1)!);
   });
 
   it("la fermeture des autres sessions aboutit : la trace d'avant, inchangée", async () => {
@@ -573,12 +591,14 @@ describe("PRO-5, suite — le premier choix referme la porte du lien : la sessio
       expect(mocks.supprimerCookie).toHaveBeenCalledWith(ACTIVITY_COOKIE);
     });
 
-    it("la fermeture des autres sessions échoue (lot L1) : le même repli, vers la connexion puis l'invitation, et l'échec est tracé", async () => {
+    it("la fermeture des autres sessions échoue (lot L1) : elle arrive quand même sur son invitation, connectée, et l'échec est tracé", async () => {
       const banc = authAvecSessions(COMPTE_INVITE);
       fermetureDesAutresEnEchec();
-      await expect(definirNouveauMotDePasse({}, choixInvite())).rejects.toThrow(`REDIRECT /connexion?raison=mot-de-passe-modifie&suite=${encodeURIComponent(INVITATION)}`);
-      expect(banc.sessions.size).toBe(0);
-      expect(mocks.supprimerCookie).toHaveBeenCalledWith(ACTIVITY_COOKIE);
+      await expect(definirNouveauMotDePasse({}, choixInvite())).rejects.toThrow(new RegExp(`^REDIRECT ${INVITATION}$`));
+      expect(sortiesGlobales()).toEqual([]);
+      expect(mocks.supprimerCookie).not.toHaveBeenCalled();
+      expect(banc.presentee()).toBe("mot-de-passe");
+      expect([...banc.sessions.keys()]).toEqual(["lien", "mot-de-passe"]);
       expect(traces()).toEqual([["log_tech", { evenement: "changement_mot_de_passe", details: TRACE_ECHEC }]]);
     });
 

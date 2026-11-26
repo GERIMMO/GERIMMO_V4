@@ -702,3 +702,15 @@ La première passe de recette a relu de nouveau tous les documents produits. Ell
   - Hors périmètre : l'erreur de la fermeture des autres sessions dans `actions/auth.ts` n'est pas lue (faiblesse antérieure, à traiter à part).
 - **CI** : PR sur `85253c0` en cours. Les deux exécutions sur `4ed6760` (n° 45778448064 et n° 45778793179) ont été arrêtées, devenues sans objet.
 - **À contrôler après la mise en ligne** : recettes de production rejouées (parcours d'inscription au premier essai), volume des 403 `/user` dans les journaux Auth.
+
+## 26/11/2026 (matin) — Correctif Q125 publié en production (`main` `1dca28b`)
+
+- **Conditions remplies** : CI de la PR #359 sur `85253c0` (n° 45781383488) verte sans reprise ni test instable (16 641 tests, 355 parcours, 4 envois, 75 WebKit mobile, 9 PostgREST, 2 invitation). Trois relectures sans point bloquant. PR fusionnée en squash à 08:50Z → `main` = `1dca28b703f489f80ffbd228c247f578a0f58aea`, identique à `85253c0` (`git diff` vide).
+- **CI de `main`** n° 45786610412 verte, mêmes chiffres, sans reprise. Construction Vercel `dpl_EiNdP9F8LdtMpTx1Fx2ZC8pXrHK8` prête, sans domaine avant la publication ; le site servait encore `8f9dd9c`.
+- **Publication contrôlée** n° 45792561969 (`publier`, `base_compatible` ; aucune migration), approuvée par vous (`GERIMMO`) : **`publiee_verifiee` à 09:50Z** ; 24 tests du contrôleur réussis.
+- **Après** :
+  - VÉRIFIÉ depuis une autre adresse que celle de l'agent : `/api/sante` sert `1dca28b` (base OK, pas de maintenance) ; accueil, tarifs, inscription, connexion et conditions en 200 ; conditions du 24/11 en vigueur ; souscriptions toujours présentées comme fermées.
+  - Domaines `www.gerimmo.app` et `gerimmo.app` sur `dpl_EiNd…` ; aucune erreur d'exécution Vercel depuis 09:45Z.
+  - Recette de production n° 59 (n° 45795700074) réussie : 68 parcours au premier essai, inscription comprise ; purge vérifiée.
+- **Ce que la recette n° 59 ne prouve pas** : pour son compte d'inscription, les journaux de Supabase ne montrent aucune requête tardive avec la session du lien après sa fermeture. La situation à risque ne s'est pas présentée, donc rien ne prouve encore que le correctif agit en production : la transmission de `Sec-Fetch-Mode` par Vercel reste SUPPOSÉE. Deux recettes de plus sont lancées (n° 45798190513 et n° 45798196475).
+- **Incident annexe** : depuis environ 09:29Z, Vercel montre un contrôle anti-robot (« Vercel Security Checkpoint », 403) à l'adresse de la machine de l'agent, sans doute après ses passages automatiques du matin. VÉRIFIÉ depuis une autre adresse : le public n'est pas concerné. Les contrôles de l'agent passent désormais par d'autres moyens (outil de lecture web, Vercel, Supabase).

@@ -3,7 +3,7 @@ type: concept
 tags: [identite, compte, adhesion, multi-tenant, socle]
 status: stable
 created: 2026-07-24
-updated: 2026-11-20
+updated: 2026-11-26
 sources: ["[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-architecture-lot-0]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-16-onboarding-et-invitations]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]"]
 ---
 
@@ -105,8 +105,8 @@ depuis le 15/10/2026** (décision du dirigeant du 15/10, PR #190, fusion `f93ec6
 seules invitations créées après le déploiement. Le code envoie l'invitation, puis au plus
 deux relances comptées au jour de Paris ; le renvoi manuel reste possible ; l'invitation
 expire à 30 jours ; le refus est tracé et arrête les relances (détail dans
-[[Onboarding et abonnement]], section « Ce que fait le code aujourd'hui pour l'invitation
-d'un locataire »). S'y ajoute l'objet **Consentement** (canal WhatsApp : accord daté,
+[[Souscription de l'abonnement]], section « Invitation d'un locataire : ce que fait le
+code »). S'y ajoute l'objet **Consentement** (canal WhatsApp : accord daté,
 révocable, repli email).
 
 ## Correspondance avec le code actuel

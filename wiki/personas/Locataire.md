@@ -3,7 +3,7 @@ type: persona
 tags: [role, locataire]
 status: in-progress
 created: 2026-07-21
-updated: 2026-10-16
+updated: 2026-11-26
 sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[2026-07-24-gerimmo-v3-module-9-devis-et-facturation]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]"]
 ---
 
@@ -12,7 +12,8 @@ sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "
 **En une phrase :** occupant d'un logement géré dans GERIMMO.
 
 Nom technique : rôle `locataire` (scope `organization`), `member_type = tenant`,
-portail **LOCATAIRE** (le plus restreint). Aussi `bien_occupants.occupant_type = 'locataire'`.
+portail **LOCATAIRE** (le plus restreint). Dans l'application, le locataire est une personne liée au bail par
+`bail_personnes` (table `baux`, voir [[Bail]]) ; l'ancien `bien_occupants` du V3 n'existe pas dans ce code.
 
 ## Rôle et objectifs
 - Suivre son logement, **signaler et suivre des [[Incident|incidents]]**, consulter ses
@@ -82,7 +83,7 @@ Cas tranché par le [[Compte, personne et adhésion|modèle canonique d'identit�
   ne pas perdre l'accès aux quittances au moment du solde de tout compte.
 
 ## Relations
-- Rattaché à un [[Bien]] via [[Occupation d'un bien|bien_occupants]].
+- Rattaché à un [[Bien]] et à son lot par son [[Bail]] (`bail_personnes`).
 - Visible par son [[Propriétaire bailleur|propriétaire]] et les gestionnaires de l'agence.
 - Interagit avec l'[[Artisan]] lors du choix des créneaux. Voir [[Modèle de rôles et permissions]].
 
@@ -96,7 +97,8 @@ Cas tranché par le [[Compte, personne et adhésion|modèle canonique d'identit�
 - **Relances d'invitation** (X16, PR #190, depuis le 15/10) : une personne invitée à
   rejoindre son espace locataire reçoit au plus deux rappels (J+3, J+10, jour de Paris) tant
   qu'elle n'a ni accepté ni refusé ; un refus arrête les rappels. Les invitations envoyées
-  avant le déploiement ne sont pas relancées. Détail : [[Onboarding et abonnement]].
+  avant le déploiement ne sont pas relancées. Détail : [[Souscription de l'abonnement]] (section « Invitation d'un
+  locataire : ce que fait le code »).
 - **« Mes paiements »** lit le mois suivant au jour de Paris (lot « fuseau-paris », PR #186)
   — [[Le jour de référence est le jour de Paris]].
 

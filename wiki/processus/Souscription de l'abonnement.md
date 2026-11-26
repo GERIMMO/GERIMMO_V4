@@ -138,8 +138,174 @@ n'y est pas repris). Reste le geste 6 (en-tête des factures dans Stripe et
 intitulé du compte bancaire, R7). Décisions non prises : ouverture des souscriptions (geste 4, R8) et vente aux
 particuliers sans médiateur (geste 5, R6). Les ventes restent fermées (case « Ouvrir les souscriptions » non cochée).*
 
+## Avant la souscription : ouverture de l'espace, essai et démarrage
+*Reprise de [[Onboarding et abonnement]], fusionnée ici le 26/11/2026. Ouverture, essai, parcours de démarrage, import
+du parc et relances d'invitation relus dans le code le 26/11/2026 (lecture seule).*
+
+### Ouverture de l'espace
+- **Propriétaire en gestion directe : inscription en ligne** (décision du 19/08/2026, livrée le 30/08, sprint 9a).
+  `/inscription` → Supabase Auth (compte créé par l'API d'administration, lien de confirmation envoyé par Gerimmo
+  depuis le 30/09 ; `app/src/app/actions/auth.ts`) → `initialiser_espace_proprietaire`, appelée depuis `/espaces` dès
+  qu'une session existe : il crée seul son compte et son espace (`proprietaire_direct`), démarre l'essai, puis souscrit
+  par le parcours décrit plus haut ; pas de circuit commercial.
+  Le [[Super Admin]] peut aussi créer tout profil, propriétaire direct compris (voie de secours ou de support). Détail :
+  [[Propriétaire bailleur]].
+- **Agence : ouverte par le super admin après la signature du contrat commercial** (RM-16.1.1), depuis la console
+  (livré le 11/09/2026 ; avant, il fallait un client SQL). `ouvrir_organisation` crée l'organisation, le compte de son
+  premier responsable et l'adhésion qui les relie ; l'application envoie ensuite l'invitation par le même chemin que
+  « mot de passe oublié ». Le rôle découle du type : une agence a un administrateur, un parc son propriétaire. Un compte
+  existant est **réutilisé** (le responsable gère peut-être une autre agence, ou est locataire ailleurs). L'écran
+  s'ouvre aussi depuis une demande de devis du site (« Demandes de devis », `/admin/devis`), qu'il préremplit et marque
+  traitée. Depuis le 05/11/2026, l'ouverture exige une adresse postale complète (adresse, code postal, ville) pour les
+  courriers (migration `20261105141000_coordonnees_courriers_ouverture`).
+- **Case des conditions à l'inscription** (depuis le 24/10/2026, PR #246) : propriétaire, conditions générales
+  d'utilisation et de vente ; artisan, conditions de l'espace artisan dès leur publication ; personne invitée, « J'ai
+  pris connaissance des règles d'utilisation des espaces invités » ([[Conditions générales]]).
+
+### Essai
+- **Deux mois calendaires** pour toute nouvelle inscription, sans carte, comptés au jour de Paris (`essai_ordinaire_fin`,
+  migration `20261115094646_essai_deux_mois_permanent` ; conditions du 15/11/2026, article 8.2 ; [[Grille tarifaire]]).
+  Les échéances déjà accordées sont conservées. Historique : 14 jours à l'origine ; 2 mois à partir du 30/09/2026, en
+  offre de lancement jusqu'au 31/12/2026, puis 1 mois prévu (migrations `20260930100000_essai_deux_mois` et
+  `20260930110000_offre_lancement_essai`) ; remplacé le 15/11 par 2 mois sans échéance.
+- À l'ouverture par le super admin : essai ordinaire par défaut, autre durée de 0 à 365 jours, ou espace actif
+  d'emblée ; pour un propriétaire, jamais moins que l'essai ordinaire (plancher du 15/11, migration
+  `20261115130412_cloture_audit_contrats_marketing`).
+- Fin de l'essai portée par `organizations.essai_fin`. **Aucun bien n'est offert, à personne** (règle du 28/09/2026,
+  [[2026-09-28-decision-tarification]]) : seul l'essai l'est. À son terme sans abonnement, l'espace est **fermé à
+  l'écriture** — ses données restent lisibles et exportables — jusqu'au paiement (`org_ecriture_ouverte`). Suite :
+  [[Cycle de vie de l'abonnement]].
+
+### Parcours de démarrage
+`parcours_demarrage(org)` rend **six étapes**, dans l'ordre où la base les exige : identité · premier bien · lot en état
+d'être loué · locataire · bail · premier loyer encaissé (sixième étape ajoutée le 27/09/2026). Chacune est **constatée
+sur les données**, jamais cochée à la main : un parcours qu'on coche finit par affirmer une étape que les données
+démentent.
+- « Identité » suit les champs obligatoires de « Mon profil » : nom, adresse, code postal, ville, e-mail ; pour une
+  agence, SIRET, carte professionnelle et garantie financière en plus.
+- « Lot prêt » interroge `lot_blocages_location`, la fonction qui décide déjà de la mise en location : une seule liste
+  de conditions dans le produit, et elle dit ce qui bloque (détention incomplète, DPE absent…). Chez un propriétaire,
+  le bloc rappelle qu'un bail déjà en cours s'active par son contrat signé ([[Bail]], décision du 20/11/2026).
+- « Locataire » ne compte que les adhésions de locataire actives ; « Bail », les baux actifs ou en préavis ; « Premier
+  loyer » est fait dès qu'un encaissement est enregistré, avance comprise (migration
+  `20261116083100_demarrage_encaissement` ; du 27/09 au 16/11, il fallait une quittance).
+- L'étape suivante porte le bouton, chaque autre étape non faite un lien (25/09) ; le bloc **disparaît** quand les six
+  étapes sont faites (`app/src/components/parcours-demarrage.tsx`).
+
+### Import courant du parc (16.3) — livré le 11/09/2026
+Une agence qui arrive avec cinquante lots les saisissait un par un : six écrans, cinquante fois.
+`/agence/<org>/parc/import` (`importer_parc`) reprend le parc depuis un tableur, **une ligne par lot** — le bien, son
+lot, son propriétaire et sa quote-part, le locataire en place s'il y en a un.
+- **Deux passes.** Le contrôle n'écrit rien et rend, ligne par ligne, ce qui passera ; l'import ne devient possible
+  qu'ensuite. On ne fait pas basculer un parc sur un fichier que personne n'a regardé.
+- **Le fichier du client, pas un format.** Séparateur détecté (le point-virgule d'Excel francophone comme la virgule des
+  exports), guillemets honorés, en-têtes reconnus sans accents ni casse, colonnes inconnues ignorées et non refusées. Le
+  gabarit se télécharge depuis l'écran et **se relit lui-même** (un test le vérifie).
+- **Rien n'est dupliqué** : un propriétaire nommé deux fois n'a qu'une fiche, et rejouer un fichier corrigé ne fabrique
+  pas un second parc. Depuis le 17/11/2026 (migration `20261117092314_import_parc_identite_bien`), un immeuble est
+  reconnu à son **nom et à son adresse** (rue, code postal, ville, complément) : deux lignes de même nom et de même
+  adresse vont dans le même immeuble, deux homonymes à des adresses différentes restent distincts, et un complément
+  d'adresse qui ne permet pas de trancher fait refuser la ligne.
+- **Une ligne qui tombe n'emporte pas les autres** : elle est rapportée avec le motif donné par la base, les autres
+  passent.
+
+> [!warning] Les baux arrivent en BROUILLON — et c'est la règle, pas une limite
+> Activer un bail passe par les contrôles de mise en location (`controler_mise_en_location` : diagnostics, mentions
+> obligatoires, plafond du dépôt, un seul bail en cours par lot, détention à 100 % — [[Bail]]). Un import qui
+> créerait des baux **actifs** contournerait ces contrôles en masse — exactement ce qu'ils existent pour empêcher.
+> L'import pose les montants et les dates ; ce qui manque pour activer est dit lot par lot par `lot_blocages_location`.
+
+### Reprise comptable (depuis le 18/09/2026)
+L'import ci-dessus reprend les biens, les lots et les baux — pas l'argent. Une seconde reprise prend les **soldes** :
+`/agence/[orgId]/comptabilite/reprise`, même forme que l'import du parc (gabarit, contrôle qui n'écrit rien, bascule
+ensuite).
+- **Pourquoi les tables ne servaient à rien.** `reprises_portefeuille` et `reprise_soldes` étaient nées le 03/09 avec
+  leur RLS activée, **aucune politique et aucun droit de table** ; `mouvements_mandants`, le compte mandant, était dans
+  le même cas. Les trois sont lisibles depuis le 18/09 par les gestionnaires de leur organisation ; l'écriture passe par
+  les fonctions, jamais en direct, parce que c'est le contrôle d'écart zéro qui donne son sens à la bascule.
+- **L'écart zéro.** L'agence annonce la trésorerie qu'elle reprend ; la somme des lignes qui représentent de l'argent
+  qu'elle DÉTIENT doit l'égaler. N'y entrent ni un dépôt gardé par le propriétaire, ni une dette de locataire. Tant que
+  l'écart n'est pas nul, le bouton de bascule n'existe pas.
+
+| Nature | Ce que la bascule en fait |
+|---|---|
+| Dépôt de garantie détenu par l'agence | `depot_encaissements` du bail — là où la restitution et le solde de tout compte iront le chercher |
+| Dépôt détenu par le propriétaire | Enregistré et signalé ; hors trésorerie |
+| Avance du locataire | `encaissements` à la date de bascule : le prochain appel s'impute dessus |
+| Dette du locataire | **Non écrite** — voir ci-dessous |
+| Provisions et fonds mandants | `mouvements_mandants`, ventilés par propriétaire |
+
+> [!warning] Une dette de locataire n'est pas écrite au compte
+> Elle serait un appel de loyer pour une période que Gerimmo n'a pas connue : elle polluerait l'échéancier et
+> déclencherait des quittances fausses. Elle est enregistrée dans la balance, signalée ligne à ligne, et reste à traiter
+> par le parcours de [[Relances et mise en demeure]].
+
+**Ce qui bloque** : un dépôt sans détenteur (personne ne saurait qui le rend) ; un dépôt déjà encaissé dans Gerimmo (le
+compter deux fois) ; une ligne qu'aucun bail ni aucun propriétaire ne porte ; un type inconnu. La bascule est
+**définitive** : après elle, on corrige par écritures rectificatives.
+
+> [!warning] Ce qui manque encore
+> Le **compte mandant ne vit pas encore au quotidien** : la reprise y écrit sa balance d'ouverture et l'écran de
+> comptabilité la donne à lire, mais aucun mouvement courant (encaissement de loyer, versement au propriétaire,
+> honoraires, TVA) ne l'alimente — toujours vrai au 26/11/2026 : seule la reprise écrit dans `mouvements_mandants`
+> (migration `20260918070000_reprise_comptable_utilisable`). C'est le chantier suivant du module 16.
+
+### Invitation d'un locataire : ce que fait le code (relevé du 16/10/2026, revu le 26/11/2026)
+Décision X16 : le 14/10, le dirigeant avait retenu d'amender le wiki plutôt que de livrer les relances ; le 15/10, il
+revient sur ce choix et fait livrer les relances J+3 et J+10 (journal `log.md`, entrée « decision » du 15/10, point 5).
+En production depuis le 15/10 (PR #190, fusion `f93ec6e`, migration
+`20261014830000_relances_invitations_locataires.sql`, module `app/src/lib/relances-invitations.ts`). Voir
+[[Compte, personne et adhésion]].
+- **Premier envoi.** Un e-mail part à l'envoi de l'invitation. L'**invitation** vaut **30 jours** ; le **lien** de
+  l'e-mail, à usage unique, vaut **une heure** (3 600 s, réglage du projet Supabase depuis le 16/10 au soir —
+  [[Recette de production]] ; commentaire de `lien-mot-de-passe.ts`) : passé ce délai, une relance en apporte un neuf,
+  ou le locataire passe par « Mot de passe oublié ». J+0 est le **jour de Paris** du premier envoi confirmé ; un renvoi
+  manuel ne le déplace pas.
+- **Deux relances au plus**, objet « Rappel : Votre invitation locataire Gerimmo » : le rang 1 est dû de J+3 à J+9, le
+  rang 2 de J+10 jusqu'à l'expiration (un rang 1 manqué n'est plus envoyé une fois J+10 atteint). Elles partent avec la
+  mission planifiée « rappels » (« Rendez-vous, invitations et suivi des dossiers » depuis le 24/10, programmée à
+  06 h 00 UTC), jamais hors de la plage 7 h – 21 h à Paris, au plus 50 par passe. Une même relance n'est jamais envoyée deux fois (réservée en base
+  avant l'envoi ; un envoi sans réponse du service d'e-mail est noté « incertain » et n'est pas renvoyé).
+- **Arrêt.** Les relances s'arrêtent dès l'acceptation, le refus, l'annulation ou l'expiration. Jamais de relance pour
+  une personne propriétaire ou mandante, une fiche archivée ou dont l'adresse a changé, un compte qui a déjà accès à
+  l'organisation, ni pour une organisation fermée à l'écriture (abonnement suspendu, essai échu). Jamais deux e-mails
+  d'invitation à moins de trois jours : un renvoi manuel retarde la relance, il ne relance pas le cycle.
+- **Arrêt d'urgence.** L'arrêt « global » ou la clé « rappels » bloque toute relance (lu avant chaque réservation et
+  avant chaque envoi).
+- **Limite par organisation.** La même que celle des invitations, avec le même compteur : 30 liens par heure et par
+  organisation, partagés entre relances et envois manuels ; chaque organisation passe à son tour.
+- **Invitations antérieures au déploiement : jamais relancées** (colonne `relances_prevues` à faux pour toutes les
+  invitations déjà en base le 15/10 ; vérifié en lecture seule au déploiement).
+- **Trace.** La fiche personne affiche « Relancé le … » ; chaque relance est notée au journal d'audit.
+- **Renvoi manuel** : depuis la fiche personne, « Renvoyer l'invitation » renvoie l'e-mail tant que l'invitation est en
+  attente (même limite de 30 liens par heure et par organisation) ; « Annuler l'invitation » la retire. L'écran signale
+  « L'envoi de l'e-mail reste à confirmer » quand l'envoi a échoué ou n'est pas enregistré.
+- **Expiration à 30 jours, silencieuse.** Passé le délai, la fiche affiche l'invitation comme expirée (calculé à
+  l'affichage) ; l'état enregistré ne passe à « expirée » que lorsque le locataire tente d'y répondre ou que l'agent
+  envoie une nouvelle invitation. Aucun message au locataire ni à l'agent à l'échéance ; l'agent doit renvoyer
+  lui-même (« Envoyer une nouvelle invitation »).
+- **Refus tracé.** Le refus est enregistré (état « refusée » et ligne du journal d'audit) et arrête les relances (le
+  courrier de relance le dit : « Si vous la refusez, vous ne recevrez plus de rappel »). Rien n'empêche ensuite l'agent
+  d'envoyer une nouvelle invitation.
+- **Aucun accès n'est accordé avant l'acceptation** par le locataire, connecté avec l'adresse qui a reçu l'invitation.
+
+### Cible du cahier V3 (module 16) et ancien dépôt
+- **Cible V3** ([[2026-07-24-gerimmo-v3-module-16-onboarding-et-invitations]]) : l'agence ouverte par le super admin
+  reçoit un **jeu complet de paramètres par défaut** (modèles, grilles, plan comptable, équipements, seuils) pour
+  « travailler immédiatement » ; paramétrage initial : identité, agents, **indice IRL obligatoire**, seuil de
+  délégation ; marque blanche et WhatsApp optionnels. Invitations depuis la fiche personne (module 0b) : une personne
+  sans compte **reste gérable**, le mandant n'est **jamais** invité ; à la première connexion, mot de passe et
+  conditions, puis proposition d'**enrôlement WhatsApp** (consentement daté, révocable, repli e-mail —
+  [[Canaux de communication]]). Import courant 16.3 (admin agence, dizaines de lots, ligne par ligne, sans reprise du
+  passé), avec un gabarit et des contrôles **communs** avec l'import de migration 0.12 du [[Super Admin]]. Ces points
+  de cible n'ont pas été relus dans le code le 26/11.
+- **Ancien dépôt (Gerimmo V3)** : auto-inscription `createOrganization`, essai de 14 jours, parcours en dix étapes avec
+  Telegram (`organization_onboarding_progress`), e-mail de bienvenue sur l'événement `trial.started`. Rien de cela
+  n'existe dans l'application (aucune occurrence dans `app/src` ni dans les migrations, relu le 26/11/2026).
+
 ## Relations
-[[Abonnement]] · [[Cycle de vie de l'abonnement]] · [[Onboarding et abonnement]] · [[Rétractation en ligne]] ·
+[[Abonnement]] · [[Cycle de vie de l'abonnement]] · [[Propriétaire bailleur]] · [[Super Admin]] ·
+[[Compte, personne et adhésion]] · [[Parrainage]] · [[Rétractation en ligne]] ·
 [[Résiliation de l'abonnement]] · [[Impayé de l'abonnement]] · [[Grille tarifaire]] · [[Conditions générales]] ·
 [[Registre des traitements]] · [[Médiation de la consommation]] · [[Entrepreneur individuel (EI)]] ·
 [[Recueil des textes officiels (v6)]]
@@ -177,6 +343,25 @@ particuliers sans médiateur (geste 5, R6). Les ventes restent fermées (case «
 > - **Non vérifié** : paiement réel avec Stripe (jamais exercé au banc), parcours navigateur complet de la souscription
 >   sans médiateur. *26/11* : identité saisie (R1) et version du 24/11 archivée (R2) sont vérifiées par l'agent (pages
 >   publiques, base en lecture seule).
+> - **Relances d'invitation J+3/J+10** (RM-16.6.1, fiche REP-05, décision X16) : livrées le 15/10/2026 (PR #190),
+>   **non vérifiées** en production (aucune relance partie au 19/10, [[Recette de production]]). À trancher par le
+>   dirigeant : relancer ou non les invitations déjà en attente au déploiement (choix prudent du lot : non ; journal
+>   `log.md`, entrée « deploy » de la PR #190). Choix relevés dans le code sans décision consignée : un renvoi manuel
+>   retarde la relance sans relancer le cycle ; la mission « rappels » part à 06 h 00 UTC (`app/vercel.json`), soit
+>   8 h à Paris en été et 7 h en hiver, au bord de la plage 7 h – 21 h.
+> - **Contradictions relevées à la fusion de [[Onboarding et abonnement]]** (26/11/2026), corrigées dans la section
+>   « Avant la souscription » d'après le code et les pages plus récentes : lien d'invitation valable 24 h (86 400 s)
+>   dans l'ancienne page, une heure depuis le 16/10 au soir ; essai de 2 mois jusqu'au 31/12/2026 puis 1 mois, devenu
+>   2 mois sans échéance le 15/11 ; formules « Solo à Patrimoine », remplacées le 11/11 par l'abonnement unique pour les
+>   nouvelles souscriptions ([[Grille tarifaire]]) ; « aucun avantage tarifaire lié au parrainage » (28/09), alors
+>   qu'un mois est offert au parrain depuis le 30/09 ; parcours de démarrage en cinq étapes, effacé au premier bail
+>   actif, alors qu'il en a six depuis le 27/09 et ne disparaît qu'une fois toutes faites ; état des lieux d'entrée cité
+>   parmi les contrôles d'activation, simple alerte depuis le 30/08 ([[Bail]]) ; clé d'arrêt « rappels » affichée
+>   « Rendez-vous et suivi des dossiers » sans mention des invitations, nommée « Rendez-vous, invitations et suivi des
+>   dossiers » depuis le 24/10 (`app/src/lib/missions.ts`).
+> - **Agences** : l'articulation entre essai, contrat commercial et abonnement Stripe pour une agence ouverte par le
+>   super admin restait « à clarifier (module 18 ?) » ; l'offre agences et sa grille ne sont pas publiées au 26/11
+>   ([[Grille tarifaire]]).
 
 ## Relecture avant publication du 24 octobre
 

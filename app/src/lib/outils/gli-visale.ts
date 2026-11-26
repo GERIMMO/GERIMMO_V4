@@ -5,8 +5,9 @@
 // le dit en toutes lettres.
 //
 // Le coût d'une garantie des loyers impayés (GLI) dépend du contrat de
-// l'assureur : le taux est saisi par l'utilisateur (2,7 % par défaut, simple
-// point de départ). Sa prime se déduit des revenus fonciers au régime réel :
+// l'assureur : le taux est saisi par l'utilisateur (2,7 % en exemple, affiché
+// en texte indicatif dans le champ vide). Sa prime se déduit des revenus
+// fonciers au régime réel :
 // le coût net = brut × (1 − (TMI + prélèvements sociaux)).
 
 import { arrondiCentime } from "./nombres";
@@ -48,21 +49,34 @@ export const SITUATIONS_TRENTE_PLUS: { valeur: SituationTrentePlus; libelle: str
 export type EntreeVisale = {
   zone: ZoneVisale;
   moinsDe30Ans: boolean;
-  /** Seulement si 30 ans ou plus. */
-  situation: SituationTrentePlus;
+  /** Seulement si 30 ans ou plus (`null` avant 30 ans : elle n'est pas demandée). */
+  situation: SituationTrentePlus | null;
   etudiantSansRevenus: boolean;
   loyerCc: number | null;
 };
 
 export type ResultatVisale = {
+  /**
+   * « possible » ou « exclue » : le verdict. « non-evaluable » : une donnée nécessaire manque (à 30 ans ou plus, la
+   * situation du locataire, seule à ouvrir Visale) ; il n'y a alors ni verdict ni motif, `eligible` vaut false et
+   * `manque` dit quoi renseigner.
+   */
+  statut: "possible" | "exclue" | "non-evaluable";
   eligible: boolean;
   plafond: number;
   motifs: string[];
+  /** Ce qui manque pour conclure ; vide sauf pour « non-evaluable ». */
+  manque: string[];
 };
 
 export function evaluerVisale(e: EntreeVisale): ResultatVisale {
   const p = PLAFONDS_VISALE_2026[e.zone];
   const plafond = e.etudiantSansRevenus ? p.etudiantSansRevenus : p.general;
+  // À 30 ans ou plus, Visale n'est ouverte que pour certaines situations : sans situation, rien ne permet de conclure.
+  // Avant, l'absence de motif d'exclusion donnait « éligible » sans que la situation ait été dite.
+  if (!e.moinsDe30Ans && e.situation == null) {
+    return { statut: "non-evaluable", eligible: false, plafond, motifs: [], manque: ["la situation du locataire"] };
+  }
   const motifs: string[] = [];
   if (!e.moinsDe30Ans && e.situation === "autre") {
     motifs.push(
@@ -76,7 +90,8 @@ export function evaluerVisale(e: EntreeVisale): ResultatVisale {
       }).`
     );
   }
-  return { eligible: motifs.length === 0, plafond, motifs };
+  const eligible = motifs.length === 0;
+  return { statut: eligible ? "possible" : "exclue", eligible, plafond, motifs, manque: [] };
 }
 
 /** Ce que couvre Visale (Action Logement, vérifié le 29/09/2026). */
@@ -87,7 +102,11 @@ export const COUVERTURE_VISALE = [
   "Pas de cumul avec une assurance loyers impayés (GLI) ni avec une caution personne physique.",
 ];
 
-export const TAUX_GLI_PAR_DEFAUT = 0.027;
+/**
+ * L'exemple de taux de prime, montré en texte indicatif dans le champ vide : il n'est plus posé d'office (décision du
+ * 25/11/2026, Q123). L'utilisateur saisit celui de son contrat.
+ */
+export const TAUX_GLI_EXEMPLE = 0.027;
 export const PRELEVEMENTS_SOCIAUX = 0.172;
 
 export type EntreeGli = {

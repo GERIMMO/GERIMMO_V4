@@ -46,8 +46,11 @@ beforeEach(() => {
   };
 });
 
-/** La date de /confidentialite et l'empreinte de son texte rendu, relevées ensemble (défaut d'écran E056). */
-const DATE_ET_EMPREINTE_CONFIDENTIALITE = { date: "24 novembre 2026", empreinte: "ec55401dadb37713af92f251480491a2fb9485ba72ccb7fdee3d8a05f5158554" };
+/**
+ * La date de /confidentialite et l'empreinte de son texte rendu, relevées ensemble (défaut d'écran E056).
+ * 26/11/2026 : relevées de nouveau ensemble après l'espace rétablie dans « 24 mois après » (E057 = E170, règle Q99).
+ */
+const DATE_ET_EMPREINTE_CONFIDENTIALITE = { date: "26 novembre 2026", empreinte: "7754661c3eb09532436591be4ce2c2bac35827eed415adef310488e6c3efce97" };
 
 async function confidentialite() {
   return texte(renderToStaticMarkup(await Confidentialite()));
@@ -156,6 +159,14 @@ describe("/confidentialite (lot 4)", () => {
     expect(page).toContain("Pour OpenAI et GitHub, le transfert repose sur les clauses contractuelles types de la Commission européenne, intégrées à leurs accords de traitement des données.");
     expect(page).not.toMatch(/OpenAI[^.]{0,60}certifi|n'avons pas vérifié/);
     expect(page).not.toContain("Data Privacy Framework UE–États-Unis, selon le prestataire");
+  });
+
+  // Défauts d'écran E057 = E170 : la durée des demandes de contact, insérée par une expression JSX en fin de ligne,
+  // se collait au mot suivant (« 24 moisaprès leur dernier traitement »).
+  it("formulaire de contact : la durée de conservation est séparée du mot qui la suit (E057 = E170)", async () => {
+    const page = await confidentialite();
+    expect(page).toContain("Les demandes sont conservées 24 mois après leur dernier traitement, ou après leur dépôt");
+    expect(page).not.toMatch(/mois(?:après|aprés)/);
   });
 
   it("violation de données : « dans les meilleurs délais », sans engagement de 48 heures", async () => {

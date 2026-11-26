@@ -15,6 +15,7 @@ import {
 } from "@/components/outils/resultats";
 import { EXEMPLE_RENTABILITE, calculerRentabilite, type Credit } from "@/lib/outils/rentabilite";
 import { formaterEuros, formaterNombre, formaterPourcent, lireNombre } from "@/lib/outils/nombres";
+import { enumerer, nombresManquants } from "@/lib/outils/saisie";
 
 const MODES_CREDIT: { valeur: Credit["mode"]; libelle: string }[] = [
   { valeur: "aucun", libelle: "Pas de crédit" },
@@ -25,58 +26,105 @@ const MODES_CREDIT: { valeur: Credit["mode"]; libelle: string }[] = [
 /** L'échelle des barres de rentabilité : 10 %, ou plus si la brute dépasse. */
 const ECHELLE_MIN = 0.1;
 
+/** L'exemple d'un champ, en texte indicatif : « Ex. 150 000 ». */
+const ex = (n: number) => `Ex. ${formaterNombre(n)}`;
+
+/**
+ * Ce qui manque au crédit à calculer. Un crédit choisi ne se calcule pas sur un montant ou une durée nuls : la mensualité
+ * n'existait pas, et le résultat s'affichait « Sans crédit », alors que l'utilisateur avait choisi d'emprunter. Mêmes
+ * bornes que `mensualiteCredit` : montant positif, au moins un mois, taux positif ou nul.
+ */
+function manquesCredit(montant: string, taux: string, duree: string): string[] {
+  const m = lireNombre(montant);
+  const t = lireNombre(taux);
+  const d = lireNombre(duree);
+  return [
+    ...(m == null ? ["le montant emprunté"] : m > 0 ? [] : ["un montant emprunté supérieur à 0"]),
+    ...(t == null ? ["le taux annuel"] : t >= 0 ? [] : ["un taux annuel positif ou nul"]),
+    ...(d == null ? ["la durée du crédit"] : Math.round(d * 12) > 0 ? [] : ["une durée du crédit d'au moins un mois"]),
+  ];
+}
+
+/** Même règle pour une mensualité saisie : nulle, elle donnait aussi « Sans crédit ». */
+function manquesMensualite(mensualite: string): string[] {
+  const m = lireNombre(mensualite);
+  return m == null ? ["la mensualité"] : m > 0 ? [] : ["une mensualité supérieure à 0"];
+}
+
 export function CalculateurRentabilite() {
+  // Décision du dirigeant du 25/11/2026 pour l'outil IRL (Q100), appliquée ici (Q123) : AUCUN champ ne démarre avec une
+  // valeur. L'exemple (prix de 150 000 €, loyer de 750 €, crédit de 160 000 € à 3,5 % sur 20 ans…) était posé dans les
+  // champs, et les rentabilités s'affichaient sans rien saisir. Il n'est plus qu'un texte indicatif ; le résultat attend
+  // chaque champ (0 pour un montant nul) et le choix du financement, et un message dit ce qui manque.
   const e = EXEMPLE_RENTABILITE;
   const c = e.credit.mode === "calcul" ? e.credit : { montant: 0, tauxAnnuel: 0, dureeAnnees: 0 };
-  const t = (n: number) => formaterNombre(n);
-  const [prix, setPrix] = useState(t(e.prix));
-  const [frais, setFrais] = useState(t(e.frais));
-  const [travaux, setTravaux] = useState(t(e.travaux));
-  const [loyer, setLoyer] = useState(t(e.loyerMensuel));
-  const [charges, setCharges] = useState(t(e.chargesNonRecuperables));
-  const [taxe, setTaxe] = useState(t(e.taxeFonciere));
-  const [pno, setPno] = useState(t(e.assurancePno));
-  const [gestion, setGestion] = useState(t(e.fraisGestion));
-  const [vacance, setVacance] = useState(t(e.vacanceMois));
-  const [modeCredit, setModeCredit] = useState<Credit["mode"]>(e.credit.mode);
-  const [montant, setMontant] = useState(t(c.montant));
-  const [taux, setTaux] = useState(t(c.tauxAnnuel * 100));
-  const [duree, setDuree] = useState(t(c.dureeAnnees));
+  const [prix, setPrix] = useState("");
+  const [frais, setFrais] = useState("");
+  const [travaux, setTravaux] = useState("");
+  const [loyer, setLoyer] = useState("");
+  const [charges, setCharges] = useState("");
+  const [taxe, setTaxe] = useState("");
+  const [pno, setPno] = useState("");
+  const [gestion, setGestion] = useState("");
+  const [vacance, setVacance] = useState("");
+  const [modeCredit, setModeCredit] = useState<Credit["mode"] | null>(null);
+  const [montant, setMontant] = useState("");
+  const [taux, setTaux] = useState("");
+  const [duree, setDuree] = useState("");
   const [mensualite, setMensualite] = useState("");
+
+  const manques = [
+    ...nombresManquants([
+      [prix, "le prix d'achat"],
+      [frais, "les frais d'acquisition"],
+      [travaux, "les travaux"],
+      [loyer, "le loyer mensuel"],
+      [vacance, "la vacance locative"],
+      [charges, "les charges non récupérables"],
+      [taxe, "la taxe foncière"],
+      [pno, "l'assurance propriétaire non occupant"],
+      [gestion, "les frais de gestion"],
+    ]),
+    ...(modeCredit ? [] : ["le financement"]),
+    ...(modeCredit === "calcul" ? manquesCredit(montant, taux, duree) : []),
+    ...(modeCredit === "mensualite" ? manquesMensualite(mensualite) : []),
+  ];
 
   const n = (s: string) => lireNombre(s) ?? 0;
   const credit: Credit =
-    modeCredit === "aucun"
-      ? { mode: "aucun" }
-      : modeCredit === "mensualite"
-        ? { mode: "mensualite", mensualite: n(mensualite) }
-        : { mode: "calcul", montant: n(montant), tauxAnnuel: n(taux) / 100, dureeAnnees: n(duree) };
-  const r = calculerRentabilite({
-    prix: n(prix),
-    frais: n(frais),
-    travaux: n(travaux),
-    loyerMensuel: n(loyer),
-    chargesNonRecuperables: n(charges),
-    taxeFonciere: n(taxe),
-    assurancePno: n(pno),
-    fraisGestion: n(gestion),
-    vacanceMois: n(vacance),
-    credit,
-  });
-  const echelle = Math.max(ECHELLE_MIN, r.rentabiliteBrute ?? 0);
+    modeCredit === "mensualite"
+      ? { mode: "mensualite", mensualite: n(mensualite) }
+      : modeCredit === "calcul"
+        ? { mode: "calcul", montant: n(montant), tauxAnnuel: n(taux) / 100, dureeAnnees: n(duree) }
+        : { mode: "aucun" };
+  const r =
+    manques.length === 0
+      ? calculerRentabilite({
+          prix: n(prix),
+          frais: n(frais),
+          travaux: n(travaux),
+          loyerMensuel: n(loyer),
+          chargesNonRecuperables: n(charges),
+          taxeFonciere: n(taxe),
+          assurancePno: n(pno),
+          fraisGestion: n(gestion),
+          vacanceMois: n(vacance),
+          credit,
+        })
+      : null;
 
   const saisie = (
     <CarteSaisie id="rt-saisie" titre="L'investissement">
-      <Groupe legende="L'achat">
+      <Groupe legende="L'achat" description="Saisissez 0 s'il n'y a ni frais ni travaux.">
         <div className="grid gap-4 sm:grid-cols-3">
-          <Champ id="rt-prix" libelle="Prix d'achat" valeur={prix} onChange={setPrix} suffixe="€" decimal />
-          <Champ id="rt-frais" libelle="Frais d'acquisition" valeur={frais} onChange={setFrais} suffixe="€" decimal />
-          <Champ id="rt-travaux" libelle="Travaux" valeur={travaux} onChange={setTravaux} suffixe="€" decimal />
+          <Champ id="rt-prix" libelle="Prix d'achat" valeur={prix} onChange={setPrix} suffixe="€" decimal placeholder={ex(e.prix)} />
+          <Champ id="rt-frais" libelle="Frais d'acquisition" valeur={frais} onChange={setFrais} suffixe="€" decimal placeholder={ex(e.frais)} />
+          <Champ id="rt-travaux" libelle="Travaux" valeur={travaux} onChange={setTravaux} suffixe="€" decimal placeholder={ex(e.travaux)} />
         </div>
       </Groupe>
-      <Groupe legende="Le loyer et les charges" description="Montants annuels, sauf le loyer.">
+      <Groupe legende="Le loyer et les charges" description="Montants annuels, sauf le loyer ; 0 pour une charge que vous n'avez pas.">
         <div className="grid gap-4 sm:grid-cols-2">
-          <Champ id="rt-loyer" libelle="Loyer mensuel hors charges" valeur={loyer} onChange={setLoyer} suffixe="€" decimal />
+          <Champ id="rt-loyer" libelle="Loyer mensuel hors charges" valeur={loyer} onChange={setLoyer} suffixe="€" decimal placeholder={ex(e.loyerMensuel)} />
           <Champ
             id="rt-vacance"
             libelle="Vacance locative"
@@ -84,18 +132,35 @@ export function CalculateurRentabilite() {
             onChange={setVacance}
             suffixe="mois"
             decimal
+            placeholder={ex(e.vacanceMois)}
             aide="En mois de loyer perdus par an."
           />
-          <Champ id="rt-charges" libelle="Charges non récupérables" valeur={charges} onChange={setCharges} suffixe="€" decimal />
-          <Champ id="rt-taxe" libelle="Taxe foncière" valeur={taxe} onChange={setTaxe} suffixe="€" decimal />
-          <Champ id="rt-pno" libelle="Assurance propriétaire non occupant" valeur={pno} onChange={setPno} suffixe="€" decimal />
-          <Champ id="rt-gestion" libelle="Frais de gestion" valeur={gestion} onChange={setGestion} suffixe="€" decimal />
+          <Champ
+            id="rt-charges"
+            libelle="Charges non récupérables"
+            valeur={charges}
+            onChange={setCharges}
+            suffixe="€"
+            decimal
+            placeholder={ex(e.chargesNonRecuperables)}
+          />
+          <Champ id="rt-taxe" libelle="Taxe foncière" valeur={taxe} onChange={setTaxe} suffixe="€" decimal placeholder={ex(e.taxeFonciere)} />
+          <Champ
+            id="rt-pno"
+            libelle="Assurance propriétaire non occupant"
+            valeur={pno}
+            onChange={setPno}
+            suffixe="€"
+            decimal
+            placeholder={ex(e.assurancePno)}
+          />
+          <Champ id="rt-gestion" libelle="Frais de gestion" valeur={gestion} onChange={setGestion} suffixe="€" decimal placeholder={ex(e.fraisGestion)} />
         </div>
       </Groupe>
-      <Groupe legende="Le crédit (facultatif)">
+      <Groupe legende="Le financement" description="Sans emprunt, choisissez « Pas de crédit ».">
         <Segments
           nom="rt-credit"
-          libelle="Financement"
+          libelle="Mode de financement"
           valeur={modeCredit}
           onChange={setModeCredit}
           options={MODES_CREDIT}
@@ -103,9 +168,9 @@ export function CalculateurRentabilite() {
         />
         {modeCredit === "calcul" && (
           <div className="grid gap-4 sm:grid-cols-3">
-            <Champ id="rt-montant" libelle="Montant emprunté" valeur={montant} onChange={setMontant} suffixe="€" decimal />
-            <Champ id="rt-taux" libelle="Taux annuel" valeur={taux} onChange={setTaux} suffixe="%" decimal />
-            <Champ id="rt-duree" libelle="Durée" valeur={duree} onChange={setDuree} suffixe="ans" decimal />
+            <Champ id="rt-montant" libelle="Montant emprunté" valeur={montant} onChange={setMontant} suffixe="€" decimal placeholder={ex(c.montant)} />
+            <Champ id="rt-taux" libelle="Taux annuel" valeur={taux} onChange={setTaux} suffixe="%" decimal placeholder={ex(c.tauxAnnuel * 100)} />
+            <Champ id="rt-duree" libelle="Durée" valeur={duree} onChange={setDuree} suffixe="ans" decimal placeholder={ex(c.dureeAnnees)} />
           </div>
         )}
         {modeCredit === "mensualite" && (
@@ -114,6 +179,30 @@ export function CalculateurRentabilite() {
       </Groupe>
     </CarteSaisie>
   );
+
+  if (!r) {
+    return (
+      <DispositionOutil
+        saisie={saisie}
+        resultat={
+          <PanneauResultat
+            id="rt-resultat"
+            pastille={
+              <Pastille ton="neutre" testId="rt-etat">
+                À compléter
+              </Pastille>
+            }
+          >
+            <p data-testid="rt-manque" className="rounded-[var(--rayon-bouton)] bg-[var(--filet-leger)] px-4 py-5 text-[14px] text-[var(--texte-secondaire)]">
+              Renseignez {enumerer(manques)}.
+            </p>
+          </PanneauResultat>
+        }
+      />
+    );
+  }
+
+  const echelle = Math.max(ECHELLE_MIN, r.rentabiliteBrute ?? 0);
 
   const resultat = (
     <PanneauResultat

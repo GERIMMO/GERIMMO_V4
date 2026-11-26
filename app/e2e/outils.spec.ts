@@ -24,13 +24,34 @@ function surveillerConsole(page: Page): string[] {
 }
 
 /**
- * La page de la quittance est prête à recevoir une saisie quand elle a posé la date du jour (elle le fait à son
- * montage, dans le navigateur). Saisir avant, c'est écrire dans un champ que la page remet aussitôt à sa valeur
- * de départ : le parcours échouait alors environ une fois sur cinq, avec « 850 » revenu à la place de la saisie
- * (constat du 22/11/2026, reproduit à l'identique sur la version précédente).
+ * Saisit le mois de la quittance une fois la page hydratée. Avant l'hydratation, une saisie n'atteint pas l'état de la
+ * page et se perd (constat du 22/11/2026 : « 850 » revenait à la place de la saisie, environ une fois sur cinq). La
+ * page ne pose plus de date au montage (Q123) : la preuve qu'elle a pris la main est « Mois suivant », qui ne s'active
+ * qu'avec un mois saisi. On refait la saisie jusque-là.
  */
-async function quittancePrete(page: Page) {
-  await expect(page.getByLabel("Mois", { exact: true })).not.toHaveValue("");
+async function quittancePrete(page: Page, mois = "2026-09") {
+  const champ = page.getByLabel("Mois", { exact: true });
+  const suivant = page.getByRole("button", { name: "Mois suivant" });
+  await expect(async () => {
+    await champ.fill(mois);
+    await expect(suivant).toBeEnabled({ timeout: 1_000 });
+  }).toPass();
+}
+
+/**
+ * Même précaution pour les autres outils (Q123 : ils s'ouvrent vides) : la première saisie est refaite jusqu'à ce que
+ * le message de ce qui manque ne cite plus ce champ.
+ */
+async function premiereSaisie(page: Page, libelle: string, valeur: string, manque: string, cite: string) {
+  const champ = page.getByLabel(libelle, { exact: true });
+  await expect(async () => {
+    await champ.fill(valeur);
+    await expect(page.getByTestId(manque)).not.toContainText(cite, { timeout: 1_000 });
+  }).toPass();
+}
+
+async function remplir(page: Page, champs: [libelle: string, valeur: string][]) {
+  for (const [libelle, valeur] of champs) await page.getByLabel(libelle, { exact: true }).fill(valeur);
 }
 
 async function verifierPage(page: Page, erreurs: string[]) {
@@ -156,45 +177,107 @@ test("calcul IRL : rien de prérempli, 850 € × 148,37 ÷ 146,68 = 859,79 €,
   await expect(page.locator("#lettre")).toHaveCount(0);
 });
 
-test("quittance : 850 + 120, reçu 500 → reçu de paiement partiel, reste dû 470,00 €", async ({ page }) => {
+const MENTIONS_QUITTANCE: [string, string][] = [
+  ["Nom du bailleur", "Durand Paul"],
+  ["Adresse du bailleur", "3 rue Fictive, 75011 Paris"],
+  ["Nom du locataire", "Martin Claire"],
+  ["Adresse du logement loué", "8 avenue Exemple, 69003 Lyon"],
+];
+const MANQUE_MENTIONS =
+  "le mode de paiement, le nom du bailleur, l'adresse du bailleur, le nom du locataire et l'adresse du logement loué.";
+
+test("quittance : rien de prérempli ; 850 + 120, reçu 500 → reçu de paiement partiel, reste dû 470,00 € ; impression complète seulement", async ({ page }) => {
   const erreurs = surveillerConsole(page);
   await page.goto("/outils/quittance-de-loyer");
+  // Q123 (règle de l'outil IRL, Q100) : ce test lisait 850 + 120 = 970 € et une quittance prête dès l'ouverture. Aucun
+  // champ n'est plus prérempli (ni montants, ni mois, ni date du jour, ni mode) : rien n'est produit, rien ne s'imprime.
+  for (const libelle of ["Mois", "Date du paiement", "Loyer hors charges", "Provision pour charges", "Montant reçu", "Nom du bailleur"]) {
+    await expect(page.getByLabel(libelle, { exact: true }), libelle).toHaveValue("");
+  }
+  await expect(page.getByLabel("Loyer hors charges")).toHaveAttribute("placeholder", "Ex. 850");
+  await expect(page.getByRole("group", { name: "Mode de paiement" }).getByRole("radio", { checked: true })).toHaveCount(0);
+  await expect(page.getByTestId("q-etat")).toHaveText("À compléter");
+  await expect(page.getByTestId("q-total")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Imprimer (la quittance|le reçu)/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Mois suivant" })).toBeDisabled();
+
   await quittancePrete(page);
+  await remplir(page, [["Date du paiement", "2026-09-03"], ["Loyer hors charges", "850"], ["Provision pour charges", "120"]]);
+  // Le montant reçu ne suit plus le total : il se saisit, ou se recopie à la demande.
+  await expect(page.getByLabel("Montant reçu")).toHaveValue("");
+  await page.getByRole("button", { name: /Reprendre le total du terme/ }).click();
+  await expect(page.getByLabel("Montant reçu")).toHaveValue("970");
   await expect(page.getByTestId("q-total")).toHaveText(/970,00\s€/);
   await expect(page.getByTestId("q-type")).toHaveText("Quittance de loyer");
-  await expect(page.getByLabel("Montant reçu")).toHaveValue("970");
+  // Le document est prêt, mais incomplet : l'impression reste impossible, le message dit quoi saisir, et l'impression
+  // par le navigateur ne sort pas le document.
+  const imprimer = page.getByRole("button", { name: "Imprimer la quittance" });
+  await expect(imprimer).toBeDisabled();
+  await expect(page.getByTestId("q-impression-manque")).toHaveText(`Pour imprimer la quittance, renseignez ${MANQUE_MENTIONS}`);
+  await page.emulateMedia({ media: "print" });
+  await expect(page.locator("#quittance")).toBeHidden();
+  await page.emulateMedia({ media: "screen" });
+
   await page.getByLabel("Montant reçu").fill("500");
   await expect(page.getByTestId("q-type")).toHaveText("Reçu de paiement partiel");
   await expect(page.getByTestId("q-reste")).toHaveText(/470,00\s€/);
   await expect(page.locator("#quittance")).toContainText("ne vaut pas quittance");
-  const mois = page.getByLabel("Mois", { exact: true });
-  const avant = await mois.inputValue();
-  await page.getByRole("button", { name: "Mois suivant" }).click();
-  await expect(mois).not.toHaveValue(avant);
+  await expect(page.getByTestId("q-impression-manque")).toHaveText(`Pour imprimer le reçu, renseignez ${MANQUE_MENTIONS}`);
+  await page.getByRole("group", { name: "Mode de paiement" }).getByRole("radio", { name: "Virement" }).check();
+  await remplir(page, MENTIONS_QUITTANCE);
+  await expect(page.getByRole("button", { name: "Imprimer le reçu" })).toBeEnabled();
+  await expect(page.getByTestId("q-impression-manque")).toHaveCount(0);
   await verifierPage(page, erreurs);
+  // À l'impression, seul le document part sur papier.
+  await page.emulateMedia({ media: "print" });
+  await expect(page.locator("#quittance")).toBeVisible();
+  await expect(page.getByLabel("Montant reçu")).toBeHidden();
+  await page.emulateMedia({ media: "screen" });
+
+  // Le mois suivant part du mois saisi ; le paiement du nouveau terme reste à saisir (plus de date du jour).
+  const mois = page.getByLabel("Mois", { exact: true });
+  await page.getByRole("button", { name: "Mois suivant" }).click();
+  await expect(mois).toHaveValue("2026-10");
+  await expect(page.getByLabel("Date du paiement")).toHaveValue("");
+  await expect(page.getByLabel("Montant reçu")).toHaveValue("");
+  await expect(page.getByRole("button", { name: /Imprimer (la quittance|le reçu)/ })).toHaveCount(0);
+
   // Retenu sur l'appareil seulement si la case est cochée.
   const bailleur = page.getByLabel("Nom du bailleur");
   const retenir = page.getByLabel(/Retenir le bailleur/);
-  await bailleur.fill("Mme Durand");
   await page.reload();
   await expect(bailleur).toHaveValue("");
+  await quittancePrete(page);
   await bailleur.fill("Mme Durand");
   await retenir.check();
   await page.reload();
   await expect(bailleur).toHaveValue("Mme Durand");
   await expect(retenir).toBeChecked();
+  // Ce qui est retenu revient ; le mois et la date ne sont pas posés à la place de l'utilisateur.
+  await expect(mois).toHaveValue("");
   expect(await page.evaluate(() => localStorage.getItem("gerimmo_quittance"))).toContain("Mme Durand");
   await retenir.uncheck();
   await expect.poll(() => page.evaluate(() => localStorage.getItem("gerimmo_quittance"))).toBeNull();
-  // À l'impression, seule la quittance part sur papier.
-  await page.emulateMedia({ media: "print" });
-  await expect(page.locator("#quittance")).toBeVisible();
-  await expect(page.getByLabel("Montant reçu")).toBeHidden();
 });
 
-test("comparateur : GLI 314,28 € brut, 165,94 € net ; 30 ans et plus « Autre » → Visale exclue", async ({ page }) => {
+test("comparateur : rien de prérempli ; GLI 314,28 € brut, 165,94 € net ; 30 ans et plus « Autre » → Visale exclue", async ({ page }) => {
   const erreurs = surveillerConsole(page);
   await page.goto("/outils/comparateur-gli-visale");
+  // Q123 : ce test lisait le résultat de l'exemple prérempli (970 €, 2,7 %, 30 %). Tout part vide ; l'exemple se saisit.
+  const loyer = page.getByLabel("Loyer mensuel charges comprises");
+  await expect(loyer).toHaveValue("");
+  await expect(loyer).toHaveAttribute("placeholder", "Ex. 970");
+  await expect(page.getByLabel("Taux de la prime")).toHaveValue("");
+  await expect(page.getByLabel("Situation du logement")).toHaveValue("");
+  await expect(page.locator("main").getByRole("radio", { checked: true })).toHaveCount(0);
+  await expect(page.getByTestId("cmp-etat")).toHaveText("À compléter");
+  await expect(page.getByTestId("cmp-visale-verdict")).toHaveCount(0);
+  await expect(page.getByTestId("cmp-gli-brut")).toHaveCount(0);
+  await premiereSaisie(page, "Loyer mensuel charges comprises", "970", "cmp-gli-manque", "le loyer");
+  await page.getByLabel("Situation du logement").selectOption("reste");
+  await page.getByRole("radio", { name: "Moins de 30 ans" }).check();
+  await page.getByLabel("Taux de la prime").fill("2,7");
+  await page.getByRole("group", { name: "Tranche marginale d'imposition" }).getByRole("radio", { name: /^30\s%$/ }).check();
   await expect(page.getByTestId("cmp-gli-brut")).toHaveText(/314,28\s€/);
   await expect(page.getByTestId("cmp-gli-net")).toHaveText(/165,94\s€/);
   await expect(page.getByTestId("cmp-visale-verdict")).toHaveText("Visale est possible");
@@ -205,9 +288,28 @@ test("comparateur : GLI 314,28 € brut, 165,94 € net ; 30 ans et plus « Autr
   await verifierPage(page, erreurs);
 });
 
-test("LMNP : réel 0,00 €, micro 2 265,60 €, amortissement reporté 554,29 €", async ({ page }) => {
+test("LMNP : rien de prérempli ; réel 0,00 €, micro 2 265,60 €, amortissement reporté 554,29 €", async ({ page }) => {
   const erreurs = surveillerConsole(page);
   await page.goto("/outils/simulateur-lmnp");
+  // Q123 : ce test lisait le résultat des valeurs de départ (DEFAUTS_LMNP). Tout part vide ; l'exemple se saisit.
+  await expect(page.getByLabel("Loyers encaissés (recettes)")).toHaveValue("");
+  await expect(page.getByLabel("Prix d'achat")).toHaveValue("");
+  await expect(page.locator("main").getByRole("radio", { checked: true })).toHaveCount(0);
+  await expect(page.getByTestId("lmnp-etat")).toHaveText("À compléter");
+  await expect(page.getByTestId("lmnp-impot-reel")).toHaveCount(0);
+  await premiereSaisie(page, "Loyers encaissés (recettes)", "9600", "lmnp-manque", "les loyers encaissés");
+  await remplir(page, [
+    ["Charges déductibles", "3800"],
+    ["Prix d'achat", "160000"],
+    ["Frais d'acquisition", "14000"],
+    ["Part du terrain", "20"],
+    ["Durée du bâti", "30"],
+    ["Mobilier", "5000"],
+    ["Durée du mobilier", "7"],
+    ["Travaux", "10000"],
+    ["Durée des travaux", "10"],
+  ]);
+  await page.getByRole("group", { name: "Tranche marginale d'imposition" }).getByRole("radio", { name: /^30\s%$/ }).check();
   await expect(page.getByTestId("lmnp-impot-reel")).toHaveText(/^0,00\s€$/);
   await expect(page.getByTestId("lmnp-impot-micro")).toHaveText(/2\s265,60\s€/);
   await expect(page.getByTestId("lmnp-economie")).toHaveText(/2\s265,60\s€/);
@@ -216,9 +318,28 @@ test("LMNP : réel 0,00 €, micro 2 265,60 €, amortissement reporté 554,29 �
   await verifierPage(page, erreurs);
 });
 
-test("rentabilité : brute 5,29 %, nette 4,08 %, cash-flow −350,44 €", async ({ page }) => {
+test("rentabilité : rien de prérempli ; brute 5,29 %, nette 4,08 %, cash-flow −350,44 €", async ({ page }) => {
   const erreurs = surveillerConsole(page);
   await page.goto("/outils/rentabilite-locative");
+  // Q123 : ce test lisait le résultat de l'exemple prérempli (EXEMPLE_RENTABILITE). Tout part vide ; l'exemple se saisit.
+  await expect(page.getByLabel("Prix d'achat")).toHaveValue("");
+  await expect(page.getByLabel("Loyer mensuel hors charges")).toHaveValue("");
+  await expect(page.locator("main").getByRole("radio", { checked: true })).toHaveCount(0);
+  await expect(page.getByTestId("rt-etat")).toHaveText("À compléter");
+  await expect(page.getByTestId("rt-brute")).toHaveCount(0);
+  await premiereSaisie(page, "Prix d'achat", "150000", "rt-manque", "le prix d'achat");
+  await remplir(page, [
+    ["Frais d'acquisition", "11000"],
+    ["Travaux", "9000"],
+    ["Loyer mensuel hors charges", "750"],
+    ["Vacance locative", "1"],
+    ["Charges non récupérables", "400"],
+    ["Taxe foncière", "800"],
+    ["Assurance propriétaire non occupant", "120"],
+    ["Frais de gestion", "0"],
+  ]);
+  await page.getByRole("radio", { name: "Calculer la mensualité" }).check();
+  await remplir(page, [["Montant emprunté", "160000"], ["Taux annuel", "3,5"], ["Durée", "20"]]);
   await expect(page.getByTestId("rt-brute")).toHaveText(/5,29\s%/);
   await expect(page.getByTestId("rt-nette")).toHaveText(/4,08\s%/);
   await expect(page.getByTestId("rt-cashflow")).toHaveText(/-350,44\s€/);
@@ -228,6 +349,8 @@ test("rentabilité : brute 5,29 %, nette 4,08 %, cash-flow −350,44 €", async
 test("quittance publique : aucun document sans paiement valide, excédent hors du terme", async ({ page }) => {
   await page.goto("/outils/quittance-de-loyer");
   await quittancePrete(page);
+  // Q123 : la date du paiement et les charges ne sont plus posées d'office.
+  await remplir(page, [["Date du paiement", "2026-09-03"], ["Provision pour charges", "120"]]);
   const recu = page.getByLabel("Montant reçu");
   const loyer = page.getByLabel("Loyer hors charges");
   const document = page.locator("#quittance");
@@ -243,6 +366,10 @@ test("quittance publique : aucun document sans paiement valide, excédent hors d
   await expect(document).toContainText(/somme de 970,00\s*€/);
   await expect(document).toContainText(/versement total est de 1\s200,00\s*€/);
   await expect(document).toContainText(/excédent de 230,00\s*€ ne fait pas partie du terme/);
+  // Complet, il s'imprime.
+  await page.getByRole("group", { name: "Mode de paiement" }).getByRole("radio", { name: "Virement" }).check();
+  await remplir(page, MENTIONS_QUITTANCE);
+  await expect(page.getByRole("button", { name: "Imprimer la quittance" })).toBeEnabled();
   await page.emulateMedia({ media: "print" });
   await expect(document).toBeVisible();
 });

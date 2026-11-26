@@ -5,8 +5,9 @@
 // le dit en toutes lettres.
 //
 // Le coût d'une garantie des loyers impayés (GLI) dépend du contrat de
-// l'assureur : le taux est saisi par l'utilisateur (2,7 % par défaut, simple
-// point de départ). Sa prime se déduit des revenus fonciers au régime réel :
+// l'assureur : le taux est saisi par l'utilisateur (2,7 % en exemple, affiché
+// en texte indicatif dans le champ vide). Sa prime se déduit des revenus
+// fonciers au régime réel :
 // le coût net = brut × (1 − (TMI + prélèvements sociaux)).
 
 import { arrondiCentime } from "./nombres";
@@ -48,8 +49,8 @@ export const SITUATIONS_TRENTE_PLUS: { valeur: SituationTrentePlus; libelle: str
 export type EntreeVisale = {
   zone: ZoneVisale;
   moinsDe30Ans: boolean;
-  /** Seulement si 30 ans ou plus. */
-  situation: SituationTrentePlus;
+  /** Seulement si 30 ans ou plus (`null` avant 30 ans : elle n'est pas demandée). */
+  situation: SituationTrentePlus | null;
   etudiantSansRevenus: boolean;
   loyerCc: number | null;
 };
@@ -87,7 +88,11 @@ export const COUVERTURE_VISALE = [
   "Pas de cumul avec une assurance loyers impayés (GLI) ni avec une caution personne physique.",
 ];
 
-export const TAUX_GLI_PAR_DEFAUT = 0.027;
+/**
+ * L'exemple de taux de prime, montré en texte indicatif dans le champ vide : il n'est plus posé d'office (décision du
+ * 25/11/2026, Q123). L'utilisateur saisit celui de son contrat.
+ */
+export const TAUX_GLI_EXEMPLE = 0.027;
 export const PRELEVEMENTS_SOCIAUX = 0.172;
 
 export type EntreeGli = {

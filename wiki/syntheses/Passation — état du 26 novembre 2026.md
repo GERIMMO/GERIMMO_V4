@@ -325,6 +325,11 @@ VÉRIFIÉ le 26/11 : elle part de `cce58ab8` (#286, 11/11) ; aucun de ses 8 comm
 ni à l'identique (`git cherry`). Une reprise partielle de son contenu par une autre PR n'est pas exclue : À VÉRIFIER.
 Ne pas la supprimer sans cette vérification et l'accord du dirigeant.
 
+> [!info] Mise à jour du 26/11 vers 22 h Z
+> Le dirigeant a demandé directement à l'agent principal de publier le lot 1 depuis sa session (« Oui, publie le lot 1
+> ici »). PR [#361](https://github.com/GERIMMO/GERIMMO_V4/pull/361) ouverte depuis `claude/lot1-integration` ; la
+> publication est suivie dans `JOURNAL.md`. Ne pas ouvrir d'autre PR pour le lot 1.
+
 **Ce qui reste avant la publication du lot 1.**
 1. CI verte **sans reprise** sur la tête de `claude/lot1-integration` (un parcours passé au second essai n'est pas
    « sans reprise ») ; si elle est rouge, corriger sur la branche concernée et réintégrer.

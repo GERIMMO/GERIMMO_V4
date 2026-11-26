@@ -213,6 +213,19 @@ describe("le récapitulatif du bail d'une société", () => {
     expect(libelles).not.toContain("Adresse du propriétaire");
     expect(libelles).not.toContain("Adresse e-mail des parties");
   });
+
+  // 26/11/2026 : les documents d'un particulier lisent son domicile sur SA fiche, pas sur l'espace. Ces deux cas figent
+  // la règle : le correctif recopie l'adresse sur la fiche (actions/organisation.ts), il ne replie pas les documents sur
+  // l'adresse de l'espace (une SCI gérée par le même espace recevrait sinon une adresse personnelle pour siège).
+  it("particulier, fiche sans adresse (l'espace, lui, en a une) : « Adresse du propriétaire » reste demandée", async () => {
+    const libelles = await corrections({ nom: "Martin", prenom: "Camille", qualite: "Personne physique", email: "camille@exemple.fr", address_line1: null, postal_code: null, city: null });
+    expect(libelles).toContain("Adresse du propriétaire");
+  });
+
+  it("particulier, fiche portant l'adresse recopiée : plus d'adresse à compléter côté propriétaire", async () => {
+    const libelles = await corrections({ nom: "Martin", prenom: "Camille", qualite: "Personne physique", email: "camille@exemple.fr", address_line1: "5 rue des Lilas", postal_code: "69003", city: "Lyon" });
+    expect(libelles).not.toContain("Adresse du propriétaire");
+  });
 });
 
 describe("la création de l'espace, en base (texte des migrations)", () => {

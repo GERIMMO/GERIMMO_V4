@@ -8337,3 +8337,9 @@ cahier V3 et le wiki (sans autre document). La décision la plus récente l'empo
 ## [2026-11-26] lint | Parcours de vérification, partie A, fait par l'agent en production
 
 - À la demande du dirigeant, parcours A (`livrables/PARCOURS-15-MINUTES.md`) joué par l'agent avec un compte fictif et des boîtes de test Resend : A1 à A6 et A8, A10 à A13 conformes ; A7 vérifié en base seulement ; A9, A14 et A15 non faits (console). Q125 reproduit à A6. Constat : adresse du bailleur saisie au premier bien non reprise sur sa fiche « personne » (bail : « Adresse à compléter »). Demande de fermeture du compte fictif enregistrée ; programmation dans la console à faire. Détail : `JOURNAL.md`, entrée du 26/11.
+
+## [2026-11-26] deploy | Correctif Q125 en production (PR #359, `main` `1dca28b`)
+
+- Accord du dirigeant : « Publie le correctif Q125 », sous condition de CI verte et de relectures sans point bloquant (remplie). CI de la PR n° 45781383488 et de `main` n° 45786610412 vertes sans reprise ; publication contrôlée n° 45792561969 `publiee_verifiee` à 09:50Z (aucune migration) ; santé et pages publiques relues depuis une autre adresse ; 0 erreur Vercel.
+- Recettes de production n° 59, 60, 61 réussies (68 parcours chacune au premier essai, purge vérifiée). Action du correctif VÉRIFIÉE en production par une sonde à session factice : effacement en navigation de document, aucun en arrière-plan.
+- Incident annexe : contrôle anti-robot de Vercel sur l'adresse de la machine de l'agent depuis 09:29Z (public non concerné, vérifié). Détail : `JOURNAL.md`, 26/11.

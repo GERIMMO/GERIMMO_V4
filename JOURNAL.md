@@ -758,3 +758,11 @@ La première passe de recette a relu de nouveau tous les documents produits. Ell
 - **Après, VÉRIFIÉ depuis une autre adresse que celle de l'agent** : `/api/sante` sert `f9e874b` (base OK, pas de maintenance) ; accueil, inscription, conditions en 200. Aucune erreur d'exécution Vercel depuis 19:10Z.
 - **Reprise des données, recompte en lecture seule après la mise en ligne** : 0 vrai compte à reprendre ; seule reste la fiche du compte fictif du parcours (fermeture demandée). Rien n'est écrit en base.
 - **Recette de production n° 62** (n° 45882154250, sur `f9e874b`) : **réussie**, de 19:14Z à 19:26:49Z. Cinq comptes éphémères, sessions artisan et supervision avec un vrai second facteur, parcours des espaces sur téléphone, puis suppression des comptes, des dossiers et de la supervision : toutes les étapes vertes.
+
+## 26/11/2026 (soir) — Lot 1 de corrections terminé, poussé, CI verte (rien de publié)
+
+- **Périmètre** : lots L1 (sessions) et L4 (écrans console, espaces, pages publiques) du plan `livrables/PLAN-CORRECTIONS-2026-11-26.md`, sur votre délégation (« fais le reste… débrouille toi »). Détail, verdicts et choix par délégation : [[Passation — état du 26 novembre 2026]], section c.
+- **Branches poussées sur GitHub** : `claude/lot1-l1` `960285b`, `claude/lot1-l4a` `929ab95`, `claude/lot1-l4b` `0ad214f`, `claude/lot1-l4c` `4b65597`. Chacune : une relecture adverse, une reprise, une contre-relecture (deux pour L4c), puis les dernières retouches.
+- **Intégration** `claude/lot1-integration` `ef14afa` = `main` `f9e874b` + les quatre branches, sans conflit, **sans migration**. Localement : lint et typage sans erreur, 12 271 tests réussis, 0 en échec (19 fichiers sans base locale, les mêmes que sur `main`).
+- **CI n° 45894260072** (lancée à la main, sans PR) : **verte sans reprise**, 16 829 tests, 357 parcours au premier essai (3 ignorés), aucun second essai. Le test instable `e2e/outils.spec.ts:159` a une cause établie (saisie avant l'hydratation, refaite à l'identique) et une correction prouvée par sonde.
+- **Pas fait, à la demande de la session « Discussion Gerimmo »** : aucune PR, aucune fusion, aucune publication. La suite (PR, votre accord écrit, publication contrôlée, recette) se fait dans la nouvelle session.

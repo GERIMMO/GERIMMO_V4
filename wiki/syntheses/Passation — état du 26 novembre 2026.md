@@ -1,7 +1,7 @@
 ---
 type: synthesis
 tags: [passation, production, publication, registre, exploitation, palier-1, novembre-2026]
-status: in-progress
+status: stable
 created: 2026-11-26
 updated: 2026-11-26
 sources: ["[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Référentiel du palier 1]]", "[[Audit final indépendant — PR 335 — 15 novembre 2026]]", "[[Contre-vérification ciblée — PR 335 — candidat 962f2c76]]", "[[Audit de qualité commerciale V1 — a776ed43 — 16 novembre 2026]]", "[[Contre-vérification de la PR 341 — candidat V1 06d8e8fd — 16 novembre 2026]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "QUESTIONS.md", "JOURNAL.md", "log.md (entrées du 03/11 au 26/11/2026)", "DECISIONS-2026-11-24.md", "livrables/PLAN-CORRECTIONS-2026-11-26.md", "livrables/PLAN-DE-PUBLICATION.md", "livrables/NON-FAIT.md", "livrables/notes-banc/notes-majeurs.md", "GUIDE-DE-REPRISE.md", ".github/workflows/*.yml (branche main)", "GitHub Actions et PR ouvertes (lecture du 26/11/2026, vers 19 h 30 UTC)"]
@@ -302,7 +302,7 @@ comme la CI : `outils.spec.ts` 8/8 trois fois, tests de quittance 30/30 en `--re
 Aucune migration (`git diff --name-only origin/main -- app/supabase/migrations` vide) ; 70 fichiers, +3 912 / −489.
 Contrôles locaux : `npm run lint` et `tsc --noEmit` sans erreur ; vitest complet 12 271 tests réussis, 0 en échec ;
 19 fichiers ne démarrent pas hors CI faute de base PostgreSQL ou de navigateur (les mêmes sur `main`). CI GitHub
-lancée à la main (workflow_dispatch, sans PR) : run n° 45894260072, résultat CI_INTEGRATION_RESULTAT.
+lancée à la main (workflow_dispatch, sans PR) : run n° 45894260072, résultat **verte sans reprise** (20:53Z → 21:34Z : vitest 16 829 tests réussis ; 357 parcours e2e réussis au premier essai et 3 ignorés, aucun second essai ; 75 WebKit mobile, 9 PostgREST, 4 envois, 2 invitation).
 
 **Choix faits par délégation dans le lot 1, à écrire dans la PR et à signaler au dirigeant.**
 - Premier mot de passe : si la fermeture des autres sessions échoue, la personne reste connectée (comme avant) et
@@ -704,7 +704,7 @@ au 14/11.
 | 26/11 | documentation (hors log) | Registre : Q72 et Q123 sur la branche du lot 1 ; point posé au juriste | — (commit `5546c23a`) | fait |
 | 26/11 | documentation | `log.md` et `JOURNAL.md` de la branche de documentation : recette n° 62 réussie | — (commit `af0a2563`, tête de `claude/audit-final-pr335` à 19:27Z) | fait |
 | 26/11 | documentation (hors log) | Cette note de passation | — | premier état `8a9acea`, version finale sur `claude/audit-final-pr335` |
-| 26/11 | correction (hors log) | Lot 1 : quatre branches et leur intégration poussées, sans PR ni publication | — | contrôles locaux verts ; CI run n° 45894260072 : CI_INTEGRATION_RESULTAT |
+| 26/11 | correction (hors log) | Lot 1 : quatre branches et leur intégration poussées, sans PR ni publication | — | contrôles locaux verts ; CI run n° 45894260072 : **verte sans reprise** (20:53Z → 21:34Z : vitest 16 829 tests réussis ; 357 parcours e2e réussis au premier essai et 3 ignorés, aucun second essai ; 75 WebKit mobile, 9 PostgREST, 4 envois, 2 invitation) |
 
 ---
 

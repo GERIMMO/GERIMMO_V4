@@ -263,7 +263,7 @@ export async function preparerPostDu(db:Db,r:Reglages,cible:Cible){
  const programmation=await db.rpc('programmer_publication_marketing',{p_id:article.id,p_pour:cible.parution});
  if(programmation.error)return {erreur:programmation.error.message,article:article.id};
  if(programmation.data!==true)return {erreur:'Le post n’a pas pu être programmé (agent en pause ou visuel manquant).',article:article.id};
- const alerte=await alerterSuperviseurDuPost(db,{id:article.id,titre:article.titre,chapo:article.chapo,facebook_texte:article.facebook_texte,facebook_image_url:article.facebook_image_url,programmee_pour:cible.parution,veille:Boolean(article.veille_source_id),rattrapage:cible.rattrapage,validation_obligatoire:r.validation_obligatoire},()=>verifierAvantEffet(db,'marketing'));
+ const alerte=await alerterSuperviseurDuPost(db,{id:article.id,titre:article.titre,chapo:article.chapo,slug:article.slug,origine:article.origine,facebook_texte:article.facebook_texte,facebook_image_url:article.facebook_image_url,programmee_pour:cible.parution,veille:Boolean(article.veille_source_id),rattrapage:cible.rattrapage,validation_obligatoire:r.validation_obligatoire},()=>verifierAvantEffet(db,'marketing'));
  return {agi:true,preparees:1,article:article.id,parution:cible.parution,rattrapage:cible.rattrapage,alerte:alerte.envoye,...(alerte.motif?{alerte_motif:alerte.motif}:{}),...(motifs.length?{ecartes:motifs}:{})};
 }
 

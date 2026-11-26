@@ -40,10 +40,12 @@ export type EntreeLmnp = {
 };
 
 /**
- * Les valeurs de départ de la page. Elles sont choisies pour un cas d'école
- * lisible — un studio loué 800 € par mois — et vérifiées dans
- * tests/outils-lmnp.test.ts : impôt au réel nul, micro-BIC 2 265,60 €,
- * amortissement reporté 554,29 €.
+ * L'exemple de la page. Il est choisi pour un cas d'école lisible — un studio
+ * loué 800 € par mois — et vérifié dans tests/outils-lmnp.test.ts : impôt au
+ * réel nul, micro-BIC 2 265,60 €, amortissement reporté 554,29 €. Depuis la
+ * décision du 25/11/2026 (Q123), il n'est plus posé dans les champs : il ne
+ * s'affiche qu'en texte indicatif, et seule l'option « frais amortis » sert
+ * encore de valeur de départ.
  */
 export const DEFAUTS_LMNP: EntreeLmnp = {
   recettes: 9600,

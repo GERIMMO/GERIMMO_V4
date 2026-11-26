@@ -12,7 +12,7 @@
 // Les mentions reprennent celles du modèle de lettre de l'application
 // (src/lib/documents/modeles/revision-irl.ts).
 
-import { arrondiCentime } from "./nombres";
+import { arrondiCentime, formaterNombre } from "./nombres";
 
 /** La série officielle de l'IRL sur le site de l'Insee. */
 export const URL_SERIE_INSEE_IRL = "https://www.insee.fr/fr/statistiques/serie/001515333";
@@ -31,10 +31,23 @@ export type EntreeIrl = {
   trimestreReference: Trimestre | null;
   indiceNouveau: number | null;
   trimestreNouveau: Trimestre | null;
+  /** Les deux indices ont été tapés par l'utilisateur (saisie manuelle) : le garde-fou de saisie s'applique. */
+  indicesSaisis?: boolean;
 };
 
+/**
+ * Garde-fou de saisie de l'application, repris tel quel (Q72) : `reviser_loyer` refuse une révision quand le rapport
+ * entre le nouvel indice et l'indice de référence sort de la plage de 0,8 à 1,25, bornes comprises (migration
+ * 20261124150000, « vérifiez les indices saisis » ; plage en attente de la réponse du dirigeant, Q71 : la changer ici
+ * avec la base). CE N'EST PAS UNE RÈGLE DE DROIT : la plage, large, n'arrête que les fautes de frappe (un indice dix fois
+ * trop petit, une virgule oubliée). Il ne vaut que pour des indices tapés : ceux que l'outil lit lui-même chez l'Insee
+ * n'en sont pas.
+ */
+export const RAPPORT_INDICES_MIN = 0.8;
+export const RAPPORT_INDICES_MAX = 1.25;
+
 export type AlerteIrl = {
-  code: "trimestres-differents" | "plus-d-un-an" | "indice-en-baisse" | "ordre-des-indices";
+  code: "trimestres-differents" | "plus-d-un-an" | "indice-en-baisse" | "ordre-des-indices" | "indices-invraisemblables";
   gravite: "erreur" | "attention";
   message: string;
 };
@@ -110,6 +123,17 @@ export function calculerRevisionIrl(e: EntreeIrl): ResultatIrl {
   if (e.trimestreNouveau == null) manque.push("le trimestre et l'année du nouvel indice");
   if (e.indiceNouveau == null || e.indiceNouveau <= 0) manque.push("le nouvel indice");
   if (manque.length > 0 || e.loyer == null || e.indiceReference == null || e.indiceNouveau == null) {
+    return { ok: false, manque, alertes };
+  }
+  // Rien ne manque, mais des indices tapés hors de la plage du garde-fou ne donnent ni loyer ni lettre, comme dans
+  // l'application.
+  const rapport = e.indiceNouveau / e.indiceReference;
+  if (e.indicesSaisis && !(rapport >= RAPPORT_INDICES_MIN && rapport <= RAPPORT_INDICES_MAX)) {
+    alertes.push({
+      code: "indices-invraisemblables",
+      gravite: "erreur",
+      message: `Révision refusée : vérifiez les indices saisis. Le nouvel indice (${formaterNombre(e.indiceNouveau)}) et l'indice de référence (${formaterNombre(e.indiceReference)}) doivent être deux nombres positifs proches l'un de l'autre.`,
+    });
     return { ok: false, manque, alertes };
   }
   const nouveauLoyer = arrondiCentime((e.loyer * e.indiceNouveau) / e.indiceReference);

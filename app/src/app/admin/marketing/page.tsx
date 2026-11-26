@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { etatIA } from "@/lib/etat-ia";
 import { campagnesFacebook, depenseFacebookDuMois, santeFacebook } from "@/lib/marketing-meta";
 import { etatPageFacebook } from "@/lib/diffusion-facebook";
+import { messageFacebookDiffuse } from "@/lib/apercu-post-facebook";
 import { DiffusionFacebookMasquee } from "@/components/diffusion-facebook-masquee";
 import { sansJargon } from "@/lib/erreurs";
 import { formaterDateHeureLongueParis } from "@/lib/heure-paris";
@@ -64,10 +65,14 @@ export default async function PageAgentMarketing() {
     santeFacebook(),
     campagnesFacebook(),
     // 06/10 : les posts en fenêtre de veto, du plus proche au plus lointain.
-    supabase.from("publications").select("id,titre,chapo,facebook_texte,facebook_image_url,programmee_pour,valide_le,veille_source_id,slug", { count: "exact" }).eq("statut", "programmee").order("programmee_pour", { ascending: true }).limit(5),
+    supabase.from("publications").select("id,titre,chapo,facebook_texte,facebook_image_url,programmee_pour,valide_le,veille_source_id,slug,origine", { count: "exact" }).eq("statut", "programmee").order("programmee_pour", { ascending: true }).limit(5),
     supabase.from("publications").select("id", { count: "exact", head: true }).in("statut", ["proposition", "brouillon", "planifiee", "programmee"]),
   ]);
-  const programmes = (programmesResultat.data ?? []) as PostProgramme[];
+  // Lot D1 (relecture du 24/11) : l'aperçu montrait le texte préparé seul, sans le lien de l'article ni la mention
+  // « Rédigé avec l’aide de l’IA » qui terminent le post. Il montre désormais le message que la mission enverra : même
+  // fonction (texteFacebook), mêmes champs que diffuserPostsEchus (lib/missions-planifiees/marketing.ts), lus par
+  // lib/apercu-post-facebook.ts, que le courriel de veto lit aussi. Sans adresse d'article : null (texte préparé seul).
+  const programmes = ((programmesResultat.data ?? []) as PostProgramme[]).map((p) => ({ ...p, texte_diffuse: messageFacebookDiffuse(p) }));
   const campagnes = (campagnesResultat.data ?? []) as Campagne[];
   const publications = (publicationsResultat.data ?? []) as Publication[];
   const reglages = (reglagesResultat.data ?? { actif: false, publication_automatique: false, publicite_active: false, jours_semaine: [2, 5], heure_paris: 9, heure_preparation_paris: 18, budget_mensuel_cents: 0, validation_obligatoire: false, veille_mots_inclus: [], veille_mots_exclus: [] }) as Reglages;

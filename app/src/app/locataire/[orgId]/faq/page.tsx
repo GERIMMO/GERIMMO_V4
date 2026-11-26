@@ -41,14 +41,17 @@ function questions(orgId: string, qui: InterlocuteurLocataire): { question: stri
       ),
     },
     {
+      // E132 (relevé du 26/11) : « jamais de surprise sur la facture » promettait ce que l'application ne tient pas.
+      // Ce qu'elle garantit est écrit juste avant : la décision sur qui paie précède l'artisan (aucune affectation sans
+      // imputation, actions/incidents.ts). Rien n'y borne le montant de la facture.
       question: "Qui paie les réparations ?",
       reponse: (
         <>
           Avant toute intervention, votre {qui} examine votre demande et vous
           dit qui paie : le propriétaire, ou vous-même s&apos;il s&apos;agit d&apos;une
           petite réparation ou de l&apos;entretien courant du logement (par exemple un
-          joint, une ampoule, un siphon à déboucher) — jamais de surprise sur la
-          facture. Vous suivez chaque étape dans {rubrique("demandes", "Mes demandes")}.
+          joint, une ampoule, un siphon à déboucher). Vous suivez chaque étape dans{" "}
+          {rubrique("demandes", "Mes demandes")}.
         </>
       ),
     },

@@ -85,7 +85,10 @@ export function calculerRentabilite(e: EntreeRentabilite): ResultatRentabilite {
   };
 }
 
-/** L'exemple pré-rempli de la page (vérifié dans tests/outils-rentabilite.test.ts). */
+/**
+ * L'exemple de la page (vérifié dans tests/outils-rentabilite.test.ts). Il n'est plus prérempli : depuis la décision du
+ * 25/11/2026 (Q123), il ne s'affiche qu'en texte indicatif dans les champs vides.
+ */
 export const EXEMPLE_RENTABILITE: EntreeRentabilite = {
   prix: 150_000,
   frais: 11_000,

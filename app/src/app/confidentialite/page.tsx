@@ -270,9 +270,9 @@ export default async function PageConfidentialite() {
         <p>
           <b className="font-semibold">Le formulaire de contact.</b>{" "}
           Les coordonnées et le message que vous communiquez servent à traiter
-          votre demande et à y répondre. Les demandes sont conservées {dureeCourante("contact:devis", "24 mois")}
-          après leur dernier traitement, ou après leur dépôt si elles
-          n&apos;ont pas encore été traitées, puis supprimées.
+          votre demande et à y répondre.
+          Les demandes sont conservées {dureeCourante("contact:devis", "24 mois")} après leur dernier traitement,
+          ou après leur dépôt si elles n&apos;ont pas encore été traitées, puis supprimées.
         </p>
         <p>
           <b className="font-semibold">Le suivi commercial.</b> Si vous êtes un

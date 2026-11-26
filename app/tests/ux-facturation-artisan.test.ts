@@ -56,9 +56,10 @@ describe("facturation lisible sans modifier les comptes", () => {
     const html = renderToStaticMarkup(createElement(VueFactures, { data: d, clients: [], erreurClients: false, agenda: [] }));
     expect(html).not.toContain("Déclarer un règlement reçu"); expect(html).toContain("Voir le détail et l’historique");
   });
-  it("mobile : Factures et Menu sont accessibles sans retirer les trois premiers accès", () => {
+  it("mobile : Facturation et Menu sont accessibles sans retirer les trois premiers accès", () => {
     const html = renderToStaticMarkup(createElement(NavArtisan));
     for (const lien of ["/artisan", "/artisan/agenda", "/artisan/devis", "/artisan/facturation"]) expect(html).toContain(`href="${lien}"`);
-    expect(html).toContain("Factures"); expect(html).toContain("Menu"); expect(html).toContain('aria-haspopup="dialog"');
+    // Q89 (relevé du 26/11) : l'onglet s'appelle « Facturation », comme la page « Ma facturation » (plus « Factures »).
+    expect(html).toContain(">Facturation</span>"); expect(html).toContain("Menu"); expect(html).toContain('aria-haspopup="dialog"');
   });
 });

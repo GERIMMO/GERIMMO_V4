@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { codesConnusJournaux, detailsExpurges, libelleAccesDocument, libelleActionAudit, libelleEvenement } from "../src/lib/libelles-journaux";
+import { traceFermetureAutresSessions } from "../src/lib/compte";
 
 describe("libellés des journaux", () => {
   it("traduit les tâches automatiques", () => {
@@ -130,6 +131,17 @@ describe("libellés des journaux", () => {
     expect(detailsExpurges({ forme: "libelle", resultats: 2, organisations: [ORG, ORG], objets: [ORG, ORG] })).toBe(
       "recherche par : nom ou référence interne · objets trouvés : 2 · organisations concernées : 2 éléments · identifiants relevés : 2 éléments"
     );
+  });
+
+  // Lot L1 (26/11/2026) : la console affichait « fermeture autres sessions : echec » sous un changement de mot de passe.
+  it("lit en français l'échec de la fermeture des autres sessions, tel que la trace d'un changement de mot de passe l'écrit", () => {
+    const details = { depuis: "compte", ...traceFermetureAutresSessions({ name: "AuthApiError", code: "unexpected_failure", status: 500 }) };
+    expect(detailsExpurges(details)).toBe("fermeture des autres sessions : échec · erreur : unexpected_failure · statut : 500");
+    expect(detailsExpurges(traceFermetureAutresSessions({ name: "AuthRetryableFetchError", status: 0 }))).toBe(
+      "fermeture des autres sessions : échec · erreur : AuthRetryableFetchError · statut : 0"
+    );
+    // Une valeur inconnue sous cette clé s'affiche telle quelle (code court).
+    expect(detailsExpurges({ fermeture_autres_sessions: "autre_x" })).toBe("fermeture des autres sessions : autre_x");
   });
 
   it("explique les accès aux documents", () => {

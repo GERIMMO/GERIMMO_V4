@@ -8,6 +8,7 @@ import { euros } from "../../../libelles";
 import { Carte, EnteteSousPage, LigneInfo, MarqueAgence, Retour, TitreSection } from "../../../ui";
 import { AvertissementRendezVousAnticipe } from "../avertissement-rendez-vous";
 import { FormulaireFacture } from "./formulaire-facture";
+import { factureDeposable } from "./depot-possible";
 
 export const metadata = { title: "Déposer ma facture" };
 
@@ -29,13 +30,9 @@ export default async function PageFacture(
   if (agenda.erreur) return <LectureImpossibleArtisan href={`/artisan/missions/${interventionId}/facture`} />;
   const mission = agenda.lignes.find((l) => l.intervention_id === interventionId);
   if (!mission) notFound();
-  if (
-    mission.statut !== "terminee" ||
-    !mission.compte_rendu_depose ||
-    !mission.photo_apres_deposee ||
-    mission.facture_deposee
-  ) {
-    redirect(`/artisan/missions/${interventionId}`);
+  // Le renvoi dit pourquoi (`?raison=facture`, depot-possible.ts) : silencieux, il ramenait l'artisan à la fiche sans un mot.
+  if (!factureDeposable(mission)) {
+    redirect(`/artisan/missions/${interventionId}?raison=facture`);
   }
 
   // Audit palier 1 (P1-03) : si la facture précédente a été refusée, son motif se relit au moment de la corriger.

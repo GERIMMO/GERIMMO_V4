@@ -737,3 +737,15 @@ La première passe de recette a relu de nouveau tous les documents produits. Ell
   - CI n° 45818153847 et deux relectures indépendantes en cours.
 - **Non couvert par le correctif** : les comptes qui ont déjà saisi leur adresse de cette façon (en production, des comptes de test, Q64) gardent une fiche sans adresse. Le bouton « Compléter » de la carte « Propriétaire » du bail permet de la saisir. Une reprise automatique serait une décision à part.
 - **Publication** : seulement avec votre accord écrit.
+- **Suite (26/11, après-midi)** :
+  - Première relecture (deux relecteurs) : « acceptable avec réserves » et « à reprendre ». Seconde relecture après reprise : « acceptable avec réserves », aucun point bloquant.
+  - Reprises : `067ec6a` puis `bf2c6ad`.
+    - le profil complet recopie aussi l'adresse ;
+    - une adresse partielle concordante est complétée ;
+    - l'écriture est conditionnée sur « champ encore vide » ;
+    - avis « Votre fiche de bailleur n'a pas d'adresse complète » sur « Ajouter un bien », avec lien direct vers la fiche en modification ;
+    - un déménagement est signalé dans le profil, sans rien écraser ;
+    - règle réunie et testée dans `lib/fiche-titulaire.ts`.
+  - **CI n° 45821988599 sur `bf2c6ad` : verte, sans reprise ni test instable** (16 677 tests, 355 parcours, 4 envois, 75 WebKit mobile, 9 PostgREST, 2 invitation). Localement : 19 fichiers voisins, 615 réussis ; eslint et typage sans erreur.
+  - **Pas fait** : un parcours navigateur de bout en bout sur ce chemin (banc local indisponible dans cette session ; les tests unitaires couvrent l'action et la règle) ; la reprise des comptes déjà touchés (Q126).
+  - **Rien de publié.** Question Q126.

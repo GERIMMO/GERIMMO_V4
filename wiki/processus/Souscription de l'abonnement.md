@@ -12,7 +12,8 @@ sources: ["[[Abonnement]]", "[[Cycle de vie de l'abonnement]]", "[[Conditions g�
 **En une phrase :** le propriétaire choisit sa formule dans « Mon abonnement », lit un récapitulatif qui rappelle son
 droit de rétractation, coche une case de confirmation, paie sur la page sécurisée de Stripe, puis reçoit **une seule
 fois** un courriel de confirmation sur support durable, avec les conditions acceptées et le formulaire de
-rétractation.
+rétractation. En amont : l'ouverture de l'espace (inscription en ligne du propriétaire, ouverture d'une agence par le
+super admin), l'essai de deux mois et le parcours de démarrage — section « Avant la souscription » plus bas.
 
 > [!info] Où en est-on (26/11/2026)
 > - **En production depuis le 25/11/2026** à 23:17Z (26/11 à 00 h 17, heure de Paris) : version `062296e2` (branche
@@ -32,7 +33,7 @@ rétractation.
 
 ## Déclencheur
 Le titulaire de l'espace, pendant ou après l'essai, ouvre « Mon abonnement » et choisit une périodicité et une formule
-([[Grille tarifaire]]).
+([[Grille tarifaire]]). L'ouverture de l'espace et l'essai qui précèdent : section « Avant la souscription ».
 
 ## Ce qui doit être vrai avant d'ouvrir le paiement
 

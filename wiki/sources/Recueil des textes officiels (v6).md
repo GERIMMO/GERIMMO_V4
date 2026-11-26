@@ -113,8 +113,7 @@ Regroupement fait par le wiki ; numéros et intitulés du sommaire du recueil.
   bailleur société hors SCI familiale (sauf étudiant non boursier) ; époux et partenaires pacsés hors du régime de la
   colocation (clause conditionnelle ; case « mariés ou pacsés » en cours) ; pas de durée réduite en meublé ; résumé de
   la notice corrigé (majoration de 10 % du dépôt rendu en retard) ; contrat type mot pour mot sur plusieurs rubriques.
-- **Dépôt, charges, état des lieux, pièces** ([[Dépôt de garantie]], [[État des lieux]], [[Régularisation des
-  charges]], [[Dossier locataire]], lot T3) : plafond du reçu de dépôt selon le bail ; « adresse du nouveau domicile ou
+- **Dépôt, charges, état des lieux, pièces** ([[Dépôt de garantie]], [[État des lieux]], [[Régularisation des charges]], [[Dossier locataire]], lot T3) : plafond du reçu de dépôt selon le bail ; « adresse du nouveau domicile ou
   du lieu d'hébergement » ; plus de refus « prescrit » mais un avertissement confirmé ; pièces demandables limitées à la
   liste du décret n° 2015-1437 avant le bail ; information de la caution sous un mois signalée. Reprise du lot T3 en
   cours.
@@ -151,9 +150,7 @@ Regroupement fait par le wiki ; numéros et intitulés du sommaire du recueil.
 
 > [!warning] Contradictions avec l'existant
 > - Plusieurs pages du wiki disent encore l'ancien état : préavis d'un mois en zone tendue accordé d'office ou sur
->   justificatif bloquant ([[Bail]], [[Types de baux]]) ; refus « prescrit » des compléments de charges ([[Régularisation
->   des charges]]) ; factures gardées six ans ([[Durées de conservation]], [[Fermeture de compte]], [[Registre des
->   traitements]]) ; « Gerimmo ne contrôle pas ce point » pour la caution d'un bailleur société ([[Garantie]]) ; libellé
+>   justificatif bloquant ([[Bail]], [[Types de baux]]) ; refus « prescrit » des compléments de charges ([[Régularisation des charges]]) ; factures gardées six ans ([[Durées de conservation]], [[Fermeture de compte]], [[Registre des traitements]]) ; « Gerimmo ne contrôle pas ce point » pour la caution d'un bailleur société ([[Garantie]]) ; libellé
 >   libre des pièces demandées ([[Dossier locataire]]) ; ancien circuit « télécharger, signer, redéposer »
 >   ([[Signature électronique]], retiré au lot D5) ; médiateur « adhésion en cours » et non bloquant
 >   ([[Souscription de l'abonnement]]). *26/11 :* ces corrections sont en production depuis le 25/11/2026 (version

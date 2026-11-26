@@ -11,7 +11,7 @@ sources: ["[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[Audit compl
 
 **Définition :** accord amiable entre le bailleur (ou son mandataire) et un [[Locataire]] en
 difficulté, qui **gèle une dette locative échue à une date** et l'étale en **tranches mensuelles**
-venant s'ajouter au loyer et aux charges courants. Il ne modifie ni le [[Bail de location|bail]] ni
+venant s'ajouter au loyer et aux charges courants. Il ne modifie ni le [[Bail|bail]] ni
 le loyer ; il suspend les relances tant qu'il est respecté (RM-3.6.6) sans que le bailleur renonce à
 ses droits ni à la clause résolutoire.
 
@@ -36,8 +36,8 @@ ses droits ni à la clause résolutoire.
   manquée (puis rattrapée « en retard »), plan en défaut, caduc, soldé.
 
 ## Relations
-- Concepts liés : [[Période de loyer]], [[Encaissement]], [[Relance]], [[Caution (garant)]].
-- Processus où il apparaît : [[Relances et mise en demeure]], [[Quittancement]].
+- Concepts liés : [[Période de loyer]], [[Encaissement]], [[Relances et mise en demeure]], [[Garantie]].
+- Processus où il apparaît : [[Relances et mise en demeure]], [[Quittancement des loyers]].
 - Règles associées : RM-3.6.6 (relances suspendues pendant le plan), RM-3.3.2 (imputation du plus
   ancien au plus récent, inchangée), RM-3.6.8 (la dette survit au bail).
 

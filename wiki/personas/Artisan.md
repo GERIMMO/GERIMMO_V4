@@ -261,8 +261,7 @@ Conséquence : un artisan blacklisté par l'agence A **reste visible** pour l'ag
 >   confirmée, carnet personnel, invitation par un propriétaire.
 > - **À faire trancher** (voir [[Ouverture du réseau d'artisans]]) : téléphone montré avant
 >   sollicitation (masqué par prudence, à confirmer) ; ~~zone par code postal ou département
->   plutôt que par commune (écart à ratifier)~~ — ratifié par le dirigeant le 23/10/2026 ([[Ouverture du réseau
->   d'artisans]]) ; levier par artisan et par zone ; zone
+>   plutôt que par commune (écart à ratifier)~~ — ratifié par le dirigeant le 23/10/2026 ([[Ouverture du réseau d'artisans]]) ; levier par artisan et par zone ; zone
 >   héritée d'une agence à la réclamation d'une fiche ; artisans de test validés et publics,
 >   proposés aux vrais propriétaires de leur zone (les comptes des amis sont « des clients
 >   comme les autres », décision du 23/10).

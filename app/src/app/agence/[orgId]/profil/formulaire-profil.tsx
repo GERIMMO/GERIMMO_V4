@@ -65,6 +65,13 @@ const CASE = "size-5 shrink-0 accent-[var(--marque)]";
 const CAUTION_ET_RELANCES =
   "Caution : Gerimmo ne l’informe par e-mail qu’avec la seconde relance. Réglée au-delà de 30 jours, ou retardée (confirmation attendue, plan d’apurement, dette sous le seuil, e-mail inconnu), cette information part plus d’un mois après l’échéance. L’article 2303 du code civil demande au créancier professionnel d’informer la caution personne physique du premier loyer resté impayé un mois : informez-la vous-même dans ce délai ; les loyers du bail affichent la date.";
 
+// Relevé du 26/11 (plan de corrections, L4) : envoi fermé, la sous-section disait « Les courriers de relance automatiques
+// sont suspendus », puis décrivait au présent les relances parties chaque matin. Fermé, la description passe au futur :
+// les délais et le seuil enregistrés ne servent qu'une fois l'envoi proposé et activé ici. La phrase sur la caution
+// (lot T3) ne change pas et reste affichée.
+const RELANCES_QUAND_PROPOSEES =
+  "Aucune relance ne part d’elle-même tant que l’envoi automatique est suspendu. Quand il vous sera proposé, vous pourrez l’activer ici : la première relance suivra alors le premier délai, puis la seconde le second, jamais deux le même jour, et une dette totale inférieure au seuil ne sera pas relancée.";
+
 export type EnvoisProposesAuProfil = { avis: boolean; relances: boolean };
 const RIEN_DE_PROPOSE: EnvoisProposesAuProfil = { avis: false, relances: false };
 
@@ -439,7 +446,8 @@ function Formulaire({
             />
           </label>
         </div>
-        {estProprietaire ? <Fonctionnement titre="relances d’impayés"><p>Chaque matin, le loyer impayé le plus ancien de chaque bail est vérifié. La première relance suit le premier délai, puis la seconde le second : jamais deux le même jour. Les relances manuelles comptent aussi et chaque envoi est conservé dans le bail. Une dette totale inférieure au seuil n’est pas relancée.</p><p data-caution-relance>{CAUTION_ET_RELANCES}</p></Fonctionnement> : <p className="text-sm text-muted-foreground">
+        {estProprietaire ? <Fonctionnement titre="relances d’impayés">{envoisProposes.relances ? <p>Chaque matin, le loyer impayé le plus ancien de chaque bail est vérifié. La première relance suit le premier délai, puis la seconde le second : jamais deux le même jour. Les relances manuelles comptent aussi et chaque envoi est conservé dans le bail. Une dette totale inférieure au seuil n’est pas relancée.</p> : <p>{RELANCES_QUAND_PROPOSEES}</p>}<p data-caution-relance>{CAUTION_ET_RELANCES}</p></Fonctionnement> : <p className="text-sm text-muted-foreground">
+          {envoisProposes.relances ? <>
           Chaque matin, le terme impayé le plus ancien de chaque bail reçoit sa
           première relance passé le premier délai, puis la seconde passé le
           second — jamais deux courriers le même jour, et une relance que vous
@@ -447,7 +455,8 @@ function Formulaire({
           c&apos;est un recommandé. Chaque relance envoyée s&apos;inscrit sur
           le bail, comme si vous l&apos;aviez saisie. Une dette totale sous le
           seuil n&apos;est pas relancée ; à la seconde relance, la caution du
-          bail (si son e-mail est connu) est informée de l&apos;incident.{" "}
+          bail (si son e-mail est connu) est informée de l&apos;incident.
+          </> : RELANCES_QUAND_PROPOSEES}{" "}
           <span data-caution-relance>{CAUTION_ET_RELANCES}</span>
         </p>}
       </SousSection>
@@ -574,7 +583,8 @@ function FicheProfil({
           </Ligne>
           <Ligne libelle="Relances d'impayé par e-mail">
             {!envoisProposes.relances ? "Envoi suspendu" : o.relances_envoi_auto ? "Automatique" : "Manuel"}
-            {o.relances_envoi_auto && (
+            {/* Envoi fermé : « Envoi suspendu », sans les délais d'une ancienne préférence restée en base. */}
+            {envoisProposes.relances && o.relances_envoi_auto && (
               <Precision>
                 à {o.relance_1_jours} puis {o.relance_2_jours} jours après
                 l&apos;échéance

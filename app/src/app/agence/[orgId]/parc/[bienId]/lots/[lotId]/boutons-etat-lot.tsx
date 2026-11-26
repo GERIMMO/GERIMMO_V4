@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { type ReactNode, useId } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import Link from "next/link";
 import { changerEtatLot, type EtatParc } from "@/app/actions/parc";
@@ -74,9 +74,12 @@ export function BoutonsEtatLot({
   bienId: string;
   lotId: string;
   etat: string;
-  // Des blocages subsistent : « Passer en disponible » reste cliquable (la base
-  // fait foi et renvoie l'erreur exacte) mais cesse de s'annoncer comme l'action
-  // évidente à faire.
+  // Des blocages subsistent, lus par `lot_blocages_location` : la liste même que
+  // la base relit pour refuser le passage en disponible (20260914180000). E049,
+  // E160 (choix d'affichage délégué, plan du 26/11) : « Mettre en location »
+  // restait cliquable sur un lot bloqué, pour un refus certain. Le bouton est
+  // désactivé et la raison s'écrit dessous. Lecture en échec : la page passe
+  // `false`, le bouton reste cliquable et la base répond.
   bloque?: boolean;
   // Liste de lots : le rappel sur la revérification est affiché une fois pour
   // toute la carte, pas sous chaque lot — et la phrase d'un lot loué ne s'y
@@ -87,28 +90,41 @@ export function BoutonsEtatLot({
   // Propriétaire direct : pas de vocabulaire de permission d'agence (PROP-09).
   estBailleurDirect?: boolean;
 }) {
+  const idRaison = useId();
   const actionLiee = changerEtatLot.bind(null, orgId, bienId, lotId);
   const [retour, action] = useActionState<EtatParc, FormData>(actionLiee, {});
   const transitions = transitionsDe(etat, estBailleurDirect);
   const phrase = AILLEURS[etat] && !(compact && etat === "loue") ? AILLEURS[etat] : null;
+  const miseEnLocationBloquee = bloque && transitions.some((t) => t.cible === "disponible");
   // Rien à proposer ni à dire : pas de bloc vide sous le rang du lot.
   if (transitions.length === 0 && !phrase && !retour.erreur && !retour.succes) return null;
 
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
-        {transitions.map((t) => (
-          <form data-saisie-confirmee key={t.cible} action={action}>
-            <input type="hidden" name="etat" value={t.cible} />
-            <BoutonEnvoi
-              size="sm"
-              variant={t.cible === "disponible" && !bloque ? "default" : "outline"}
-            >
-              {t.libelle}
-            </BoutonEnvoi>
-          </form>
-        ))}
+        {transitions.map((t) => {
+          const refusee = miseEnLocationBloquee && t.cible === "disponible";
+          return (
+            <form data-saisie-confirmee key={t.cible} action={action}>
+              <input type="hidden" name="etat" value={t.cible} />
+              <BoutonEnvoi
+                size="sm"
+                variant={t.cible === "disponible" && !bloque ? "default" : "outline"}
+                disabled={refusee}
+                aria-describedby={refusee ? idRaison : undefined}
+              >
+                {t.libelle}
+              </BoutonEnvoi>
+            </form>
+          );
+        })}
       </div>
+      {miseEnLocationBloquee && (
+        <p id={idRaison} data-raison-blocage className="text-xs text-muted-foreground">
+          Mise en location impossible pour l&apos;instant : réglez d&apos;abord ce
+          qui bloque ce lot, listé plus haut.
+        </p>
+      )}
       {retour.erreur && <p className="text-sm text-destructive">{retour.erreur}</p>}
       {retour.succes && (
         <p className="text-sm text-success-soft-foreground">{retour.succes}</p>
@@ -133,7 +149,7 @@ export function BoutonsEtatLot({
           même fait. Ce qui reste ici est le seul renseignement que l'écran ne
           porte pas ailleurs : ce que vérifie le bouton sur lequel on s'apprête
           à appuyer. */}
-      {!compact && transitions.some((t) => t.cible === "disponible") && (
+      {!compact && !miseEnLocationBloquee && transitions.some((t) => t.cible === "disponible") && (
         <p className="text-xs text-muted-foreground">
           La mise en location vérifie une dernière fois qu&apos;il ne manque rien
           au lot.

@@ -3,15 +3,18 @@ import { CalendarDays, ClipboardCheck, FileText, Wrench } from "lucide-react";
 import styles from "./portail-artisan.module.css";
 import {
   chargerAgenda,
+  chargerCreneauxMission,
   chargerDemandesRdv,
   chargerEchangesNonLus,
   chargerPieces,
   chargerSollicitations,
   verifierAccesArtisan,
+  type LigneAgenda,
 } from "./acces";
 import { CarteMission } from "./carte-mission";
 import { CarteSollicitation } from "./carte-sollicitation";
-import { degreEcheance, demandeAChiffrer, jourLong, PIECES_ARTISAN, texteEcheance, libelle } from "./libelles";
+import { creneauTexte, degreEcheance, demandeAChiffrer, jourLong, PIECES_ARTISAN, texteEcheance, libelle } from "./libelles";
+import { CONSIGNE_PLUS_DE_DATE, consigneDatesProposees, datesAGarder } from "./agenda/dates-a-garder";
 import { Avertissement, Carte, CLASSE_BOUTON_SECONDAIRE, EnteteSousPage, Erreur, TitreSection } from "./ui";
 import { ValeurVivante } from "@/components/valeur-vivante";
 import { presenceReseau, rappelPresenceReseau } from "@/lib/reseau";
@@ -58,16 +61,26 @@ export default async function PageArtisanAccueil() {
   const aRendreCompte = agenda.lignes.filter(
     (l) => l.statut === "en_cours" && !l.compte_rendu_depose
   );
+  // Relevé du 26/11 (plan de corrections, L4 ; reprise du lot 60, R6, comme sur l'agenda) : la carte « Dates proposées »
+  // ne donnait que le compteur `creneaux_en_attente`, qui compte aussi les dates déjà passées. Les dates se lisent comme
+  // sur la fiche de mission (`mes_creneaux_artisan`, qui ne rend que celles encore à venir) ; une lecture en échec ne se
+  // rend pas comme « aucune date » (`null` : le compteur reste, avec le renvoi à la fiche).
+  const avecDatesProposees = agenda.lignes.filter((l) => l.statut === "acceptee" && l.creneaux_en_attente > 0);
+  const lecturesDates = await Promise.all(avecDatesProposees.map((l) => chargerCreneauxMission(l.intervention_id)));
+  const proposees = new Map(
+    avecDatesProposees.map((l, i) => [l.intervention_id, lecturesDates[i].erreur ? null : datesAGarder(lecturesDates[i].lignes)])
+  );
+  // Toutes les dates proposées sont passées : rien n'attend plus le locataire, c'est à l'artisan d'en proposer d'autres.
+  const plusDeDate = (l: LigneAgenda) => proposees.get(l.intervention_id)?.length === 0;
+
   // « À fixer » = ce sur quoi l'artisan doit agir. Une mission dont les dates
   // sont posées attend le LOCATAIRE : la ranger ici enverrait l'artisan
   // reproposer, ce qui rend caduques les dates en cours et fait repartir le
-  // ping-pong (RM-10.4.1).
+  // ping-pong (RM-10.4.1). Sauf si plus aucune de ces dates ne peut être retenue.
   const aPlanifier = agenda.lignes.filter(
-    (l) => l.statut === "acceptee" && l.creneaux_en_attente === 0
+    (l) => l.statut === "acceptee" && (l.creneaux_en_attente === 0 || plusDeDate(l))
   );
-  const enAttenteDuLocataire = agenda.lignes.filter(
-    (l) => l.statut === "acceptee" && l.creneaux_en_attente > 0
-  );
+  const enAttenteDuLocataire = avecDatesProposees.filter((l) => !plusDeDate(l));
   // D18 (livraison 2) : une demande en révision est de nouveau à chiffrer.
   const aChiffrer = sollicitations.lignes.filter((l) => demandeAChiffrer(l.statut));
 
@@ -243,10 +256,13 @@ export default async function PageArtisanAccueil() {
                     key={l.intervention_id}
                     ligne={l}
                     origine="aujourdhui"
+                    plusDeDate={plusDeDate(l)}
                     aFaire={
                       l.dates_locataire_en_attente > 0
                         ? `Le locataire propose ${l.dates_locataire_en_attente} date${l.dates_locataire_en_attente > 1 ? "s" : ""} : à confirmer`
-                        : "Proposer trois créneaux au locataire"
+                        : plusDeDate(l)
+                          ? CONSIGNE_PLUS_DE_DATE
+                          : "Proposer trois créneaux au locataire"
                     }
                   />
                 ))}
@@ -275,7 +291,8 @@ export default async function PageArtisanAccueil() {
                     key={l.intervention_id}
                     ligne={l}
                     origine="aujourdhui"
-                    aFaire={`${l.creneaux_en_attente} date${l.creneaux_en_attente > 1 ? "s" : ""} au choix du locataire`}
+                    aFaire={consigneDatesProposees(l.creneaux_en_attente, proposees.get(l.intervention_id) ?? null)}
+                    datesAGarder={(proposees.get(l.intervention_id) ?? []).map((c) => creneauTexte(c.debut, c.fin))}
                   />
                 ))}
               </div>

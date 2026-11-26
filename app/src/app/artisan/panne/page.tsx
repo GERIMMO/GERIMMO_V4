@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { chargerFicheArtisan } from "../acces";
-import { CLASSE_BOUTON_PRINCIPAL, EnteteSousPage, Erreur } from "../ui";
+import { CLASSE_BOUTON_PRINCIPAL, EnteteSousPage, Erreur, Succes } from "../ui";
 
 export const metadata = { title: "Lecture impossible" };
 
@@ -23,10 +23,28 @@ export const metadata = { title: "Lecture impossible" };
  * fiche se lit, l'artisan repart vers son espace, dont la garde l'oriente comme
  * d'habitude (connexion, inscription ou accueil) ; le message ne s'affiche que
  * si la lecture échoue encore.
+ *
+ * Reprise du lot 60 (R9) : chaque renvoi refait la lecture (`cache()` ne vaut que pour une requête). Une lecture qui
+ * échoue sur /artisan puis réussit ici, puis échoue de nouveau, faisait enchaîner les renvois jusqu'à ce que le
+ * navigateur coupe. La garde pose donc `?essai=1` (acces.ts) : venue d'elle, la page ne renvoie plus d'elle-même. Si la
+ * fiche se lit de nouveau, elle le dit et laisse l'artisan repartir d'un geste : rechargée plus tard avec le paramètre,
+ * elle n'annonce donc pas un incident passé (E122). Sans le paramètre, elle renvoie comme avant.
  */
-export default async function PagePanneArtisan() {
+export default async function PagePanneArtisan(props?: PageProps<"/artisan/panne">) {
   const { erreur } = await chargerFicheArtisan();
-  if (!erreur) redirect("/artisan");
+  const venueDeLaGarde = (await props?.searchParams)?.essai === "1";
+  if (!erreur && !venueDeLaGarde) redirect("/artisan");
+  if (!erreur) {
+    return (
+      <div className="space-y-5">
+        <EnteteSousPage rubrique="aide" titre="Votre fiche se lit de nouveau" />
+        <Succes>La lecture de votre fiche a réussi à l&apos;instant. Rien n&apos;est perdu.</Succes>
+        <Link href="/artisan" className={`${CLASSE_BOUTON_PRINCIPAL} sm:w-fit`}>
+          Revenir à mon espace
+        </Link>
+      </div>
+    );
+  }
   return (
     <div className="space-y-5">
       <EnteteSousPage rubrique="aide" titre="Lecture momentanément impossible" />

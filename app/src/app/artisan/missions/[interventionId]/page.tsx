@@ -41,6 +41,7 @@ import { AccepterOuRefuser } from "./accepter-refuser";
 import { AvertissementRendezVousAnticipe } from "./avertissement-rendez-vous";
 import { BoutonDemarrer } from "./bouton-demarrer";
 import { DatesLocataire } from "./dates-locataire";
+import { raisonRetourFacture } from "./facture/depot-possible";
 
 export const metadata = { title: "Ma mission" };
 
@@ -208,6 +209,8 @@ export default async function PageMission(
           bouton est ci-dessous.
         </Avertissement>
       )}
+      {/* Même règle pour la facture (relevé du 26/11) : renvoyé de /facture, l'artisan lit pourquoi. */}
+      {raison === "facture" && raisonRetourFacture(mission) && <Avertissement>{raisonRetourFacture(mission)}</Avertissement>}
 
       {/* Le geste attendu maintenant, sous le titre : rendu en bas, sous
           « Où », « Quoi » et « Sur place », il n'apparaissait qu'en faisant

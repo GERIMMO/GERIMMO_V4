@@ -40,7 +40,7 @@ flou), le mentionner à l'humain pour déclencher une recherche de source.
   Jamais par l'outil MCP Supabase `apply_migration`, ni par un outil SQL en écriture, ni par du DDL à la main :
   l'outil MCP sert au SELECT seulement. Protocole et conventions (rejouable, `search_path = ''`,
   `fermer_fonctions_a_anon()`, retour arrière, manifeste `e2e/local/ordre-migrations.txt`) :
-  `../wiki/syntheses/Prompt de passation à Codex — état du 16 octobre 2026.md` § 6.
+  `../wiki/archives/2026-10/Prompt de passation à Codex — état du 16 octobre 2026.md` § 6.
 
 ## Commandes
 

@@ -200,4 +200,4 @@ Supposé, à faire confirmer par un juriste : aucun de ces traitements ne relèv
 ## Sources
 
 - Code : `palier1/app/src`, `palier1/app/supabase/migrations/20261014730000_plafond_appels_ia.sql`, `20261028145948_assistant_prive_et_usages_ia.sql`, `palier1/.github/workflows/atelier-code.yml`, `palier1/app/vercel.json`, `palier1/app/.env.example`.
-- Wiki : `wiki/syntheses/Équipes IA et automatismes — inventaire et propositions (14 octobre 2026).md` (inventaire à sept points au 14/10 ; l'assistant et la lecture assistée, ajoutés le 28/10, n'y figurent pas), `wiki/syntheses/Gerimmo en autonomie.md`.
+- Wiki : `wiki/archives/2026-10/Équipes IA et automatismes — inventaire et propositions (14 octobre 2026).md` (inventaire à sept points au 14/10 ; l'assistant et la lecture assistée, ajoutés le 28/10, n'y figurent pas), `wiki/syntheses/Gerimmo en autonomie.md`.

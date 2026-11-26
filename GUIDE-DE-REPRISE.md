@@ -155,8 +155,8 @@ Pages du wiki utiles à une reprise technique :
 - `wiki/regles-metier/Plan de reprise d'activité.md`
 - `wiki/regles-metier/Isolation multi-organisation.md` et `Socle de sécurité.md`
 - `wiki/processus/Recette de production.md`
-- `wiki/syntheses/Référence des tests — commandes, volumes, durées, dépendances, limites.md`
-- `wiki/syntheses/Prompt de passation à Codex — état du 16 octobre 2026.md` (environnement, pièges, protocole de déploiement ; daté, voir section 9)
+- `wiki/archives/2026-10/Référence des tests — commandes, volumes, durées, dépendances, limites.md`
+- `wiki/archives/2026-10/Prompt de passation à Codex — état du 16 octobre 2026.md` (environnement, pièges, protocole de déploiement ; daté, voir section 9)
 
 ---
 

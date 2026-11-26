@@ -63,7 +63,9 @@ Gerimmo/
 │   ├── concepts/         ← objets/notions du domaine : bail, lot, quittance, EDL…
 │   ├── regles-metier/    ← règles et réglementation : loi ALUR, plafonds, délais…
 │   ├── sources/          ← une page-résumé par source ingérée
-│   └── syntheses/        ← analyses transverses, comparatifs, réponses filées
+│   ├── syntheses/        ← analyses transverses vivantes (état actuel, vision, stratégie)
+│   └── archives/         ← historique daté, rangé par mois de création (AAAA-MM/) :
+│                           audits, points d'étape, passations et pages remplacées
 └── _modeles/            ← gabarits de pages (ne pas indexer comme contenu)
 ```
 
@@ -90,7 +92,7 @@ vers une page qui n'existe pas encore est acceptable : il signale une page à cr
 ---
 type: concept              # persona | process | concept | business-rule | source | synthesis
 tags: [bail, location]
-status: draft              # draft | in-progress | stable
+status: draft              # draft | in-progress | stable | archived
 created: 2026-07-20
 updated: 2026-07-20
 sources: []                # liens [[…]] vers les pages sources justifiant le contenu
@@ -98,6 +100,13 @@ sources: []                # liens [[…]] vers les pages sources justifiant le 
 ```
 
 Pages de type `source` : ajouter `source-file`, `source-type`, `source-date`.
+
+**Archivage** (règle du ménage du 26/11/2026) : une page qui ne décrit plus l'état actuel (audit, point d'étape,
+passation dépassée, page remplacée) n'est **jamais supprimée**. Elle est déplacée dans `wiki/archives/AAAA-MM/` (mois de
+sa création), reçoit `status: archived`, `archived: <date>` et `superseded-by: "[[Page qui la remplace]]"`, et un
+encadré « Page archivée » sous son titre. Déplacer une page ne casse pas ses liens (ils passent par le titre) ; la
+**renommer** les casse : garder le titre, ou laisser une page de renvoi. Chaque archivage s'ajoute à
+[[Historique des audits]].
 
 **Structure du corps** : un H1 = le titre, puis des sections claires. Toute
 affirmation issue d'une source doit être traçable via `sources` et, si utile, une

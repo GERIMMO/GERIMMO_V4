@@ -3,7 +3,7 @@
 > Audit, correction et vérification de la refonte publiée le 27/10/2026 (commit `555c5282`), avec le regard d'un
 > utilisateur, d'un développeur, d'un spécialiste UX et d'un webdesigner. Travail local sur la branche
 > `claude/compassionate-euler-qpqjp6`. **Rien n'est publié : aucune fusion vers `main`, aucune migration appliquée en
-> production.** Le bilan simple est dans le wiki : `wiki/syntheses/Bilan de l'audit de la refonte #264 — 27 octobre 2026.md`.
+> production.** Le bilan simple est dans le wiki : `wiki/archives/2026-10/Bilan de l'audit de la refonte 264 — 27 octobre 2026.md`.
 
 ## 0. Verdict
 

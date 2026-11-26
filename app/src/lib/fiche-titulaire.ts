@@ -4,7 +4,9 @@
 // adresse au premier bien (« D'abord, vos coordonnées de bailleur ») ou dans le profil la voyait rangée sur l'espace
 // seulement : la recopie SCI-2 ne vise que les fiches de société. Le bail affichait « Adresse à compléter » et refusait
 // tout PDF. Ces fonctions, sans accès aux données, disent quoi recopier, avec la règle de SCI-2 : les seuls champs
-// VIDES, et seulement si les champs déjà remplis concordent avec la saisie (jamais par-dessus une autre adresse).
+// VIDES, et seulement si les champs déjà remplis concordent avec la saisie (jamais par-dessus une autre adresse). La
+// concordance est un peu plus tolérante que le SQL de SCI-2 (lower(btrim())) : espaces répétés et casse du code postal
+// ignorés aussi. Une chaîne vide en base compte comme vide ; aucune écriture actuelle n'en range (relecture du 26/11).
 import { estBailleurSociete } from "@/lib/qualite-bailleur";
 import { verifierCodePostalPersonne } from "@/lib/validation-fiches";
 
@@ -35,4 +37,19 @@ export function champsAdresseARecopier(fiche: FicheTitulaire, saisie: AdresseFic
     else if (normaliser(actuel) !== normaliser(saisie[c])) return null;
   }
   return Object.keys(ecrire).length ? ecrire : null;
+}
+
+/** Vrai si la fiche porte déjà, dans au moins un champ, une autre adresse que la saisie (un déménagement, par exemple). */
+export function adresseDiscordante(fiche: AdresseFiche, saisie: AdresseFiche): boolean {
+  return CHAMPS.some((c) => (fiche[c] ?? "").trim() !== "" && normaliser(fiche[c]) !== normaliser(saisie[c]));
+}
+
+/**
+ * La fiche du compte à faire compléter sur « Ajouter un bien », ou null : une seule fiche du compte, pas une société,
+ * adresse incomplète. Plusieurs fiches ou aucune : on ne choisit pas (rien n'est dit ici).
+ */
+export function ficheARenseigner(fiches: FicheTitulaire[] | null | undefined): FicheTitulaire | null {
+  if (!fiches || fiches.length !== 1) return null;
+  const [fiche] = fiches;
+  return !estBailleurSociete(fiche.qualite) && !adresseFicheComplete(fiche) ? fiche : null;
 }

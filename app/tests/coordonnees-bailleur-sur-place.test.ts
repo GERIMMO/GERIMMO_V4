@@ -275,6 +275,13 @@ describe("le profil complet recopie aussi l'adresse sur la fiche du particulier 
     expect(ecrituresFiche()).toEqual([{ table: "persons", id: "fiche-compte", valeurs: { address_line1: "5 rue des Lilas", postal_code: "69003", city: "Lyon" }, vides: ["address_line1", "postal_code", "city"] }]);
   });
 
+  it("fiche portant une autre adresse (déménagement) : rien n'est écrit, et c'est dit", async () => {
+    banc.fiches = [ficheVide({ address_line1: "1 place Bellecour", postal_code: "69002", city: "Lyon" })];
+    const r = await modifierProfilOrganisation("org", {}, profil());
+    expect(r.succes).toMatch(/Votre fiche de bailleur garde son adresse actuelle/);
+    expect(ecrituresFiche()).toEqual([]);
+  });
+
   it("profil sans adresse complète : la fiche n'est pas lue", async () => {
     banc.fiches = [ficheVide()];
     await modifierProfilOrganisation("org", {}, profil({ city: "" }));

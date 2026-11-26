@@ -3,7 +3,7 @@
  * Règle de SCI-2 : les seuls champs vides, et seulement si les champs remplis concordent avec la saisie.
  */
 import { describe, expect, it } from "vitest";
-import { adresseFicheComplete, champsAdresseARecopier, type FicheTitulaire } from "@/lib/fiche-titulaire";
+import { adresseDiscordante, adresseFicheComplete, champsAdresseARecopier, ficheARenseigner, type FicheTitulaire } from "@/lib/fiche-titulaire";
 
 const saisie = { address_line1: "5 rue des Lilas", postal_code: "69003", city: "Lyon" };
 const fiche = (f: Partial<FicheTitulaire> = {}): FicheTitulaire => ({ id: "f", qualite: "Personne physique", address_line1: null, postal_code: null, city: null, ...f });
@@ -41,5 +41,28 @@ describe("adresseFicheComplete", () => {
     expect(adresseFicheComplete(saisie)).toBe(true);
     expect(adresseFicheComplete({ ...saisie, postal_code: "" })).toBe(false);
     expect(adresseFicheComplete({ address_line1: null, postal_code: null, city: null })).toBe(false);
+  });
+});
+
+describe("adresseDiscordante", () => {
+  it("vraie si un champ rempli diffère de la saisie, fausse sinon", () => {
+    expect(adresseDiscordante(fiche({ address_line1: "1 place Bellecour", postal_code: "69002", city: "Lyon" }), saisie)).toBe(true);
+    expect(adresseDiscordante(fiche({ city: "lyon" }), saisie)).toBe(false);
+    expect(adresseDiscordante(fiche(), saisie)).toBe(false);
+  });
+});
+
+describe("ficheARenseigner (avis de « Ajouter un bien »)", () => {
+  it("une fiche de particulier sans adresse complète : celle-ci", () => {
+    expect(ficheARenseigner([fiche()])?.id).toBe("f");
+    expect(ficheARenseigner([fiche({ qualite: "Indivision (personnes physiques)", city: "Lyon" })])?.id).toBe("f");
+    expect(ficheARenseigner([fiche({ address_line1: "", postal_code: "69003", city: "Lyon" })])?.id).toBe("f");
+  });
+  it("société, adresse complète, aucune ou plusieurs fiches, lecture en échec : rien", () => {
+    expect(ficheARenseigner([fiche({ qualite: "SCI" })])).toBeNull();
+    expect(ficheARenseigner([fiche(saisie)])).toBeNull();
+    expect(ficheARenseigner([])).toBeNull();
+    expect(ficheARenseigner([fiche(), fiche({ id: "g" })])).toBeNull();
+    expect(ficheARenseigner(null)).toBeNull();
   });
 });

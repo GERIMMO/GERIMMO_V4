@@ -9,8 +9,7 @@ import { FormulaireAvecBrouillon } from "./formulaire-avec-brouillon";
 import { CoordonneesBailleur } from "./coordonnees-bailleur";
 import { euros, offreAbonnementUnique, offreParticulier, parPeriode, type Periodicite } from "@/lib/tarifs";
 import { baseEspace } from "@/lib/racine-espace";
-import { adresseFicheComplete, type FicheTitulaire } from "@/lib/fiche-titulaire";
-import { estBailleurSociete } from "@/lib/qualite-bailleur";
+import { ficheARenseigner, type FicheTitulaire } from "@/lib/fiche-titulaire";
 
 export const metadata = { title: "Ajouter un bien — Gerimmo" };
 
@@ -63,8 +62,8 @@ export default async function PageNouveauBien(
       const { data: fiches } = await supabase.from("persons")
         .select("id, qualite, address_line1, postal_code, city")
         .eq("organization_id", orgId).eq("account_id", user.id).is("archived_at", null);
-      const fiche = fiches?.length === 1 ? (fiches[0] as FicheTitulaire) : null;
-      if (fiche && !estBailleurSociete(fiche.qualite) && !adresseFicheComplete(fiche)) ficheSansAdresse = { id: fiche.id };
+      const fiche = ficheARenseigner(fiches as FicheTitulaire[] | null);
+      if (fiche) ficheSansAdresse = { id: fiche.id };
     }
   }
 
@@ -115,7 +114,7 @@ export default async function PageNouveauBien(
             </span>
           </p>
           <div className="mt-3">
-            <Link href={`${base}/personnes/${ficheSansAdresse.id}`} className="btn-or">Compléter ma fiche</Link>
+            <Link href={`${base}/personnes/${ficheSansAdresse.id}?modifier=1#identite`} className="btn-or">Compléter ma fiche</Link>
           </div>
         </div>
       )}

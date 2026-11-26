@@ -11,7 +11,7 @@ import { envoyerEmail } from "@/lib/email";
 import { adresseDuSite, MESSAGE_SITE_NON_CONFIGURE } from "@/lib/site";
 import { erreurDuChamp, lireMontantFacultatif } from "@/lib/saisie-montant";
 import { AUCUN_ENVOI_PROPOSE, lireEnvoisProposes } from "@/lib/envois-suspendus";
-import { champsAdresseARecopier, type FicheTitulaire } from "@/lib/fiche-titulaire";
+import { adresseDiscordante, champsAdresseARecopier, type FicheTitulaire } from "@/lib/fiche-titulaire";
 
 export type EtatProfilOrganisation = {
   erreur?: string;
@@ -167,6 +167,8 @@ export async function modifierProfilOrganisation(
         complementFiche += " Votre fiche de bailleur a reçu cette adresse : elle figurera sur vos baux et vos courriers.";
         revalidatePath(`/agence/${orgId}/personnes`);
       } else if (fiche === "echec") complementFiche += AVIS_FICHE_NON_COMPLETEE;
+      // Jamais par-dessus une autre adresse : un déménagement se corrige sur la fiche, et c'est dit.
+      else if (fiche === "discordante") complementFiche += " Votre fiche de bailleur garde son adresse actuelle : si vous avez déménagé, modifiez-la dans « Personnes ».";
     }
   }
 
@@ -185,7 +187,7 @@ async function completerAdresseFicheTitulaire(
   orgId: string,
   compteId: string,
   adresse: { address_line1: string; postal_code: string; city: string },
-): Promise<"completee" | "rien" | "echec"> {
+): Promise<"completee" | "discordante" | "rien" | "echec"> {
   try {
     const { data, error } = await supabase
       .from("persons")
@@ -197,7 +199,7 @@ async function completerAdresseFicheTitulaire(
     if (!data || data.length !== 1) return "rien";
     const fiche = data[0] as FicheTitulaire;
     const ecrire = champsAdresseARecopier(fiche, adresse);
-    if (!ecrire) return "rien";
+    if (!ecrire) return adresseDiscordante(fiche, adresse) ? "discordante" : "rien";
     let requete = supabase.from("persons").update(ecrire).eq("id", fiche.id).eq("organization_id", orgId);
     for (const champ of Object.keys(ecrire)) requete = requete.is(champ, null);
     const { data: ecrites, error: erreurEcriture } = await requete.select("id");
@@ -251,7 +253,8 @@ export async function completerCoordonneesBailleur(
   // n'annule pas l'enregistrement : la création du bien reste ouverte, et la fiche se vérifie dans l'annuaire.
   await supabase.rpc("completer_fiche_societe_depuis_profil", { p_org: orgId });
   // Et la fiche du particulier (ou de l'indivisaire titulaire du compte), dans les mêmes conditions : ses seuls champs
-  // d'adresse, s'ils sont tous vides. Un échec est dit, sans annuler l'enregistrement.
+  // d'adresse vides, si le reste concorde (lib/fiche-titulaire.ts). Un échec n'annule pas l'enregistrement ; ce
+  // formulaire disparaissant aussitôt, c'est l'avis de la page « Ajouter un bien » qui signale une fiche restée vide.
   const fiche = await completerAdresseFicheTitulaire(supabase, orgId, user.id, { address_line1: adresse, postal_code: codePostal, city: ville });
 
   revalidatePath(`/agence/${orgId}`, "layout");

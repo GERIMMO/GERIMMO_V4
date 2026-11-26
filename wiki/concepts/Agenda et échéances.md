@@ -3,8 +3,8 @@ type: concept
 tags: [agenda, echeances, rdv, alertes, produit-v0]
 status: draft
 created: 2026-07-21
-updated: 2026-11-22
-sources: ["[[2026-07-21-fonctionnalites-par-persona-v0]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0c-copropriete]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-module-10-rdv-et-planning]]", "[[2026-07-24-gerimmo-v3-module-14-agenda-et-alertes]]", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
+updated: 2026-11-26
+sources: ["[[2026-07-21-fonctionnalites-par-persona-v0]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0c-copropriete]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-module-10-rdv-et-planning]]", "[[2026-07-24-gerimmo-v3-module-14-agenda-et-alertes]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)"]
 ---
 
 # Agenda et échéances
@@ -180,8 +180,9 @@ deux écrans).
   motif (30 dernières). Voir [[Bail]], [[Restitution du dépôt de garantie]].
 
 ## État dans l'application au 22/11/2026 — l'agenda du propriétaire montre ses échéances (mission palier 1, lot 29)
-En préproduction, **non publié** ([[Mission palier 1 — audit du 22 novembre 2026]], point P2-06 ; détail dans
-`JOURNAL.md`). Jusque-là, l'agenda du [[Propriétaire bailleur]] ne montrait que les rendez-vous d'intervention.
+En préproduction le 22/11 ; **en production depuis le 25/11/2026**, version `062296e2`
+([[Mission palier 1 — audit du 22 novembre 2026]], point P2-06 ; détail dans `JOURNAL.md`). Jusque-là, l'agenda du
+[[Propriétaire bailleur]] ne montrait que les rendez-vous d'intervention.
 - **Ce qui s'affiche**, dans le calendrier du mois, au jour où l'échéance tombe : les **loyers appelés** à leur jour
   d'échéance, avec leur état (« Reçu », « Reçu en partie », « À recevoir », « Pas encore reçu — échéance passée ») ;
   les **états des lieux** datés (signé ou non) ; le **départ annoncé par un congé** enregistré ; la **date de fin

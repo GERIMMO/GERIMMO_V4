@@ -3,8 +3,8 @@ type: process
 tags: [loyer, quittance, facturation-locative]
 status: in-progress
 created: 2026-07-21
-updated: 2026-11-24
-sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[2026-07-24-gerimmo-v3-a6-doctrine-financiere]]", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
+updated: 2026-11-26
+sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[2026-07-24-gerimmo-v3-a6-doctrine-financiere]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)", "JOURNAL.md — entrée du 26/11/2026 (matin), réglages R1 à R4"]
 ---
 
 # Quittancement des loyers
@@ -106,7 +106,7 @@ circuit : il annonce.
 > d'échéance aussi. L'heure du cycle mensuel (le 1er à 05 h UTC) ne change pas (décision du
 > 15/10). Aucune date déjà enregistrée n'est réécrite. Voir [[Le jour de référence est le jour de Paris]].
 
-## État dans l'application au 24/11/2026 (préproduction, non publié) — l'avis d'échéance (mission palier 1, phase 3)
+## État dans l'application au 24/11/2026 (préproduction le 24/11 ; en production depuis le 25/11/2026, version `062296e2`) — l'avis d'échéance (mission palier 1, phase 3)
 
 Relu dans le code après les lots 38, 39 et 44 ([[Mission palier 1 — audit du 22 novembre 2026]] ; `QUESTIONS.md`, Q41
 et Q45 ; `JURISTE.md`, partie 5, point 5).
@@ -116,7 +116,8 @@ et Q45 ; `JURISTE.md`, partie 5, point 5).
   restant à régler. »), le dit au passé et indique ce qui est déjà reçu et ce qui reste sur ce terme. Le total « pour
   solder votre compte à la date du présent avis » compte les termes antérieurs **et les termes suivants déjà échus** ;
   il oubliait ces derniers (1 120 € au lieu de 1 890,50 € dans le jeu d'essai). L'avis par e-mail suit la même règle,
-  au jour de son envoi (envoi fermé depuis le lot 15). Voir [[Relances et mise en demeure]].
+  au jour de son envoi (envoi fermé depuis le lot 15 ; au 26/11, toujours fermé en production tant que le dirigeant ne
+  l'ouvre pas dans la console, réglage R5 du plan de publication, pas encore fait). Voir [[Relances et mise en demeure]].
 - **Virement** : quand les modalités de règlement du bail mentionnent un virement, l'avis imprime l'IBAN du profil de
   l'espace ; sans lui, le PDF est refusé avec un lien vers le profil (un seul IBAN par espace : Q45).
 - **Prorata** : le décompte au prorata imprime la base et la formule de l'appel du mois concerné, et non plus le loyer

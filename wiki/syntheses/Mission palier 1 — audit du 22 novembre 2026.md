@@ -4,7 +4,7 @@ tags: [audit, palier-1, conformite, securite, ia, plan-de-correction, documents]
 status: in-progress
 created: 2026-11-22
 updated: 2026-11-26
-sources: ["log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)"]
+sources: ["log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)", "JOURNAL.md — entrée du 26/11/2026 (matin) (réglages R1 à R4)", "log.md — entrée « lint » du 26/11/2026 (réglages R1 à R4)"]
 ---
 
 # Mission palier 1 — audit du 22 novembre 2026
@@ -20,12 +20,15 @@ production depuis le 25/11/2026 ; l'audit complet est dans `AUDIT.md`, à la rac
 > (26/11 à 00 h 17, heure de Paris), par la PR #358 : `main` = `8f9dd9ce`, identique à `062296e2`. Elle remplace
 > `81740dec` (version du 21/11). Ses 52 migrations sont appliquées (25/11, 22:09Z) ; la recette de production n° 58 a
 > réussi. Les souscriptions payantes restent **fermées** (`/tarifs` relue le 25/11 après la publication).
-> **Pas encore fait au 26/11** : les réglages de la console, à faire par le dirigeant (plan de publication, § 4, R1 à
-> R8 : identité du vendeur, archivage des conditions du 24/11, contrôle du mode IA, repères fiscaux, parcours manuel
-> de 15 minutes, ouverture des cinq envois automatiques, en-tête Stripe, puis l'ouverture des souscriptions si le
-> dirigeant la décide). Ce qui en dépend est en ligne mais pas encore réglé ni ouvert. Ce qui était « non vérifié », « supposé » ou « à trancher par le juriste » le reste : la
-> publication ne vérifie rien de juridique. Source : `log.md`, entrée « deploy » du 25/11/2026 ; `JOURNAL.md`, entrée
-> du 25/11 (nuit).
+> **Réglages de la console** (plan de publication, § 4), faits par le dirigeant le 26/11 au matin et vérifiés par
+> l'agent (pages publiques, base en lecture seule) : identité du vendeur (R1 ; forme affichée « Entrepreneur individuel
+> (EI) », sans nom commercial), archivage des conditions du 24/11 (R2, 05:56Z), repères fiscaux du micro-foncier
+> (R4, 06:00Z) ; IA activée en base (R3, libellé de la console non relu). **Pas encore faits au 26/11** : parcours
+> manuel de 15 minutes (R4 bis, en cours chez le dirigeant), ouverture des cinq envois automatiques (R5, toujours
+> fermés), en-tête Stripe (R7) ; vente aux particuliers sans médiateur (R6) et ouverture des souscriptions (R8) :
+> décisions du dirigeant, non prises. Ce qui était « non vérifié », « supposé » ou « à trancher par le juriste » le
+> reste : la publication ne vérifie rien de juridique. Source : `log.md`, entrées « deploy » du 25/11/2026 et « lint »
+> du 26/11/2026 ; `JOURNAL.md`, entrées du 25/11 (nuit) et du 26/11 (matin).
 
 ## Où lire quoi
 
@@ -166,8 +169,10 @@ plan de publication, pas encore fait).*
   n'y en a pas ; une valeur illisible n'est pas affichée ; seul le Super Admin en double vérification la règle, et
   chaque réglage est journalisé avec la valeur d'avant. Les deux valeurs livrées n'ont **pas** été contrôlées à la
   source par l'agent : elles sont livrées sans date de vérification (`QUESTIONS.md`, Q38). Aucun calcul ne s'en sert.
-  *26/11 : en production depuis le 25/11/2026 ; la saisie des repères (15 000 €, 30 %) avec leur source dans la
-  console (réglage R4 du plan de publication) n'est pas encore faite.*
+  *26/11 : en production depuis le 25/11/2026 ; repères saisis dans la console par le dirigeant (réglage R4 du plan
+  de publication) : 15 000 €, 30 %, source « BOFiP BOI-RFPI-DECLA-10, version en vigueur du 06/03/2025
+  (bofip.impots.gouv.fr), relue le 26/11/2026 », enregistrés le 26/11 à 06:00Z (vérifié en base par l'agent ;
+  `JOURNAL.md`, entrée du 26/11 (matin)).*
 - *Prudences sans texte (lot 33)* : quand un point de droit n'a pas pu être relu, l'écran avertit et dit ce que Gerimmo
   ne vérifie pas ; il ne cite aucun article et ne bloque rien, **sauf** la lettre de reprise, qui n'est pas préparée
   avec des blancs (choix de prudence de l'agent). Les questions sont posées au juriste (`JURISTE.md`, partie 1, points

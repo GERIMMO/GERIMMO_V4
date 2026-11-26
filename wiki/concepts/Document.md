@@ -3,8 +3,8 @@ type: concept
 tags: [document, ged]
 status: in-progress
 created: 2026-07-21
-updated: 2026-11-24
-sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-architecture-lot-0]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-12-documents-et-ged]]", "[[2026-07-24-gerimmo-v3-a2-conservation-rgpd]]", "[[2026-07-24-gerimmo-v3-a4-socle-securite]]", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
+updated: 2026-11-26
+sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-architecture-lot-0]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-12-documents-et-ged]]", "[[2026-07-24-gerimmo-v3-a2-conservation-rgpd]]", "[[2026-07-24-gerimmo-v3-a4-socle-securite]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)"]
 ---
 
 # Document
@@ -141,7 +141,7 @@ s'impriment « — »/« Néant. » sans compter manquants ; la première éché
 le plafond d'honoraires se **calculent**. Un bail dont les fiches sont
 remplies sort **sans aucun manquant** (testé).
 
-## Catalogue de documents — état dans l'application au 24/11/2026 (préproduction, non publié)
+## Catalogue de documents — état dans l'application au 24/11/2026 (préproduction le 24/11 ; en production depuis le 25/11/2026, version `062296e2`)
 
 Les 46 modèles du palier 1 ont été produits sur six espaces fictifs et relus page par page ; 97 défauts confirmés ont
 été corrigés (lots 35 à 49 : [[Mission palier 1 — audit du 22 novembre 2026]], phase 3). Ce qui vaut pour tout le
@@ -156,8 +156,8 @@ catalogue :
   française ; étage écrit une fois (Q41, [[Lot]]).
 - **Signature et datation** : l'avenant, les inventaires, le protocole d'apurement ([[Plan d'apurement]]) et
   l'autorisation de travaux sont datés à la signature ; l'[[État des lieux]] porte la date du constat, le bordereau des
-  clés celle de la remise ; les circuits préparés avant la publication et pas encore envoyés seront à préparer de
-  nouveau (Q40, [[Signature électronique]]).
+  clés celle de la remise ; les circuits préparés avant la publication du 25/11/2026 et pas encore envoyés sont à préparer
+  de nouveau (Q40, [[Signature électronique]]).
 - **Rien n'est présenté comme conforme** : les points de droit sont dans `JURISTE.md`, partie 5.
 
 > [!warning] Points à trancher / contradictions (24/11/2026)

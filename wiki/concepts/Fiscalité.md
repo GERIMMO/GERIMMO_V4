@@ -3,8 +3,8 @@ type: concept
 tags: [fiscalite, revenus-fonciers, proprietaire]
 status: draft
 created: 2026-07-22
-updated: 2026-11-23
-sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-module-6-rapport-et-fiscalite]]"]
+updated: 2026-11-26
+sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-module-6-rapport-et-fiscalite]]", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)", "JOURNAL.md (entrée du 26/11/2026 (matin), réglage R4)"]
 ---
 
 # Fiscalité
@@ -127,8 +127,8 @@ LMP et SCI restent en V2. Voir [[Propriétaire bailleur]].
 > surévalué d'un côté, charges gonflées de l'autre. Source : [[Audit complet du 29 septembre 2026]].
 
 ## État dans l'application au 23/11/2026 — le plafond et l'abattement du micro-foncier sont un réglage (mission palier 1, lot 32)
-En préproduction, **non publié** ([[Mission palier 1 — audit du 22 novembre 2026]], point P2-09 ; détail dans
-`JOURNAL.md`).
+En préproduction le 23/11 ; **en production depuis le 25/11/2026**, version `062296e2`
+([[Mission palier 1 — audit du 22 novembre 2026]], point P2-09 ; détail dans `JOURNAL.md`).
 - **Ce qui existait.** L'aide du récapitulatif fiscal du [[Propriétaire bailleur]] citait, écrits dans le code, un
   plafond de recettes brutes de 15 000 € et un abattement de 30 % pour le régime micro-foncier.
 - **Ce qui change.** Ces deux valeurs se lisent dans un réglage du [[Super Admin]] (Paramètres généraux, « Repères
@@ -145,3 +145,9 @@ En préproduction, **non publié** ([[Mission palier 1 — audit du 22 novembre 
 > le site officiel des impôts depuis son environnement : elles sont livrées **sans date de vérification** et ne sont
 > présentées nulle part comme vérifiées. Le dirigeant les confirme dans la console (`QUESTIONS.md`, Q38). Cette page
 > ne les affirme donc pas comme règle fiscale en vigueur.
+>
+> *Mise à jour du 26/11/2026 (réglage R4, fait) :* l'agent a relu le BOFiP BOI-RFPI-DECLA-10 (version en vigueur du
+> 06/03/2025 : plafond 15 000 €, abattement 30 %) ; le dirigeant a enregistré dans la console 15 000 € et 30 %, avec la
+> source « BOFiP BOI-RFPI-DECLA-10, version en vigueur du 06/03/2025 (bofip.impots.gouv.fr), relue le 26/11/2026 »,
+> le 26/11 à 06:00Z (vérifié en base, lecture seule ; `JOURNAL.md`, entrée du 26/11/2026 (matin)). Ces valeurs ne
+> servent toujours qu'à la phrase d'aide : le récapitulatif ne calcule ni impôt ni droit au micro-foncier.

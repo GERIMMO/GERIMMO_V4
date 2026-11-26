@@ -3,8 +3,8 @@ type: concept
 tags: [bail, typologie, perimetre, mobilite, saisonnier, commercial, duree-reduite, epoux-pacs]
 status: draft
 created: 2026-08-05
-updated: 2026-11-25
-sources: ["[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]", "[[Recueil des textes officiels (v6)]]", "[[Bail]]", "DECISIONS-2026-11-24.md", "QUESTIONS.md (Q103, Q107, Q111, Q115)", "JURISTE.md (partie 9)", "livrables/notes-banc/ (notes-T1, notes-T2, notes-T3, notes-mariage, relecture-T2R, relecture-T3R)", "livrables/recueil/analyse-refs-01-09.md", "livrables/recueil/analyse-refs-10-24.md"]
+updated: 2026-11-26
+sources: ["[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]", "[[Recueil des textes officiels (v6)]]", "[[Bail]]", "DECISIONS-2026-11-24.md", "QUESTIONS.md (Q103, Q107, Q111, Q115)", "JURISTE.md (partie 9)", "livrables/notes-banc/ (notes-T1, notes-T2, notes-T3, notes-mariage, relecture-T2R, relecture-T3R)", "livrables/recueil/analyse-refs-01-09.md", "livrables/recueil/analyse-refs-10-24.md", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)"]
 ---
 
 # Types de baux
@@ -24,7 +24,7 @@ Source : [[2026-08-05-bailpdf-contrat-de-bail|BailPDF]].
 | **Bail meublé** | 1 an min. | 2 mois HC² | 1 mois | ✅ **Périmètre** ([[Bail]]) |
 | **Bail étudiant** | 9 mois, **jamais reconduit tacitement** ([[2026-08-05-bailpdf-modele-bail-meuble\|formulaire officiel]] ; aussi le texte fourni, art. 25-7) | 2 mois HC² | 1 mois | ✅ Variante du meublé ([[Bail]]) |
 | **Colocation (bail unique)** | selon type | selon type | selon type | ✅ **Périmètre** — solidarité 6 mois ([[Bail]]) |
-| Location à deux époux ou partenaires de PACS (bail commun) | selon type | selon type | selon type | Version préparée : case « mariés ou pacsés » — **hors régime de la colocation**, pas de fin de solidarité à six mois³ ([[Bail]]) |
+| Location à deux époux ou partenaires de PACS (bail commun) | selon type | selon type | selon type | Version `062296e2`, en production depuis le 25/11/2026 : case « mariés ou pacsés » — **hors régime de la colocation**, pas de fin de solidarité à six mois³ ([[Bail]]) |
 | Colocation (contrats séparés) | selon type | selon type | selon type | 🔜 V2 (parcours 1.4) dans le référentiel — **contrats individuels développés le 14/09/2026** ([[Bail]]) ; hors contrat type⁴ |
 | Bail mobilité | 1 à 10 mois, non renouvelable | **Interdit** (Visale seule) | 1 mois | ❌ Hors périmètre |
 | Location saisonnière | 90 jours consécutifs max. | libre | — | ❌ Hors périmètre |
@@ -37,12 +37,12 @@ Source : [[2026-08-05-bailpdf-contrat-de-bail|BailPDF]].
 le bail d'habitation principal et y est simplement mentionné — cas couvert par le
 [[Lot]] et ses annexes. Loué séparément, il exige son propre contrat, hors périmètre.
 
-Notes du 25/11/2026 (version préparée, non publiée ; textes du [[Recueil des textes officiels (v6)]], fournis par le
-dirigeant et non recontrôlés sur Légifrance) :
+Notes du 25/11/2026 (version préparée ce jour-là ; en production depuis le 25/11/2026, version `062296e2` ; textes du
+[[Recueil des textes officiels (v6)]], fournis par le dirigeant et non recontrôlés sur Légifrance) :
 1. Le texte fourni (art. 15 I) exige que le locataire « précise le motif invoqué et le justifie au moment de l'envoi de
-   la lettre de congé. A défaut, le délai de préavis applicable à ce congé est de trois mois. » Version préparée : trois
+   la lettre de congé. A défaut, le délai de préavis applicable à ce congé est de trois mois. » Version `062296e2` : trois
    mois par défaut, un mois si la personne qui enregistre le congé confirme que la lettre le précise et le justifie
-   (Q103). En production aujourd'hui, un mois est accordé d'office en zone tendue.
+   (Q103). Jusqu'au 25/11 (`81740dec`), un mois était accordé d'office en zone tendue.
 2. Le plafond de deux mois en meublé vient de l'article 25-6, **absent du recueil** : il est gardé tel que le code le
    tenait, sans avoir été relu (Q111). Le reçu de dépôt d'un bail meublé ne cite plus d'article ; le plafond suit le type
    du bail, non la case « meublé » du logement (lot T3).
@@ -71,12 +71,13 @@ dirigeant et non recontrôlés sur Légifrance) :
   l'indivision ; le contrat mentionne les raisons et l'événement ; confirmation de l'événement deux mois avant le terme,
   un seul report, et à défaut bail réputé de trois ans. L'article 11 n'est pas applicable au meublé. Dans le code, un
   champ « événement de durée réduite » existait pourtant et le bail nu imprimait « trois ans » à côté de l'événement
-  (écart R17-A2). Version préparée (lot T2) : **un bail nu dont ce champ est rempli n'est plus produit** (message qui dit
-  quoi faire ; un bail déjà signé reste activable — Q107) ; le bail meublé ne lit plus le champ ni n'imprime la
-  rubrique. Le vrai parcours (durée, raisons, contrôle de la qualité du bailleur, confirmation) n'est pas fait.*
-- **Terme d'un bail commencé en fin de mois** (version préparée, lot T3) : un bail commencé un 29 février finit le
-  28 février (27 avant) ; certains baux étudiants de neuf mois commencés un 29, 30 ou 31 finissent un jour plus tard
-  (Q115 ; `JURISTE.md`, partie 9, point 24).
+  (écart R17-A2). Version `062296e2` (lot T2, en production depuis le 25/11/2026) : **un bail nu dont ce champ est
+  rempli n'est plus produit** (message qui dit quoi faire ; un bail déjà signé reste activable — Q107) ; le bail meublé
+  ne lit plus le champ ni n'imprime la rubrique. Le vrai parcours (durée, raisons, contrôle de la qualité du bailleur,
+  confirmation) n'est pas fait.*
+- **Terme d'un bail commencé en fin de mois** (version `062296e2`, lot T3, en production depuis le 25/11/2026) : un
+  bail commencé un 29 février finit le 28 février (27 avant) ; certains baux étudiants de neuf mois commencés un 29, 30
+  ou 31 finissent un jour plus tard (Q115 ; `JURISTE.md`, partie 9, point 24).
 
 ## Relations
 

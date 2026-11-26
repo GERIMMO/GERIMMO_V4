@@ -3,8 +3,8 @@ type: concept
 tags: [impaye, loyer, relance, plan-apurement]
 status: in-progress
 created: 2026-11-02
-updated: 2026-11-24
-sources: ["[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[Audit complet du 29 septembre 2026]]", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
+updated: 2026-11-26
+sources: ["[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[Audit complet du 29 septembre 2026]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)"]
 ---
 
 # Plan d'apurement
@@ -60,7 +60,7 @@ ses droits ni à la clause résolutoire.
 > - Rappel du locataire à J-3 de chaque tranche par e-mail : non implémenté (le plan est visible
 >   dans son espace).
 
-## État dans l'application au 24/11/2026 (préproduction, non publié)
+## État dans l'application au 24/11/2026 (préproduction le 24/11 ; en production depuis le 25/11/2026, version `062296e2`)
 
 Relu dans le code après les lots 39 et 44 de la phase 3 ([[Mission palier 1 — audit du 22 novembre 2026]] ;
 `QUESTIONS.md`, Q44 ; `JURISTE.md`, partie 5, point 7). Détail dans [[Relances et mise en demeure]].

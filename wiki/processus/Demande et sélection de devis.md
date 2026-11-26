@@ -3,8 +3,8 @@ type: process
 tags: [devis, incident, artisan]
 status: in-progress
 created: 2026-07-21
-updated: 2026-11-22
-sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-09-28-reseau-national-ouvertures-locales]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
+updated: 2026-11-26
+sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-09-28-reseau-national-ouvertures-locales]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)"]
 ---
 
 # Demande et sélection de devis
@@ -92,7 +92,7 @@ La sélection n'est plus le seul geste sur un devis reçu (décision D18, PR #18
 Détail et limites : [[Devis]], section « Ce que fait le code aujourd'hui ». Parcours complet
 non joué dans un navigateur à ce jour.
 
-## État dans l'application au 22/11/2026 — mission palier 1 (préproduction, non publié)
+## État dans l'application au 22/11/2026 — mission palier 1 (préproduction le 22/11 ; en production depuis le 25/11/2026, version `062296e2`)
 Deux lots de la mission changent la demande de devis ([[Mission palier 1 — audit du 22 novembre 2026]]) ; ce qui
 touche le contenu du devis (garantie, lignes gardées) est décrit dans [[Devis]].
 - **Artisan absent (lot 25).** Un [[Artisan]] qui a déclaré une absence ne peut plus recevoir de **nouvelle** demande

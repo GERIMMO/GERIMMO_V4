@@ -4,7 +4,7 @@ tags: [compte, fermeture, effacement, inactivite, rgpd, stripe, conformite]
 status: draft
 created: 2026-10-24
 updated: 2026-11-26
-sources: ["[[Demandes sur les données et fermeture de compte]]", "[[Durées de conservation]]", "[[Registre des traitements]]", "log.md — entrées « decision » des 23/10/2026 (valeurs par défaut du plan) et 24/10/2026 (choix délégués 2 et 3), « deploy » du 24/10/2026 (PR #246 et PR #248, migration 20261024150000_activation_inactivite_v1)", "app/supabase/migrations/20261024130000_fermeture_comptes.sql", "app/src/lib/comptes-fermeture.ts", "app/src/app/actions/fermeture-compte.ts", "[[Recueil des textes officiels (v6)]]", "livrables/recueil/analyse-refs-25-37.md (réf. 31 et 34)", "livrables/notes-banc/notes-T4.md et relecture-T4R.md", "DECISIONS-2026-11-24.md (Q15, Q64)", "JOURNAL.md — lot T4 et contrôle de production du 24/11/2026", "QUESTIONS.md — Q64, Q86, Q87", "JURISTE.md — partie 9, points 28 et 35", "code de la branche fusionnée claude/palier-1-fusion (89cb87ff, complétée jusqu'à 062296e2, en production depuis le 25/11/2026 ; lecture seule) : migrations 20261125103000 et 20261125105000, lib/comptes-fermeture-serveur.ts, admin/donnees/programmer-fermeture.tsx, confidentialite/page.tsx ; code en ligne jusqu'au 25/11/2026 : 81740dec : lib/comptes-fermeture.ts", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)"]
+sources: ["[[Demandes sur les données et fermeture de compte]]", "[[Durées de conservation]]", "[[Registre des traitements]]", "log.md — entrées « decision » des 23/10/2026 (valeurs par défaut du plan) et 24/10/2026 (choix délégués 2 et 3), « deploy » du 24/10/2026 (PR #246 et PR #248, migration 20261024150000_activation_inactivite_v1)", "app/supabase/migrations/20261024130000_fermeture_comptes.sql", "app/src/lib/comptes-fermeture.ts", "app/src/app/actions/fermeture-compte.ts", "[[Recueil des textes officiels (v6)]]", "livrables/recueil/analyse-refs-25-37.md (réf. 31 et 34)", "livrables/notes-banc/notes-T4.md et relecture-T4R.md", "DECISIONS-2026-11-24.md (Q15, Q64)", "JOURNAL.md — lot T4 et contrôle de production du 24/11/2026", "QUESTIONS.md — Q64, Q86, Q87", "JURISTE.md — partie 9, points 28 et 35", "code de la branche fusionnée claude/palier-1-fusion (89cb87ff, complétée jusqu'à 062296e2, en production depuis le 25/11/2026 ; lecture seule) : migrations 20261125103000 et 20261125105000, lib/comptes-fermeture-serveur.ts, admin/donnees/programmer-fermeture.tsx, confidentialite/page.tsx ; code en ligne jusqu'au 25/11/2026 : 81740dec : lib/comptes-fermeture.ts", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)", "JOURNAL.md — entrée du 26/11/2026 (matin) (réglage R2)"]
 ---
 
 # Fermeture de compte
@@ -193,8 +193,9 @@ tient aux durées gardées après la fermeture ([[Durées de conservation]]) :
   « purge » ne supprime le client, laissé alors chez Stripe sans limite.
 - **Textes** : la console de fermeture (`/admin/donnees`) dit « Preuve du contrat payé archivée avant l'effacement
   (dix ans ; factures dix ans) » ; la page confidentialité et l'article 9 des conditions générales (version du
-  24/11/2026 ; `/conditions` affiche « Version du 24 novembre 2026, en vigueur depuis cette date » ; son archivage
-  dans la console, réglage R2 du plan de publication, n'est pas encore fait au 26/11) disent dix ans. Le courriel
+  24/11/2026 ; `/conditions` affiche « Version du 24 novembre 2026, en vigueur depuis cette date » ; archivée dans la
+  console le 26/11/2026 à 05:56Z, réglage R2 du plan de publication, vérifié en base par l'agent : `JOURNAL.md`,
+  entrée du 26/11 (matin)) disent dix ans. Le courriel
   « Votre compte Gerimmo est fermé » donne la date de fin calculée par la base, donc dix ans.
 - **Banc d'essai seulement** : aucun e-mail réel, aucun appel à Stripe pendant ces travaux ; aucune purge n'a pu
   supprimer de facture à six ans (aucune n'a six ans avant 2032 ; production non lue). Les migrations devaient être

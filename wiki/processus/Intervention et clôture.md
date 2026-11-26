@@ -3,8 +3,8 @@ type: process
 tags: [intervention, cloture, rapport, incident]
 status: in-progress
 created: 2026-07-21
-updated: 2026-11-24
-sources: ["[[Dépôt Gerimmo-V3]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Propositions de fonctions majeures — version candidate du 13 octobre 2026]]", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
+updated: 2026-11-26
+sources: ["[[Dépôt Gerimmo-V3]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Propositions de fonctions majeures — version candidate du 13 octobre 2026]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)"]
 ---
 
 # Intervention et clôture
@@ -80,8 +80,8 @@ facture ni à l'incident, et l'artisan ne voyait rien.
 
 ## État dans l'application au 22/11/2026 (relu dans le code et la base d'essai)
 Ce que fait réellement l'application, vérifié le 22/11/2026 sur la branche de préproduction de la mission palier 1
-([[Mission palier 1 — audit du 22 novembre 2026]]). Les quatre premiers points sont déjà en production ; les lots de
-la mission, eux, ne sont **pas publiés**.
+([[Mission palier 1 — audit du 22 novembre 2026]]). Les quatre premiers points étaient déjà en production le 22/11 ; les
+lots de la mission, alors non publiés, sont **en production depuis le 25/11/2026** (version `062296e2`).
 - **États d'une intervention** : `proposee → acceptee → planifiee → en_cours → terminee`, plus `refusee` et
   `annulee`. Il n'y a ni « confirmée », ni « suspendue », ni « à reprogrammer » : un rendez-vous qui tombe ramène la
   mission à « acceptée — rendez-vous à fixer » ([[Planification d'intervention]]).
@@ -98,7 +98,7 @@ la mission, eux, ne sont **pas publiés**.
   *Correction du 23/11/2026 : la première rédaction de cette section, la veille, disait à tort que seul le
   gestionnaire évaluait.*
 
-### Ce que la mission palier 1 ajoute (préproduction, non publié)
+### Ce que la mission palier 1 ajoute (préproduction le 22/11 ; en production depuis le 25/11/2026, version `062296e2`)
 - **Facture refusée puis corrigée (lot 11).** Une facture d'artisan erronée se refuse avec un motif ; l'artisan en
   dépose une autre. Une intervention ne porte qu'**une facture en vigueur** ; la facture refusée reste au dossier,
   intacte ; refus et validation s'excluent (source : cahier Gerimmo V3, module 9, variante V5). L'avoir et la
@@ -123,7 +123,7 @@ la mission, eux, ne sont **pas publiés**.
 > - **Score de recommandation** : cette page dit que la note « alimente le score de recommandation des futurs
 >   devis ». Le nombre de rendez-vous manqués imputés à l'artisan (lot 26) n'entre pas dans sa note (Q32).
 
-## État dans l'application au 24/11/2026 (préproduction, non publié) — ordre et compte rendu d'intervention
+## État dans l'application au 24/11/2026 (préproduction le 24/11 ; en production depuis le 25/11/2026, version `062296e2`) — ordre et compte rendu d'intervention
 
 Relu dans le code après les lots 36, 37, 38, 42, 43 et 48 de la phase 3
 ([[Mission palier 1 — audit du 22 novembre 2026]] ; `QUESTIONS.md`, Q42 et Q51 ; `JURISTE.md`, partie 5, point 2).

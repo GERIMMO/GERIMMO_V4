@@ -4,7 +4,7 @@ tags: [tarifs, stripe, abonnement, tva, franchise]
 status: in-progress
 created: 2026-07-21
 updated: 2026-11-26
-sources: ["[[2026-09-28-decision-tarification]]", "[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-18-administration]]", "[[Conditions générales]]", "[[Recueil des textes officiels (v6)]]", "DECISIONS-2026-11-24.md (Q7, complément du 24/11 : « Mentionne tva non applicable pour l'instant »)", "QUESTIONS.md (Q63, Q66, Q80)", "JURISTE.md, partie 6 point 13 et partie 9 point 32", "livrables/notes-banc/notes-D7.md (§ 1, 5.3), notes-T4.md (R29-A1, T4R-10)", "livrables/recueil/analyse-refs-25-37.md (réf. 29, 30)", "code en production jusqu'au 25/11 : 81740dec — app/src/lib/tarifs.ts, app/src/components/grilles-tarifaires.tsx, app/src/app/tarifs/page.tsx, app/src/lib/conditions-versions.json", "version lue avant la publication : 89cb87ff (branche claude/palier-1-fusion, complétée jusqu'à 062296e2, en production depuis le 25/11) — mêmes fichiers", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)", "livrables/PLAN-DE-PUBLICATION.md (§ 4, réglages R1, R2, R7)"]
+sources: ["[[2026-09-28-decision-tarification]]", "[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-18-administration]]", "[[Conditions générales]]", "[[Recueil des textes officiels (v6)]]", "DECISIONS-2026-11-24.md (Q7, complément du 24/11 : « Mentionne tva non applicable pour l'instant »)", "QUESTIONS.md (Q63, Q66, Q80)", "JURISTE.md, partie 6 point 13 et partie 9 point 32", "livrables/notes-banc/notes-D7.md (§ 1, 5.3), notes-T4.md (R29-A1, T4R-10)", "livrables/recueil/analyse-refs-25-37.md (réf. 29, 30)", "code en production jusqu'au 25/11 : 81740dec — app/src/lib/tarifs.ts, app/src/components/grilles-tarifaires.tsx, app/src/app/tarifs/page.tsx, app/src/lib/conditions-versions.json", "version lue avant la publication : 89cb87ff (branche claude/palier-1-fusion, complétée jusqu'à 062296e2, en production depuis le 25/11) — mêmes fichiers", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)", "livrables/PLAN-DE-PUBLICATION.md (§ 4, réglages R1, R2, R7)", "JOURNAL.md — entrée du 26/11/2026 (matin) (réglages R1 à R4)"]
 ---
 
 # Grille tarifaire
@@ -17,8 +17,14 @@ sources: ["[[2026-09-28-decision-tarification]]", "[[Dépôt Gerimmo-V3]]", "[[2
 >   de franchise (« article » en toutes lettres) et l'identité du vendeur qui la porte. Les **ventes y restent
 >   fermées** (`/tarifs` relue le 25/11 après la publication ; [[Souscription de l'abonnement]]).
 > - **Jusqu'au 25/11** : code `81740dec` (servi depuis le 21/11/2026), ventes fermées.
-> - **Pas encore fait au 26/11** (réglages à faire par le dirigeant, `livrables/PLAN-DE-PUBLICATION.md`, § 4) :
->   identité du vendeur (R1) et en-tête des factures dans le compte Stripe (R7).
+> - **Fait le 26/11 au matin** (vérifié par l'agent sur les pages publiques et en base, en lecture seule ; `JOURNAL.md`,
+>   entrée du 26/11 (matin)) :
+>   identité du vendeur saisie (R1) — `/mentions-legales` l'affiche sous la forme « Entrepreneur individuel (EI) », sans
+>   nom commercial ; `/conditions` et `/confidentialite` portent le nom et l'adresse. Conditions du 24/11 archivées
+>   (R2, 26/11 à 05:56Z).
+> - **Pas encore fait au 26/11** (réglage à faire par le dirigeant, `livrables/PLAN-DE-PUBLICATION.md`, § 4) : en-tête
+>   des factures dans le compte Stripe (R7). Vente aux particuliers sans médiateur (R6) et ouverture des souscriptions
+>   (R8) : décisions du dirigeant, non prises ; les ventes restent fermées.
 
 ## Grille appliquée par le code depuis le 11/11/2026
 
@@ -70,8 +76,8 @@ de la date d'effet et du prorata (aperçu Stripe) puis confirmation — une gard
 appliquée à l'échéance, sans prorata ; changement de périodicité à l'échéance seulement ; résiliation pour la prochaine
 échéance. Révision tarifaire notifiée **au moins un mois** avant (article 8.9) et, pour le consommateur, soumise à son
 accord exprès. Depuis le 25/11/2026 (`062296e2`) : une hausse ou un changement de périodicité demande aussi l'accord à
-une nouvelle version archivée des conditions (décision Q15, [[Conditions générales]] ; au 26/11, la version du 24/11
-n'est pas encore archivée, réglage R2). Voir [[Cycle de vie de l'abonnement]].
+une nouvelle version archivée des conditions (décision Q15, [[Conditions générales]] ; la version du 24/11 est
+archivée depuis le 26/11 à 05:56Z, réglage R2 ; les souscriptions restent fermées). Voir [[Cycle de vie de l'abonnement]].
 
 ## Grille du 28/09/2026 — supplantée le 11/11/2026 ([[2026-09-28-decision-tarification]])
 
@@ -204,6 +210,10 @@ Les deux dernières tranches restent sur devis.
 >   Gerimmo ne demande pas à la souscription (recueil, réf. 29, non recontrôlé).
 > - **En-tête des factures Stripe** (« EI », adresse, SIREN) : réglage hors Gerimmo, non vu (Q80) ; réglage R7 du plan
 >   de publication, pas encore fait au 26/11.
+> - **Nom commercial** : la forme juridique saisie le 26/11 (R1) s'affiche « Entrepreneur individuel (EI) », sans le
+>   nom commercial SAUVEXPERT que proposait le plan de publication (§ 4, R1) ; signalé au dirigeant avant R2
+>   (`JOURNAL.md`, entrée du 26/11 (matin)). L'identité archivée avec les conditions du 24/11 (R2, irréversible) garde
+>   cette forme.
 > - ~~Unité « bien »~~ — tranché le 28/09 pour l'ancienne grille ; non revérifié pour l'abonnement unique.
 > - ~~Régime de TVA de l'éditeur~~ — tranché le 28/09 : franchise en base ; confirmé « pour l'instant » le 24/11.
 > - ~~Clients existants~~ — tranché le 28/09 : bascule, gel après l'essai, bascule dès l'ajout de bien pour ceux qui

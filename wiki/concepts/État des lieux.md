@@ -290,8 +290,8 @@ aucun point n'est tenu pour acquis au regard de la loi : la publication n'y chan
 > [!warning] Points à trancher / contradictions (25/11/2026)
 > - La « Mise à jour d'implémentation (2026-09-09) » rangeait la nouvelle adresse du locataire parmi les absents ; elle
 >   a été ajoutée ensuite (migration `20260921060000_edl_champs_pdf_complets`, 21/09) sous le libellé « adresse de
->   restitution du dépôt », que le recueil ne reprend pas (libellé corrigé dans la version en production depuis le
->   25/11 seulement).
+>   restitution du dépôt », que le recueil ne reprend pas (libellé corrigé seulement dans la version `062296e2`, en
+>   production depuis le 25/11/2026).
 > - **Majoration de 10 % du dépôt rendu en retard** : selon l'article 22 du recueil, elle n'est pas due si le locataire
 >   n'a pas transmis l'adresse de son nouveau domicile ; noté par le lot T3, **non codé**.
 > - **Grille de vétusté** : le décret du recueil réserve ce nom à une grille que les parties conviennent dès la

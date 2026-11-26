@@ -4,19 +4,23 @@ tags: [signature, zoho-sign, yousign, demande-de-signature]
 status: in-progress
 created: 2026-07-24
 updated: 2026-11-26
-sources: ["[[2026-07-24-gerimmo-v3-module-13-signature-electronique]]", "app/docs/signature-electronique-bail.md (dossier technique Zoho Sign, 18-19/10/2026, complété le 24/10/2026)", "log.md — entrées « decision » et « deploy » des 18 et 19/10/2026 (Zoho Sign, PR #203 à #210)", "log.md — entrées « decision » du 23/10/2026 (« Cautionnement et état des lieux signés dans Gerimmo ») et du 24/10/2026 (choix délégués n° 1 et 8), « deploy » du 24/10/2026 (PR #246)", "[[Notification et valeur probante]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Recueil des textes officiels (v6)]]", "DECISIONS-2026-11-24.md (Q11, Q21, Q40, Q46 ; case « mariés ou pacsés »)", "JOURNAL.md — lots 10, D1, D3, D5 et T2 (22 au 25/11/2026)", "QUESTIONS.md — Q11, Q21, Q40, Q46, Q77", "JURISTE.md — partie 2, point 1 ; partie 9, points 11 à 13", "livrables/notes-banc/notes-D5.md, notes-T2.md, notes-mariage.md, notes-majeurs.md (E173)", "livrables/notes-banc/fusion/ (fusion-notes.md, PLAN-PUBLICATION-NOTES.md, relecture-ecrans.md, relecture-envois.md)", "livrables/recueil/analyse-refs-01-09.md (réf. 04 et 06) et analyse-refs-10-24.md (réf. 14 et 15)", "code de la branche fusionnée claude/palier-1-fusion (89cb87ff, lecture seule) : lib/voie-signature.ts, lib/signature-ouverture.ts, lib/signature-bail.ts", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)"]
+sources: ["[[2026-07-24-gerimmo-v3-module-13-signature-electronique]]", "app/docs/signature-electronique-bail.md (dossier technique Zoho Sign, 18-19/10/2026, complété le 24/10/2026)", "log.md — entrées « decision » et « deploy » des 18 et 19/10/2026 (Zoho Sign, PR #203 à #210)", "log.md — entrées « decision » du 23/10/2026 (« Cautionnement et état des lieux signés dans Gerimmo ») et du 24/10/2026 (choix délégués n° 1 et 8), « deploy » du 24/10/2026 (PR #246)", "[[Notification et valeur probante]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Recueil des textes officiels (v6)]]", "DECISIONS-2026-11-24.md (Q11, Q21, Q40, Q46 ; case « mariés ou pacsés »)", "JOURNAL.md — lots 10, D1, D3, D5 et T2 (22 au 25/11/2026)", "QUESTIONS.md — Q11, Q21, Q40, Q46, Q77", "JURISTE.md — partie 2, point 1 ; partie 9, points 11 à 13", "livrables/notes-banc/notes-D5.md, notes-T2.md, notes-mariage.md, notes-majeurs.md (E173)", "livrables/notes-banc/fusion/ (fusion-notes.md, PLAN-PUBLICATION-NOTES.md, relecture-ecrans.md, relecture-envois.md)", "livrables/recueil/analyse-refs-01-09.md (réf. 04 et 06) et analyse-refs-10-24.md (réf. 14 et 15)", "code de la branche fusionnée claude/palier-1-fusion (89cb87ff, lecture seule) : lib/voie-signature.ts, lib/signature-ouverture.ts, lib/signature-bail.ts", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)", "livrables/PLAN-DE-PUBLICATION.md (§ 1 ; § 4, réglages R1 à R8)", "JOURNAL.md — entrée du 26/11/2026 (matin) : réglages R1 à R4"]
 ---
 
 # Signature électronique
 
 > [!info] Comment lire cette page (mise à jour du 26/11/2026)
-> Les sections datées d'octobre décrivent ce qui a été publié en octobre ; jusqu'au 25/11, la production servait
-> `81740dec` (publié le 21/11/2026). La section du 24/11 et la section **« En production depuis le 25/11/2026 »** en fin
+> Les sections datées d'octobre décrivent ce qui a été publié en octobre ; ce code est contenu dans la version
+> `062296e2`, en production depuis le 25/11/2026, qui contient `81740dec` (publié le 21/11/2026, servi jusqu'au 25/11 ;
+> plan de publication, § 1, `git merge-base`), sauf ce que la section finale remplace ; l'état des interrupteurs Zoho en
+> production n'est pas relu (fin de page). La section du 24/11 et la section **« En production depuis le 25/11/2026 »** en fin
 > de page décrivent la branche fusionnée de la mission palier 1 (`claude/palier-1-fusion`, `89cb87ff`, complétée
 > jusqu'à `062296e2`) : **en production depuis le 25/11/2026** à 23:17Z (26/11 à 00 h 17, heure de Paris), par la
 > PR #358, après le message « Je valide la publication » du dirigeant (`main` = `8f9dd9ce`, identique à `062296e2` ;
-> `log.md`, entrée « deploy » du 25/11). Ce qui dépend d'un réglage de la console (plan de publication, § 4, R1 à R8)
-> est en ligne mais pas encore réglé ni ouvert au 26/11. Ce qui était « non vérifié » ou « non recontrôlé » le reste.
+> `log.md`, entrée « deploy » du 25/11). Réglages de la console (plan de publication, § 4) : R1, R2 et R4 faits le
+> 26/11, R3 (IA) vérifié en base ; R4 bis à R8 restent à faire ou à décider au 26/11 (`JOURNAL.md`, entrée du 26/11
+> matin) ; aucun ne cite les interrupteurs Zoho (voir les points à trancher en fin de page). Ce qui était « non
+> vérifié » ou « non recontrôlé » le reste.
 
 ## Conformité V1 du 24 octobre 2026 — en production (PR #246)
 
@@ -201,7 +205,8 @@ Q40 et Q46 ; `JURISTE.md`, partie 5, point 9).
 Ce qui suit est fait dans la branche `claude/palier-1-fusion` (`89cb87ff`, complétée jusqu'à `062296e2`, poussée le 25/11 sur la branche de préproduction `claude/palier-1-preproduction`), vérifié sur le banc local avec des données
 fictives, puis **publié en production le 25/11/2026** à 23:17Z (26/11 à 00 h 17, heure de Paris) par la PR #358
 (`main` = `8f9dd9ce`, identique à `062296e2`) ; 52 migrations appliquées le 25/11 (22:09Z) ; recette de production
-n° 58 réussie. Au banc, la signature de bout en bout chez Zoho n'a pas été jouée (service payant). Sources :
+n° 58 réussie. Au banc, la signature de bout en bout chez Zoho n'a pas été jouée (service payant) ; le compte rendu
+de la recette n° 58 n'en parle pas. Sources :
 `DECISIONS-2026-11-24.md`, `JOURNAL.md`, `QUESTIONS.md`, notes du banc (`livrables/notes-banc/`) ; publication :
 `log.md`, entrée « deploy » du 25/11/2026.
 
@@ -221,7 +226,7 @@ n° 58 réussie. Au banc, la signature de bout en bout chez Zoho n'a pas été j
   `annuler_demande_signature`, et s'arrête d'elle-même si une ancienne demande manuelle est en attente ; elle fait
   partie des 52 migrations appliquées en production le 25/11/2026 (22:09Z, sans erreur). Le jour de la publication,
   avant la migration, le contrôle en lecture seule de `demandes_signature` devait rendre 0 et 0 (24/11 : table vide ;
-  le résultat du 25/11 n'est pas repris dans les sources lues). L'historique en lecture seule côté gestionnaire est
+  son exécution et son résultat ne sont pas repris dans les sources lues). L'historique en lecture seule côté gestionnaire est
   gardé ; le circuit Zoho et le dépôt du bail signé sur papier par le bailleur ne sont pas touchés. Le reste (fonctions
   encore appelables, historique) est renvoyé à un lot de nettoyage.
 - **Le locataire suit la signature** (lot 10) : dans « Mes documents », « à signer », « vous avez signé », « signé par
@@ -251,8 +256,8 @@ n° 58 réussie. Au banc, la signature de bout en bout chez Zoho n'a pas été j
   [[État des lieux]] (de sortie notamment), avenant, protocole d'apurement, autorisation de travaux — est refusé à
   l'envoi (« Le dossier a changé depuis la préparation ») et se prépare de nouveau ; un bail déjà signé garde son
   ancienne mise en page pour son activation. Contrôle du 24/11 en production (lecture seule) : un seul circuit, celui
-  d'un bail, terminé ; à refaire juste avant la publication (contrôle C3 du plan de publication ; son résultat du 25/11
-  n'est pas repris dans les sources lues).
+  d'un bail, terminé ; à refaire juste avant la publication (contrôle C3 du plan de publication ; son exécution et son
+  résultat ne sont pas repris dans les sources lues).
 
 > [!warning] Points à trancher / contradictions (25/11/2026)
 > - **Notice** : le bail déclare la notice « annexée au présent contrat » ; dans la version en production depuis le
@@ -268,5 +273,5 @@ n° 58 réussie. Au banc, la signature de bout en bout chez Zoho n'a pas été j
 >   contrat dit « Locataire 2 » (notes du lot, question 4).
 > - **État des interrupteurs Zoho en production** : la section du 22/10 dit baux, autres documents et devis activés sur
 >   Vercel ; QUESTIONS.md (Q11, 22/11) décrit un service « sous interrupteurs » dont l'ouverture « est un réglage du jour
->   de la publication ». Non relu en production dans les sources du 25/11, publication comprise (les réglages R1 à
->   R8 du plan ne le citent pas) : reste à vérifier en lecture seule.
+>   de la publication ». Non relu en production dans les sources du 25/11, publication comprise, ni dans celles du
+>   26/11 (les réglages R1 à R8 du plan ne le citent pas) : reste à vérifier en lecture seule.

@@ -4,7 +4,7 @@ tags: [rgpd, conservation, retention, purge, litige, alertes, conformite]
 status: draft
 created: 2026-10-24
 updated: 2026-11-26
-sources: ["[[RGPD]]", "[[Registre des traitements]]", "[[Conservation et exploitation — 22 octobre 2026]]", "app/supabase/migrations/20261024140000_conservation_et_prospection.sql", "app/supabase/migrations/20261024130000_fermeture_comptes.sql", "log.md — entrées « decision » des 23 et 24/10/2026, « deploy » du 24/10/2026 (PR #246 et PR #248, migration 20261024150000_activation_inactivite_v1)", "[[Recueil des textes officiels (v6)]]", "livrables/recueil/analyse-refs-25-37.md (réf. 31 et 34)", "livrables/notes-banc/notes-T4.md et relecture-T4R.md", "DECISIONS-2026-11-24.md (Q39, Q46 ; vendeur entrepreneur individuel)", "JOURNAL.md — lots T4 et D3 (24-25/11/2026)", "QUESTIONS.md — Q39, Q84, Q86, Q87", "JURISTE.md — partie 3, A16 ; partie 9, point 28", "code de la branche fusionnée claude/palier-1-fusion (89cb87ff, lecture seule) : migrations 20261125103000 et 20261125105000 ; code en ligne jusqu'au 25/11/2026 : 81740dec", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)"]
+sources: ["[[RGPD]]", "[[Registre des traitements]]", "[[Conservation et exploitation — 22 octobre 2026]]", "app/supabase/migrations/20261024140000_conservation_et_prospection.sql", "app/supabase/migrations/20261024130000_fermeture_comptes.sql", "log.md — entrées « decision » des 23 et 24/10/2026, « deploy » du 24/10/2026 (PR #246 et PR #248, migration 20261024150000_activation_inactivite_v1)", "[[Recueil des textes officiels (v6)]]", "livrables/recueil/analyse-refs-25-37.md (réf. 31 et 34)", "livrables/notes-banc/notes-T4.md et relecture-T4R.md", "DECISIONS-2026-11-24.md (Q39, Q46 ; vendeur entrepreneur individuel)", "JOURNAL.md — lots T4 et D3 (24-25/11/2026)", "QUESTIONS.md — Q39, Q84, Q86, Q87", "JURISTE.md — partie 3, A16 ; partie 9, point 28", "code de la branche fusionnée claude/palier-1-fusion (89cb87ff, lecture seule) : migrations 20261125103000 et 20261125105000 ; code en ligne jusqu'au 25/11/2026 : 81740dec", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)", "JOURNAL.md — entrée du 26/11/2026 (matin) : réglages R1 à R4"]
 ---
 
 # Durées de conservation
@@ -41,7 +41,7 @@ déjà.
   fiscale de **six ans** (livre des procédures fiscales, art. L. 102 B), et non les dix ans
   du code de commerce ; la **preuve du contrat** conclu en ligne reste **dix ans** (code de
   la consommation, L. 213-1).
-  *25/11 : six ans était la règle en production jusqu'au 25/11 (`81740dec`) ; la version préparée `062296e2`, en
+  *25/11, revu le 26/11 : six ans était la règle en production jusqu'au 25/11 (`81740dec`) ; la version préparée `062296e2`, en
   production depuis le 25/11/2026, passe à **dix ans** d'après le texte
   du recueil (loi n° 2026-534, article 36), voir plus bas. Le vendeur est un entrepreneur individuel (nom commercial
   SAUVEXPERT, activité déclarée 85.59A), selon l'avis Sirene transmis par le dirigeant le 24/11
@@ -186,7 +186,7 @@ des pièces dont la règle est active.
 >   loi 89-462 art. 7-1, C. conso L. 213-1 et D. 213-1, LPF L. 102 B, délibérations CNIL
 >   2021-057 (repère) et 2021-122. Les 36 mois reposent sur un référentiel visant les
 >   professionnels ; ils ne sont pas confirmés pour le bailleur particulier.
-> - **Règles annoncées mais inactives** : la page confidentialité V1 (non publiée) annonce
+> - **Règles annoncées mais inactives** : la page confidentialité V1 (non publiée à cette date) annonce
 >   des durées dont la règle reste inactive au déploiement ; chaque activation attend son
 >   bilan. `compte:inactif` doit être activée **avec** `VERSION_MIN_INACTIVITE` à la
 >   publication de la V1.
@@ -238,7 +238,7 @@ déjà annoncée. La politique publique affiche les durées modifiées ; les con
 archivées sont intactes. Ce pouvoir de réglage ne dispense pas de vérifier la
 cohérence d’une décision avec les engagements contractuels et la finalité des données.
 
-État : **en cours de validation locale, non publié**. Migration
+État au 24/10 : **en cours de validation locale, non publié**. Migration
 `20261024105901_reglages_conservation_superadmin.sql`, après `20261024150000` dans le
 manifeste. Preuves de contrôle et publication : `log.md`.
 *Relu le 25/11, complété le 26/11 : l'écran (`app/src/app/admin/conservation/`) et sa migration figurent dans le code en
@@ -268,8 +268,8 @@ allonge, on ne raccourcit rien, on ne supprime rien.
   archive de compte fermé dont le client Stripe n'a pas encore été supprimé. Sans elle, preuve du contrat et dernière
   facture échéant le même jour (dix ans), la fiche du client et ses factures seraient restées chez Stripe sans limite.
 - **Textes alignés** : article 9 des conditions générales (version du 24/11/2026, « au moins dix ans » ; `/conditions`
-  affiche « Version du 24 novembre 2026, en vigueur depuis cette date » ; son archivage dans la console, réglage R2 du
-  plan de publication, n'est pas encore fait au 26/11), page
+  affiche « Version du 24 novembre 2026, en vigueur depuis cette date » ; archivée dans la console le 26/11/2026 à
+  05:56Z, réglage R2 du plan de publication), page
   confidentialité, console de fermeture d'un compte ([[Fermeture de compte]], [[Conditions générales]]).
 - **Rien n'a pu être supprimé à six ans** : aucune facture n'a six ans avant 2032 (raisonnement par les dates,
   production non lue). Les migrations devaient être appliquées avant le 1er janvier 2027 au plus tard : elles le sont

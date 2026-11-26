@@ -3,8 +3,8 @@ type: concept
 tags: [lot, bien, detention, propriete]
 status: draft
 created: 2026-07-24
-updated: 2026-11-24
-sources: ["[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-0c-copropriete]]", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
+updated: 2026-11-26
+sources: ["[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-0c-copropriete]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)"]
 ---
 
 # Lot
@@ -107,7 +107,7 @@ Deux principes que cette décision met en œuvre :
 > module 0 est une refonte structurelle — le « lot unique » auto-créé assure la
 > compatibilité du cas simple.
 
-## État dans l'application au 24/11/2026 (préproduction, non publié) — l'étage imprimé
+## État dans l'application au 24/11/2026 (préproduction le 24/11 ; en production depuis le 25/11/2026, version `062296e2`) — l'étage imprimé
 
 Le champ « Étage » est libre. Les documents et les écrans l'écrivent une seule fois : « 1er étage », « étage 3 » pour un
 nombre seul, un niveau nommé (« RDC », « sous-sol ») tel que saisi ; il n'est pas redit quand le nom du lot nomme déjà

@@ -3,8 +3,8 @@ type: source
 tags: [reglementation, textes-officiels, recueil, loi-1989, consommation, facturation, rgpd]
 status: in-progress
 created: 2026-11-25
-updated: 2026-11-25
-sources: []
+updated: 2026-11-26
+sources: ["log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)"]
 source-file: raw/Gerimmo-textes-officiels-recueil-v6.pdf
 source-type: réglementation (recueil fourni par le dirigeant, non recontrôlé sur Légifrance)
 source-date: 2026-11-24
@@ -31,9 +31,9 @@ sur les biens et services sur la franchise de TVA, « à venir au 1er janvier 20
 
 Le 24/11, trois lectures l'ont confronté au code de Gerimmo, en lecture seule (`livrables/recueil/analyse-refs-01-09.md`,
 `analyse-refs-10-24.md`, `analyse-refs-25-37.md`) : 3 écarts bloquants, 32 importants et 35 mineurs en tout. Les lots
-T1 à T4, le lot du vendeur D7 et ses reprises, et le lot D4 ont ensuite corrigé une partie de ces écarts. **Ces lots
-sont faits localement : ils ne sont pas encore vérifiés en entier, ni poussés sur la préproduction, ni publiés**
-(`JOURNAL.md`, entrées du 24-25/11/2026).
+T1 à T4, le lot du vendeur D7 et ses reprises, et le lot D4 ont ensuite corrigé une partie de ces écarts. **Ces lots,
+faits localement le 24-25/11, sont réunis dans la version `062296e2`, en production depuis le 25/11/2026** (PR #358,
+`main` = `8f9dd9ce` ; `log.md`, entrée « deploy » du 25/11/2026 ; `JOURNAL.md`, entrées du 24-25/11/2026).
 
 ## Contenu — les 37 références (liste courte)
 
@@ -103,7 +103,7 @@ Regroupement fait par le wiki ; numéros et intitulés du sommaire du recueil.
 - **Existence non vérifiable par nous** : l'arrêté du 9 octobre 2026 et le décret n° 2026-831 sont « déclarés par le
   recueil » ; la date d'effet du 18 octobre 2026 de la nouvelle notice est déduite de sa publication.
 
-## Points clés — ce que le texte fourni a fait corriger (localement, non publié)
+## Points clés — ce que le texte fourni a fait corriger (fait localement le 24-25/11 ; en production depuis le 25/11/2026, version `062296e2`)
 
 - **Congés** ([[Bail]], lot T1) : congé du bailleur accepté un jour trop tard (bloquant) ; cinq alinéas de l'article
   15 II reproduits mot pour mot ; préavis d'un mois en zone tendue seulement si le locataire précise et justifie le
@@ -156,8 +156,8 @@ Regroupement fait par le wiki ; numéros et intitulés du sommaire du recueil.
 >   traitements]]) ; « Gerimmo ne contrôle pas ce point » pour la caution d'un bailleur société ([[Garantie]]) ; libellé
 >   libre des pièces demandées ([[Dossier locataire]]) ; ancien circuit « télécharger, signer, redéposer »
 >   ([[Signature électronique]], retiré au lot D5) ; médiateur « adhésion en cours » et non bloquant
->   ([[Souscription de l'abonnement]]). Les corrections ne sont pas publiées : ces pages restent vraies pour la
->   production jusqu'à la publication, fausses pour la version préparée.
+>   ([[Souscription de l'abonnement]]). *26/11 :* ces corrections sont en production depuis le 25/11/2026 (version
+>   `062296e2`) ; ces passages décrivaient la production jusqu'au 25/11 (`81740dec`).
 > - Révision du loyer : le texte fourni (art. 17-1 III ; loi n° 2021-1104, art. 159 IV) ne gèle la révision en classe
 >   F ou G que pour les contrats conclus, renouvelés ou reconduits depuis le 24/08/2022 ; Gerimmo la refuse pour tout
 >   bail (écarts R01-A1 et R23-A1, non corrigés, à décider) — [[Révision annuelle IRL]].

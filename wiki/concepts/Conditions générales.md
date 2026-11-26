@@ -4,7 +4,7 @@ tags: [conditions-generales, cgu, cgv, versions, acceptation, preuve, accord-exp
 status: in-progress
 created: 2026-10-24
 updated: 2026-11-26
-sources: ["[[Abonnement]]", "[[Registre des traitements]]", "[[Relecture adverse et publication conformité V1 — 24 octobre 2026]]", "[[Audit final indépendant — PR 335 — 15 novembre 2026]]", "[[Recueil des textes officiels (v6)]]", "log.md — entrées « decision » des 23/10/2026 et 24/10/2026, « deploy » du 24/10/2026 (PR #246, PR #248 : publication de la V1)", "DECISIONS-2026-11-24.md (Q7, Q15, Q76)", "QUESTIONS.md (Q75, Q78 à Q83, Q85, Q91 à Q98, Q119, Q120)", "JURISTE.md, partie 9 (points 26 à 38, 42 et 43)", "JOURNAL.md — lots D7, T4, D4 et D5 (24-25/11/2026)", "livrables/notes-banc/notes-D7.md, notes-T4.md, notes-D4.md, fusion/corrections-fusion-notes.md", "livrables/recueil/analyse-refs-25-37.md", "code en production jusqu'au 25/11 : 81740dec (branche repère claude/production-2026-11-22) — app/src/lib/editeur.ts, app/src/lib/conditions-versions.json, app/src/app/conditions/page.tsx", "version lue avant la publication : 89cb87ff (branche claude/palier-1-fusion, complétée jusqu'à 062296e2, en production depuis le 25/11) — mêmes fichiers, app/src/lib/garde-souscription-serveur.ts, app/src/lib/nouvelle-version-conditions.ts", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)", "livrables/PLAN-DE-PUBLICATION.md (résultat de la publication ; § 4, réglages R1 à R8)"]
+sources: ["[[Abonnement]]", "[[Registre des traitements]]", "[[Relecture adverse et publication conformité V1 — 24 octobre 2026]]", "[[Audit final indépendant — PR 335 — 15 novembre 2026]]", "[[Recueil des textes officiels (v6)]]", "log.md — entrées « decision » des 23/10/2026 et 24/10/2026, « deploy » du 24/10/2026 (PR #246, PR #248 : publication de la V1)", "DECISIONS-2026-11-24.md (Q7, Q15, Q76)", "QUESTIONS.md (Q75, Q78 à Q83, Q85, Q91 à Q98, Q119, Q120)", "JURISTE.md, partie 9 (points 26 à 38, 42 et 43)", "JOURNAL.md — lots D7, T4, D4 et D5 (24-25/11/2026)", "livrables/notes-banc/notes-D7.md, notes-T4.md, notes-D4.md, fusion/corrections-fusion-notes.md", "livrables/recueil/analyse-refs-25-37.md", "code en production jusqu'au 25/11 : 81740dec (branche repère claude/production-2026-11-22) — app/src/lib/editeur.ts, app/src/lib/conditions-versions.json, app/src/app/conditions/page.tsx", "version lue avant la publication : 89cb87ff (branche claude/palier-1-fusion, complétée jusqu'à 062296e2, en production depuis le 25/11) — mêmes fichiers, app/src/lib/garde-souscription-serveur.ts, app/src/lib/nouvelle-version-conditions.ts", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)", "livrables/PLAN-DE-PUBLICATION.md (résultat de la publication ; § 4, réglages R1 à R8)", "JOURNAL.md — entrée du 26/11/2026 (matin) : réglages R1 à R4"]
 ---
 
 # Conditions générales
@@ -24,9 +24,15 @@ conditions (`/conditions/artisans`).
 >   restent **fermées** (`/tarifs` relue le 25/11 après la publication). Source : `log.md`, entrée « deploy » du 25/11.
 > - **Jusqu'au 25/11** : code `81740dec`, servi depuis le 21/11/2026 ; production gelée du 22/11 à la publication
 >   (`QUESTIONS.md`, Q3 et Q4).
-> - **Pas encore fait au 26/11** (réglages de la console, à faire par le dirigeant, plan de publication § 4) : identité
->   du vendeur (R1), archivage des conditions du 24/11 (R2), et les autres réglages R3 à R8. Ce qui en dépend est en
->   ligne mais pas encore réglé ni ouvert.
+> - **Fait le 26/11 au matin** par le dirigeant dans la console (plan de publication § 4), vérifié par l'agent (pages
+>   publiques, base en lecture seule ; `JOURNAL.md`, entrée du 26/11 matin) : identité du vendeur (R1 ;
+>   `/mentions-legales` affiche la forme « Entrepreneur individuel (EI) », sans nom commercial, et pour le médiateur
+>   « aucun organisme n'est désigné à ce jour » ; `/conditions` porte le nom et l'adresse) ; archivage des conditions
+>   clients du 24/11 (R2) le 26/11 à 05:56Z (date d'effet 2026-11-24, nature « substantielle », empreinte qui
+>   correspond au texte archivé). R3 vérifié (IA activée en base ; libellé de la console non relu) ; R4 (repères
+>   fiscaux) fait.
+> - **Pas encore fait au 26/11 (06:10Z)** : R4 bis, R5, R7 ; non décidés : ouverture des souscriptions (R8) et vente
+>   aux particuliers sans médiateur (R6). Les souscriptions payantes restent **fermées**.
 
 ## Les versions des conditions clients
 
@@ -36,7 +42,7 @@ conditions (`/conditions/artisans`).
 | **2026-10-24 (V1)** | Offre réservée aux propriétaires qui gèrent leurs biens ; rétractation en ligne (8.10) ; résiliation en ligne (8.6) ; impayé (15) ; garanties légales (14 bis) ; signature électronique (4.7) ; conservation et inactivité de 24 mois (9) ; accord exprès (8.9, 16) ; médiation (17) ; annexes 1 et 2 | **Publiée le 24/10/2026** (PR #248) ; archivée à 09:23:25 UTC avec les conditions artisans ([[Relecture adverse et publication conformité V1 — 24 octobre 2026]]) |
 | 2026-11-11 | Abonnement unique pour les nouvelles souscriptions des propriétaires et SCI, calcul par unité locative active, deux mois offerts en annuel ([[Grille tarifaire]]) | Publiée ; « nouvelles souscriptions uniquement » ; archivée d'après [[Audit final indépendant — PR 335 — 15 novembre 2026]] |
 | **2026-11-15** | Deux mois calendaires gratuits pour toute nouvelle inscription, sans échéance de lancement (8.2) | En vigueur en production jusqu'au 25/11/2026 (`81740dec`) ; « nouvelles souscriptions uniquement » ; archivage non constaté dans les sources lues |
-| **2026-11-24** | Voir ci-dessous | **En vigueur en production depuis le 25/11/2026** (`062296e2` ; `/conditions` affiche « Version du 24 novembre 2026, en vigueur depuis cette date ») ; **non archivée** (réglage R2 de la console, pas encore fait au 26/11) ; « accord au prochain acte » |
+| **2026-11-24** | Voir ci-dessous | **En vigueur en production depuis le 25/11/2026** (`062296e2` ; `/conditions` affiche « Version du 24 novembre 2026, en vigueur depuis cette date ») ; **archivée le 26/11/2026 à 05:56Z** (réglage R2 de la console ; date d'effet 2026-11-24, nature « substantielle ») ; « accord au prochain acte » |
 
 Conditions de l'espace artisan : version **2026-10-24**, publiée et archivée le 24/10 avec la V1 ; **inchangées** dans
 la version publiée le 25/11 (même empreinte, vérifié par les tests du lot T4). Leur annexe ne cite d'OpenAI que les
@@ -79,11 +85,12 @@ son établissement ») correspond au mot du texte fourni (loi de 1989, art. 3-2,
 
 - **Vendeur** : entrepreneur individuel, nom commercial SAUVEXPERT (avis Sirene du 24/11, `DECISIONS-2026-11-24.md`) ;
   ce n'est pas une société. Les conditions lisent son identité en base (`supervision_identite`), saisie par le super
-  admin dans la console (Q76 ; réglage R1 du plan de publication, pas encore fait au 26/11) ; aucune valeur n'est
+  admin dans la console (Q76 ; réglage R1 du plan de publication, fait le 26/11 : forme affichée « Entrepreneur
+  individuel (EI) », sans nom commercial) ; aucune valeur n'est
   écrite dans le code. Un « **type de vendeur** » se choisit dans la console (entrepreneur individuel, ou société ou
   autre personne morale) ; pour un entrepreneur individuel, le nom doit porter « EI » ou « entrepreneur individuel »
-  (code de commerce, R526-27, **recueil, non recontrôlé**). Le nom commercial ne paraît que sur les mentions légales et la confidentialité, pas dans les
-  conditions ni sur le formulaire de rétractation (Q79). Voir [[Entrepreneur individuel (EI)]] (page à créer).
+  (code de commerce, R526-27, **recueil, non recontrôlé**). Le nom commercial ne devait paraître que sur les mentions légales et la confidentialité, pas dans les
+  conditions ni sur le formulaire de rétractation (Q79) ; *26/11* : forme saisie sans le nom commercial (R1), il ne paraît donc nulle part en production (voir le callout final). Voir [[Entrepreneur individuel (EI)]] (page à créer).
 - **Identité imprimée dans le contrat** : seuls le nom, l'adresse, l'e-mail de contact et l'encadré « Document en
   cours de finalisation » entrent dans l'identité archivée. Les changer après l'archivage met les **premières
   souscriptions** (particulier comme agence) en attente d'une nouvelle version. Jusqu'au 25/11, en production
@@ -98,8 +105,9 @@ son établissement ») correspond au mot du texte fourni (loi de 1989, art. 3-2,
 
 - La version du 24/11 est déclarée **« accord au prochain acte »** (les versions du 11/11 et du 15/11 étaient
   « nouvelles souscriptions uniquement » : un abonné n'était ni informé ni sollicité).
-- Dès son archivage (réglage R2 de la console, pas encore fait au 26/11), l'écran « **Nos conditions générales
-  évoluent** » s'affiche au responsable d'un espace dont la dernière acceptation porte une autre version : rappel à
+- Dès son archivage (réglage R2 de la console, fait le 26/11 à 05:56Z ; écran non relu par l'agent depuis), l'écran
+  « **Nos conditions générales évoluent** » s'affiche au responsable d'un espace dont la dernière acceptation porte une
+  autre version : rappel à
   chaque connexion, « Plus tard » gardé. L'accord se donne par une **case non cochée par défaut** dont le libellé porte
   le lien vers le texte ; le serveur refuse sans la case.
 - L'accord est redemandé au **prochain acte** : hausse de formule ou de capacité, changement de périodicité, reprise
@@ -129,7 +137,9 @@ son établissement ») correspond au mot du texte fourni (loi de 1989, art. 3-2,
 - Une garde de tests (`conditions-versions.json`) échoue si le texte change sans nouvelle version.
 - **Jour de la publication** (plan de publication) : saisir l'identité du vendeur et son type, contrôler zéro abonné
   actif, puis archiver la version du 24 novembre 2026 ; si l'archivage est refusé, ne rien forcer. Publication faite le
-  25/11/2026 ; au 26/11, ces gestes de la console (R1, R2) restent à faire par le dirigeant.
+  25/11/2026 ; gestes de la console faits par le dirigeant le 26/11 au matin : identité et type de vendeur (R1), contrôle
+  C2 refait (aucun abonné actif, aucune archive du 24/11), puis archivage de la version du 24 novembre 2026 à 05:56Z
+  (R2), sans refus ; irréversible (`JOURNAL.md`, entrée du 26/11 matin).
 
 ## L'acceptation, selon l'espace
 | Espace choisi à l'inscription | Case | Document enregistré |
@@ -171,7 +181,7 @@ son établissement ») correspond au mot du texte fourni (loi de 1989, art. 3-2,
 >   sur support durable (point 37).
 > - **Accord donné avant l'archivage** (relecture de la fusion, R-01) : la section « Preuve » dit qu'il est redemandé à
 >   la souscription ; d'après la relecture, l'écran « Nos conditions générales évoluent » se masque pourtant dès qu'une
->   version est acceptée, avec ou sans empreinte, et ne le redemande pas (sans effet aujourd'hui : aucun abonné, archivage
+>   version est acceptée, avec ou sans empreinte, et ne le redemande pas (sans effet au 26/11 : aucun abonné, archivage
 >   refusé s'il en existe un). Exiger l'empreinte aussi pour cet écran et pour le rappel des comptes inactifs ?
 >   (`QUESTIONS.md`, Q119 et Q120 ; juriste, partie 9, point 42). Résumé des changements de l'article 16, complété avant
 >   l'archivage : `JURISTE.md`, partie 9, point 43.
@@ -189,8 +199,14 @@ son établissement ») correspond au mot du texte fourni (loi de 1989, art. 3-2,
 >   le recueil fourni par le dirigeant, **non recontrôlé sur Légifrance**.
 > - **Production** : état de l'archive de la version du 15/11 et identité saisie non lus. Si la version en vigueur est
 >   archivée avec une autre identité, l'archivage refusera après la saisie du vendeur (notes D7, partie 6). Point écrit
->   quand la version en vigueur était celle du 15/11 ; depuis le 25/11, c'est celle du 24/11, pas encore archivée (R2) :
->   non relu depuis la publication.
+>   quand la version en vigueur était celle du 15/11 ; depuis le 25/11, c'est celle du 24/11. *26/11* : identité saisie
+>   (R1) puis version du 24/11 archivée à 05:56Z (R2), sans refus ; l'identité archivée garde la forme « Entrepreneur
+>   individuel (EI) ». L'état de l'archive de la version du 15/11 reste non lu.
+> - **Date de la version du 24/11 et date de mise en ligne** (point relevé par l'agent le 26/11, pas encore posé au juriste ni inscrit dans `JURISTE.md`) : le texte affiché
+>   sur `/conditions` et archivé dit « Version du 24 novembre 2026, en vigueur depuis cette date » (date d'effet
+>   archivée : 2026-11-24), alors qu'il est en ligne depuis le 26/11 à 00 h 17 (heure de Paris ; 25/11, 23:17Z) et
+>   archivé le 26/11 à 05:56Z. Aucune conclusion n'est tirée ici.
+> - **Nom commercial** : forme saisie sans SAUVEXPERT le 26/11 (R1) ; l'identité archivée avec la version du 24/11 garde cette forme (R2, irréversible) ; `JOURNAL.md`, entrée du 26/11 (matin). Le plan proposait « Entrepreneur individuel (nom commercial SAUVEXPERT) ».
 > - **Pages de test du contrat** (`conditions-next-start*.html`) adaptées par script, pas relevées sur un vrai
 >   serveur (T4R-09) : relevé prévu avant la publication ; les comptes rendus de la publication du 25/11 ne le disent
 >   pas fait : reste à relever.

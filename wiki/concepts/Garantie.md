@@ -206,14 +206,15 @@ recontrôlé sur Légifrance**.
   (échéance + un mois) et ce que Gerimmo ne fait pas ; le réglage des relances le dit aussi (Q112). L'envoi
   automatique est fermé à la livraison ; décision du 24/11 : l'ouvrir le jour de la publication (Q6). Au 26/11, il
   reste fermé : l'ouverture des cinq envois automatiques, un par un, est un réglage de la console à faire par le
-  dirigeant (plan de publication, § 4, R5), pas encore fait. La **relance à la main** ouverte par la décision Q24 ne
-  part jamais à la caution ([[Relances et mise en demeure]]).
+  dirigeant (plan de publication, § 4, R5), pas encore fait. La **relance à la main** ouverte par la décision Q24
+  (fermée au 26/11 : elle s'ouvre avec la relance amiable, réglage R5 pas encore fait) ne part jamais à la caution
+  ([[Relances et mise en demeure]]).
 - **Pièces demandées à une caution** : liste du décret n° 2015-1437, annexe II, y compris après la signature
   ([[Dossier locataire]], Q113).
 - **Circuits « prêts »** : un acte de cautionnement préparé mais pas encore envoyé — y compris celui qui attend que la
   caution confirme son mobile — est refusé à l'envoi et se prépare de nouveau (Q40) ; contrôle de production du 24/11 :
-  aucun circuit concerné, à refaire avant la publication (contrôle C3 du plan de publication ; son résultat du 25/11
-  n'est pas repris dans les sources lues).
+  aucun circuit concerné, à refaire avant la publication (contrôle C3 du plan de publication ; son exécution et son
+  résultat ne sont pas repris dans les sources lues).
 
 > [!warning] Points à trancher / contradictions (25/11/2026)
 > - **Déclaration « étudiant non boursier »** : simple déclaration du bailleur, sans justificatif ni lien avec le type de

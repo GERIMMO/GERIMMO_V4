@@ -3,8 +3,8 @@ type: business-rule
 tags: [quittance, legal, loyer]
 status: in-progress
 created: 2026-07-21
-updated: 2026-11-24
-sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
+updated: 2026-11-26
+sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)"]
 ---
 
 # Quittance conforme et courriers officiels
@@ -35,7 +35,7 @@ tout courrier officiel doit porter l'**identité légale du bailleur**.
 - Contrôles de complétude de l'identité légale avant émission d'un courrier officiel.
 - Historisation des montants (pas de recalcul rétroactif).
 
-## État dans l'application au 24/11/2026 (préproduction, non publié) — émetteur et adresse (mission palier 1, phase 3)
+## État dans l'application au 24/11/2026 (préproduction le 24/11 ; en production depuis le 25/11/2026, version `062296e2`) — émetteur et adresse (mission palier 1, phase 3)
 
 Relu dans le code après les lots 36, 37 et 46 à 49 ([[Mission palier 1 — audit du 22 novembre 2026]] ;
 `QUESTIONS.md`, Q42 et Q52 ; `JURISTE.md`, partie 5, points 2 et 19).
@@ -51,8 +51,9 @@ Relu dans le code après les lots 36, 37 et 46 à 49 ([[Mission palier 1 — aud
   (Q52). Le lot 48 avait aligné les deux par une modification de la base ; elle a été **retirée** au lot 49 : le
   locataire, même ancien colocataire, aurait lu l'adresse, l'e-mail et le téléphone des propriétaires actuels, même
   après une vente, et des quittances déjà émises lui seraient devenues inaccessibles tant que la fiche du propriétaire
-  n'avait pas d'adresse. La quittance en ligne reste comme en production ; la version alignée est gardée dans
-  l'historique de la branche.
+  n'avait pas d'adresse. Son adresse reste celle du profil de l'espace, comme dans `81740dec` : le lot 49, compris dans `062296e2` (en
+  production depuis le 25/11/2026), retire l'alignement. La version
+  alignée est gardée dans l'historique de la branche.
 - **Mode de règlement en clair** (« par chèque » au lieu du code de la base) et période d'un terme au prorata lisible
   (lot 36 ; Q41).
 

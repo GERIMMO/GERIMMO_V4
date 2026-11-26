@@ -3,8 +3,8 @@ type: concept
 tags: [diagnostic, dpe, obligation-legale, bien, lot]
 status: draft
 created: 2026-07-24
-updated: 2026-11-22
-sources: ["[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]"]
+updated: 2026-11-26
+sources: ["log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]"]
 ---
 
 # Diagnostic
@@ -48,7 +48,8 @@ simple du lot, RM-0.5.7). Sur un bien à lot unique, les onglets bien/lot fusion
 - **DPE classé G sur un bail déjà en cours** (décision 2B du dirigeant du 22/11/2026) : il ne bloque plus
   l'activation de ce bail et devient une action à mener « DPE classé G » sur le logement. Pour un nouveau bail, il
   reste bloquant. Prête dans la PR [#357](https://github.com/GERIMMO/GERIMMO_V4/pull/357), pas encore publiée au
-  22/11. Voir [[Bail]].
+  22/11 ; en production depuis le 25/11/2026 avec la version `062296e2` (PR #358, `main` = `8f9dd9ce`, qui contient
+  `e1e442dc`, la fusion de la PR #357 ; `log.md`, entrée « deploy » du 25/11/2026). Voir [[Bail]].
 - Lot **disponible** : bloquant — aucun nouveau bail tant que le diagnostic n'est pas
   redéposé (le dépôt lève le blocage sans autre action, RM-0.8.5).
 - Destinataire : l'agent en charge du mandat, à défaut l'admin agence (RM-0.8.4).

@@ -548,6 +548,9 @@ vision de Gerimmo ») : ils sont signalés.
    fiche officielle de service-public (F1311) dit que la hausse annuelle est « plafonnée par l'évolution sur un an »
    de l'indice, et qu'une révision non demandée dans l'année est perdue. **Non lu :** l'article 17-1 de la loi de
    1989. Ce calcul sur un an est-il le bon, oui ou non ?
+   - *Suite (26/11) : l'outil public de calcul (`app/src/lib/outils/irl.ts:103`) dit, pour un bail de plus d'un an,
+     de prendre comme indice de référence « celui de la dernière révision appliquée ». Après une année perdue, cela
+     revient au calcul sur deux ans, contraire au choix ci-dessus (Q72). L'outil sera aligné sur votre réponse.*
 2. **« Premier terme qui suit la demande » : une règle plus favorable au locataire que la fiche** (Q43 ; complète le
    point 16 de la partie 6). C'est maintenant appliqué. Pour un bail révisable le 15/10 : demande le 15/10, novembre
    est le premier mois révisé ; demande le 03/12, c'est janvier. Le bailleur ne reçoit donc rien pour les jours entre

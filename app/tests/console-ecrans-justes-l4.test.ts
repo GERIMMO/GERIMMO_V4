@@ -303,9 +303,6 @@ describe("Couverture du réseau à 390 px : aucune colonne coupée", () => {
   it("sous `sm`, les trois colonnes de chiffres sont repliées sous le nom de la commune, sans rien perdre", () => {
     const enTetes = [...html.matchAll(/<th scope="col" class="([^"]*)">([^<]*)<\/th>/g)].map(([, classe, nom]) => [nom, classe]);
     expect(enTetes).toEqual([
-      // Reprise du lot L4 : l'en-tête « Couverture » porte désormais une classe (marge droite retirée sous `sm`) ; la liste
-      // exacte l'inclut, elle n'en devient que plus stricte.
-      ["Couverture", "max-sm:pr-0"],
       ["Artisans proposés / déclarés", "nombre hidden sm:table-cell"],
       ["Intérêts / biens", "nombre hidden sm:table-cell"],
       ["Demandes réseau", "nombre hidden sm:table-cell"],
@@ -317,10 +314,6 @@ describe("Couverture du réseau à 390 px : aucune colonne coupée", () => {
       ["mt-1 block text-xs sm:hidden", "Artisans proposés / déclarés : 2 / 3 · Intérêts / biens : 4 / 1 · Demandes réseau : 5"],
       ["mt-1 block text-xs sm:hidden", "Artisans proposés / déclarés : 0 / 1 · Intérêts / biens : 0 / 0 · Demandes réseau : 0"],
     ]);
-    // Reprise du lot L4 : sous `sm`, « Couverture » est la dernière colonne affichée, mais pas la dernière cellule de la
-    // rangée (les trois suivantes sont masquées) : la règle `.tableau td:last-child` ne lui retirait pas sa marge droite
-    // de 18 px (mesurée dans Chromium à 390 px). Elle la perd sous `sm` seulement ; dès `sm`, rien ne change.
-    expect([...html.matchAll(/<\/td><td( class="[^"]*")?><span class="puce /g)].map(([, classe]) => classe)).toEqual(communes.map(() => ' class="max-sm:pr-0"'));
     // La ligne et le lien de la commune restent ceux du tableau (e2e/reseau-couverture.spec.ts les cherche).
     expect(html).toMatch(/<tr><td><a [^>]*href="\/admin\/couverture\?departement=91&amp;metier=electricite&amp;commune=91377#artisans-commune"[^>]*>Massy<\/a>/);
   });

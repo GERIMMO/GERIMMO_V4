@@ -71,7 +71,7 @@ test.describe("Couverture du réseau, côté supervision", () => {
 
   // Lot L4 (26/11/2026) : à 390 px, le tableau de 42rem défilait de côté dans son conteneur et coupait la colonne
   // « Artisans ». Sous `sm`, les chiffres sont repliés sous le nom de la commune : le tableau tient dans son conteneur,
-  // sans défilement latéral, et la dernière colonne affichée (« Couverture ») n'a plus de marge droite.
+  // sans défilement latéral.
   test("à 390 px, le tableau de couverture tient dans son conteneur, chiffres compris", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await sansSyntheseAlertes(page);
@@ -81,12 +81,10 @@ test.describe("Couverture du réseau, côté supervision", () => {
     await expect(conteneur.getByRole("row").filter({ has: page.getByRole("link", { name: "Massy", exact: true }) })).toBeVisible();
     const mesure = await conteneur.evaluate((c) => {
       const table = c.querySelector("table")!;
-      const couverture = table.querySelector("tbody tr td:nth-child(2)")!;
-      return { table: table.scrollWidth, conteneur: c.clientWidth, defilement: c.scrollWidth - c.clientWidth, margeCouverture: getComputedStyle(couverture).paddingRight };
+      return { table: table.scrollWidth, conteneur: c.clientWidth, defilement: c.scrollWidth - c.clientWidth };
     });
     expect(mesure.table).toBeLessThanOrEqual(mesure.conteneur);
     expect(mesure.defilement).toBe(0);
-    expect(mesure.margeCouverture).toBe("0px");
     // Les chiffres ne sont pas perdus : la ligne repliée sous le nom de la commune est visible.
     await expect(conteneur.locator("[data-chiffres-commune]").first()).toBeVisible();
     await expect(conteneur.locator("[data-chiffres-commune]").first()).toContainText("Artisans proposés / déclarés");

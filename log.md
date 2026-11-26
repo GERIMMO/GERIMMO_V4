@@ -7282,3 +7282,17 @@ Premiers contrôles : types et lint ciblé réussis ; 14 tests locaux réussis, 
   et dans « Mes paiements » du locataire (demander, suivre) ; relances automatiques suspendues pendant un plan
   respecté ; avis de taxe foncière saisi sur le bien (TEOM répartissable, reste déductible) ; rappels taxe foncière
   (15 septembre) et régularisation N-1 (février) sur le tableau de bord du propriétaire.
+
+## [2026-11-26] query  | Faire de Gerimmo la plateforme de référence de la gestion immobilière (France, puis Europe)
+- Ambition fixée par le dirigeant le 26/11 : toutes les portes d'entrée (carnet du locataire, aide pour les aides,
+  administratif, incidents, artisans, factures, finances), « toute la gestion immobilière sur Gerimmo », avec un
+  objectif de revenu explicite.
+- Trois analyses menées : couverture fonctionnelle du dépôt (`main` `f9e874b`, lecture seule) ; marché français et
+  concurrents ; aides, banque et Europe (recherches web du 26/11, sources officielles quand elles étaient lisibles).
+- Constats principaux : souscription payante fermée (quatre verrous, dont le médiateur et le type de vendeur), aucun
+  paiement réel, 4 espaces propriétaires sur 6 sans bien (21/11), pas de mesure d'audience ; manques majeurs : paiement
+  du loyer, synchronisation bancaire, mise en location, entrée autonome du locataire, accompagnement des aides ;
+  décret n° 2026-84 (tiers payant APL au 01/01/2027) absent du dépôt.
+- Page créée : [[Feuille de route — plateforme de référence, 26 novembre 2026]] ; `index.md` mis à jour ; renvoi ajouté
+  dans [[Proposition de valeur]].
+- Le journal reste lacunaire du 03/11 au 26/11 : à compléter avec la note de passation de l'ancienne session.

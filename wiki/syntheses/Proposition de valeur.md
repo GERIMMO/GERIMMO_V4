@@ -3,7 +3,7 @@ type: synthesis
 tags: [vision, proposition-de-valeur, strategie]
 status: stable
 created: 2026-09-10
-updated: 2026-09-29
+updated: 2026-11-26
 sources: ["[[Analyse concurrentielle]]", "[[2026-09-04-maquette-v3-prototype]]", "[[2026-09-08-maquette-espace-agence-v6]]", "[[2026-07-21-fonctionnalites-par-persona-v0]]"]
 ---
 
@@ -74,6 +74,13 @@ travail elle-même ; les bots conversationnels de la note produit v0.
    paiement, conversation).
 4. Métrique de réussite à instrumenter : **le temps de gérant par lot et par
    mois** — c'est elle que « mieux, plus vite, moins cher » engage.
+
+> [!note] Ambition élargie le 26/11/2026 — « toute la gestion immobilière sur Gerimmo »
+> Le dirigeant fixe l'objectif de devenir la plateforme principale de gestion immobilière en France, puis
+> potentiellement en Europe, avec toutes les portes d'entrée (carnet du locataire, aide pour les aides, administratif,
+> incidents, artisans, factures, finances) et un objectif de revenu explicite. La frontière du 10/09 (pas
+> d'encaissement pour compte de tiers) n'est pas remise en cause. Analyse et stratégie :
+> [[Feuille de route — plateforme de référence, 26 novembre 2026]].
 
 > [!note] Signature électronique non activée au lancement (30/09/2026, décision du 27/09) → [[Signature électronique]]
 

@@ -1,0 +1,5 @@
+Running 1 test using 1 worker
+
+  ✓  1 [sessions] › e2e/auth.setup.ts:55:6 › sessions des personas (28.0s)
+
+  1 passed (29.0s)

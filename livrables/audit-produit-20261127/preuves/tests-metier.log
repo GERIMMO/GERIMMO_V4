@@ -1,0 +1,21 @@
+Running 16 tests using 1 worker
+
+  ✓   1 [telephone] › e2e/artisan-lignes-devis.spec.ts:20:5 › devis : l'artisan garde une ligne, la reprend dans un devis vierge, la retrouve après rechargement, puis la retire (4.8s)
+  ✓   2 [telephone] › e2e/charges-a-confirmer.spec.ts:22:5 › appel de charges : chaque poste naît « à qualifier », la suggestion se confirme, rien ne passe sans choix (9.1s)
+  ✓   3 [telephone] › e2e/compte-securite.spec.ts:41:5 › on change son mot de passe depuis son compte, et l'ancien ne vaut plus rien (3.6s)
+  ✓   4 [telephone] › e2e/compte-securite.spec.ts:78:5 › on active son second facteur, on le vérifie à la reconnexion puis on le retire (5.1s)
+  ✓   5 [telephone] › e2e/invitation-artisan.spec.ts:45:5 › invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, solliciter par le carnet (resté privé, hors réseau) (29.3s)
+  ✓   6 [telephone] › e2e/parcours-agence.spec.ts:14:5 › le tableau de bord s'ouvre sans débordement et la navigation porte ses libellés (1.3s)
+  ✓   7 [telephone] › e2e/parcours-agence.spec.ts:23:5 › créer un bien depuis le téléphone : formulaire → fiche du parc (3.2s)
+  ✓   8 [telephone] › e2e/parcours-agence.spec.ts:52:5 › créer, ouvrir, fermer puis traiter une alerte au doigt (5.5s)
+  ✓   9 [telephone] › e2e/parcours-agence.spec.ts:80:5 › le quittancement du mois s'affiche à 390px avec le bail E2E (1.9s)
+  ✓  10 [telephone] › e2e/parcours-agence.spec.ts:87:5 › le plan du jour : replié devant un mur, ouvert quand il tient à l'écran (3.3s)
+  ✓  11 [telephone] › e2e/pointage-loyers-releve.spec.ts:38:5 › le propriétaire pointe ses loyers à partir d'un relevé de banque, sans doublon (8.5s)
+  ✓  12 [telephone] › e2e/reception-loyer-proprietaire.spec.ts:13:38 › réception du loyer à 390px : échéance, pas reçu, partiel puis solde (13.9s)
+  ✓  13 [telephone] › e2e/reception-loyer-proprietaire.spec.ts:13:38 › réception du loyer à 1440px : échéance, pas reçu, partiel puis solde (9.4s)
+  ✓  14 [telephone] › e2e/relocation-bail.spec.ts:22:7 › relocation : le nouveau brouillon reprend les conditions du bail précédent, signalées et effaçables, à 390px (3.3s)
+  ✓  15 [telephone] › e2e/relocation-bail.spec.ts:22:7 › relocation : le nouveau brouillon reprend les conditions du bail précédent, signalées et effaçables, à 1440px (3.4s)
+  -  16 [telephone] › e2e/rendez-vous-report-annulation-locataire.spec.ts:51:5 › locataire : report demandé puis accepté, report refusé, puis annulation dont l'artisan prend acte
+
+  1 skipped
+  15 passed (1.8m)

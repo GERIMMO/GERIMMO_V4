@@ -1,0 +1,138 @@
+﻿module;statut du rendu navigateur;rôles observés;largeurs observées
+/;Rendu relevé;public;390 / 768 / 1440
+/admin;Rendu relevé;superadmin;390 / 768 / 1440
+/admin/artisans;Rendu relevé;superadmin;390 / 768 / 1440
+/admin/autonomie;Rendu relevé;superadmin;390 / 1440
+/admin/brief;Rendu relevé;superadmin;390 / 768 / 1440
+/admin/brief/[equipe];Rendu relevé;superadmin;390 / 768 / 1440
+/admin/clients;Rendu relevé;superadmin;390 / 768 / 1440
+/admin/clients/artisans/[artisanId];Rendu relevé;superadmin;390 / 768 / 1440
+/admin/clients/personnes/[personId];Rendu relevé;superadmin;390 / 768 / 1440
+/admin/comptes/[accountId];Rendu relevé;superadmin;390 / 768 / 1440
+/admin/conservation;Rendu relevé;superadmin;390 / 1440
+/admin/consignes;Rendu relevé;superadmin;390 / 768 / 1440
+/admin/couverture;Rendu relevé;superadmin;390 / 768 / 1440
+/admin/devis;Rendu relevé;superadmin;390 / 1440
+/admin/donnees;Rendu relevé;superadmin;390 / 768 / 1440
+/admin/equipes;Rendu relevé;superadmin;390 / 768 / 1440
+/admin/journaux;Rendu relevé;superadmin;390 / 768 / 1440
+/admin/liste-attente;Rendu relevé;superadmin;390 / 1440
+/admin/marketing;Rendu relevé;superadmin;390 / 768 / 1440
+/admin/marque-blanche;Rendu relevé;superadmin;390 / 768 / 1440
+/admin/organisations/[orgId];Rendu relevé;superadmin;390 / 768 / 1440
+/admin/organisations/[orgId]/support;Rendu relevé;superadmin;390 / 1440
+/admin/organisations/nouvelle;Rendu relevé;superadmin;390 / 768 / 1440
+/admin/parametres;Rendu relevé;superadmin;390 / 1440
+/admin/publications;Rendu relevé;superadmin;390 / 768 / 1440
+/admin/publications/[id];Rendu relevé;superadmin;390 / 768 / 1440
+/admin/publications/nouvelle;Rendu relevé;superadmin;390 / 768 / 1440
+/admin/relais;Rendu relevé;superadmin;390 / 768 / 1440
+/admin/retours;Rendu relevé;superadmin;390 / 768 / 1440
+/admin/retours/[retourId]/evaluations;Rendu relevé;superadmin;390 / 768 / 1440
+/admin/sante;Rendu relevé;superadmin;390 / 768 / 1440
+/admin/securite;Rendu relevé;superadmin;390 / 768 / 1440
+/admin/territoire;Rendu relevé;superadmin;390 / 768 / 1440
+/admin/territoire/prospects/[id];Rendu relevé;superadmin;390 / 1440
+/admin/veille;Rendu relevé;superadmin;390 / 768 / 1440
+/agence/[orgId];Rendu relevé;admin / agent / proprietaire;390 / 768 / 1440
+/agence/[orgId]/abonnement;Rendu relevé;admin / proprietaire;390 / 768 / 1440
+/agence/[orgId]/abonnement/resiliation;Rendu relevé;proprietaire;390 / 768 / 1440
+/agence/[orgId]/abonnement/retractation;Rendu relevé;proprietaire;390 / 768 / 1440
+/agence/[orgId]/administration;Rendu relevé;admin / agent;390 / 768 / 1440
+/agence/[orgId]/agenda;Rendu relevé;admin / agent / proprietaire;390 / 768 / 1440
+/agence/[orgId]/alertes;Rendu relevé;admin / agent / proprietaire;390 / 768 / 1440
+/agence/[orgId]/artisans;Rendu relevé;admin / agent / proprietaire;390 / 768 / 1440
+/agence/[orgId]/baux/[bailId];Rendu relevé;admin / agent / proprietaire;390 / 768 / 1440
+/agence/[orgId]/baux/[bailId]/edl/[edlId];Rendu relevé;admin / agent;390 / 1440
+/agence/[orgId]/comptabilite;Rendu relevé;admin / agent / proprietaire;390 / 768 / 1440
+/agence/[orgId]/comptabilite/fiscal;Rendu relevé;admin / agent / proprietaire;390 / 1440
+/agence/[orgId]/comptabilite/reprise;Rendu relevé;admin / agent;390 / 768 / 1440
+/agence/[orgId]/diagnostics/[diagnosticId];Non démontré;;
+/agence/[orgId]/documents;Rendu relevé;admin / agent / proprietaire;390 / 768 / 1440
+/agence/[orgId]/documents/catalogue;Rendu relevé;admin / agent / proprietaire;390 / 768 / 1440
+/agence/[orgId]/faq;Rendu relevé;admin / agent / proprietaire;390 / 768 / 1440
+/agence/[orgId]/incidents;Rendu relevé;admin / agent / proprietaire;390 / 768 / 1440
+/agence/[orgId]/incidents/[incidentId];Non démontré;;
+/agence/[orgId]/incidents/nouveau;Rendu relevé;admin / agent / proprietaire;390 / 768 / 1440
+/agence/[orgId]/journal;Rendu relevé;admin / agent / proprietaire;390 / 768 / 1440
+/agence/[orgId]/journal/[slug];Rendu relevé;admin / agent / proprietaire;390 / 768 / 1440
+/agence/[orgId]/lots/[lotId];Non démontré;;
+/agence/[orgId]/loyers;Rendu relevé;admin / agent / proprietaire;390 / 768 / 1440
+/agence/[orgId]/loyers/pointage;Rendu relevé;admin / agent / proprietaire;390 / 768 / 1440
+/agence/[orgId]/mandats;Rendu relevé;admin / agent;390 / 768 / 1440
+/agence/[orgId]/messages;Rendu relevé;admin / agent / proprietaire;390 / 768 / 1440
+/agence/[orgId]/parc;Rendu relevé;admin / agent / proprietaire;390 / 768 / 1440
+/agence/[orgId]/parc/[bienId];Rendu relevé;admin / agent / proprietaire;390 / 1440
+/agence/[orgId]/parc/[bienId]/lots/[lotId];Rendu relevé;admin / agent / proprietaire;390 / 768 / 1440
+/agence/[orgId]/parc/import;Rendu relevé;admin / agent / proprietaire;390 / 768 / 1440
+/agence/[orgId]/parc/nouveau;Rendu relevé;admin / agent / proprietaire;390 / 768 / 1440
+/agence/[orgId]/personnes;Rendu relevé;admin / agent / proprietaire;390 / 768 / 1440
+/agence/[orgId]/personnes/[personId];Rendu relevé;admin / agent / proprietaire;390 / 768 / 1440
+/agence/[orgId]/profil;Rendu relevé;admin / agent / proprietaire;390 / 768 / 1440
+/agence/[orgId]/regles;Rendu relevé;admin / agent / proprietaire;390 / 768 / 1440
+/agence/[orgId]/reseau;Rendu relevé;admin / agent / proprietaire;390 / 768 / 1440
+/agence/[orgId]/statistiques;Rendu relevé;admin / agent / proprietaire;390 / 768 / 1440
+/agences;Rendu relevé;public;390 / 768 / 1440
+/artisan;Rendu relevé;artisan;390 / 768 / 1440
+/artisan/agenda;Rendu relevé;artisan;390 / 768 / 1440
+/artisan/attestations;Rendu relevé;artisan;390 / 768 / 1440
+/artisan/chantiers/[chantierId];Rendu relevé;artisan;390 / 768 / 1440
+/artisan/clients;Rendu relevé;artisan;390 / 768 / 1440
+/artisan/clients/[clientId];Rendu relevé;artisan;390 / 768 / 1440
+/artisan/devis;Rendu relevé;artisan;390 / 768 / 1440
+/artisan/devis/[sollicitationId];Rendu relevé;artisan;390 / 768 / 1440
+/artisan/devis/nouveau;Rendu relevé;artisan;390 / 1440
+/artisan/entreprise;Rendu relevé;artisan;390 / 768 / 1440
+/artisan/facturation;Rendu relevé;artisan;390 / 768 / 1440
+/artisan/facturation/[factureId];Rendu relevé;artisan;390 / 768 / 1440
+/artisan/inscription;Rendu relevé;agent;390 / 1440
+/artisan/invitation/[invitationId];Rendu relevé;public;390 / 1440
+/artisan/missions/[interventionId];Rendu relevé;artisan;390 / 768 / 1440
+/artisan/missions/[interventionId]/compte-rendu;Rendu relevé;artisan;390 / 1440
+/artisan/missions/[interventionId]/compte-rendu/bilan;Rendu relevé;artisan;390 / 1440
+/artisan/missions/[interventionId]/creneaux;Rendu relevé;artisan;390 / 768 / 1440
+/artisan/missions/[interventionId]/facture;Rendu relevé;artisan;390 / 1440
+/artisan/note;Rendu relevé;artisan;390 / 768 / 1440
+/artisan/panne;Non démontré;;
+/artisan/regles;Rendu relevé;artisan;390 / 1440
+/assistance;Rendu relevé;admin / agent / artisan / locataire / superadmin;390 / 768 / 1440
+/attestation-loyer/[orgId];Rendu relevé;locataire;390 / 768 / 1440
+/auth/confirmer;Rendu relevé;public;390 / 1440
+/compte;Rendu relevé;admin / agent / artisan / locataire / proprietaire / superadmin;390 / 768 / 1440
+/compte/donnees;Rendu relevé;admin / agent / artisan / locataire / proprietaire / superadmin;390 / 768 / 1440
+/conditions;Rendu relevé;public;390 / 768 / 1440
+/conditions/artisans;Rendu relevé;public;390 / 768 / 1440
+/conditions/versions;Rendu relevé;public;390 / 768 / 1440
+/conditions/versions/[document]/[version];Non démontré;;
+/confidentialite;Rendu relevé;public;390 / 768 / 1440
+/connexion;Rendu relevé;public;390 / 768 / 1440
+/espaces;Non démontré;;
+/inscription;Rendu relevé;public;390 / 768 / 1440
+/invitations/[invitationId];Non démontré;;
+/journal;Rendu relevé;public;390 / 768 / 1440
+/journal/[slug];Rendu relevé;public;390 / 768 / 1440
+/locataire/[orgId];Rendu relevé;locataire;390 / 768 / 1440
+/locataire/[orgId]/contact;Rendu relevé;locataire;390 / 768 / 1440
+/locataire/[orgId]/demandes;Rendu relevé;locataire;390 / 768 / 1440
+/locataire/[orgId]/documents;Rendu relevé;locataire;390 / 768 / 1440
+/locataire/[orgId]/faq;Rendu relevé;locataire;390 / 768 / 1440
+/locataire/[orgId]/incident;Rendu relevé;locataire;390 / 768 / 1440
+/locataire/[orgId]/logement;Rendu relevé;locataire;390 / 768 / 1440
+/locataire/[orgId]/loyers;Rendu relevé;locataire;390 / 768 / 1440
+/locataire/[orgId]/regles;Rendu relevé;locataire;390 / 768 / 1440
+/locataire/[orgId]/releves;Rendu relevé;locataire;390 / 1440
+/mentions-legales;Rendu relevé;public;390 / 768 / 1440
+/mot-de-passe-oublie;Rendu relevé;public;390 / 768 / 1440
+/nouveau-mot-de-passe;Non démontré;;
+/outils;Rendu relevé;public;390 / 768 / 1440
+/outils/calcul-irl;Rendu relevé;public;390 / 768 / 1440
+/outils/comparateur-gli-visale;Rendu relevé;public;390 / 768 / 1440
+/outils/quittance-de-loyer;Rendu relevé;public;390 / 768 / 1440
+/outils/rentabilite-locative;Rendu relevé;public;390 / 768 / 1440
+/outils/simulateur-lmnp;Rendu relevé;public;390 / 768 / 1440
+/quittance/[quittanceId];Non démontré;;
+/relais;Rendu relevé;superadmin;390 / 1440
+/securite;Rendu relevé;admin / agent / artisan / locataire / proprietaire / superadmin;390 / 1440
+/signature/caution/[jeton];Rendu relevé;public;390 / 1440
+/tarifs;Rendu relevé;public;390 / 768 / 1440
+/veille;Rendu relevé;admin / agent / proprietaire;390 / 1440

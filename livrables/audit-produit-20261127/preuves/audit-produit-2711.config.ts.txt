@@ -1,0 +1,14 @@
+import { defineConfig } from "@playwright/test";
+import banc from "./v1-bailleurs.config";
+
+const selection = /(?:outils|edl-photos|edl-sortie-date-entree|consommations-patrimoine|support-bailleur|alerte-impaye-proprietaire|agenda-echeances-proprietaire|lot2-pilote|lot3-loyer-facture|fiscalite-qualifiee|parcours-agence|pointage-loyers-releve|relocation-bail|charges-a-confirmer|artisan-lignes-devis|rendez-vous-report-annulation-locataire|compte-securite|invitation-artisan|reception-loyer-proprietaire)\.spec\.ts/;
+export default defineConfig({
+  ...banc,
+  outputDir: "../.results/audit-produit-2711",
+  timeout: 180_000,
+  reporter: [["list"], ["json", { outputFile: "../.results/audit-produit-2711-metier.json" }]],
+  projects: banc.projects!.map(p => ({
+    ...p, testMatch: p.name === "sessions" ? p.testMatch : selection,
+    use: { ...p.use, screenshot: "only-on-failure", launchOptions: { args: ["--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost, EXCLUDE 127.0.0.1"] } },
+  })),
+});

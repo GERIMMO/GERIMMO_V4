@@ -1,0 +1,6 @@
+Running 2 tests using 1 worker
+
+  ✓  1 [ordinateur] › e2e/rendez-vous-report-annulation-locataire.spec.ts:51:5 › locataire : report demandé puis accepté, report refusé, puis annulation dont l'artisan prend acte (19.1s)
+  ✓  2 [telephone] › e2e/rendez-vous-report-annulation-locataire.spec.ts:51:5 › locataire : report demandé puis accepté, report refusé, puis annulation dont l'artisan prend acte (13.1s)
+
+  2 passed (34.4s)

@@ -1,0 +1,14 @@
+{"id":"navigation-supervision","role":"superadmin","largeur":390,"mouvement":"no-preference","entree":[],"erreur":"Error: expect(locator).toBeVisible() failed "}
+{"id":"navigation-supervision","role":"superadmin","largeur":768,"mouvement":"no-preference","entree":[],"erreur":"Error: expect(locator).toBeVisible() failed "}
+{"id":"navigation-supervision","role":"superadmin","largeur":390,"mouvement":"reduce","entree":[],"erreur":"Error: expect(locator).toBeVisible() failed "}
+{"id":"navigation-supervision","role":"superadmin","largeur":768,"mouvement":"reduce","entree":[],"erreur":"Error: expect(locator).toBeVisible() failed "}
+{"id":"afficher-details","role":"superadmin","largeur":390,"mouvement":"reduce","entree":[],"erreur":"Error: expect(locator).toBeVisible() failed "}
+{"id":"afficher-details","role":"superadmin","largeur":390,"mouvement":"no-preference","entree":[],"erreur":"Error: expect(locator).toBeVisible() failed "}
+{"id":"agenda-artisan","role":"artisan","largeur":390,"mouvement":"no-preference","entree":[{"nom":"apparition","duree":"0.32s","delai":"0s","boucle":false}],"compte":7,"transition":"0s","hauteur":90}
+{"id":"agenda-artisan","role":"artisan","largeur":390,"mouvement":"reduce","entree":[],"compte":7,"transition":"0s","hauteur":90}
+{"id":"agenda-artisan","role":"artisan","largeur":768,"mouvement":"no-preference","entree":[{"nom":"rond-tourne","duree":"0.7s","delai":"0s","boucle":true},{"nom":"apparition","duree":"0.32s","delai":"0s","boucle":false}],"compte":7,"transition":"0s","hauteur":91}
+{"id":"agenda-artisan","role":"artisan","largeur":768,"mouvement":"reduce","entree":[],"compte":7,"transition":"0s","hauteur":91}
+{"id":"agenda-artisan","role":"artisan","largeur":1440,"mouvement":"no-preference","entree":[{"nom":"apparition","duree":"0.32s","delai":"0s","boucle":false},{"nom":"squelette-vague","duree":"1.3s","delai":"0s","boucle":true}],"compte":7,"transition":"0s","hauteur":91}
+{"id":"afficher-details","role":"superadmin","largeur":1440,"mouvement":"no-preference","entree":[],"erreur":"Error: expect(locator).toBeVisible() failed "}
+{"id":"afficher-details","role":"superadmin","largeur":1440,"mouvement":"reduce","entree":[],"erreur":"Error: expect(locator).toBeVisible() failed "}
+{"id":"agenda-artisan","role":"artisan","largeur":1440,"mouvement":"reduce","entree":[],"compte":7,"transition":"0s","hauteur":91}

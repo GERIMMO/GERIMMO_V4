@@ -1,0 +1,14 @@
+
+Running 9 tests using 1 worker
+
+  ✓  1 [telephone] › e2e/agenda-echeances-proprietaire.spec.ts:38:5 › l'agenda du propriétaire montre loyers, états des lieux, congé et fin de bail (3.5s)
+  ✓  2 [telephone] › e2e/alerte-impaye-proprietaire.spec.ts:16:40 › impayé de deux mois à 390px : total sur la ligne, alerte fermée à la réception complète (3.9s)
+  ✓  3 [telephone] › e2e/alerte-impaye-proprietaire.spec.ts:16:40 › impayé de deux mois à 1440px : total sur la ligne, alerte fermée à la réception complète (3.9s)
+  ✓  4 [telephone] › e2e/consommations-patrimoine.spec.ts:9:45 › consommations : relevé locataire, facture et décompte à 390px (12.9s)
+  ✓  5 [telephone] › e2e/consommations-patrimoine.spec.ts:9:45 › consommations : relevé locataire, facture et décompte à 768px (9.9s)
+  ✓  6 [telephone] › e2e/consommations-patrimoine.spec.ts:9:45 › consommations : relevé locataire, facture et décompte à 1440px (9.5s)
+  ✓  7 [telephone] › e2e/edl-photos.spec.ts:61:5 › état des lieux : photo ajoutée à un élément, imprimée et numérotée dans le PDF, remplacée, retirée, figée après signature (5.7s)
+  ✓  8 [telephone] › e2e/edl-sortie-date-entree.spec.ts:63:5 › état des lieux de sortie : le PDF généré porte la date de l'entrée, ou un blanc à compléter si l'entrée n'est pas dans Gerimmo (2.7s)
+  ✓  9 [telephone] › e2e/support-bailleur.spec.ts:10:5 › le bailleur retrouve la réponse apportée à sa demande par la supervision (6.1s)
+
+  9 passed (59.1s)

@@ -1,0 +1,12 @@
+Running 8 tests using 1 worker
+
+  ✓  1 [telephone] › e2e/outils.spec.ts:79:5 › index /outils : les cinq outils, sans débordement (534ms)
+  ✓  2 [telephone] › e2e/outils.spec.ts:95:5 › calcul IRL : rien de prérempli, 850 € × 148,37 ÷ 146,68 = 859,79 €, lettre complète seulement, alerte au-delà d'un an, DPE F bloque (590ms)
+  ✓  3 [telephone] › e2e/outils.spec.ts:197:5 › quittance : rien de prérempli ; 850 + 120, reçu 500 → reçu de paiement partiel, reste dû 470,00 € ; impression complète seulement (794ms)
+  ✓  4 [telephone] › e2e/outils.spec.ts:290:5 › comparateur : rien de prérempli ; GLI 314,28 € brut, 165,94 € net ; 30 ans et plus « Autre » → Visale exclue (382ms)
+  ✓  5 [telephone] › e2e/outils.spec.ts:318:5 › LMNP : rien de prérempli ; réel 0,00 €, micro 2 265,60 €, amortissement reporté 554,29 € (363ms)
+  ✓  6 [telephone] › e2e/outils.spec.ts:348:5 › rentabilité : rien de prérempli ; brute 5,29 %, nette 4,08 %, cash-flow −350,44 € (386ms)
+  ✓  7 [telephone] › e2e/outils.spec.ts:383:5 › quittance publique : aucun document sans paiement valide, excédent hors du terme (463ms)
+  ✓  8 [telephone] › e2e/outils.spec.ts:422:5 › quittance : le dernier champ du terme se tape d'un trait, sans perdre le focus (436ms)
+
+  8 passed (4.6s)

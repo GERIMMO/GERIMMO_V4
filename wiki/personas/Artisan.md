@@ -3,7 +3,7 @@ type: persona
 tags: [role, artisan, incident]
 status: in-progress
 created: 2026-07-21
-updated: 2026-11-26
+updated: 2026-11-27
 sources: ["[[Vision de l'écosystème Gerimmo]]", "[[Contrôle des livraisons de Codex — 22 octobre 2026]] (C2)", "[[Préparation fonctionnelle — 21 octobre 2026]]", "log.md — entrées du 21/10/2026 (« decision | Version de base fonctionnelle… », « dev | Préparer l'ouverture des clients externes et règlements artisans ») et du 23/10/2026 (« decision | Signature ouverte pendant la bêta… », « decision | Conformité V1 : valeurs par défaut… », point 7)", "app/supabase/migrations/20261021140836_ouverture_activite_artisan.sql", "app/supabase/migrations/20261012225000_garde_activation_artisan.sql", "app/src/lib/artisan-activation.ts", "app/supabase/migrations/20261023180000_reseau_zone_choisie_par_artisan.sql", "app/src/lib/conditions-versions.json (conditions de l'espace artisan du 24/10/2026)", "[[Ouverture du réseau d'artisans]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]", "[[2026-07-24-gerimmo-v3-module-7-incidents]]", "[[2026-07-24-gerimmo-v3-module-8-artisans]]", "[[2026-07-24-gerimmo-v3-module-11-notation]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]", "[[2026-07-24-gerimmo-v3-a2-conservation-rgpd]]", "[[2026-09-28-reseau-national-ouvertures-locales]]", "[[Invitation d'un artisan par un propriétaire]]", "[[Conditions générales]]", "log.md — entrée « deploy » du 24/10/2026 (PR #246)"]
 ---
 
@@ -316,7 +316,7 @@ Conséquence : un artisan blacklisté par l'agence A **reste visible** pour l'ag
 > - **Gratuit pour toujours, ou payant plus tard ?** La décision du 23/10 (« espace artisan gratuit et sans
 >   commission ») s'oppose à d'autres pistes : abonnement et commission de l'artisan à l'étage 3 (artefact Vision du
 >   16/10, cité par la [[Vision de l'écosystème Gerimmo]]) ; « peut-être une commission sur le réseau d'artisans »
->   ([[Feuille de route — plateforme de référence, 26 novembre 2026]], section 5, étage 3). Question 1 de la
+>   ([[Vision de l'écosystème Gerimmo]], section 5, étage 3). Question 1 de la
 >   [[Vision de l'écosystème Gerimmo]], section 12 : à trancher par le dirigeant. Rien de payant n'existe pour
 >   l'artisan dans le code.
 > - **Clients externes ouverts sans expert-comptable** : avoir numéroté AV-, règlements déclarés et numérotation des

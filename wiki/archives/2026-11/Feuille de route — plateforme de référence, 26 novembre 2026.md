@@ -1,13 +1,18 @@
 ---
 type: synthesis
 tags: [strategie, feuille-de-route, marche, concurrence, aides, banque, europe, revenu]
-status: draft
+status: archived
+archived: 2026-11-27
+superseded-by: "[[Vision de l'écosystème Gerimmo]]"
 created: 2026-11-26
 updated: 2026-11-26
 sources: ["[[Passation — état du 26 novembre 2026]]", "[[Proposition de valeur]]", "[[Analyse concurrentielle]]", "[[Prêt à démarcher]]", "[[Grille tarifaire]]", "[[Calendrier de lancement — 30 novembre 2026]]", "Recherches web du 26/11/2026 (liste en fin de page)"]
 ---
 
 # Feuille de route — plateforme de référence, 26 novembre 2026
+
+> [!note] Page archivée le 27/11/2026
+> Son contenu utile est repris dans la seule page de vision : [[Vision de l'écosystème Gerimmo]]. Cette page n'est plus tenue à jour.
 
 > [!info] L'ambition fixée par le dirigeant le 26/11/2026
 > Mot pour mot : « FAIRE DE GERIMMO LA PLATEFORME PRINCIPALE DE GESTION IMMOBILIÈRE DE FRANCE ET POTENTIELLEMENT

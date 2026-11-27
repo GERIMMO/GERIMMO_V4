@@ -3,14 +3,14 @@ type: synthesis
 tags: [concurrence, marche, positionnement]
 status: in-progress
 created: 2026-07-22
-updated: 2026-11-26
-sources: ["[[2026-07-22-rentila-site-web]]", "[[2026-07-22-smovin-site-web]]", "[[2026-07-22-oskar-la-boite-immo]]", "[[Feuille de route — plateforme de référence, 26 novembre 2026]] (sections 1 à 3)", "[[Vision de l'écosystème Gerimmo]] (section 11)", "[[Canaux de communication]]", "[[Référentiel du palier 1]] (R-ADM-11, C-38)", "[[Grille tarifaire]]", "log.md — entrée « query » du 20/09/2026 (lancement sans WhatsApp)", "recherche dans app/src et app/supabase/migrations le 26/11/2026 (aucun code Telegram ni WhatsApp)"]
+updated: 2026-11-27
+sources: ["[[2026-07-22-rentila-site-web]]", "[[2026-07-22-smovin-site-web]]", "[[2026-07-22-oskar-la-boite-immo]]", "[[Vision de l'écosystème Gerimmo]] (sections 1 à 3)", "[[Vision de l'écosystème Gerimmo]] (section 11)", "[[Canaux de communication]]", "[[Référentiel du palier 1]] (R-ADM-11, C-38)", "[[Grille tarifaire]]", "log.md — entrée « query » du 20/09/2026 (lancement sans WhatsApp)", "recherche dans app/src et app/supabase/migrations le 26/11/2026 (aucun code Telegram ni WhatsApp)"]
 ---
 
 > [!important] Mise à jour du 26/11/2026 — lire d'abord la feuille de route
 > Cette analyse date du 22/07/2026. Le marché, les concurrents, leurs prix et la place libre sont repris et actualisés
 > dans les **sections 2 (« Le marché ») et 3 (« La concurrence » : ce sans quoi on ne vend pas, prix pratiqués, place
-> libre, canaux d'acquisition)** de la [[Feuille de route — plateforme de référence, 26 novembre 2026]]. L'état réel de
+> libre, canaux d'acquisition)** de la [[Vision de l'écosystème Gerimmo]]. L'état réel de
 > Gerimmo au 26/11 est dans sa section 1. Ici, seules deux erreurs sont corrigées :
 > - **Aucun bot n'est construit.** Ni Telegram (abandonné le 25/07/2026, [[Canaux de communication]]) ni WhatsApp
 >   (reporté le 20/09/2026 à après le lancement, jamais construit ; question C-38 du [[Référentiel du palier 1]]). Les canaux
@@ -66,7 +66,7 @@ web du 2026-07-22 pour les tarifs, les limites et les concurrents non mentionné
 
 *Statuts de Gerimmo au 22/07/2026, non mis à jour ici, sauf la ligne des bots. Plusieurs ❌ et 🎯 sont depuis en
 production (bail, état des lieux, révision IRL, régularisation des charges, aide à la 2044 ; signature par Zoho Sign
-depuis le 18/10/2026) : voir la section 1 de la [[Feuille de route — plateforme de référence, 26 novembre 2026]].*
+depuis le 18/10/2026) : voir la section 1 de la [[Vision de l'écosystème Gerimmo]].*
 
 ## Enseignements
 
@@ -86,7 +86,7 @@ depuis le 18/10/2026) : voir la section 1 de la [[Feuille de route — plateform
    *(**Supplanté** : la grille de juillet citée ici n'existe plus, ni celle du 28/09 qui l'avait remplacée. Depuis le
    11/11/2026, le code applique l'**abonnement unique** pour les particuliers et les SCI (5,99 €/mois pour 1 bien, sans
    frais de mise en place ni bien offert) ; prix complets et grille agences du code dans la [[Grille tarifaire]].
-   Comparaison des prix du marché à jour : section 3 de la [[Feuille de route — plateforme de référence, 26 novembre 2026]].
+   Comparaison des prix du marché à jour : section 3 de la [[Vision de l'écosystème Gerimmo]].
    L'écart avec Rentila (gratuit pour 1 bien) reste à réévaluer.)*
 4. **Positionnement gagnant probable** : « l'outil qui gère les *problèmes* (incidents,
    artisans, terrain) là où les autres gèrent les *papiers* (bail, compta) » — au prix
@@ -104,7 +104,7 @@ depuis le 18/10/2026) : voir la section 1 de la [[Feuille de route — plateform
 >   d'essai produit ; les périmètres réels peuvent différer des revendications.
 > - Tarifs Oskar non publics ; tarifs Smovin non détaillés (formules par lots).
 > - Marché mouvant (Tylto→Oskar en 2024) : à rafraîchir périodiquement. Rafraîchi le 26/11/2026 dans la
->   [[Feuille de route — plateforme de référence, 26 novembre 2026]] (sections 2 et 3), pas dans cette page.
+>   [[Vision de l'écosystème Gerimmo]] (sections 2 et 3), pas dans cette page.
 
 > [!warning] Points à trancher / contradictions
 > - **WhatsApp** : y revient-on ? Question ouverte (C-38 du [[Référentiel du palier 1]] ; question 4 de la

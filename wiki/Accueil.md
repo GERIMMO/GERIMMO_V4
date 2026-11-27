@@ -3,8 +3,8 @@ type: synthesis
 tags: [accueil, vue-ensemble]
 status: in-progress
 created: 2026-07-20
-updated: 2026-11-26
-sources: ["[[Vision de l'écosystème Gerimmo]]", "[[Passation — état du 26 novembre 2026]]", "[[Feuille de route — plateforme de référence, 26 novembre 2026]]", "[[Référentiel du palier 1]]", "livrables/OUVERTURE-VENTE-30-NOVEMBRE.md"]
+updated: 2026-11-27
+sources: ["[[Vision de l'écosystème Gerimmo]]", "[[Passation — état du 26 novembre 2026]]", "[[Référentiel du palier 1]]", "livrables/OUVERTURE-VENTE-30-NOVEMBRE.md"]
 ---
 
 # Accueil — Wiki métier Gerimmo
@@ -28,7 +28,7 @@ travail, mais reste un logiciel et ne détient jamais l'argent des autres. L'amb
 - La **vente aux particuliers et aux SCI ouvre le 30/11/2026** (décision du dirigeant du 26/11,
   `livrables/OUVERTURE-VENTE-30-NOVEMBRE.md`) ; d'ici là, les souscriptions payantes restent fermées.
 - **Aucun client réel** à ce jour : les comptes inscrits sont des comptes de test, et aucun paiement réel n'est connu
-  ([[Feuille de route — plateforme de référence, 26 novembre 2026]], section 1).
+  ([[Vision de l'écosystème Gerimmo]], section 1).
 - Les **agences** sont sur [[Liste d'attente des agences|liste d'attente]].
 
 ## Quoi lire d'abord
@@ -38,7 +38,6 @@ travail, mais reste un logiciel et ne détient jamais l'argent des autres. L'amb
 3. [[Référentiel du palier 1]] — les règles métier du palier 1, chacune avec sa source et son statut.
 4. `QUESTIONS.md` (racine du dépôt) — le registre unique des questions et décisions.
 5. [[Décisions du dirigeant]] — ses réponses écrites, mot pour mot.
-6. [[Feuille de route — plateforme de référence, 26 novembre 2026]] — le marché, la concurrence et la stratégie.
 
 ## Comment le wiki est rangé
 

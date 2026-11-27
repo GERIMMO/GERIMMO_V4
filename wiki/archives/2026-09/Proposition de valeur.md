@@ -1,13 +1,18 @@
 ---
 type: synthesis
 tags: [vision, proposition-de-valeur, strategie]
-status: stable
+status: archived
+archived: 2026-11-27
+superseded-by: "[[Vision de l'écosystème Gerimmo]]"
 created: 2026-09-10
 updated: 2026-11-26
 sources: ["[[Analyse concurrentielle]]", "[[2026-09-04-maquette-v3-prototype]]", "[[2026-09-08-maquette-espace-agence-v6]]", "[[2026-07-21-fonctionnalites-par-persona-v0]]", "[[Vision de l'écosystème Gerimmo]]", "[[Passation — état du 26 novembre 2026]] (sections a et d.3)", "[[Feuille de route — plateforme de référence, 26 novembre 2026]] (section 1)", "[[Signature électronique]]", "[[Canaux de communication]]", "[[Référentiel du palier 1]] (C-38)", "log.md — entrées du 18/10/2026 (Zoho Sign Europe choisi) et du 20/09/2026 (lancement sans WhatsApp)", "app/src/lib/envois-suspendus.ts", "recherche dans app/ le 26/11/2026 (aucun code Telegram, WhatsApp ni application native)"]
 ---
 
 # Proposition de valeur
+
+> [!note] Page archivée le 27/11/2026
+> Son contenu utile est repris dans la seule page de vision : [[Vision de l'écosystème Gerimmo]]. Cette page n'est plus tenue à jour.
 
 > **« Faire le travail d'une agence de gestion locative — en mieux, plus rapide,
 > et moins cher. »**

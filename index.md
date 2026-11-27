@@ -147,13 +147,11 @@ Les nouvelles datées (publications, décisions, contrôles) sont dans `log.md`,
 - [[Recueil des textes officiels (v6)]] — recueil de 166 pages fourni par le dirigeant le 24/11 (bail, consommation, RGPD…) ; non recontrôlé sur Légifrance.
 
 ## Synthèses
-- [[Vision de l'écosystème Gerimmo]] — référence unique de la vision (brouillon du 26/11, à valider) : énoncé fondateur, ambition, acteurs, portes d'entrée, étages, modèle économique.
+- [[Vision de l'écosystème Gerimmo]] — la seule page de vision : ambition, principes, acteurs, marché et concurrence, étages, revenu, marque, idées abandonnées ; brouillon à valider.
 - [[Passation — état du 26 novembre 2026]] — pour reprendre sans l'historique : état de la production, registre Q1 à Q126, lot 1 de corrections, décisions attendues du dirigeant.
 - [[Référentiel du palier 1]] — le document de référence du palier 1 : cahier V3 et wiki fusionnés, règles numérotées, décisions du 24/11, registre des contradictions.
-- [[Feuille de route — plateforme de référence, 26 novembre 2026]] — brouillon du 26/11 : état du produit, marché, concurrence, revenu, stratégie en trois étages, décisions attendues.
 - [[Mission palier 1 — audit du 22 novembre 2026]] — audit puis corrections en autonomie du palier 1, publiés le 25/11 ; réglages de la console encore à faire (en cours).
 - [[Premiers clients — acquisition sans budget — 20 novembre 2026]] — chantier du 20/11 : freins d'activation levés ; les inscrits étaient des comptes de test, le premier frein est d'attirer des visiteurs.
-- [[Proposition de valeur]] — l'énoncé fondateur du 10/09 : « faire le travail d'une agence de gestion locative — en mieux, plus rapide, et moins cher » ; écarts listés au 26/11.
 - [[Analyse concurrentielle]] — panorama des concurrents en France et en Belgique (22/07) ; marché et prix actualisés par la feuille de route du 26/11.
 - [[Canaux de communication]] — l'e-mail et l'espace personnel au palier 1 ; Telegram abandonné, WhatsApp non construit ; relu dans le code le 26/11.
 - [[Design system Gerimmo]] — la direction « A — Maison » en production depuis le 20/11 : principes, couleurs, typographie ; en cas de désaccord, le code fait foi.
@@ -165,7 +163,7 @@ Les nouvelles datées (publications, décisions, contrôles) sont dans `log.md`,
 - [[État du projet et décisions ouvertes]] — renvoi vers `QUESTIONS.md`, [[Décisions du dirigeant]] et [[Passation — état du 26 novembre 2026]].
 
 ## Archives
-- [[Historique des audits]] — recense les 71 pages archivées dans `wiki/archives/AAAA-MM/` (audits, points d'étape, passations, pages remplacées), avec leur date et leur résumé.
+- [[Historique des audits]] — recense les 73 pages archivées dans `wiki/archives/AAAA-MM/` (audits, points d'étape, passations, pages remplacées), avec leur date et leur résumé.
 
 ## Livrables
 - `livrables/OUVERTURE-VENTE-30-NOVEMBRE.md` — le pas-à-pas pour ouvrir la vente aux particuliers et aux SCI le 30/11.

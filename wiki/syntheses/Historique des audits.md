@@ -3,7 +3,7 @@ type: synthesis
 tags: [historique, audits, archives, index]
 status: stable
 created: 2026-11-26
-updated: 2026-11-26
+updated: 2026-11-27
 sources: []
 ---
 
@@ -92,6 +92,8 @@ Pour l'état actuel : [[Passation — état du 26 novembre 2026]], [[Vision de l
 | 24/10/2026 | [[Prompt de passation à Codex — conformité V1, 24 octobre 2026]] | ce qui est en production, la branche prête (conditions V1, confidentialité, inactivité, wiki) et les étapes de publication laissées à Codex le 24/10. |
 | 24/10/2026 | [[Présentation mobile des espaces — 24 octobre 2026]] |  |
 | 24/10/2026 | [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] | corrections adverses, sources officielles et preuves de publication. |
+| 10/09/2026 | [[Proposition de valeur]] | Énoncé fondateur « faire le travail d'une agence — en mieux, plus rapide, et moins cher », trois promesses ; archivé le 27/11, repris dans [[Vision de l'écosystème Gerimmo]]. |
+| 26/11/2026 | [[Feuille de route — plateforme de référence, 26 novembre 2026]] | Marché, concurrence, revenu et stratégie en trois étages du 26/11 ; archivée le 27/11, reprise dans [[Vision de l'écosystème Gerimmo]]. |
 
 ## Sources
 

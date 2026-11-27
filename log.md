@@ -8415,3 +8415,14 @@ cahier V3 et le wiki (sans autre document). La décision la plus récente l'empo
 - Restes repérés, non traités : encadrés périmés dans [[Cycle de vie de l'abonnement]] (28/09), [[Comptabilité]]
   (« non implémentée »), [[Relais du dirigeant]] (relevé du 16/10) ; [[Référentiel du palier 1]] R-ABO-01 et R-ABO-03
   à aligner sur l'abonnement unique.
+
+## [2026-11-27] lint   | Une seule vision, PR documentaire réduite
+- Demande du dirigeant : « On peux réduire la pr ? Je veux faire le ménage et garder une seule vraie et bonne vision ».
+- Vision : [[Vision de l'écosystème Gerimmo]] devient la seule page de vision. Elle reprend le marché, la concurrence,
+  le revenu et le plan de décembre de la feuille de route du 26/11, ainsi que les trois promesses et l'indicateur de
+  réussite de l'énoncé fondateur. [[Proposition de valeur]] et
+  [[Feuille de route — plateforme de référence, 26 novembre 2026]] sont archivées (renvoi vers la vision) ; liens
+  vivants, [[Accueil]], `index.md` et [[Historique des audits]] mis à jour (73 pages archivées).
+- PR documentaire n° 362 : 421 fichiers de preuves d'audit (captures, relevés texte et JSON) et notes de banc retirés de
+  la branche. Ils restent intacts sur `claude/audit-final-pr335`. La PR passe de 624 à environ 200 fichiers.
+- Contrôle des liens : aucun lien cassé par ces changements.

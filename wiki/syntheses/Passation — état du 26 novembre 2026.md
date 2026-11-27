@@ -12,7 +12,7 @@ sources: ["[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Référentiel
 > [!info] Mise à jour du 27/11/2026 vers 06 h 30 Z : le lot 1 est en production
 > Le lot 1 (L1, L4a, L4b, L4c) est **publié** depuis le 27/11 à 06:17Z : PR [#361](https://github.com/GERIMMO/GERIMMO_V4/pull/361),
 > fusion squash le 26/11 à 22:49Z, `main` = `c3e2ba6`, publication contrôlée n° 45911337396 `publiee_verifiee`,
-> approuvée par le dirigeant. Recette de production n° 63 lancée à 06:18Z (résultat dans `JOURNAL.md`). Les sections a, b, c, d.8, e, h et i en tiennent compte ; le reste de
+> approuvée par le dirigeant. Recette de production n° 63 **réussie** (68 parcours au premier essai, purge vérifiée). Les sections a, b, c, d.8, e, h et i en tiennent compte ; le reste de
 > la note décrit toujours l'état du 26/11.
 
 **À quoi sert cette page.** Reprendre le travail sur Gerimmo sans l'historique des conversations. Elle dit ce qui
@@ -42,9 +42,9 @@ quoi, comment lancer), `livrables/PLAN-DE-PUBLICATION.md`, `livrables/PLAN-CORRE
 |---|---|---|
 | Version servie | `main` = `c3e2ba6694af86c9d618d55a2134792d41ba7190` (PR [#361](https://github.com/GERIMMO/GERIMMO_V4/pull/361), lot 1 de corrections : L1 et L4a, L4b, L4c), fusionnée en squash le 26/11 à 22:49Z | VÉRIFIÉ le 27/11 : `git ls-remote origin main` et `/api/sante` ; `JOURNAL.md` 27/11 |
 | Publication | Publication contrôlée n° 45911337396, lancée le 26/11 à 23:30Z, approuvée par le dirigeant (compte `GERIMMO`) le 27/11 : `publiee_verifiee` à 06:17Z ; construction Vercel `dpl_6XTUnD2Qrsz3vnLz1JQabN5EgDc9`, qui porte `www.gerimmo.app` et `gerimmo.app` | VÉRIFIÉ (GitHub Actions : succès, contrôle de 06:16:49Z à 06:17:37Z ; alias lus par le connecteur Vercel) |
-| Contrôles après publication | `/api/sante` sert `c3e2ba6`, base OK, pas de maintenance ; accueil, `/confidentialite` (date « 26 novembre 2026 », « 24 mois après ») et `/outils/quittance-de-loyer` (champs vides, exemples en grisé, aide « AAAA-MM ») en 200 ; aucune erreur d'exécution Vercel depuis 06:16Z (relevé de 06:18Z) | VÉRIFIÉ par l'agent principal le 27/11, par le connecteur Vercel (autre adresse que la sienne) |
+| Contrôles après publication | `/api/sante` sert `c3e2ba6`, base OK, pas de maintenance ; accueil, `/confidentialite` (date « 26 novembre 2026 », « 24 mois après ») et `/outils/quittance-de-loyer` (champs vides, exemples en grisé, aide « AAAA-MM ») en 200 ; aucune erreur d'exécution Vercel depuis 06:16Z (relevés de 06:18Z et de 06:28Z, après la recette) | VÉRIFIÉ par l'agent principal le 27/11, par le connecteur Vercel (autre adresse que la sienne) |
 | Versions précédentes | `f9e874b` (PR #360, Q126, `publiee_verifiee` le 26/11 vers 19:14Z, run 45881769432) ; `1dca28b` (PR #359, Q125, `publiee_verifiee` le 26/11 à 09:50Z, run 45792561969) ; `8f9dd9c` (PR #358, palier 1, version préparée `062296e2`, validée par écrit par le dirigeant le 25/11, `publiee_verifiee` le 25/11 à 23:17Z, run 45711136251) ; avant : `81740dec` (21/11) | VÉRIFIÉ |
-| Dernière recette de production | **n° 63** (run 45950975860, sur `c3e2ba6`) : lancée le 27/11 à 06:18Z, en cours à cette mise à jour | VÉRIFIÉ sur GitHub et dans `JOURNAL.md`. Avant : n° 62 (run 45882154250, sur `f9e874b`, réussie, de 19:14Z à 19:26:50Z) ; n° 58 (run 45720418609, sur `8f9dd9c`, réussie avec 1 parcours au second essai : Q125), n° 59, 60, 61 (runs 45795700074, 45798190513, 45798196475, sur `1dca28b`) réussies |
+| Dernière recette de production | **n° 63** (run 45950975860, sur `c3e2ba6`) : **réussie**, de 06:18:15Z à 06:27:56Z (cinq comptes éphémères, 68 parcours des espaces au premier essai, purge vérifiée : 0 organisation, 0 compte, 0 artisan, 0 supervision restants) | VÉRIFIÉ sur GitHub et dans `JOURNAL.md`. Avant : n° 62 (run 45882154250, sur `f9e874b`, réussie, de 19:14Z à 19:26:50Z) ; n° 58 (run 45720418609, sur `8f9dd9c`, réussie avec 1 parcours au second essai : Q125), n° 59, 60, 61 (runs 45795700074, 45798190513, 45798196475, sur `1dca28b`) réussies |
 | Dernières migrations | Workflow « Migrations Supabase », run 45710263565, le 25/11 de 22:05Z à 22:09Z : 52 migrations, de `20261122090000` à `20261125154000`, en une transaction (`COMMIT`, aucune erreur). Simulation préalable : run 45708871873 | VÉRIFIÉ (GitHub : ce sont les deux derniers passages du workflow). Aucune migration depuis : Q125, Q126 et le lot 1 n'en avaient pas |
 | Dernière sauvegarde | « Sauvegarde quotidienne » run 45794087353, planifiée, le 26/11 de 09:40Z à 09:45Z, sur `1dca28b` : réussie (le workflow dépose puis relit la copie chez Scaleway) | VÉRIFIÉ (GitHub). Avant : `20261125-2201` (run 45709572024, préalable aux migrations) et `20261125-2009` (run 45692125958) |
 | Dernier contrôle de restauration | Run 45693311092, le 25/11 à 20:16Z, sur la sauvegarde `20261125-2009` (nouvelle clé) : réussi, 269 tables, 51 746 lignes, 112 fichiers | VÉRIFIÉ : **aucun contrôle de restauration plus récent** dans `restauration-sauvegarde.yml` (lecture du 26/11) |
@@ -343,7 +343,8 @@ Ne pas la supprimer sans cette vérification et l'accord du dirigeant.
 >    second essai).
 > 4. Publication contrôlée n° 45911337396 (aucune migration, donc pas de sauvegarde préalable), lancée le 26/11 à
 >    23:30Z, en attente d'approbation toute la nuit, approuvée le 27/11 : `publiee_verifiee` à 06:17Z.
-> 5. Contrôles après publication : section a. Recette de production n° 63 lancée à 06:18Z.
+> 5. Contrôles après publication : section a. Recette de production n° 63 (run 45950975860) **réussie** de 06:18Z
+>    à 06:28Z : 68 parcours au premier essai, purge vérifiée.
 >
 > La politique de confidentialité en ligne depuis le 27/11 porte la date du 26/11, celle de la modification (règle
 > Q99) : c'est voulu.
@@ -722,7 +723,7 @@ au 14/11.
 | 26/11 | documentation (hors log) | Cette note de passation | — | premier état `8a9acea`, version finale sur `claude/audit-final-pr335` |
 | 26/11 | correction (hors log) | Lot 1 : quatre branches et leur intégration poussées, sans PR ni publication | — | contrôles locaux verts ; CI run n° 45894260072 : **verte sans reprise** (20:53Z → 21:34Z : vitest 16 829 tests réussis ; 357 parcours e2e réussis au premier essai et 3 ignorés, aucun second essai ; 75 WebKit mobile, 9 PostgREST, 4 envois, 2 invitation) |
 | 26/11 | publication (`JOURNAL.md`) | Lot 1 : PR #361, fusion squash à 22:49Z | #361 (`c3e2ba6`) | CI de la PR (n° 45901793551) et de `main` (n° 45907193348) vertes sans reprise |
-| 27/11 | deploy | Lot 1 en production | #361 (`c3e2ba6`) | `publiee_verifiee` 06:17Z (run n° 45911337396) ; recette n° 63 lancée à 06:18Z |
+| 27/11 | deploy | Lot 1 en production | #361 (`c3e2ba6`) | `publiee_verifiee` 06:17Z (run n° 45911337396) ; recette n° 63 réussie (68 parcours au premier essai, purge vérifiée) ; 0 erreur Vercel |
 
 ---
 

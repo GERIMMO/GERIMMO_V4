@@ -8349,3 +8349,11 @@ cahier V3 et le wiki (sans autre document). La décision la plus récente l'empo
 - Accord du dirigeant : « Publie ce correctif, fais une reprise de données, fais le reste » (Q126). CI de la PR n° 45868044631 verte sans reprise ; CI de `main` n° 45875096490 verte (un parcours public, `e2e/outils.spec.ts:159`, passé au second essai, sans lien avec le correctif) ; publication contrôlée n° 45881769432 `publiee_verifiee` à 19:14Z (aucune migration).
 - Santé relue depuis une autre adresse : `/api/sante` sert `f9e874b` ; 0 erreur Vercel. Reprise des données : recompte en lecture seule, 0 vrai compte à reprendre, rien d'écrit en base.
 - Recette de production n° 62 (n° 45882154250) réussie, de 19:14Z à 19:26:49Z, purge comprise. Détail : `JOURNAL.md`, 26/11 (soir).
+
+## [2026-11-27] deploy | Lot 1 de corrections en production (PR #361, `main` `c3e2ba6`)
+
+- Accord du dirigeant : « Oui, publie le lot 1 ici (Recommandé) » (26/11), puis « C'est approuvé » (27/11). Lots L1 (sessions) et L4a, L4b, L4c (écrans de la console, des espaces, des pages publiques) ; aucune migration.
+- CI de la PR n° 45901793551 et de `main` n° 45907193348 vertes sans reprise (16 829 tests, 357 parcours au premier essai) ; fusion squash le 26/11 à 22:49Z ; publication contrôlée n° 45911337396 `publiee_verifiee` le 27/11 à 06:17Z.
+- Santé et pages publiques relues par le connecteur Vercel : `/api/sante` sert `c3e2ba6` ; confidentialité (date du 26/11, « 24 mois après ») et outil de quittance (champs vides) en ligne ; 0 erreur Vercel depuis 06:16Z (relevé de 06:28Z).
+- Recette de production n° 63 (n° 45950975860) : réussie, de 06:18Z à 06:28Z : 68 parcours au premier essai, purge vérifiée.
+- Pages touchées : [[Passation — état du 26 novembre 2026]], [[Révision annuelle IRL]], `index.md` (note de passation ajoutée au catalogue) ; `QUESTIONS.md` (Q72, Q89, Q123), `DECISIONS-2026-11-24.md`, `JOURNAL.md`.

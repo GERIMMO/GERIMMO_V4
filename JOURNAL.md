@@ -771,14 +771,16 @@ La première passe de recette a relu de nouveau tous les documents produits. Ell
 
 - **Accord** : « Oui, publie le lot 1 ici (Recommandé) » (26/11 au soir), puis approbation de la publication : « C'est approuvé » (27/11). `DECISIONS-2026-11-24.md`.
 - **PR [#361](https://github.com/GERIMMO/GERIMMO_V4/pull/361)** depuis `claude/lot1-integration` (`ef14afa`, aucune migration), avec la liste des choix faits par délégation. CI de la PR n° 45901793551 verte sans reprise ; fusion « squash » le 26/11 à 22:49Z → `main` = `c3e2ba6694af86c9d618d55a2134792d41ba7190`.
-- **CI de `main`** n° 45907193348 : verte sans reprise. 16 829 tests ; 357 parcours au premier essai, 3 ignorés, aucun second essai. Le parcours instable `e2e/outils.spec.ts:159` passe au premier essai.
-- **Publication contrôlée** n° 45911337396, lancée le 26/11 à 23:30Z : en attente de votre approbation toute la nuit, approuvée par vous (`GERIMMO`) le 27/11 ; **`publiee_verifiee` à 06:17Z** (contrôle de 06:16:49Z à 06:17:37Z). Construction `dpl_6XTUnD2Qrsz3vnLz1JQabN5EgDc9` ; `www.gerimmo.app` et `gerimmo.app` dessus.
+- **CI de `main`** n° 45907193348 : verte sans reprise. 16 829 tests ; 357 parcours au premier essai, 3 ignorés, aucun second essai. Le parcours de la quittance publique autrefois instable (`e2e/outils.spec.ts:159` avant le lot 1, ligne 197 sur `c3e2ba6`) passe au premier essai, dans la CI de la PR comme dans celle de `main`.
+- **Publication contrôlée** n° 45911337396, lancée le 26/11 à 23:30Z : en attente de votre approbation toute la nuit, approuvée depuis le compte `GERIMMO` le 27/11 après votre message « C'est approuvé » (GitHub ne montre que le compte, que l'agent utilise aussi) ; **`publiee_verifiee` à 06:17Z** (job de contrôle de 06:16:49Z à 06:17:36Z). Construction `dpl_6XTUnD2Qrsz3vnLz1JQabN5EgDc9` ; `www.gerimmo.app` et `gerimmo.app` dessus.
 - **Après, VÉRIFIÉ par le connecteur Vercel (autre adresse que celle de l'agent)** :
   - `/api/sante` sert `c3e2ba6` (base OK, pas de maintenance) ;
   - accueil en 200 ;
-  - `/confidentialite` en 200, avec la date « 26 novembre 2026 » et « 24 mois après » (l'espace manquant est corrigé) ;
+  - `/confidentialite` en 200, avec la date « 26 novembre 2026 » et la phrase corrigée « conservées 24 mois après leur dernier traitement » (espace présent) ;
   - `/outils/quittance-de-loyer` en 200, champs vides et exemples en grisé (« Ex. 850 », « Ex. 120 », « Ex. 970 »), aide « AAAA-MM » du mois ;
   - aucune erreur d'exécution Vercel depuis 06:16Z (relevé de 06:28Z, après la recette).
 - **Recette de production n° 63** (n° 45950975860, sur `c3e2ba6`) : **réussie**, de 06:18:15Z à 06:27:56Z. Cinq comptes éphémères, sessions artisan et supervision avec un vrai second facteur, **68 parcours réussis au premier essai** sur téléphone (aucun échec, aucun second essai), puis purge vérifiée (« organisations 0, comptes 0, artisans 0, supervision 0 ; fichiers retirés par API ») : toutes les étapes vertes.
 - **Pas vérifié en ligne** : les écrans de la console, des espaces et de l'artisan touchés par le lot 1 ne sont vus que par la recette (parcours généraux) et par la CI ; les trois autres outils publics, lus dans le code publié seulement.
-- **Ce qui reste** : la note [[Passation — état du 26 novembre 2026]] est mise à jour (sections a, b, c, d.8, e, h, i). Aucun nouveau lot de code n'est lancé sans votre demande.
+- **Lien de partage Vercel** : le connecteur Vercel a créé, pour ces lectures, un lien de partage temporaire sur la construction de production (créé à 06:18:33Z, expire le 28/11 vers 05:18Z). Sa valeur n'est écrite nulle part.
+- **PR #362** (documentation seule, ouverte à 06:18:59Z par la session « Discussion Gerimmo ») : elle ne contient pas ces mises à jour du 27/11 ; à réunir avec cette branche avant sa fusion.
+- **Ce qui reste** : la note [[Passation — état du 26 novembre 2026]] est mise à jour (sections a, b, c, d.4, d.8, d.11, f, g, h, i). Aucun nouveau lot de code n'est lancé sans votre demande.

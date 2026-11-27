@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { chargerPilotageProprietaire, diagnosticsASurveiller, resumerPilotage, totalEncaissements, type LotPilotage } from "@/lib/pilotage-proprietaire";
+import { chargerPilotageProprietaire, diagnosticsASurveiller, resumerPilotage, type LotPilotage } from "@/lib/pilotage-proprietaire";
+import { totalEncaissements } from "@/lib/loyers-parc-mois";
 
 const lot = (id: string, etat = "disponible", bien_id = "bien"): LotPilotage => ({ id, nom: id, etat, bien_id });
 const bail = (id: string, lot_id: string, etat = "actif", chambre_id: string | null = null) => ({ id, lot_id, etat, chambre_id });

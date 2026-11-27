@@ -63,7 +63,7 @@ export const MODES_PAIEMENT: Record<string, string> = {
 };
 
 import { MontantsDuLoyer } from "@/components/montants-loyer";
-import { ventilerLoyers } from "@/lib/loyers-parc-mois";
+import { totalEncaissements, ventilerLoyers } from "@/lib/loyers-parc-mois";
 
 export type LigneEcheance = {
   prorata?: boolean;
@@ -406,6 +406,10 @@ export function FormulaireLoyers({
     numeroTrimestreIrl([...revisions].sort((a, b) => a.date_effet.localeCompare(b.date_effet))[0]?.irl_trimestre);
 
   const ventilation = !echeancierIndisponible && echeancier.length < 1000 ? ventilerLoyers(echeancier) : null;
+  const totalVerse = proprietaire && !encaissementsIndisponibles ? totalEncaissements(encaissements) : null;
+  const avance = recouvrementOuvert && ventilation && totalVerse !== null
+    ? (Math.round(totalVerse * 100) - Math.round(ventilation.attendu * 100)) / 100
+    : 0;
   const totalDu = echeancier.reduce((s, l) => s + Number(l.montant_du), 0);
   const totalEncaisse = encaissements.reduce((s, e) => s + Number(e.montant), 0);
   const solde = totalDu - totalEncaisse;
@@ -421,6 +425,7 @@ export function FormulaireLoyers({
           vert si le bail est à jour (relevé du 19/09). */}
       {proprietaire ? (ventilation ? <div className="space-y-2">
         <MontantsDuLoyer montants={ventilation} enDecompte={!recouvrementOuvert} />
+        {avance > 0 && <p className="text-sm font-medium">Versé d’avance : {eur(avance)}</p>}
         <p className="text-xs text-muted-foreground">
           {echeancier.length} terme{echeancier.length > 1 ? "s" : ""} appelé{echeancier.length > 1 ? "s" : ""} sur ce bail.
           {" "}Les avances non imputées sont visibles dans les règlements.

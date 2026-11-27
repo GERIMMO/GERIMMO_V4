@@ -1,4 +1,4 @@
-import { createElement } from "react";
+import { createElement, type ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { EtatLoyers } from "@/app/actions/loyers";
@@ -34,7 +34,7 @@ import { FormulaireLoyers } from "@/app/agence/[orgId]/baux/[bailId]/formulaire-
 
 beforeEach(() => { etatSimule.valeur = {}; });
 
-function rendre() {
+function rendre(options: Partial<ComponentProps<typeof FormulaireLoyers>> = {}) {
   return renderToStaticMarkup(createElement(FormulaireLoyers, {
     orgId: "org-test",
     bailId: "bail-test",
@@ -48,6 +48,7 @@ function rendre() {
     relances: [],
     regularisations: [],
     chargesForfait: false,
+    ...options,
   }));
 }
 
@@ -93,5 +94,27 @@ describe("Loyers : les saisies et retours restent compréhensibles", () => {
     expect(envoi).toContain("Envoi refusé");
     expect(envoi).toContain(">Envoyer la quittance</button>");
     expect(envoi).not.toContain('disabled=""');
+  });
+});
+
+describe("Le résumé propriétaire distingue le loyer reçu de l’avance", () => {
+  const options: Partial<ComponentProps<typeof FormulaireLoyers>> = {
+    proprietaire: true,
+    echeancier: [{ appel_id: "appel-test", periode: "2026-08-01", date_echeance: "2026-08-05", montant_du: 840, montant_couvert: 840, statut: "paye" }],
+    encaissements: [
+      { id: "loyer", montant: 840, date_paiement: "2026-08-05", mode: "virement", note: null },
+      { id: "avance", montant: 15, date_paiement: "2026-08-06", mode: "virement", note: null },
+    ],
+  };
+
+  it("affiche 840 € reçus sur l’échéance et 15 € versés d’avance", () => {
+    const texte = rendre(options).replace(/<[^>]+>|<!--.*?-->/g, " ").replace(/\s+/g, " ");
+    expect(texte).toContain("Versé d’avance : 15,00 €");
+    expect(texte).toContain("Attendu 840,00 € Reçu 840,00 € Reste dû 0,00 €");
+  });
+
+  it("n’annonce pas d’avance quand la liste des règlements est incomplète ou quand le décompte est finalisé", () => {
+    expect(rendre({ ...options, encaissementsIndisponibles: true })).not.toContain("Versé d’avance");
+    expect(rendre({ ...options, decompteSortie: "finalise" })).not.toContain("Versé d’avance");
   });
 });

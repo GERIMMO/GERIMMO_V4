@@ -15,6 +15,7 @@ import { ActionsAccueilProprietaire } from "@/components/actions-accueil-proprie
 import { ConseilsAccueilProprietaire } from "@/components/conseils-accueil-proprietaire";
 import { MontantsDuLoyer } from "@/components/montants-loyer";
 import { ventilerLoyers } from "@/lib/loyers-parc-mois";
+import { lireEcheancesMensuelles } from "@/lib/suivi-mensuel-loyers";
 import { AccueilBienvenue } from "@/components/accueil-bienvenue";
 import { pointReception } from "@/lib/paliers-reception-loyer";
 import { InformationEnvoisProprietaire } from "@/components/information-envois-proprietaire";
@@ -39,10 +40,7 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
     chargerPilotageProprietaire(supabase, orgId, aujourdHui),
     chargerVerificationsProprietaire(supabase, orgId, { userId, portefeuille: null, avecPaliers: true }),
     chargerTachesConsommations(supabase, orgId, base, aujourdHui),
-    (async () => {
-      try { return await supabase.rpc("quittancement_mois", { p_org: orgId, p_mois: `${aujourdHui.slice(0, 7)}-01` }); }
-      catch { return { data: null, error: true }; }
-    })(),
+    lireEcheancesMensuelles(supabase, orgId, aujourdHui.slice(0, 7)),
   ]);
   const { erreurs, lectureLoyers, verifications } = lectureVerifications;
   const { actions, rappels } = verifications;
@@ -55,9 +53,7 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
     : a.href?.startsWith(`${base}/incidents?`) ? "Ouvrir l’incident" : "Traiter";
   const { patrimoine, reglages, diagnostics } = pilotage;
   const envoisOuverts = await lireEnvoisProposes(supabase);
-  const idsLots = new Set(patrimoine?.lots.map(l => l.id) ?? []);
-  const loyersMois = patrimoine && !echeances.error && Array.isArray(echeances.data) && echeances.data.length < 1000
-    ? ventilerLoyers((echeances.data as { lot_id: string; montant_du: number | string; montant_couvert: number | string }[]).filter(l => idsLots.has(l.lot_id))) : null;
+  const loyersMois = echeances ? ventilerLoyers(echeances) : null;
   const pourcentage = loyersMois && loyersMois.attendu > 0 ? Math.min(100, Math.round((1 - loyersMois.resteDu / loyersMois.attendu) * 100)) : null;
   const nomsLots = new Map(patrimoine?.lots.map(lot => [lot.id, lot.nom]) ?? []);
   const contexteAction = (action: ActionDuJour) => action.source === "alerte" && typeof action.alerte.details?.lot_id === "string"

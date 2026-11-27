@@ -54,17 +54,28 @@ describe("accueil propriétaire : priorités et tâches à leur place", () => {
     expect(await rendre()).not.toContain("Aucune tâche détectée");
   });
 
-  it("compare les loyers du mois dans le même périmètre, sans inclure un autre bien", async () => {
+  it("charge les loyers du mois en demandant uniquement les échéances de cet espace", async () => {
     m.rpc.mockImplementation(async (nom: string) => ({ error: null, data: nom === "quittancement_mois" ? [
       { lot_id: "lot", montant_du: "1000", montant_couvert: "400" },
-      { lot_id: "hors-patrimoine", montant_du: "99999", montant_couvert: "99999" },
     ] : [] }));
     const html = await rendre();
     expect(html).toContain('aria-valuenow="40"');
     expect(html).toContain("400,00");
-    expect(html).not.toContain("99999");
+    expect(m.rpc).toHaveBeenCalledWith("quittancement_mois", { p_org: "org", p_mois: expect.stringMatching(/^\d{4}-\d{2}-01$/) });
     expect(html).toContain("Actions rapides");
     expect(html).toContain("À faire maintenant");
+  });
+
+  it("compte le loyer d’un bail actif sur un lot archivé, même sans patrimoine actif", async () => {
+    const p = pilotage();
+    m.pilotage.mockResolvedValue({ ...p, patrimoine: { ...p.patrimoine, biens: 0, lots: [] } });
+    m.rpc.mockImplementation(async (nom: string) => ({ error: null, data: nom === "quittancement_mois"
+      ? [{ lot_id: "lot-archive", montant_du: 640, montant_couvert: 0 }]
+      : [] }));
+    const html = await rendre();
+    expect(html).toContain("Loyers du mois");
+    expect(html).toContain("640,00");
+    expect(m.demarrage).not.toHaveBeenCalledWith(expect.objectContaining({ premierBien: true }));
   });
 
   it("n'affiche pas une progression réussie si aucun loyer n'est attendu", async () => {

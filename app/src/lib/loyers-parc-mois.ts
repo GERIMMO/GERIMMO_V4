@@ -42,3 +42,17 @@ export function resumerLoyersParcMois(lignes: ReadonlyArray<MontantsTerme>) {
   const ventilation = ventilerLoyers(lignes);
   return ventilation && { attendu: ventilation.attendu, encaisse: ventilation.recu };
 }
+
+/** Un montant illisible n'est jamais converti en zéro ni présenté comme un total fiable. */
+export function totalEncaissements(lignes: { montant: number | string }[]): number | null {
+  let centimes = 0;
+  for (const ligne of lignes) {
+    const montant = typeof ligne.montant === "string" && !ligne.montant.trim() ? NaN : Number(ligne.montant);
+    if (!Number.isFinite(montant) || montant <= 0) return null;
+    const ajout = Math.round(montant * 100);
+    if (Math.abs(montant - ajout / 100) > Number.EPSILON * Math.max(1, Math.abs(montant)) * 4) return null;
+    if (!Number.isSafeInteger(ajout) || !Number.isSafeInteger(centimes + ajout)) return null;
+    centimes += ajout;
+  }
+  return centimes / 100;
+}

@@ -13,17 +13,17 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
   const format = params.get("format");
   if (format !== "csv" && format !== "pdf") return new Response("Format inconnu.", { status: 400, headers: entetes });
   const selection = lireSelectionLoyers(Object.fromEntries(params));
-  const { lignes, totaux, entite, biens, erreurPerimetre } = await lireSuiviMensuelLoyers(supabase, orgId, selection);
+  const { lignes, incertaines, totaux, entite, biens, erreurPerimetre } = await lireSuiviMensuelLoyers(supabase, orgId, selection);
   if (erreurPerimetre || !totaux) return new Response("Les montants n’ont pas pu être vérifiés. Aucun export n’est disponible.", { status: 503, headers: entetes });
   const headers = {
     ...entetes,
     "Content-Disposition": `attachment; filename="suivi-loyers-${selection.mois}.${format}"`,
     "Content-Type": format === "csv" ? "text/csv; charset=utf-8" : "application/pdf",
   };
-  if (format === "csv") return new Response(csvSuiviLoyers(lignes, totaux), { headers });
+  if (format === "csv") return new Response(csvSuiviLoyers(lignes, totaux, incertaines), { headers });
   try {
     const contexte = {
-      mois: selection.mois, espace: organisation.name,
+      mois: selection.mois, espace: organisation.name, aRattacher: incertaines,
       selection: [entite?.nom, biens?.find(b => b.id === selection.bien)?.nom].filter(Boolean).join(" · ") || "Tout le patrimoine",
     };
     const pdf = await rendrePdf(documentSuiviLoyers(lignes, totaux, contexte));

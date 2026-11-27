@@ -866,7 +866,8 @@ export default async function PageLot(
           )}</>;
   const statutLot = <>{!traverseeLectureSeule && <details id="statut-lot" className={styles.gestionStatut}><summary>Gérer le statut du lot <ChevronDown size={16} aria-hidden="true" /></summary><div>
       {lot.etat === "brouillon" && !erreurBlocages && <BlocagesLocation motifs={(blocages ?? []) as string[]} ctx={{orgId,bienId,lotId,racine:racineEspace(estProprietaire)}} pageCourante={`${base}/parc/${bienId}/lots/${lotId}`} titre="Ce qui empêche la mise en location" />}
-      <BoutonsEtatLot orgId={orgId} bienId={bienId} lotId={lotId} etat={lot.etat} estBailleurDirect={role === "proprietaire_direct"} bailHref={bailEnCours ? `${base}/baux/${bailEnCours.id}` : undefined} />
+      {/* E049, E160 : la liste au-dessus est celle que la base relit ; tant qu'elle n'est pas vide, « Mettre en location » est désactivé (lecture en échec : il reste cliquable). */}
+      <BoutonsEtatLot orgId={orgId} bienId={bienId} lotId={lotId} etat={lot.etat} bloque={!erreurBlocages && ((blocages ?? []) as string[]).length > 0} estBailleurDirect={role === "proprietaire_direct"} bailHref={bailEnCours ? `${base}/baux/${bailEnCours.id}` : undefined} />
     </div></details>}</>;
   const complementsLogement = <>{(bien.copropriete || (colocationPertinente && !(bailEnCours && nbChambres === 0))) && <section className={styles.panneau}>{colocationLot}{chargesLot}</section>}{statutLot}</>;
   const propriete = <section id="propriete-lot" className={`${styles.panneau} ${styles.proprieteResume}`} aria-labelledby="proprietaires-fiche">

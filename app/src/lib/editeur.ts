@@ -573,7 +573,9 @@ export const CONDITIONS_DATE = "24 novembre 2026";
 // sa propre date, à changer à CHAQUE modification de ce qu'elle dit (son texte, ou les rôles et localisations des
 // PRESTATAIRES qu'elle affiche). La garde de tests/confidentialite-v1.test.ts (empreinte du texte rendu) le rappelle.
 // 24/11/2026 : factures conservées dix ans, médiateur, droits des comptes sans espace (lots D7 et T4).
-export const CONFIDENTIALITE_DATE = "24 novembre 2026";
+// 26/11/2026 : défauts d'écran E057 = E170, l'espace manquant dans « 24 mois après » (formulaire de contact) ; règle Q99 :
+// la date suit toute modification du texte, et l'empreinte est relevée avec elle.
+export const CONFIDENTIALITE_DATE = "26 novembre 2026";
 
 // ── Version des conditions de l'espace artisan ─────────────────────────────
 //

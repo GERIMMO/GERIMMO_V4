@@ -1,7 +1,7 @@
 /**
  * Outil gratuit « Simulateur LMNP » (29/09), location meublée de longue durée.
  *
- * Les valeurs de départ de la page (DEFAUTS_LMNP), refaites à la main :
+ * L'exemple de la page (DEFAUTS_LMNP, montré en texte indicatif dans les champs vides depuis Q123), refait à la main :
  *   recettes 9 600 €, charges 3 800 € → résultat avant amortissement 5 800 €
  *   bâti : (160 000 + 14 000 de frais) × (1 − 20 % de terrain) ÷ 30 ans = 4 640,00 €
  *   mobilier : 5 000 ÷ 7 ans = 714,29 €
@@ -14,8 +14,8 @@
 import { describe, expect, it } from "vitest";
 import { DEFAUTS_LMNP, simulerLmnp, simulerMicroBic, simulerReel } from "../src/lib/outils/lmnp";
 
-describe("valeurs de départ de la page", () => {
-  it("les valeurs documentées", () => {
+describe("l'exemple de la page (texte indicatif des champs vides, Q123)", () => {
+  it("les valeurs documentées de l'exemple", () => {
     expect(DEFAUTS_LMNP).toEqual({
       recettes: 9600,
       charges: 3800,

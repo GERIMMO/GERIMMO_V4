@@ -17,6 +17,8 @@ export const LIBELLES_LIEN_AIDE: Record<string, string> = {
 // écrans (déclaration et décision d'un incident, colocation par chambre, bail en préparation, invitation du
 // locataire) et les règles du wiki (concepts/Incident : RM-7.2.1, 7.2.4, 7.2.5, 7.2.7 ; concepts/Bail : contrats
 // individuels de colocation, 9 m² et 20 m³ — Service Public F34661, loi du 6 juillet 1989, art. 8-1).
+// E026 (relevé du 26/11) : cette aide n'est servie qu'au propriétaire direct (faq/page.tsx). Son locataire lit
+// « Mon bailleur » dans son menu (lib/identite-contact-locataire.ts) ; « Mon gestionnaire » est le titre d'un espace d'agence.
 export const QUESTIONS: QuestionAide[] = [
   {
     "question": "Que fait Gerimmo tout seul, et que me reste-t-il ?",
@@ -26,7 +28,7 @@ export const QUESTIONS: QuestionAide[] = [
   },
   {
     "question": "Comment mes locataires me joignent-ils ?",
-    "reponse": "Chaque locataire a son espace, dès qu'il a accepté votre invitation : il vous écrit depuis « Mon gestionnaire » (vous répondez depuis « Messages »), signale un incident photo à l'appui, dépose ses pièces quand vous les réclamez, et peut donner son congé en ligne — vous êtes alerté à chaque fois.",
+    "reponse": "Chaque locataire a son espace, dès qu'il a accepté votre invitation : il vous écrit depuis « Mon bailleur » (vous répondez depuis « Messages »), signale un incident photo à l'appui, dépose ses pièces quand vous les réclamez, et peut donner son congé en ligne — vous êtes alerté à chaque fois.",
     "theme": "Locataires",
     "lien": "messages"
   },

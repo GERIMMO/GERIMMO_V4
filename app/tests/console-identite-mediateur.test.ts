@@ -147,7 +147,10 @@ describe("/admin/sante : documents légaux", () => {
     const t = texte(await rendreServeur(await PageSante()));
     expect(t).not.toContain("L’identité du vendeur est complète");
     expect(t).toContain("il manque le type de vendeur (entrepreneur individuel, ou société ou autre personne morale)");
-    expect(t).toContain("4 à compléter");
+    // Lot L4 (compteurs légaux de la relecture des écrans) : l'en-tête disait « 4 à compléter », la somme du fait à
+    // fournir (bloquant) et des trois du médiateur. Cette attente figeait le défaut : les deux comptes sont à part.
+    expect(t).toContain("1 à fournir · 3 à compléter");
+    expect(t).not.toContain("4 à compléter");
   });
 
   it("T4R-02 — décision prise de vendre sans médiateur : la page le dit, et ne dit plus la première souscription fermée", async () => {

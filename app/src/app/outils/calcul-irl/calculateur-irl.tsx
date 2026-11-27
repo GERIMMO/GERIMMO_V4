@@ -44,6 +44,7 @@ import {
   formaterPourcent,
   lireNombre,
 } from "@/lib/outils/nombres";
+import { enumerer } from "@/lib/outils/saisie";
 
 // 30/09 : parcours « moindre effort ». Quand la série officielle de l'Insee a
 // pu être lue (côté serveur, lib/outils/irl-insee.ts), le bailleur ne saisit
@@ -79,11 +80,6 @@ const versTrimestre = (o: { trimestre: CodeTrimestre; annee: number }): Trimestr
 /** Un blanc à compléter, visible à l'écran comme sur papier. */
 function ACompleter({ quoi }: { quoi: string }) {
   return <span className="a-completer">[{quoi}]</span>;
-}
-
-/** « a », « a et b », « a, b et c ». */
-function enumerer(liste: string[]): string {
-  return liste.length <= 1 ? liste.join("") : `${liste.slice(0, -1).join(", ")} et ${liste[liste.length - 1]}`;
 }
 
 /** Le trimestre d'un indice, ou un blanc à compléter tant qu'il n'est pas choisi. */
@@ -169,6 +165,8 @@ export function CalculateurIrl({ serie }: { serie: ObservationIrl[] | null }) {
     trimestreReference: tRef,
     indiceNouveau: valeurNouv,
     trimestreNouveau: tNouv,
+    // Q72 : le garde-fou de saisie de l'application vaut pour les indices tapés, pas pour ceux lus chez l'Insee.
+    indicesSaisis: !auto,
   });
 
   function changerDate(v: string) {
@@ -209,7 +207,9 @@ export function CalculateurIrl({ serie }: { serie: ObservationIrl[] | null }) {
   // Ce qui manque pour conclure, en clair : tout ce qui reste à saisir, d'un coup.
   let manque: ReactNode = null;
   if (!r.ok) {
-    if (auto && selection && !selection.reference)
+    // Rien ne manque : c'est le garde-fou de saisie qui refuse (le détail est dans les alertes).
+    if (r.manque.length === 0) manque = "Aucun nouveau loyer n'est calculé avec ces indices.";
+    else if (auto && selection && !selection.reference)
       manque = `Aucun indice publié par l'Insee pour le ${libRef} : vérifiez la date saisie.`;
     else if (auto && selection && !selection.nouveau)
       manque = `Le nouvel indice (${libNouv}) n'est pas encore publié par l'Insee.`;
@@ -234,10 +234,15 @@ export function CalculateurIrl({ serie }: { serie: ObservationIrl[] | null }) {
     ...(formaterDateIso(dateEffet) ? [] : ["la date d'effet de la révision"]),
   ];
   const lettrePrete = r.ok && manquesLettre.length === 0;
+  const puisLettre = manquesLettre.length > 0 ? `, puis renseignez ${enumerer(manquesLettre)}` : "";
+  // Rien ne manque au calcul mais il est refusé : c'est le garde-fou de saisie (Q72). Le message le dit, au lieu de
+  // demander de « compléter » un calcul dont chaque champ est rempli.
   const raisonLettre = lettrePrete
     ? null
     : !r.ok
-      ? `Pour imprimer la lettre, complétez d'abord le calcul du nouveau loyer${manquesLettre.length > 0 ? `, puis renseignez ${enumerer(manquesLettre)}` : ""}.`
+      ? r.manque.length === 0
+        ? `Pour imprimer la lettre, corrigez d'abord les indices saisis${puisLettre}.`
+        : `Pour imprimer la lettre, complétez d'abord le calcul du nouveau loyer${puisLettre}.`
       : `Pour imprimer la lettre, renseignez ${enumerer(manquesLettre)}.`;
 
   const erreurs = r.alertes.some((a) => a.gravite === "erreur");
@@ -245,7 +250,7 @@ export function CalculateurIrl({ serie }: { serie: ObservationIrl[] | null }) {
     <Pastille ton="erreur" testId="irl-etat">
       Révision interdite
     </Pastille>
-  ) : !r.ok ? (
+  ) : !r.ok && r.manque.length > 0 ? (
     <Pastille ton="neutre" testId="irl-etat">
       À compléter
     </Pastille>

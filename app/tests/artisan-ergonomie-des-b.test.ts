@@ -126,7 +126,7 @@ describe("DES-B-05 — navigation, boutons et cibles des modules « clients exte
     const masque = (texte: string) => classesDe(liens.find((l) => l.includes(`>${texte}<`)) ?? "").includes("min-[1000px]:hidden");
     expect(masque("Clients externes")).toBe(true);
     // Phase 3, lot 60 (E011) : « Agenda » et « Facturation » étaient attendues ici, masquées à 1000 px. Sous 1000 px elles
-    // répétaient aussi la barre du bas (où la même page s'appelle « Factures ») : elles n'existent plus à aucune largeur.
+    // répétaient aussi la barre du bas (où la même page s'appelle « Facturation ») : elles n'existent plus à aucune largeur.
     expect(liens.some((l) => l.includes(">Agenda<") || l.includes(">Facturation<"))).toBe(false);
     // Ces deux gestes n'ont pas d'entrée dans le menu latéral : ils restent atteignables.
     expect(masque("Nouveau chantier et devis")).toBe(false);

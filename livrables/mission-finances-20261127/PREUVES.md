@@ -6,6 +6,8 @@ Référence de départ `77e33d7061a507f039768ccc5535244b0768362e`. Toutes les v�
 
 AUD-008 et AUD-009. Sur la version de référence, le test navigateur à 390 px échoue dès l’accueil. Il attend des montants distincts pour les échéances et trouve l’ancienne présentation. Les [captures de l’audit, dans la section Propriétaire](https://github.com/GERIMMO/GERIMMO_V4/blob/codex/audit-produit-20261127/livrables/audit-produit-20261127/RAPPORT.md), montrent le filtre tronqué et l’ancien libellé commun. Les tests de la carte de tâches vérifient le nombre d’obligations, y compris les groupes repliés.
 
+La [première CI](https://github.com/GERIMMO/GERIMMO_V4/actions/runs/46052397938) a validé 360 tests navigateur dans la suite principale. Le parcours Acacias a ensuite échoué dans la suite courriels. L’échéance de 640 € était générée, mais le nouveau résumé du bail avait perdu le nombre de termes appelés. Après rétablissement du nombre, les quatre parcours courriels ont réussi dans la boîte fictive locale, y compris l’inscription, la génération de l’échéance, son encaissement et l’impression de la quittance sur le même bail. Les assertions de ce parcours ont été conservées.
+
 ## Captures
 
 | Écran | 390 px | 768 px | 1440 px |

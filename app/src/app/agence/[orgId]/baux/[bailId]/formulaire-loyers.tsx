@@ -421,7 +421,10 @@ export function FormulaireLoyers({
           vert si le bail est à jour (relevé du 19/09). */}
       {proprietaire ? (ventilation ? <div className="space-y-2">
         <MontantsDuLoyer montants={ventilation} enDecompte={!recouvrementOuvert} />
-        <p className="text-xs text-muted-foreground">Toutes les échéances du bail. Les avances non imputées sont visibles dans les règlements.</p>
+        <p className="text-xs text-muted-foreground">
+          {echeancier.length} terme{echeancier.length > 1 ? "s" : ""} appelé{echeancier.length > 1 ? "s" : ""} sur ce bail.
+          {" "}Les avances non imputées sont visibles dans les règlements.
+        </p>
         <a className="inline-flex min-h-11 items-center text-sm underline" href="#versements-loyers">D’où vient ce total ?</a>
       </div> : <p role="alert" className="err">Les montants du bail n’ont pas pu être vérifiés.</p>) : <div className="grille-kpi">
         <div className="kpi">

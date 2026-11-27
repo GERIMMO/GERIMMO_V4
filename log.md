@@ -8426,3 +8426,10 @@ cahier V3 et le wiki (sans autre document). La décision la plus récente l'empo
 - PR documentaire n° 362 : 421 fichiers de preuves d'audit (captures, relevés texte et JSON) et notes de banc retirés de
   la branche. Ils restent intacts sur `claude/audit-final-pr335`. La PR passe de 624 à environ 200 fichiers.
 - Contrôle des liens : aucun lien cassé par ces changements.
+## [2026-11-27] deploy | Lot 1 de corrections en production (PR #361, `main` `c3e2ba6`)
+
+- Accord du dirigeant : « Oui, publie le lot 1 ici (Recommandé) » (26/11), puis « C'est approuvé » (27/11). Lots L1 (sessions) et L4a, L4b, L4c (écrans de la console, des espaces, des pages publiques) ; aucune migration.
+- CI de la PR n° 45901793551 et de `main` n° 45907193348 vertes sans reprise (16 829 tests, 357 parcours au premier essai) ; fusion squash le 26/11 à 22:49Z ; publication contrôlée n° 45911337396 `publiee_verifiee` le 27/11 à 06:17Z.
+- Santé et pages publiques relues par le connecteur Vercel : `/api/sante` sert `c3e2ba6` ; confidentialité (date du 26/11, phrase « conservées 24 mois après leur dernier traitement ») et outil de quittance (champs vides) en ligne ; 0 erreur Vercel depuis 06:16Z (relevé de 06:28Z).
+- Recette de production n° 63 (n° 45950975860) : réussie, de 06:18Z à 06:28Z : 68 parcours au premier essai, purge vérifiée.
+- Pages touchées : [[Passation — état du 26 novembre 2026]], [[Révision annuelle IRL]], `index.md` (note de passation ajoutée au catalogue ; entrée [[Révision annuelle IRL]] complétée) ; `QUESTIONS.md` (Q72, Q89, Q123), `DECISIONS-2026-11-24.md`, `JOURNAL.md`.

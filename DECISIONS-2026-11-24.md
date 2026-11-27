@@ -155,3 +155,4 @@ mot pour mot :
   incidents, des artisans, des factures, des finances. L'objectif est que toute la gestion immobilière se passe sur
   Gerimmo. ME RENDRE RICHE !! » → [[Feuille de route — plateforme de référence, 26 novembre 2026]] et
   [[Vision de l'écosystème Gerimmo]] (brouillons à valider). Aucun interdit levé.
+- **Lot 1, approbation de la publication, 27/11 (matin)** : réponse mot pour mot : « C'est approuvé ». GitHub montre l'approbation du déploiement `gerimmo-production` par le compte `GERIMMO` (publication contrôlée n° 45911337396, contrôle lancé à 06:16:49Z). Suite donnée : `publiee_verifiee` à 06:17Z, contrôles depuis une autre adresse, recette de production n° 63 (`JOURNAL.md`, 27/11).

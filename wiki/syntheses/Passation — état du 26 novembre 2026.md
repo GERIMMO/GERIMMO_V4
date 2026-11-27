@@ -3,11 +3,17 @@ type: synthesis
 tags: [passation, production, publication, registre, exploitation, palier-1, novembre-2026]
 status: stable
 created: 2026-11-26
-updated: 2026-11-26
-sources: ["[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Référentiel du palier 1]]", "[[Audit final indépendant — PR 335 — 15 novembre 2026]]", "[[Contre-vérification ciblée — PR 335 — candidat 962f2c76]]", "[[Audit de qualité commerciale V1 — a776ed43 — 16 novembre 2026]]", "[[Contre-vérification de la PR 341 — candidat V1 06d8e8fd — 16 novembre 2026]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "QUESTIONS.md", "JOURNAL.md", "log.md (entrées du 03/11 au 26/11/2026)", "DECISIONS-2026-11-24.md", "livrables/PLAN-CORRECTIONS-2026-11-26.md", "livrables/PLAN-DE-PUBLICATION.md", "livrables/NON-FAIT.md", "livrables/notes-banc/notes-majeurs.md", "GUIDE-DE-REPRISE.md", ".github/workflows/*.yml (branche main)", "GitHub Actions et PR ouvertes (lecture du 26/11/2026, vers 19 h 30 UTC)"]
+updated: 2026-11-27
+sources: ["[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Référentiel du palier 1]]", "[[Audit final indépendant — PR 335 — 15 novembre 2026]]", "[[Contre-vérification ciblée — PR 335 — candidat 962f2c76]]", "[[Audit de qualité commerciale V1 — a776ed43 — 16 novembre 2026]]", "[[Contre-vérification de la PR 341 — candidat V1 06d8e8fd — 16 novembre 2026]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "QUESTIONS.md", "JOURNAL.md", "log.md (entrées du 03/11 au 27/11/2026)", "DECISIONS-2026-11-24.md", "livrables/PLAN-CORRECTIONS-2026-11-26.md", "livrables/PLAN-DE-PUBLICATION.md", "livrables/NON-FAIT.md", "livrables/notes-banc/notes-majeurs.md", "GUIDE-DE-REPRISE.md", ".github/workflows/*.yml (branche main)", "GitHub Actions et PR ouvertes (lecture du 26/11/2026, vers 19 h 30 UTC)", "GitHub Actions, connecteur Vercel et pages publiques (lecture du 27/11/2026, vers 06 h 20 UTC)"]
 ---
 
 # Passation — état du 26 novembre 2026
+
+> [!info] Mise à jour du 27/11/2026 vers 06 h 30 Z : le lot 1 est en production
+> Le lot 1 (L1, L4a, L4b, L4c) est **publié** depuis le 27/11 à 06:17Z : PR [#361](https://github.com/GERIMMO/GERIMMO_V4/pull/361),
+> fusion squash le 26/11 à 22:49Z, `main` = `c3e2ba6`, publication contrôlée n° 45911337396 `publiee_verifiee`,
+> approuvée depuis le compte `GERIMMO` après la réponse écrite du dirigeant. Recette de production n° 63 **réussie** (68 parcours au premier essai, purge vérifiée). Les sections a, b, c, d.4, d.8, d.11, f, g, h et i en tiennent compte ; le reste de
+> la note décrit toujours l'état du 26/11.
 
 **À quoi sert cette page.** Reprendre le travail sur Gerimmo sans l'historique des conversations. Elle dit ce qui
 tourne en production, ce qui est ouvert, ce qui est prêt sans être publié, ce que le dirigeant doit décider, et
@@ -22,7 +28,7 @@ appelé « le dirigeant », les autres personnes par leur rôle.
 - Les heures sont en UTC (suffixe Z) sauf mention « à Paris ».
 
 **Documents de référence** (racine du dépôt, branche `claude/audit-final-pr335`) : `QUESTIONS.md` (registre Q),
-`JOURNAL.md` (journal de la mission palier 1, du 22/11 au 26/11), `DECISIONS-2026-11-24.md` (réponses du dirigeant mot
+`JOURNAL.md` (journal de la mission palier 1, du 22/11 au 27/11), `DECISIONS-2026-11-24.md` (réponses du dirigeant mot
 pour mot), `JURISTE.md` (points de droit, par partie et point, noté « partie·point »), `GUIDE-DE-REPRISE.md` (où est
 quoi, comment lancer), `livrables/PLAN-DE-PUBLICATION.md`, `livrables/PLAN-CORRECTIONS-2026-11-26.md`,
 `livrables/NON-FAIT.md`. Pages du wiki les plus utiles : [[Mission palier 1 — audit du 22 novembre 2026]],
@@ -34,12 +40,12 @@ quoi, comment lancer), `livrables/PLAN-DE-PUBLICATION.md`, `livrables/PLAN-CORRE
 
 | Élément | Valeur | Source et statut |
 |---|---|---|
-| Version servie | `main` = `f9e874bf647bb521d5af53ed79769415ff7f9784` (PR [#360](https://github.com/GERIMMO/GERIMMO_V4/pull/360), correctif « adresse du bailleur », Q126), fusionnée en squash le 26/11 à 18:20Z | VÉRIFIÉ : `git log origin/main` ; `JOURNAL.md` 26/11 (soir) |
-| Publication | Publication contrôlée n° 45881769432 : `publiee_verifiee` le 26/11 vers 19:14Z ; construction Vercel `dpl_CKrJ3P3L8N1283Pem7tDLTdsn8w8`, qui porte `www.gerimmo.app` et `gerimmo.app` | VÉRIFIÉ (GitHub Actions : succès, 19:11Z → 19:14Z) |
-| Contrôles après publication | `/api/sante` sert `f9e874b`, base OK, pas de maintenance ; accueil, inscription, conditions en 200 ; aucune erreur d'exécution Vercel relevée depuis 19:10Z | VÉRIFIÉ par l'agent principal depuis une autre adresse que la sienne (`JOURNAL.md`) |
-| Versions précédentes | `1dca28b` (PR #359, Q125, `publiee_verifiee` le 26/11 à 09:50Z, run 45792561969) ; `8f9dd9c` (PR #358, palier 1, version préparée `062296e2`, validée par écrit par le dirigeant le 25/11, `publiee_verifiee` le 25/11 à 23:17Z, run 45711136251) ; avant : `81740dec` (21/11) | VÉRIFIÉ |
-| Dernière recette de production | **n° 62** (run 45882154250, sur `f9e874b`) : **réussie**, de 19:14Z à 19:26:50Z (cinq comptes éphémères, parcours des espaces, purge) | VÉRIFIÉ sur GitHub (conclusion « success ») et dans `JOURNAL.md`. Avant : n° 58 (run 45720418609, sur `8f9dd9c`, réussie avec 1 parcours au second essai : Q125), n° 59, 60, 61 (runs 45795700074, 45798190513, 45798196475, sur `1dca28b`) réussies |
-| Dernières migrations | Workflow « Migrations Supabase », run 45710263565, le 25/11 de 22:05Z à 22:09Z : 52 migrations, de `20261122090000` à `20261125154000`, en une transaction (`COMMIT`, aucune erreur). Simulation préalable : run 45708871873 | VÉRIFIÉ (GitHub : ce sont les deux derniers passages du workflow). Aucune migration depuis : Q125 et Q126 n'en avaient pas |
+| Version servie | `main` = `c3e2ba6694af86c9d618d55a2134792d41ba7190` (PR [#361](https://github.com/GERIMMO/GERIMMO_V4/pull/361), lot 1 de corrections : L1 et L4a, L4b, L4c), fusionnée en squash le 26/11 à 22:49Z | VÉRIFIÉ le 27/11 : `git ls-remote origin main` et `/api/sante` ; `JOURNAL.md` 27/11 |
+| Publication | Publication contrôlée n° 45911337396, lancée le 26/11 à 23:30Z, approuvée depuis le compte `GERIMMO` le 27/11 (le dirigeant l'a confirmé par écrit : « C'est approuvé ») : `publiee_verifiee` à 06:17Z ; construction Vercel `dpl_6XTUnD2Qrsz3vnLz1JQabN5EgDc9`, qui porte `www.gerimmo.app` et `gerimmo.app` | VÉRIFIÉ (GitHub Actions : succès, job de contrôle de 06:16:49Z à 06:17:36Z ; alias lus par le connecteur Vercel). GitHub ne montre que le compte : l'agent travaille avec le même |
+| Contrôles après publication | `/api/sante` sert `c3e2ba6`, base OK, pas de maintenance ; accueil, `/confidentialite` (date « 26 novembre 2026 » ; phrase corrigée « conservées 24 mois après leur dernier traitement ») et `/outils/quittance-de-loyer` (champs vides, exemples en grisé, aide « AAAA-MM ») en 200 ; aucune erreur d'exécution Vercel depuis 06:16Z (relevés de 06:18Z et de 06:28Z, après la recette) | VÉRIFIÉ par l'agent principal le 27/11, par le connecteur Vercel (autre adresse que la sienne) |
+| Versions précédentes | `f9e874b` (PR #360, Q126, `publiee_verifiee` le 26/11 vers 19:14Z, run 45881769432) ; `1dca28b` (PR #359, Q125, `publiee_verifiee` le 26/11 à 09:50Z, run 45792561969) ; `8f9dd9c` (PR #358, palier 1, version préparée `062296e2`, validée par écrit par le dirigeant le 25/11, `publiee_verifiee` le 25/11 à 23:17Z, run 45711136251) ; avant : `81740dec` (21/11) | VÉRIFIÉ |
+| Dernière recette de production | **n° 63** (run 45950975860, sur `c3e2ba6`) : **réussie**, de 06:18:15Z à 06:27:56Z (cinq comptes éphémères, 68 parcours des espaces au premier essai, purge vérifiée : 0 organisation, 0 compte, 0 artisan, 0 supervision restants) | VÉRIFIÉ sur GitHub et dans `JOURNAL.md`. Avant : n° 62 (run 45882154250, sur `f9e874b`, réussie, de 19:14Z à 19:26:50Z) ; n° 58 (run 45720418609, sur `8f9dd9c`, réussie avec 1 parcours au second essai : Q125), n° 59, 60, 61 (runs 45795700074, 45798190513, 45798196475, sur `1dca28b`) réussies |
+| Dernières migrations | Workflow « Migrations Supabase », run 45710263565, le 25/11 de 22:05Z à 22:09Z : 52 migrations, de `20261122090000` à `20261125154000`, en une transaction (`COMMIT`, aucune erreur). Simulation préalable : run 45708871873 | VÉRIFIÉ (GitHub : ce sont les deux derniers passages du workflow). Aucune migration depuis : Q125, Q126 et le lot 1 n'en avaient pas |
 | Dernière sauvegarde | « Sauvegarde quotidienne » run 45794087353, planifiée, le 26/11 de 09:40Z à 09:45Z, sur `1dca28b` : réussie (le workflow dépose puis relit la copie chez Scaleway) | VÉRIFIÉ (GitHub). Avant : `20261125-2201` (run 45709572024, préalable aux migrations) et `20261125-2009` (run 45692125958) |
 | Dernier contrôle de restauration | Run 45693311092, le 25/11 à 20:16Z, sur la sauvegarde `20261125-2009` (nouvelle clé) : réussi, 269 tables, 51 746 lignes, 112 fichiers | VÉRIFIÉ : **aucun contrôle de restauration plus récent** dans `restauration-sauvegarde.yml` (lecture du 26/11) |
 | Projet Supabase de production | `rddlxunppddzpsaatdaz` (région eu-west-3, d'après `app/CLAUDE.md`) | — |
@@ -63,7 +69,7 @@ Tous les numéros de Q1 à Q126 existent dans `QUESTIONS.md` ; aucun n'est saut�
 choix** (une option prudente est en place en attendant) et des **défauts** constatés. « #358 » désigne la publication
 unique du palier 1 (`8f9dd9c`, 25/11) : elle porte tous les lots de la mission (lots 1 à 65, D1 à D7, T1 à T4,
 corrections de fusion), dont le détail par commit est sur la branche `claude/palier-1-preproduction` (jusqu'à
-`062296e2`). Les chemins de fichiers sont relevés dans `main` (`f9e874b`) ou cités par
+`062296e2`). Les chemins de fichiers sont relevés dans `main` (`f9e874b` ; lignes du lot 1 relues sur `c3e2ba6` le 27/11) ou cités par
 `livrables/PLAN-CORRECTIONS-2026-11-26.md` ; « non localisé » veut dire que je ne l'ai pas cherché assez pour l'affirmer.
 Les colonnes « Reproduire, Fichiers, Piste » ne sont remplies que pour ce qui reste ouvert.
 
@@ -81,7 +87,7 @@ Les colonnes « Reproduire, Fichiers, Piste » ne sont remplies que pour ce qui 
 | Q10 | Recommandé électronique AR24 | publié (fonction masquée sans compte) | #358 (lot 8) | — | — | — |
 | Q11 | Signature électronique proposée en premier | publié | #358 (D1) | — | — | — |
 | Q12 | IA activée par défaut | décidé ; IA activée en base (R3, 26/11) | — | — | — | — |
-| Q13 | Mention « Rédigé avec l'aide de l'IA » | publié ; l'aperçu du post Facebook ne la montre pas encore : corrigé non publié dans `claude/lot1-l4a` (D1) | #358 (D1) ; `claude/lot1-l4a` `929ab95` (console et courriel de veto) | — | — | — |
+| Q13 | Mention « Rédigé avec l'aide de l'IA » | publié ; l'aperçu du post Facebook la montre depuis le 27/11 (D1, lot 1 ; lu dans le code publié, écran non vu en ligne) | #358 (D1) ; #361 (`c3e2ba6`, console et courriel de veto) | — | — | — |
 | Q14 | Facture de l'artisan fabriquée par Gerimmo | décidé : reporté après publication, rien codé | — | — | — | Lot sous interrupteur fermé après accord d'un expert-comptable |
 | Q15 | Nouvelle version des conditions, accord exprès | publié (D4) ; version du 24/11 archivée (R2) | #358 | — | — | — |
 | Q16 | Mode pilote ou commercial | décidé ; `GERIMMO_MODE` = commercial, **déduit** le 25/11 (P4) : la valeur est masquée chez Vercel et n'a pas été lue | — | — | — | — |
@@ -140,7 +146,7 @@ Les colonnes « Reproduire, Fichiers, Piste » ne sont remplies que pour ce qui 
 | Q69 | Ancien locataire lit le motif de sa note | ouvert (choix ; un test tient le comportement) | #358 | — | `app/src/lib/evaluation-retiree.ts` (À VÉRIFIER) | Garder |
 | Q70 | Bail repris : indice d'origine ou mis à jour | ouvert | #358 | Bail repris dont l'indice a déjà été révisé ailleurs : révision refusée | `app/supabase/migrations/20261124150000_revision_loyer_seconde_reprise_d2.sql` | Case « indice d'origine ou déjà mis à jour » à la saisie (L2, recommandé) |
 | Q71 | Garde-fou 0,8 à 1,25 sur les indices | ouvert (choix ; en place) | #358 | Révision avec un rapport d'indices hors plage : « vérifiez les indices saisis » | `20261124150000_revision_loyer_seconde_reprise_d2.sql` | Garder |
-| Q72 | Outil public de l'IRL non aligné | **corrigé non publié en partie** (garde 0,8 à 1,25 quand on saisit ses indices, branche `claude/lot1-l4c`) ; le reste est ouvert | `claude/lot1-l4c` `4b65597` | En production, `/outils/calcul-irl` accepte un rapport d'indices hors plage ; l'alerte de `app/src/lib/outils/irl.ts` (l. 90 sur `main`, l. 103 sur `claude/lot1-l4c`) dit de prendre l'indice de la dernière révision, l'application prend le même trimestre de l'année précédente | `app/src/lib/outils/irl.ts`, `app/src/app/outils/calcul-irl/page.tsx` | Publier L4c ; aligner année perdue, premier mois révisé et délai d'un an après le juriste (7·1, 7·2, 7·4) |
+| Q72 | Outil public de l'IRL non aligné | **publié en partie** le 27/11 (lot 1 : garde 0,8 à 1,25 quand on saisit ses indices) ; le reste est ouvert | #361 (`c3e2ba6`) | Depuis le 27/11, `/outils/calcul-irl` refuse un rapport d'indices saisis hors de 0,8 à 1,25 (lu dans le code publié) ; l'alerte de `app/src/lib/outils/irl.ts` (l. 103 sur `main` `c3e2ba6`, VÉRIFIÉ) dit toujours de prendre l'indice de la dernière révision, l'application prend le même trimestre de l'année précédente | `app/src/lib/outils/irl.ts`, `app/src/app/outils/calcul-irl/page.tsx` | Aligner année perdue, premier mois révisé et délai d'un an après le juriste (7·1, 7·2, 7·4) |
 | Q73 | Répartition fiscale selon l'ordre de saisie | ouvert (**majeur**, lot L6) | — | Saisir les paiements de deux termes (700 € et 720 €) dans le désordre : parts loyer et charges différentes ; totaux justes | `app/src/lib/fiscal.ts` (l. 74, 96-101), `app/src/app/actions/loyers.ts` (l. 489-497), `capturer_composantes_fiscales` (`20261112120300…`, l. 997-1070), `retrouver_ventilation_fiscale` (`20261012224000_fiscalite_historique_qualifiee.sql`) | Imputer par date de paiement, l'ordre de saisie ne départageant que deux dates égales ; avis de l'expert-comptable ; ne réécrire aucune part figée sans comptage, sauvegarde et décision écrite |
 | Q74 | Adresse imprimée sur le PDF de la quittance | ouvert | — | Propriétaire direct : quittance en ligne (adresse de l'espace) et PDF (adresse de la fiche) ; depuis #360, un déménagement signalé sans rien écraser peut les faire diverger | `app/src/lib/documents/modeles/quittance.ts`, `app/src/lib/documents/modeles/communs.ts` | Attendre le juriste (5·19 ; même émetteur suggéré) ; d'ici là, option B (rien ne change) |
 | Q75 | Médiateur : la décision contredit la règle « tout respecte les textes » | ouvert (geste R6 du dirigeant) | #358 (D7) | `/admin/parametres`, « Vente aux particuliers sans médiateur de la consommation » | `app/src/lib/garde-souscription.ts` | Voir d.4 |
@@ -157,7 +163,7 @@ Les colonnes « Reproduire, Fichiers, Piste » ne sont remplies que pour ce qui 
 | Q86 | Factures gardées dix ans : prévenir les comptes fermés | ouvert | — | — | — | Compter en lecture seule les comptes payants fermés (SUPPOSÉ : aucun ; 0 abonnement Stripe au 15/11) |
 | Q87 | Écran de simulation du nettoyage : compte faux | ouvert (cosmétique) | — | `/admin/donnees`, simulation : une archive que la purge fait attendre est comptée | `20261024140000_conservation_et_prospection.sql` (l. 1234) contre `20261125103000_factures_conservation_dix_ans.sql` (l. 104-130) | Aligner le compte (L4, recommandé) |
 | Q88 | « Ma fiche entreprise » ou « Mon entreprise » | ouvert | #358 | Menu latéral de l'artisan | `app/src/components/nav-artisan.tsx` (l. 102-115) | Titres des pages partout (L4, recommandé) |
-| Q89 | « Factures » et « Ma facturation » : deux noms | **corrigé non publié** (`claude/lot1-l4b`, onglet « Facturation ») ; mesuré dans Chromium : à 390 px, « Ma facturation » est tronqué (73 px pour 70), « Facturation » tient ; choix par délégation : « Facturation » | `claude/lot1-l4b` `0ad214f` | Barre du téléphone de l'artisan | `app/src/components/nav-artisan.tsx` | Le dirigeant peut demander « Ma facturation » : il faut alors retoucher la mise en page de l'onglet |
+| Q89 | « Factures » et « Ma facturation » : deux noms | **publié** le 27/11 (lot 1 : onglet « Facturation » dans la barre du téléphone ; « Ma facturation » reste au menu latéral et en titre de la page, comme « Agenda » et « Mon agenda ») ; mesuré dans Chromium : à 390 px, « Ma facturation » est tronqué (73 px pour 70), « Facturation » tient ; choix par délégation : « Facturation » | #361 (`c3e2ba6`) | Barre du téléphone de l'artisan | `app/src/components/nav-artisan.tsx` | Le dirigeant peut demander « Ma facturation » : il faut alors retoucher la mise en page de l'onglet |
 | Q90 | Export de l'artisan incomplet | ouvert (fonction nouvelle) | #358 (libellé corrigé) | Export JSON de l'artisan : ni messages, ni créneaux, ni photos | non localisé | Export complet et lisible dans un lot à part, si le dirigeant le veut |
 | Q91 | Abonné qui ne répond pas aux nouvelles conditions | ouvert (choix pour une future version) | #358 (D4) | — | déclaration de la version des conditions (`app/src/lib/conditions-versions.json`, À VÉRIFIER) | Garder « rappel, accord au prochain acte » |
 | Q92 | Actes qui redemandent l'accord | ouvert (choix) ; portail Stripe non examiné | #358 | — | `app/src/lib/nouvelle-version-conditions.ts` | Garder ; examiner le portail avec R7 |
@@ -191,7 +197,7 @@ Les colonnes « Reproduire, Fichiers, Piste » ne sont remplies que pour ce qui 
 | Q120 | Exiger l'empreinte au rappel des inactifs et à l'écran « les conditions évoluent » | ouvert | — | Une acceptation sans empreinte écrite par le compte lui-même est comptée | `app/src/lib/nouvelle-version-conditions.ts` | Même correctif que Q119 |
 | Q121 | Remplacer l'un des époux ou partenaires | ouvert (juriste 9·39) | #358 (C-01) | Avenant de remplacement refusé pour un bail coché | non localisé | Conduite à fixer après le juriste |
 | Q122 | Bail signé de nouveau après « Corriger » | ouvert (choix ; juriste 9·41) | #358 (X-01) | — | non localisé | Confirmer la règle en place |
-| Q123 | Outils publics préremplis | **corrigé non publié** (`claude/lot1-l4c` : quatre outils vides, exemple en grisé) | `claude/lot1-l4c` `4b65597` | En production, `/outils/quittance-de-loyer` s'ouvre avec 850 €, 120 € et 970 € et « Imprimer la quittance » actif sans saisie | `app/src/app/outils/quittance-de-loyer/generateur-quittance.tsx` et les outils GLI/Visale, LMNP, rentabilité | Publier L4c (relectures faites, verdict « bon ») |
+| Q123 | Outils publics préremplis | **publié** le 27/11 (lot 1 : quatre outils vides, exemple en grisé) | #361 (`c3e2ba6`) | Depuis le 27/11, `/outils/quittance-de-loyer` s'ouvre avec ses champs vides et les exemples « Ex. 850 », « Ex. 120 », « Ex. 970 » en grisé (VÉRIFIÉ sur la page en ligne) ; les trois autres outils : lu dans le code publié | `app/src/app/outils/quittance-de-loyer/generateur-quittance.tsx` et les outils GLI/Visale, LMNP, rentabilité | — |
 | Q124 | Quittance d'un loyer payé en partie par la CAF | ouvert (**majeur**, lot L2 ; juriste 9·44) | — | Terme de 600 € dont 210 € de la CAF : « déclare avoir reçu de [locataire] la somme de 600 € » ; signature seule en page 2 | `app/src/lib/documents/modeles/quittance.ts` (l. 118-125, 211-212), `app/src/lib/quittance-conforme.ts` (l. 161-186), `app/src/app/actions/reception-loyer.ts` (l. 43, 186-192), `20261026110449_reception_loyer_idempotence_durable.sql` (l. 77), `app/src/lib/pointage-loyers.ts` (l. 81-96) | Phrase qui distingue la part du locataire et celle de la CAF ; accepter « caf » dans l'action et la base **en remplaçant la fonction par la méthode contrôlée** (sinon on perd la garde de `20261112195752_relances_apres_decompte.sql`) ; double relecture |
 | Q125 | Inscription : renvoi vers « Connexion » après « Créer mon espace » | publié le 26/11 à 09:50Z ; action VÉRIFIÉE en production par une sonde à session factice | #359 (`1dca28b`) | — | `app/src/proxy.ts` | — |
 | Q126 | Adresse du bailleur non reprise sur sa fiche | publié le 26/11 vers 19:14Z ; recompte : 0 compte réel à reprendre | #360 (`f9e874b`) | — | `app/src/lib/fiche-titulaire.ts` | — |
@@ -210,10 +216,10 @@ complétude** (fin du document), qui corrige plusieurs points. Chaque lot est pu
 
 | Lot | Thème | Statut | Branche ou commit | Reproduire | Fichiers | Piste |
 |---|---|---|---|---|---|---|
-| L1 | Sessions et mots de passe | corrigé non publié (lot 1) | `claude/lot1-l1` `960285b` | Voir section c | Voir section c | Voir section c |
+| L1 | Sessions et mots de passe | publié le 27/11 (lot 1) | #361 (`c3e2ba6`) ; branche `claude/lot1-l1` `960285b` | Voir section c | Voir section c | Voir section c |
 | L2 | Loyers, quittances, documents de gestion (Q124, Q36-4, Q45, Q54, Q58, Q60, Q70, Q109, D2, lot 54, puis Q117 et Q118) | ouvert, non commencé ; attend les réponses du dirigeant (et du juriste pour Q124) | — | Voir les lignes Q du tableau b.1 | Voir les lignes Q | Migrations additives seulement ; double relecture (documents légaux) ; ne pas régénérer un document en signature (Q40) |
 | L3 | Conditions, accords, abonnement, sans rouvrir les ventes (Q93, Q96, Q119, Q120, E024/E145) | ouvert ; décisions du dirigeant attendues | — | Voir Q93, Q96, Q119 | `app/src/lib/conditions-versions-serveur.ts`, `app/src/lib/nouvelle-version-conditions.ts`, page de rétractation | Faire L3 avant tout changement du texte des conditions archivées |
-| L4 | Écrans justes (défauts mineurs vérifiés) | corrigé non publié **en partie** (L4a, L4b, L4c du lot 1) ; reste ouvert : E040/E154, E027/E146, E025/E147, E135, motif « zone tendue » inconnue, `.lien-discret`, Q87, Q88, reste du lot 61, code postal « 75000 » accepté, délai de la case « mariés ou pacsés », photo de l'évaluation contestée, pages publiques E059, E061, E066, E067, E169, E176, E178 | `claude/lot1-l4a`, `-l4b`, `-l4c` | Voir section c | Voir le plan, § L4 | Un lot « L4 bis » après le relevé d'écrans de L5 |
+| L4 | Écrans justes (défauts mineurs vérifiés) | publié **en partie** le 27/11 (L4a, L4b, L4c du lot 1) ; reste ouvert : E094, E095, E097, E109, E213 (console, constat d'origine perdu), « Facturation » tronqué d'un pixel à 320 px, E040/E154, E027/E146, E025/E147, E135, motif « zone tendue » inconnue, `.lien-discret`, Q87, Q88, reste du lot 61, code postal « 75000 » accepté, délai de la case « mariés ou pacsés », photo de l'évaluation contestée, pages publiques E059, E061, E066, E067, E169, E176, E178 | #361 (`c3e2ba6`) ; branches `claude/lot1-l4a`, `-l4b`, `-l4c` | Voir section c | Voir le plan, § L4 | Un lot « L4 bis » après le relevé d'écrans de L5 |
 | L5 | Tests, relevé d'écrans, exploitation | ouvert, non commencé | — | 85 actions sans test (liste `livrables/notes-banc/actions-non-citees-2026-11-26.txt`, à retrier : elle repose sur le nom des fonctions) ; trois parcours absents de WebKit ; liste des défauts mineurs perdue | `app/e2e/playwright.webkit.config.ts` (l. 30) | Refaire le relevé à 390 et 1 440 px ; tests par action ; parcours e2e manquants ; relire la trentaine de retours arrière à plusieurs instructions |
 | L6 | Récapitulatif fiscal (Q73) | ouvert ; attend l'expert-comptable | — | Voir Q73 | Voir Q73 | Voir Q73 |
 | L7 | Pièces officielles et information de la caution (Q46/Q77, Q102, Q112) | ouvert ; attend les textes officiels et le juriste | — | Voir Q77, Q102, Q112 | Voir ces lignes | Blocage activé seulement quand le fichier officiel est en place |
@@ -233,7 +239,7 @@ les mêmes numéros (voir b.4).
 | **2B** (22/11) | Un DPE classé G ne bloque plus l'activation d'un bail déjà en cours ; il devient une alerte | publié (#357, en production depuis le 25/11) ; choisi **contre la recommandation de l'agent** (A) : effet de l'interdiction de louer un G sur un bail en cours non établi par une source (signalé dans [[Bail]] et [[Diagnostic]]) |
 | **3A** (22/11) | Un bail repris en cours ne reçoit plus l'alerte « État des lieux d'entrée à signer » | publié (#357) |
 | **4** (22/11) | Libellé « Indiquer mon adresse et créer mon premier bien » validé | publié |
-| **D1** (24/11) | Lot des décisions d'écran (Q11, Q13, Q18, Q20) | publié (#358) ; reste « aperçu Facebook sans lien ni mention » : corrigé non publié dans `claude/lot1-l4a` |
+| **D1** (24/11) | Lot des décisions d'écran (Q11, Q13, Q18, Q20) | publié (#358) ; reste « aperçu Facebook sans lien ni mention » : publié le 27/11 (lot 1, #361) |
 | **D2** | Lot de la révision du loyer (Q23, Q34, Q43) | publié ; restes mineurs (indice égal accepté, message « rien à réviser », mot de la lettre, Q70) dans L2 |
 | **D3** | Lot notice, diagnostics, retenues, repères fiscaux (Q46, Q28, Q49, Q38) | publié ; restes : notice officielle (Q77), règle du DPE (Q28), questions non numérotées (b.1) |
 | **D4** | Lot Q15, Q24, Q37 et sa reprise | publié ; ouverture des envois = R5 |
@@ -251,7 +257,7 @@ les mêmes numéros (voir b.4).
 | Lots 1 à 65 | Lots de correction de la mission palier 1 (22 au 25/11) : 1 à 34 (phase 2), 35 à 54 (documents), 60 (artisan), 61 (locataire), 62 à 65 (relecture des écrans : 62 public, 63 propriétaire, 64 et 65 console) | `JOURNAL.md` |
 | L60 à L65 | Les mêmes lots d'écrans, écrits « L » dans les notes du banc | `livrables/notes-banc/` |
 | **L1 à L8** | Lots du **plan de correction du 26/11** — à ne pas confondre avec L60 à L65 | `livrables/PLAN-CORRECTIONS-2026-11-26.md` |
-| Lot 1 (26/11) | Première vague de L1 et L4, en quatre copies L1, L4a, L4b, L4c | section c |
+| Lot 1 (26/11) | Première vague de L1 et L4, en quatre copies L1, L4a, L4b, L4c | section c ; publié le 27/11 (#361) |
 | D1 à D7 | Lots qui appliquent les décisions du dirigeant du 24/11 | `JOURNAL.md` |
 | D01 à D49 (avec A, B) | Décisions groupées d'octobre, avec l'option retenue (ex. D24-B, D33) | [[Décisions groupées — version candidate du 13 octobre 2026]] |
 | 1A, 2B, 3A, 4 | Réponse du dirigeant du 22/11 à quatre questions (numéro de question + option) | `log.md`, 22/11 |
@@ -276,21 +282,21 @@ les mêmes numéros (voir b.4).
 
 ---
 
-## c. Le lot 1 (corrections du 26/11 : rien n'est publié, rien n'est fusionné)
+## c. Le lot 1 (corrections du 26/11, publiées le 27/11)
 
 **Ce que c'est.** Le lot 1 applique les lots **L1** (sessions) et **L4** (écrans) du plan du 26/11. Il est fait en
-quatre copies de travail, chacune partie de `main` `1dca28b`, à pousser sur des branches de travail. Il a été lancé
+quatre copies de travail, chacune partie de `main` `1dca28b`, poussées sur des branches de travail. Il a été lancé
 sur la délégation du dirigeant du 26/11 (« fais le reste… débrouille toi »), qui couvre les choix d'affichage sans
-enjeu juridique, sans argent réel et sans effacement ; chaque choix fait par délégation doit être écrit dans la PR.
+enjeu juridique, sans argent réel et sans effacement ; chaque choix fait par délégation est écrit dans la PR #361.
 
 | Branche (sur GitHub) | Commit initial | Tête finale | Ce qu'elle corrige | Relectures | Reste |
 |---|---|---|---|---|---|
-| `claude/lot1-l1` | `8a82db9` | `960285b` | Les deux fermetures de session en portée « others » (`app/src/app/actions/auth.ts`, `definirNouveauMotDePasse` ; `app/src/app/actions/compte.ts`, changement de mot de passe) lisent leur erreur et la tracent dans `log_tech` (`traceFermetureAutresSessions`, `app/src/lib/compte.ts`) ; libellé « fermeture des autres sessions : échec » dans la console. « Mon compte » ne dit plus que les autres appareils sont déconnectés quand Auth a échoué : il nomme le bouton « Se déconnecter », qui retente la fermeture sur tous les appareils. | 1re : acceptable avec réserves ; reprise `3741b31` ; 2e : « à reprendre légèrement » (commentaires trop affirmatifs) ; retouche `960285b` par l'agent principal (commentaires seulement, 82 tests verts) | Choix par délégation à écrire dans la PR (ci-dessous) |
+| `claude/lot1-l1` | `8a82db9` | `960285b` | Les deux fermetures de session en portée « others » (`app/src/app/actions/auth.ts`, `definirNouveauMotDePasse` ; `app/src/app/actions/compte.ts`, changement de mot de passe) lisent leur erreur et la tracent dans `log_tech` (`traceFermetureAutresSessions`, `app/src/lib/compte.ts`) ; libellé « fermeture des autres sessions : échec » dans la console. « Mon compte » ne dit plus que les autres appareils sont déconnectés quand Auth a échoué : il nomme le bouton « Se déconnecter », qui retente la fermeture sur tous les appareils. | 1re : acceptable avec réserves ; reprise `3741b31` ; 2e : « à reprendre légèrement » (commentaires trop affirmatifs) ; retouche `960285b` par l'agent principal (commentaires seulement, 82 tests verts) | — (choix par délégation écrits dans la PR #361, ci-dessous) |
 | `claude/lot1-l4a` | `edfe721` | `929ab95` | Console de supervision : ligne « Envoi du cautionnement » de la santé (E096/E204, avec la mention des organisations d'essai et « hors budget ») ; carte IA des paramètres (E107/E214) ; couleur des preuves de sauvegarde (E189 ; neutre quand un filtre ou une page est actif) ; compteurs des mentions légales (« 9 à fournir · 3 à compléter ») ; tableau de couverture à 390 px ; aperçu réel du post Facebook dans la console **et** dans le courriel de veto (D1) ; barre « Enregistrer » de l'éditeur d'article qui ne recouvre plus Titre et Chapô ; module léger `reglages-signature.ts` (la page de santé n'importe plus la signature des baux) | 1re : acceptable avec réserves ; reprise `1bfe208` ; 2e : « à reprendre » (la marge de « Couverture » ne changeait rien dans la vraie console et son e2e aurait échoué en CI) ; retrait par l'agent principal `929ab95` (69 tests verts) | E094, E095, E097, E109, E213 non traités : leur constat d'origine est perdu, à retrouver par le relevé d'écrans de L5 |
 | `claude/lot1-l4b` | `c959a34` | `0ad214f` | Espaces propriétaire, locataire, artisan : « Mettre en location » désactivé sur un lot bloqué, avec la raison (E049/E160), et la fiche du lot passe enfin `bloque` ; rappel « La mise en location vérifie une dernière fois… » seulement si un lot en brouillon est libre de blocage, et jamais en traversée en lecture seule ; FAQ « Mon bailleur » (E026) ; relances au futur quand l'envoi est fermé (« S'il vous est proposé… ») ; FAQ du locataire sans « jamais de surprise » (E132) ; carte « Dates proposées » de l'artisan (dates à venir seulement) ; chevron du volet ; message de `/facture` ; boucle de la page de panne (R9 du lot 60) et titre d'onglet juste ; onglet « Facturation » (Q89, mesuré) | 1re : acceptable avec réserves ; reprise `9a66f1d` ; 2e : **bon** ; mineurs repris par l'agent principal `0ad214f` (45 tests verts) | À 320 px, « Facturation » est tronqué d'un pixel, comme « Aujourd'hui » (défaut connu, non corrigé) |
 | `claude/lot1-l4c` | `c347597` | `4b65597` | Pages publiques : quatre outils gratuits vides au départ (quittance, GLI/Visale, LMNP, rentabilité ; Q123) ; garde-fou des indices saisis dans l'outil IRL (partie de Q72 : rapport 0,8 à 1,25 comme l'application) ; espace manquant « 24 moisaprès » de la politique de confidentialité (E057 = E170 ; date de la page au 26/11 et empreinte relevée, règle Q99) ; quittance : aide de format du mois, message imprimable quand le terme est incomplet, frappe du dernier champ sans perte de focus ; Visale « non évaluable » sans situation ; durées LMNP et crédit à 0 refusés ; e2e des outils sans saisie perdue avant l'hydratation | 1re : acceptable avec réserves ; reprise `3e3b3f5` ; 2e : à reprendre (aide e2e inopérante avant l'hydratation, format du mois) ; reprise `4b65597` ; 3e : **bon** | `app/src/lib/outils/irl.ts:103` (indice de référence après une année perdue) attend le juriste (Q72, `JURISTE.md` 7·1) |
 
-**Cause du test instable `e2e/outils.spec.ts:159` (VÉRIFIÉ le 26/11 par sonde).** Une saisie faite avant que la page
+**Cause du test instable `e2e/outils.spec.ts:159` (ligne 197 depuis le lot 1 ; VÉRIFIÉ le 26/11 par sonde).** Une saisie faite avant que la page
 ait « pris la main » (hydratation de React) puis refaite à l'identique n'atteint jamais l'état de la page : la boucle
 de rattrapage de l'aide ne rattrapait donc rien. L'aide vide maintenant le champ avant chaque saisie : ancienne aide
 4 échecs sur 4, nouvelle 4 réussites sur 4 (scripts retenus puis libérés). Avant le rechargement qui doit retrouver le
@@ -304,7 +310,7 @@ Contrôles locaux : `npm run lint` et `tsc --noEmit` sans erreur ; vitest comple
 19 fichiers ne démarrent pas hors CI faute de base PostgreSQL ou de navigateur (les mêmes sur `main`). CI GitHub
 lancée à la main (workflow_dispatch, sans PR) : run n° 45894260072, résultat **verte sans reprise** (20:53Z → 21:34Z : vitest 16 829 tests réussis ; 357 parcours e2e réussis au premier essai et 3 ignorés, aucun second essai ; 75 WebKit mobile, 9 PostgREST, 4 envois, 2 invitation).
 
-**Choix faits par délégation dans le lot 1, à écrire dans la PR et à signaler au dirigeant.**
+**Choix faits par délégation dans le lot 1, écrits dans la PR #361 et signalés au dirigeant.**
 - Premier mot de passe : si la fermeture des autres sessions échoue, la personne reste connectée (comme avant) et
   l'échec est seulement tracé. Au mot de passe oublié, l'échec n'est pas tracé, car une fermeture de toutes les
   sessions suit aussitôt ; si Auth est en panne, rien n'est tracé (point aveugle connu).
@@ -325,21 +331,23 @@ VÉRIFIÉ le 26/11 : elle part de `cce58ab8` (#286, 11/11) ; aucun de ses 8 comm
 ni à l'identique (`git cherry`). Une reprise partielle de son contenu par une autre PR n'est pas exclue : À VÉRIFIER.
 Ne pas la supprimer sans cette vérification et l'accord du dirigeant.
 
-> [!info] Mise à jour du 26/11 vers 22 h Z
+> [!info] Publication du lot 1 (mise à jour du 27/11)
 > Le dirigeant a demandé directement à l'agent principal de publier le lot 1 depuis sa session (« Oui, publie le lot 1
-> ici »). PR [#361](https://github.com/GERIMMO/GERIMMO_V4/pull/361) ouverte depuis `claude/lot1-integration` ; la
-> publication est suivie dans `JOURNAL.md`. Ne pas ouvrir d'autre PR pour le lot 1.
-
-**Ce qui reste avant la publication du lot 1.**
-1. CI verte **sans reprise** sur la tête de `claude/lot1-integration` (un parcours passé au second essai n'est pas
-   « sans reprise ») ; si elle est rouge, corriger sur la branche concernée et réintégrer.
-2. Ouvrir **une** PR de `claude/lot1-integration` vers `main` (une seule publication, un seul clic d'approbation), qui
-   liste les choix ci-dessus. Aucune PR n'est ouverte le 26/11 : la passation l'a demandé.
-3. **Accord écrit du dirigeant**, puis fusion squash au SHA exact, CI de `main`, publication contrôlée (une
-   approbation ; aucune migration, donc pas de sauvegarde préalable obligatoire), santé, recette de production,
-   `log.md` et `JOURNAL.md`.
-4. Si la publication glisse après le 26/11, la date de la politique de confidentialité (`CONFIDENTIALITE_DATE`,
-   `app/src/lib/editeur.ts`) reste celle de la modification, le 26/11 (règle Q99) : rien à changer.
+> ici », 26/11 au soir), puis a approuvé la publication le 27/11 (« C'est approuvé »). Déroulé, VÉRIFIÉ sur GitHub :
+> 1. PR [#361](https://github.com/GERIMMO/GERIMMO_V4/pull/361) ouverte depuis `claude/lot1-integration` (tête `ef14afa`),
+>    avec la liste des choix ci-dessus ; CI de la PR n° 45901793551 verte sans reprise.
+> 2. Fusion squash le 26/11 à 22:49Z : `main` = `c3e2ba6694af86c9d618d55a2134792d41ba7190`. La branche
+>    `claude/lot1-integration` n'est plus sur GitHub (VÉRIFIÉ par `git ls-remote` le 27/11) ; les quatre branches
+>    `claude/lot1-l1`, `-l4a`, `-l4b`, `-l4c` y sont toujours.
+> 3. CI de `main` n° 45907193348 : verte sans reprise (16 829 tests ; 357 parcours au premier essai, 3 ignorés, aucun
+>    second essai).
+> 4. Publication contrôlée n° 45911337396 (aucune migration, donc pas de sauvegarde préalable), lancée le 26/11 à
+>    23:30Z, en attente d'approbation toute la nuit, approuvée le 27/11 : `publiee_verifiee` à 06:17Z.
+> 5. Contrôles après publication : section a. Recette de production n° 63 (run 45950975860) **réussie** de 06:18Z
+>    à 06:28Z : 68 parcours au premier essai, purge vérifiée.
+>
+> La politique de confidentialité en ligne depuis le 27/11 porte la date du 26/11, celle de la modification (règle
+> Q99) : c'est voulu.
 
 **Lots suivants prévus** : le reste de L4 (b.2), puis L5 (aucune décision nécessaire), puis L2 et L3 dès les réponses
 du dirigeant, puis L7, L6 et L8 quand les éléments extérieurs arrivent (textes officiels, juriste, expert-comptable,
@@ -396,6 +404,11 @@ Les recommandations ci-dessous sont celles de l'auteur de cette note, sauf menti
   décision datée du dirigeant « Ouvrir la vente aux particuliers sans médiateur » (risque : articles L612-1 et L616-1
   du recueil, sans exception lue ; juriste 7·6, 9·26).
 - *Recommandation.* A. L'agent ne fait jamais ce geste.
+- *Mise à jour du 27/11.* La branche de la PR [#362](https://github.com/GERIMMO/GERIMMO_V4/pull/362) (session « Discussion
+  Gerimmo ») consigne une réponse du dirigeant du 26/11 au soir, absente de cette branche : « Oui, on ouvre le 30/11,
+  entrepreneur individuel, sans médiateur », avec un pas-à-pas `livrables/OUVERTURE-VENTE-30-NOVEMBRE.md`. Lu sur
+  cette branche le 27/11, non repris ici. Le risque juridique ci-dessus reste entier ; R6 à R8 restent des gestes du
+  dirigeant.
 
 **d.5 — Stripe (R7) et ouverture des souscriptions (R8).**
 - *Question.* Régler l'en-tête des factures dans le compte Stripe, puis ouvrir les souscriptions ?
@@ -412,8 +425,9 @@ s'en tenir aux fiches officielles ; (C) le dirigeant copie les articles demandé
 (`livrables/Gerimmo-textes-officiels-a-fournir.pdf`). *Recommandation* : A (ou C), puisque L7, Q28, Q111 et une grande
 partie de `JURISTE.md` en dépendent. Un texte récité par une IA sans source ne compte pas (décision du 24/11).
 
-**d.8 — Publier le lot 1.** Question à poser quand les quatre copies sont prêtes : « Publie le lot 1 » (une
-approbation, aucune migration attendue), avec la liste des choix faits par délégation.
+**d.8 — Publier le lot 1.** **Fait** : accord du dirigeant le 26/11 au soir (« Oui, publie le lot 1 ici »),
+approbation le 27/11, en production depuis 06:17Z (section c). Les choix faits par délégation sont listés dans la PR
+#361 et en section c : le dirigeant peut encore en demander un autre.
 
 **d.9 — Questions des lots L2, L3, L6, L7, L8** (formulées et recommandées par le plan) : Q124 (écrire séparément les
 parts du locataire et de la CAF : oui, en attente du juriste 9·44) ; Q36-4 (« CAF / APL » au tableau de bord : déjà
@@ -428,7 +442,7 @@ du juriste) ; L8 (fermer les accès inutiles, réversible : oui).
 Q71, Q74, Q79, Q81 à Q86, Q88, Q90 à Q92, Q94, Q95, Q97, Q98, Q103 à Q108, Q110, Q113 à Q116, Q121, Q122. Pistes dans
 le tableau b.1.
 
-**d.11 — Trier les PR ouvertes** (section g) : 48 PR ouvertes, surtout de Codex (mi-novembre) et de Dependabot.
+**d.11 — Trier les PR ouvertes** (section g) : 48 PR ouvertes le 26/11, 49 le 27/11 avec la PR #362, surtout de Codex (mi-novembre) et de Dependabot.
 *Recommandation* : ne rien fusionner sans examen ; fermer celles que la mission palier 1 a rendues caduques, après
 lecture de chacune.
 
@@ -554,7 +568,8 @@ Stripe, approuver à la place du dirigeant dans GitHub.
 
 **Pièges connus.**
 - **Tests instables** : `e2e/outils.spec.ts:159` (quittance publique, « Nom du bailleur » vide après rechargement,
-  mobile) ; `mois-offerts.spec.ts` (à stabiliser) ; `recommandes-consentements.spec.ts` sur WebKit (« Load failed »,
+  mobile) : cause établie et corrigée par le lot 1, publié le 27/11 ; le test est à la ligne 197 depuis et passe au
+  premier essai dans les CI n° 45894260072, 45901793551 et 45907193348 ; `mois-offerts.spec.ts` (à stabiliser) ; `recommandes-consentements.spec.ts` sur WebKit (« Load failed »,
   N14) ; simulateur de prix de la vitrine (une fois, 20/11). Le parcours d'annulation de rendez-vous du locataire était
   instable à cause d'un vrai défaut, corrigé dans `062296e2`.
 - **Fuseaux horaires** : le jour de référence est le jour de Paris ([[Le jour de référence est le jour de Paris]]).
@@ -596,8 +611,16 @@ Stripe, approuver à la place du dirigeant dans GitHub.
 `claude/lot1-integration` (run n° 45894260072, voir section c). Recette n° 62 : terminée, réussie. Aucun autre
 traitement en arrière-plan : les reprises et relectures du lot 1 sont toutes terminées. L'agent principal ne lance
 plus de nouveau travail sur le dépôt après cette note (demande de la session « Discussion Gerimmo »).
+*Mise à jour du 27/11 :* cette CI est verte sans reprise ; le dirigeant a ensuite demandé directement la publication
+du lot 1, faite le 27/11 (section c). Aucun traitement en arrière-plan de la session de l'agent principal après la
+recette n° 63. **À savoir :** la session « Discussion Gerimmo » a ouvert le 27/11 à 06:18:59Z la PR
+[#362](https://github.com/GERIMMO/GERIMMO_V4/pull/362) (« Documentation seule », branche
+`claude/inspiring-faraday-nz2i4q`). Elle reprend cette branche de documentation jusqu'à `ed07a757` seulement, sans
+les mises à jour du 27/11 (`04cd1ae2` et suivants) : fusionnée telle quelle, elle mettrait dans `main` une note qui
+dit le lot 1 non publié. À réconcilier avant sa fusion (VÉRIFIÉ par `git merge-base --is-ancestor` le 27/11).
 
-**PR ouvertes sur GitHub** (48 le 26/11, lecture GitHub ; la liste fournie à l'auteur n'en citait qu'une partie).
+**PR ouvertes sur GitHub** (48 le 26/11, lecture GitHub ; la liste fournie à l'auteur n'en citait qu'une partie ;
+49 le 27/11 avec la PR #362, documentation seule, ouverte par la session « Discussion Gerimmo »).
 - Dependabot (9) : #349 (outils de développement), #301, #300, #274, #265, #262, #261, #260, #237.
 - Claude, 12/11 : #287 (brouillon, branche `claude/lot1-corrections-recette`, voir section c).
 - Codex, du 12 au 15/11 (36) : #340, #339, #330, #329, #328, #327, #326, #325, #324, #323, #322, #321, #315, #314,
@@ -610,13 +633,13 @@ plus de nouveau travail sur le dépôt après cette note (demande de la session 
   `livrables/`, wiki à jour ; environ 140 commits que `main` n'a pas, **uniquement des documents**, aucun fichier de
   `app/` ni de `.github/` VÉRIFIÉ par `git diff --name-only` ; non fusionnée, d'où le `log.md` de `main` arrêté au
   03/11) ; les quatre branches du lot 1, **poussées sur GitHub** le 26/11 (`claude/lot1-l1` `960285b`,
-  `claude/lot1-l4a` `929ab95`, `claude/lot1-l4b` `0ad214f`, `claude/lot1-l4c` `4b65597`) et leur intégration
-  `claude/lot1-integration` `ef14afa` (à publier par une seule PR) ; les
+  `claude/lot1-l4a` `929ab95`, `claude/lot1-l4b` `0ad214f`, `claude/lot1-l4c` `4b65597`) ; les
   repères `claude/depart-palier-1` et `claude/production-2026-11-22` ; les sauvegardes
   `claude/sauvegarde-banc-principal`, `claude/sauvegarde-banc-vendeur`, `claude/sauvegarde-fusion`.
   `claude/palier-1-preproduction` n'est plus sur GitHub (VÉRIFIÉ par `git ls-remote` le 26/11).
 - Déjà supprimées sur GitHub (VÉRIFIÉ par `git ls-remote` le 26/11), fusionnées : `claude/correctif-q125-inscription`
-  (#359) et `claude/correctif-adresse-bailleur` (#360). Il n'en reste que des copies locales.
+  (#359) et `claude/correctif-adresse-bailleur` (#360) ; `claude/lot1-integration` `ef14afa` (#361, VÉRIFIÉ le 27/11).
+  Il n'en reste que des copies locales.
 - Ne pas fusionner : `claude/compassionate-euler-qpqjp6` (consigne du dirigeant).
 - À vérifier avant toute suppression : `claude/lot1-corrections-recette` ; les autres branches `claude/*` aux noms
   générés (`ecstatic-knuth-pcoqz0`, `ecstatic-pasteur-wn87s9`, `inspiring-faraday-nz2i4q`,
@@ -642,7 +665,7 @@ plus de nouveau travail sur le dépôt après cette note (demande de la session 
 
 ## h. Journal des opérations depuis le 03/11
 
-Sources : `log.md` de la branche `claude/audit-final-pr335` (complet jusqu'au 26/11), `JOURNAL.md` et `git log
+Sources : `log.md` de la branche `claude/audit-final-pr335` (complet jusqu'au 27/11), `JOURNAL.md` et `git log
 origin/main`. Le `log.md` de `main` s'arrête au 03/11. Les fusions marquées « hors log » n'ont pas d'entrée dans
 `log.md`, même sur la branche de documentation (travaux du dirigeant et de Codex). `log.md` n'a aucune entrée du 04/11
 au 14/11.
@@ -704,20 +727,21 @@ au 14/11.
 | 26/11 | deploy | Correctif Q125 | #359 (`1dca28b`) | `publiee_verifiee` 09:50Z ; recettes n° 59 à 61 réussies ; action vérifiée par sonde |
 | 26/11 | incident (`JOURNAL.md`) | Pare-feu Vercel sur l'adresse de l'agent | — | public non concerné |
 | 26/11 | plan (hors log) | Plan de correction des défauts restants, avec sa critique | — (commit `4984c18`) | lots L1 à L8 |
-| 26/11 | développement (hors log) | Lot 1 : quatre copies L1, L4a, L4b, L4c, deux à trois tours de relecture adverse chacune | — | non publiées ; dernières relectures : bon ou retouches faites (section c) |
+| 26/11 | développement (hors log) | Lot 1 : quatre copies L1, L4a, L4b, L4c, deux à trois tours de relecture adverse chacune | — | dernières relectures : bon ou retouches faites (section c) ; publiées le 27/11 (#361) |
 | 26/11 | deploy | Correctif de l'adresse du bailleur | #360 (`f9e874b`) | `publiee_verifiee` vers 19:14Z ; recette n° 62 réussie ; recompte : 0 reprise |
 | 26/11 | documentation (hors log) | Registre : Q72 et Q123 sur la branche du lot 1 ; point posé au juriste | — (commit `5546c23a`) | fait |
 | 26/11 | documentation | `log.md` et `JOURNAL.md` de la branche de documentation : recette n° 62 réussie | — (commit `af0a2563`, tête de `claude/audit-final-pr335` à 19:27Z) | fait |
 | 26/11 | documentation (hors log) | Cette note de passation | — | premier état `8a9acea`, version finale sur `claude/audit-final-pr335` |
 | 26/11 | correction (hors log) | Lot 1 : quatre branches et leur intégration poussées, sans PR ni publication | — | contrôles locaux verts ; CI run n° 45894260072 : **verte sans reprise** (20:53Z → 21:34Z : vitest 16 829 tests réussis ; 357 parcours e2e réussis au premier essai et 3 ignorés, aucun second essai ; 75 WebKit mobile, 9 PostgREST, 4 envois, 2 invitation) |
+| 26/11 | publication (`JOURNAL.md`) | Lot 1 : PR #361, fusion squash à 22:49Z | #361 (`c3e2ba6`) | CI de la PR (n° 45901793551) et de `main` (n° 45907193348) vertes sans reprise |
+| 27/11 | deploy | Lot 1 en production | #361 (`c3e2ba6`) | `publiee_verifiee` 06:17Z (run n° 45911337396) ; recette n° 63 réussie (68 parcours au premier essai, purge vérifiée) ; 0 erreur Vercel |
 
 ---
 
 ## i. Prochaines actions recommandées, par ordre de priorité
 
-1. **Publier le lot 1** : lire le résultat de la CI de `claude/lot1-integration` (run n° 45894260072) ; si
-   elle est verte sans reprise, ouvrir une PR vers `main` qui liste les choix par délégation, puis accord écrit du
-   dirigeant et publication contrôlée avec recette (section c). Les quatre branches et l'intégration sont sur GitHub.
+1. **Publier le lot 1** : **fait le 27/11** (section c). Lot de code suivant prévu : le reste de L4, puis L5 (aucune
+   décision nécessaire) ; à lancer seulement sur demande du dirigeant.
 2. **Séance guidée avec le dirigeant** pour les gestes courts : fermeture du compte fictif et des comptes de test (d.1,
    d.6) avant le 24/12, essai de l'interrupteur de l'IA, puis décision sur R5 après un essai avec une vraie boîte (d.3).
 3. **Lever la réserve N10** (d.2) : environnement dédié aux secrets Supabase, rotation coordonnée, puis sauvegarde et
@@ -727,7 +751,7 @@ au 14/11.
    possibles sur deux fichiers de `livrables/`, À VÉRIFIER) ; ajouter les questions non numérotées comme Q127 et
    suivantes.
 5. **Préparer les lots qui attendent une réponse** : poser au dirigeant les questions de L2 et L3 en français simple
-   (d.9), lancer L5 (aucune décision requise), et demander l'accès aux textes officiels (d.7), dont dépendent L7 et une
+   (d.9), proposer L5 au dirigeant (aucune décision métier requise), et demander l'accès aux textes officiels (d.7), dont dépendent L7 et une
    grande partie de `JURISTE.md`.
 
 > [!warning] Points à trancher / contradictions
@@ -736,7 +760,12 @@ au 14/11.
 > - La consigne de la tâche planifiée « Ronde quotidienne Gerimmo » (écrite le 19/09) demande, elle aussi, des
 >   messages de commit en anglais avec une ligne `Co-Authored-By` différente, et la dit lancée « à 10 h (Paris) » ;
 >   son horaire réel est 08:00Z, soit 9 h à Paris en hiver. À réaligner si le dirigeant le veut.
-> - La liste des PR ouvertes fournie à l'auteur (20 PR) est incomplète : GitHub en montre 48 le 26/11.
+> - La liste des PR ouvertes fournie à l'auteur (20 PR) est incomplète : GitHub en montre 48 le 26/11 (49 le 27/11).
+> - PR #362 (documentation seule, session « Discussion Gerimmo ») : elle ne contient pas les mises à jour du 27/11 de
+>   cette branche (lot 1 publié, recette n° 63) et porte une décision de vente du 26/11 absente d'ici (d.4). Les deux
+>   branches sont à réunir avant toute fusion de la documentation dans `main`.
+> - GitHub attribue l'approbation de la publication et la fusion de #361 au même compte `GERIMMO`, que l'agent utilise
+>   aussi : seule la réponse écrite du dirigeant prouve que l'approbation vient de lui.
 > - `GUIDE-DE-REPRISE.md` donne Node.js 22 pour tous les workflows ; la PR ouverte #245 parle de « Node 24 utilisé en
 >   production ». À vérifier.
 > - `DECISIONS-2026-11-24.md` dit que la liste des défauts mineurs est gardée ; le plan du 26/11 (B4) constate qu'elle

@@ -3,8 +3,8 @@ type: process
 tags: [irl, revision, loyer, prescription]
 status: draft
 created: 2026-07-24
-updated: 2026-11-26
-sources: ["[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Recueil des textes officiels (v6)]]", "[[Référentiel du palier 1]]", "DECISIONS-2026-11-24.md (Q23, Q34, Q43, Q100)", "QUESTIONS.md (Q23, Q34, Q43, Q70 à Q72, Q100)", "JURISTE.md (partie 5, point 6 ; partie 6, point 16 ; partie 7)", "JOURNAL.md (lots 14, 39, 52 et D2, 22-25/11/2026)", "livrables/recueil/analyse-refs-01-09.md (réf. 01) et analyse-refs-10-24.md (réf. 16 et 23)", "code de la branche fusionnée claude/palier-1-fusion (89cb87ff, lecture seule)", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)"]
+updated: 2026-11-27
+sources: ["[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Recueil des textes officiels (v6)]]", "[[Référentiel du palier 1]]", "DECISIONS-2026-11-24.md (Q23, Q34, Q43, Q100)", "QUESTIONS.md (Q23, Q34, Q43, Q70 à Q72, Q100)", "JURISTE.md (partie 5, point 6 ; partie 6, point 16 ; partie 7)", "JOURNAL.md (lots 14, 39, 52 et D2, 22-25/11/2026)", "livrables/recueil/analyse-refs-01-09.md (réf. 01) et analyse-refs-10-24.md (réf. 16 et 23)", "code de la branche fusionnée claude/palier-1-fusion (89cb87ff, lecture seule)", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)", "code publié `main` c3e2ba6 (PR #361, lecture seule, 27/11/2026)", "log.md — entrée « deploy » du 27/11/2026"]
 ---
 
 # Révision annuelle IRL
@@ -114,6 +114,12 @@ révision par son premier terme révisé, avenant au [[Bail]] par sa date d'effe
 > et aucun champ n'est prérempli ; l'exemple n'apparaît qu'en texte grisé dans le champ vide (décision du 25/11, Q100). La lettre ne
 > s'imprime que si ses six champs sont saisis. L'outil n'a **pas** reçu les règles du lot D2 (année perdue, délai d'un
 > an, premier mois révisé) : il peut donner un autre résultat que l'application (Q72, en attente).
+>
+> **Depuis le 27/11/2026 (lot 1, PR #361, `main` `c3e2ba6`)** : quand on saisit soi-même les deux indices,
+> l'outil refuse un rapport entre les deux indices hors de 0,8 à 1,25, la même borne que l'application, et
+> ne donne ni loyer ni lettre (lu dans le code publié, `app/src/lib/outils/irl.ts`). Reste ouvert (Q72, `JURISTE.md`
+> partie 7) : l'alerte « Plus d'un an sépare les deux indices » dit de prendre comme indice de référence « celui de la
+> dernière révision appliquée », alors que l'application prend le même trimestre de l'année précédente.
 
 > [!info] Jour de référence (depuis le 15/10/2026)
 > La date de demande par défaut et le refus d'une demande « future » se comptent au **jour
@@ -205,3 +211,8 @@ imprimées que pour les révisions enregistrées avant la migration `20261124100
 >   d'un an (veille de l'anniversaire ou anniversaire lui-même). Le texte fourni (art. 7-1, réf. 16) dit seulement que
 >   l'action « est prescrite un an après la date convenue par les parties dans le contrat de bail pour réviser ledit
 >   loyer ».
+> - **Outil public et application (27/11/2026, Q72)** : depuis le lot 1 (`main` `c3e2ba6`), l'alerte « Plus d'un an
+>   sépare les deux indices » de l'outil public (`app/src/lib/outils/irl.ts`, l. 103) dit de prendre comme indice de
+>   référence « celui de la dernière révision appliquée », alors que l'application prend le même trimestre de l'année
+>   précédente (règle C4) ; après une année perdue, suivre l'alerte revient à calculer sur deux ans. À aligner après
+>   la réponse du juriste (`JURISTE.md`, partie 7, point 1).

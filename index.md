@@ -148,7 +148,7 @@ Les nouvelles datées (publications, décisions, contrôles) sont dans `log.md`,
 
 ## Synthèses
 - [[Vision de l'écosystème Gerimmo]] — la seule page de vision : ambition, principes, acteurs, marché et concurrence, étages, revenu, marque, idées abandonnées ; brouillon à valider.
-- [[Passation — état du 26 novembre 2026]] — pour reprendre sans l'historique : état de la production, registre Q1 à Q126, lot 1 de corrections, décisions attendues du dirigeant.
+- [[Passation — état du 26 novembre 2026]] — état de la production et du travail en cours, mis à jour le 27/11 (lot 1 publié, recette n° 63 réussie) ; décisions en attente, règles de publication, outillage.
 - [[Référentiel du palier 1]] — le document de référence du palier 1 : cahier V3 et wiki fusionnés, règles numérotées, décisions du 24/11, registre des contradictions.
 - [[Mission palier 1 — audit du 22 novembre 2026]] — audit puis corrections en autonomie du palier 1, publiés le 25/11 ; réglages de la console encore à faire (en cours).
 - [[Premiers clients — acquisition sans budget — 20 novembre 2026]] — chantier du 20/11 : freins d'activation levés ; les inscrits étaient des comptes de test, le premier frein est d'attirer des visiteurs.

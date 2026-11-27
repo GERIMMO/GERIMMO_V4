@@ -1,0 +1,2052 @@
+{
+  "horodatage": "2026-11-27T16:09:03.837Z",
+  "navigateur": "Chromium 156.0.8078.4",
+  "controles": [
+    {
+      "route": "/",
+      "format": "ordinateur",
+      "http": 200,
+      "url": "https://www.gerimmo.app/",
+      "photo": "accueil-ordinateur.jpg",
+      "h1": [
+        "Vos locations,\nl’esprit tranquille."
+      ],
+      "titres": [
+        "Un calcul à faire ?",
+        "Moins de recherches.\nPlus de clarté.",
+        "Vos biens, en un regard",
+        "Un bail, étape par étape",
+        "Des loyers bien suivis",
+        "Les bons rappels",
+        "Votre première location en trois temps",
+        "Les bonnes informations.\nPour la bonne personne.",
+        "Propriétaires bailleurs",
+        "Locataires",
+        "Artisans",
+        "Vous gérez des biens pour des mandants ?",
+        "Gardez le fil.\nMême quand tout ne va pas comme prévu.",
+        "Un tarif à la taille\nde votre patrimoine.",
+        "Des repères pour\nmieux gérer.",
+        "Un seul dossier pour retrouver votre location",
+        "Gerimmo est lancé : gérez votre premier logement",
+        "Un bail préparé depuis le dossier, pas depuis un modèle Word",
+        "Vous préférez qu’on vous appelle ?",
+        "Avant de\nvous lancer.",
+        "Écrivez-nous,\non vous répond."
+      ],
+      "page": {
+        "largeur": 1440,
+        "hauteur": 1000,
+        "largeur_document": 1440
+      },
+      "liens": [
+        {
+          "texte": "Gerimmo — accueil",
+          "href": "/"
+        },
+        {
+          "texte": "La solution",
+          "href": "/#fonctionnalites"
+        },
+        {
+          "texte": "Tarifs",
+          "href": "/tarifs"
+        },
+        {
+          "texte": "Outils gratuits",
+          "href": "/outils"
+        },
+        {
+          "texte": "Journal",
+          "href": "/journal"
+        },
+        {
+          "texte": "Se connecter",
+          "href": "/connexion"
+        },
+        {
+          "texte": "Créer mon compte",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Créer mon compte",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Découvrir Gerimmo",
+          "href": "#fonctionnalites"
+        },
+        {
+          "texte": "2 mois d'essai gratuit",
+          "href": "/tarifs"
+        },
+        {
+          "texte": "Essayer nos outils gratuits",
+          "href": "/outils"
+        },
+        {
+          "texte": "Révision de loyer (IRL)",
+          "href": "/outils/calcul-irl"
+        },
+        {
+          "texte": "Quittance de loyer",
+          "href": "/outils/quittance-de-loyer"
+        },
+        {
+          "texte": "GLI ou Visale",
+          "href": "/outils/comparateur-gli-visale"
+        },
+        {
+          "texte": "Simulateur LMNP",
+          "href": "/outils/simulateur-lmnp"
+        },
+        {
+          "texte": "Rentabilité locative",
+          "href": "/outils/rentabilite-locative"
+        },
+        {
+          "texte": "Créer mon compte",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Accéder à mon espace",
+          "href": "/connexion"
+        },
+        {
+          "texte": "Rejoindre le réseau",
+          "href": "/artisan/inscription"
+        },
+        {
+          "texte": "Rejoindre la liste d’attente",
+          "href": "/agences"
+        },
+        {
+          "texte": "Commencer mon essai gratuit",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Tout le journal",
+          "href": "/journal"
+        },
+        {
+          "texte": "18 NOVEMBRE 2026\n\nUn seul dossier pour retrouver votre location\n\nUn bail dans un dossier, des quittances dans les e-mails et une fuite signalée par téléphone : retrouver une information prend vite du temps. Dans Gerimmo, ouvrez le logement pour retrouver son bail, ses documents et ses incidents.\n\nLire l’article",
+          "href": "/journal/2026-11-17-decouvrir-gerimmo"
+        },
+        {
+          "texte": "14 NOVEMBRE 2026\n\nGerimmo est lancé : gérez votre premier logement\n\nGerimmo rassemble les baux, les quittances et les incidents par logement. Les propriétaires bailleurs particuliers peuvent ouvrir un espace pour essayer gratuitement le logiciel, sans carte bancaire.\n\nLire l’article",
+          "href": "/journal/gerimmo-est-lance-gerez-votre-premier-logement"
+        },
+        {
+          "texte": "24 OCTOBRE 2026\n\nUn bail préparé depuis le dossier, pas depuis un modèle Word\n\nLe bail reprend le logement, le lot, les personnes et les conditions déjà saisis. Gerimmo contrôle les mentions obligatoires avant de produire le document.\n\nLire l’article",
+          "href": "/journal/2026-10-23-bail-structure"
+        },
+        {
+          "texte": "politique de confidentialité",
+          "href": "/confidentialite"
+        },
+        {
+          "texte": "En savoir plus",
+          "href": "/confidentialite"
+        },
+        {
+          "texte": "Gerimmo — accueil",
+          "href": "/"
+        },
+        {
+          "texte": "La solution",
+          "href": "/#fonctionnalites"
+        },
+        {
+          "texte": "Tarifs",
+          "href": "/tarifs"
+        },
+        {
+          "texte": "Outils gratuits",
+          "href": "/outils"
+        },
+        {
+          "texte": "Journal",
+          "href": "/journal"
+        },
+        {
+          "texte": "Créer mon compte",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Se connecter",
+          "href": "/connexion"
+        },
+        {
+          "texte": "Nous écrire",
+          "href": "/#contact"
+        },
+        {
+          "texte": "Rejoindre le réseau d’artisans",
+          "href": "/artisan/inscription"
+        },
+        {
+          "texte": "Agences",
+          "href": "/agences"
+        },
+        {
+          "texte": "Mentions légales",
+          "href": "/mentions-legales"
+        },
+        {
+          "texte": "Conditions générales",
+          "href": "/conditions"
+        },
+        {
+          "texte": "Confidentialité",
+          "href": "/confidentialite"
+        }
+      ],
+      "boutons": [
+        {
+          "texte": "Mensuel",
+          "largeur": 93,
+          "hauteur": 44
+        },
+        {
+          "texte": "Annuel",
+          "largeur": 85,
+          "hauteur": 44
+        },
+        {
+          "texte": "Être rappelé",
+          "largeur": 638,
+          "hauteur": 44
+        },
+        {
+          "texte": "Envoyer mon message",
+          "largeur": 523,
+          "hauteur": 44
+        }
+      ]
+    },
+    {
+      "route": "/tarifs",
+      "format": "ordinateur",
+      "http": 200,
+      "url": "https://www.gerimmo.app/tarifs",
+      "photo": "tarifs-ordinateur.jpg",
+      "h1": [
+        "L’abonnement Gerimmo pour votre espace propriétaire."
+      ],
+      "titres": [
+        "Particuliers et SCI gérant leurs propres biens",
+        "Changer, arrêter",
+        "Ce qui est dans l'abonnement",
+        "Ce qui n'est pas dans l'abonnement",
+        "Agences de gestion"
+      ],
+      "page": {
+        "largeur": 1440,
+        "hauteur": 1000,
+        "largeur_document": 1440
+      },
+      "liens": [
+        {
+          "texte": "Gerimmo — accueil",
+          "href": "/"
+        },
+        {
+          "texte": "La solution",
+          "href": "/#fonctionnalites"
+        },
+        {
+          "texte": "Tarifs",
+          "href": "/tarifs"
+        },
+        {
+          "texte": "Outils gratuits",
+          "href": "/outils"
+        },
+        {
+          "texte": "Journal",
+          "href": "/journal"
+        },
+        {
+          "texte": "Se connecter",
+          "href": "/connexion"
+        },
+        {
+          "texte": "Créer mon compte",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Commencer mon essai gratuit",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Confidentialité",
+          "href": "/confidentialite"
+        },
+        {
+          "texte": "inscrivez votre agence sur la liste d'attente",
+          "href": "/agences"
+        },
+        {
+          "texte": "Tous les outils\n→",
+          "href": "/outils"
+        },
+        {
+          "texte": "GLI ou Visale\nVisale ou assurance loyers impayés : le vrai coût, après impôt.",
+          "href": "/outils/comparateur-gli-visale"
+        },
+        {
+          "texte": "Simulateur LMNP\nMicro-BIC ou régime réel : l'impôt de l'année, côte à côte.",
+          "href": "/outils/simulateur-lmnp"
+        },
+        {
+          "texte": "Rentabilité locative\nRentabilité brute, nette de charges et cash-flow mensuel.",
+          "href": "/outils/rentabilite-locative"
+        },
+        {
+          "texte": "Commencer l'essai gratuit",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Conditions générales d'utilisation et de vente",
+          "href": "/conditions"
+        },
+        {
+          "texte": "Gerimmo — accueil",
+          "href": "/"
+        },
+        {
+          "texte": "La solution",
+          "href": "/#fonctionnalites"
+        },
+        {
+          "texte": "Tarifs",
+          "href": "/tarifs"
+        },
+        {
+          "texte": "Outils gratuits",
+          "href": "/outils"
+        },
+        {
+          "texte": "Journal",
+          "href": "/journal"
+        },
+        {
+          "texte": "Créer mon compte",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Se connecter",
+          "href": "/connexion"
+        },
+        {
+          "texte": "Nous écrire",
+          "href": "/#contact"
+        },
+        {
+          "texte": "Rejoindre le réseau d’artisans",
+          "href": "/artisan/inscription"
+        },
+        {
+          "texte": "Agences",
+          "href": "/agences"
+        },
+        {
+          "texte": "Mentions légales",
+          "href": "/mentions-legales"
+        },
+        {
+          "texte": "Conditions générales",
+          "href": "/conditions"
+        },
+        {
+          "texte": "Confidentialité",
+          "href": "/confidentialite"
+        }
+      ],
+      "boutons": [
+        {
+          "texte": "Mensuel",
+          "largeur": 93,
+          "hauteur": 44
+        },
+        {
+          "texte": "Annuel",
+          "largeur": 85,
+          "hauteur": 44
+        }
+      ]
+    },
+    {
+      "route": "/inscription",
+      "format": "ordinateur",
+      "http": 200,
+      "url": "https://www.gerimmo.app/inscription",
+      "photo": "inscription-ordinateur.jpg",
+      "h1": [
+        "Ouvrir mon espace propriétaire"
+      ],
+      "titres": [],
+      "page": {
+        "largeur": 1440,
+        "hauteur": 1000,
+        "largeur_document": 1440
+      },
+      "liens": [
+        {
+          "texte": "Gerimmo — accueil",
+          "href": "/"
+        },
+        {
+          "texte": "conditions générales d'utilisation et de vente",
+          "href": "/conditions"
+        },
+        {
+          "texte": "page confidentialité",
+          "href": "/confidentialite"
+        },
+        {
+          "texte": "J'ai déjà un compte",
+          "href": "/connexion"
+        }
+      ],
+      "boutons": [
+        {
+          "texte": "Ouvrir mon espace",
+          "largeur": 362,
+          "hauteur": 44
+        }
+      ]
+    },
+    {
+      "route": "/agences",
+      "format": "ordinateur",
+      "http": 200,
+      "url": "https://www.gerimmo.app/agences",
+      "photo": "agences-ordinateur.jpg",
+      "h1": [
+        "Gerimmo pour les agences arrive."
+      ],
+      "titres": [
+        "Votre gestion de mandats,\nau même endroit."
+      ],
+      "page": {
+        "largeur": 1440,
+        "hauteur": 1000,
+        "largeur_document": 1440
+      },
+      "liens": [
+        {
+          "texte": "Gerimmo — accueil",
+          "href": "/"
+        },
+        {
+          "texte": "La solution",
+          "href": "/#fonctionnalites"
+        },
+        {
+          "texte": "Tarifs",
+          "href": "/tarifs"
+        },
+        {
+          "texte": "Outils gratuits",
+          "href": "/outils"
+        },
+        {
+          "texte": "Journal",
+          "href": "/journal"
+        },
+        {
+          "texte": "Se connecter",
+          "href": "/connexion"
+        },
+        {
+          "texte": "Créer mon compte",
+          "href": "/inscription"
+        },
+        {
+          "texte": "politique de confidentialité",
+          "href": "/confidentialite"
+        },
+        {
+          "texte": "Gerimmo — accueil",
+          "href": "/"
+        },
+        {
+          "texte": "La solution",
+          "href": "/#fonctionnalites"
+        },
+        {
+          "texte": "Tarifs",
+          "href": "/tarifs"
+        },
+        {
+          "texte": "Outils gratuits",
+          "href": "/outils"
+        },
+        {
+          "texte": "Journal",
+          "href": "/journal"
+        },
+        {
+          "texte": "Créer mon compte",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Se connecter",
+          "href": "/connexion"
+        },
+        {
+          "texte": "Nous écrire",
+          "href": "/#contact"
+        },
+        {
+          "texte": "Rejoindre le réseau d’artisans",
+          "href": "/artisan/inscription"
+        },
+        {
+          "texte": "Agences",
+          "href": "/agences"
+        },
+        {
+          "texte": "Mentions légales",
+          "href": "/mentions-legales"
+        },
+        {
+          "texte": "Conditions générales",
+          "href": "/conditions"
+        },
+        {
+          "texte": "Confidentialité",
+          "href": "/confidentialite"
+        }
+      ],
+      "boutons": [
+        {
+          "texte": "Rejoindre la liste d’attente",
+          "largeur": 523,
+          "hauteur": 44
+        }
+      ]
+    },
+    {
+      "route": "/mentions-legales",
+      "format": "ordinateur",
+      "http": 200,
+      "url": "https://www.gerimmo.app/mentions-legales",
+      "photo": "mentions-ordinateur.jpg",
+      "h1": [
+        "Mentions légales"
+      ],
+      "titres": [
+        "Éditeur",
+        "Hébergement",
+        "Médiation de la consommation"
+      ],
+      "page": {
+        "largeur": 1440,
+        "hauteur": 1000,
+        "largeur_document": 1440
+      },
+      "liens": [
+        {
+          "texte": "Gerimmo — accueil",
+          "href": "/"
+        },
+        {
+          "texte": "La solution",
+          "href": "/#fonctionnalites"
+        },
+        {
+          "texte": "Tarifs",
+          "href": "/tarifs"
+        },
+        {
+          "texte": "Outils gratuits",
+          "href": "/outils"
+        },
+        {
+          "texte": "Journal",
+          "href": "/journal"
+        },
+        {
+          "texte": "Se connecter",
+          "href": "/connexion"
+        },
+        {
+          "texte": "Créer mon compte",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Conditions générales",
+          "href": "/conditions"
+        },
+        {
+          "texte": "Données personnelles et confidentialité",
+          "href": "/confidentialite"
+        },
+        {
+          "texte": "Gerimmo — accueil",
+          "href": "/"
+        },
+        {
+          "texte": "La solution",
+          "href": "/#fonctionnalites"
+        },
+        {
+          "texte": "Tarifs",
+          "href": "/tarifs"
+        },
+        {
+          "texte": "Outils gratuits",
+          "href": "/outils"
+        },
+        {
+          "texte": "Journal",
+          "href": "/journal"
+        },
+        {
+          "texte": "Créer mon compte",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Se connecter",
+          "href": "/connexion"
+        },
+        {
+          "texte": "Nous écrire",
+          "href": "/#contact"
+        },
+        {
+          "texte": "Rejoindre le réseau d’artisans",
+          "href": "/artisan/inscription"
+        },
+        {
+          "texte": "Agences",
+          "href": "/agences"
+        },
+        {
+          "texte": "Mentions légales",
+          "href": "/mentions-legales"
+        },
+        {
+          "texte": "Conditions générales",
+          "href": "/conditions"
+        },
+        {
+          "texte": "Confidentialité",
+          "href": "/confidentialite"
+        }
+      ],
+      "boutons": []
+    },
+    {
+      "route": "/conditions",
+      "format": "ordinateur",
+      "http": 200,
+      "url": "https://www.gerimmo.app/conditions",
+      "photo": "conditions-ordinateur.jpg",
+      "h1": [
+        "Conditions générales d'utilisation et de vente"
+      ],
+      "titres": [
+        "1. Objet",
+        "2. Définitions",
+        "3. Acceptation et formation du contrat",
+        "4. Nature du Service : un journal de gestion",
+        "5. Compte, accès et sécurité",
+        "6. Accès au compte",
+        "7. Espaces des locataires et des personnes invitées",
+        "8. Prix, essai et facturation",
+        "9. Réversibilité et conservation",
+        "10. Disponibilité, maintenance et support",
+        "11. Données personnelles",
+        "12. Propriété intellectuelle",
+        "13. Obligations du Client",
+        "14. Responsabilité",
+        "14 bis. Garanties légales (Client consommateur)",
+        "15. Défaut de paiement, suspension et résiliation",
+        "16. Modification des conditions",
+        "17. Droit applicable et litiges",
+        "Annexe 1 — Traitement de données pour le compte du Client (article 28 du RGPD)",
+        "Annexe 2 — Articles L. 215-1 à L. 215-3 et L. 241-3 du code de la consommation (version vérifiée le 24 octobre 2026)"
+      ],
+      "page": {
+        "largeur": 1440,
+        "hauteur": 1000,
+        "largeur_document": 1440
+      },
+      "liens": [
+        {
+          "texte": "Gerimmo — accueil",
+          "href": "/"
+        },
+        {
+          "texte": "La solution",
+          "href": "/#fonctionnalites"
+        },
+        {
+          "texte": "Tarifs",
+          "href": "/tarifs"
+        },
+        {
+          "texte": "Outils gratuits",
+          "href": "/outils"
+        },
+        {
+          "texte": "Journal",
+          "href": "/journal"
+        },
+        {
+          "texte": "Se connecter",
+          "href": "/connexion"
+        },
+        {
+          "texte": "Créer mon compte",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Conditions de l'espace artisan",
+          "href": "/conditions/artisans"
+        },
+        {
+          "texte": "page confidentialité",
+          "href": "/confidentialite"
+        },
+        {
+          "texte": "mentions légales",
+          "href": "/mentions-legales"
+        },
+        {
+          "texte": "mentions légales",
+          "href": "/mentions-legales"
+        },
+        {
+          "texte": "Tarifs",
+          "href": "/tarifs"
+        },
+        {
+          "texte": "page confidentialité",
+          "href": "/confidentialite"
+        },
+        {
+          "texte": "mentions légales",
+          "href": "/mentions-legales"
+        },
+        {
+          "texte": "mentions légales",
+          "href": "/mentions-legales"
+        },
+        {
+          "texte": "Informations officielles",
+          "href": "https://supabase.com/legal/privacy-resources/data-residency-and-transfers-faq"
+        },
+        {
+          "texte": "Informations officielles",
+          "href": "https://vercel.com/legal/privacy-notice"
+        },
+        {
+          "texte": "Informations officielles",
+          "href": "https://resend.com/legal/privacy-policy"
+        },
+        {
+          "texte": "Informations officielles",
+          "href": "https://www.zoho.com/privacy.html"
+        },
+        {
+          "texte": "Informations officielles",
+          "href": "https://openai.com/policies/data-processing-addendum/"
+        },
+        {
+          "texte": "Informations officielles",
+          "href": "https://www.scaleway.com/fr/politique-confidentialite/"
+        },
+        {
+          "texte": "Informations officielles",
+          "href": "https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement"
+        },
+        {
+          "texte": "Versions archivées des conditions générales",
+          "href": "/conditions/versions"
+        },
+        {
+          "texte": "Gerimmo — accueil",
+          "href": "/"
+        },
+        {
+          "texte": "La solution",
+          "href": "/#fonctionnalites"
+        },
+        {
+          "texte": "Tarifs",
+          "href": "/tarifs"
+        },
+        {
+          "texte": "Outils gratuits",
+          "href": "/outils"
+        },
+        {
+          "texte": "Journal",
+          "href": "/journal"
+        },
+        {
+          "texte": "Créer mon compte",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Se connecter",
+          "href": "/connexion"
+        },
+        {
+          "texte": "Nous écrire",
+          "href": "/#contact"
+        },
+        {
+          "texte": "Rejoindre le réseau d’artisans",
+          "href": "/artisan/inscription"
+        },
+        {
+          "texte": "Agences",
+          "href": "/agences"
+        },
+        {
+          "texte": "Mentions légales",
+          "href": "/mentions-legales"
+        },
+        {
+          "texte": "Conditions générales",
+          "href": "/conditions"
+        },
+        {
+          "texte": "Confidentialité",
+          "href": "/confidentialite"
+        }
+      ],
+      "boutons": []
+    },
+    {
+      "route": "/outils",
+      "format": "ordinateur",
+      "http": 200,
+      "url": "https://www.gerimmo.app/outils",
+      "photo": "outils-ordinateur.jpg",
+      "h1": [
+        "Outils gratuits"
+      ],
+      "titres": [
+        "Calcul de la révision de loyer (IRL)",
+        "Quittance de loyer",
+        "Comparateur GLI / Visale",
+        "Simulateur LMNP",
+        "Rentabilité locative",
+        "Retrouvez vos locations et vos justificatifs"
+      ],
+      "page": {
+        "largeur": 1440,
+        "hauteur": 1000,
+        "largeur_document": 1440
+      },
+      "liens": [
+        {
+          "texte": "Gerimmo — accueil",
+          "href": "/"
+        },
+        {
+          "texte": "La solution",
+          "href": "/#fonctionnalites"
+        },
+        {
+          "texte": "Tarifs",
+          "href": "/tarifs"
+        },
+        {
+          "texte": "Outils gratuits",
+          "href": "/outils"
+        },
+        {
+          "texte": "Journal",
+          "href": "/journal"
+        },
+        {
+          "texte": "Se connecter",
+          "href": "/connexion"
+        },
+        {
+          "texte": "Créer mon compte",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Calcul de la révision de loyer (IRL)\n\nLe nouveau loyer et la lettre au locataire, prêts à imprimer.\n\nLe nouveau loyer selon l'indice de référence des loyers, les pièges de trimestre et de délai, et la lettre au locataire.\n\nOuvrir l'outil\n→",
+          "href": "/outils/calcul-irl"
+        },
+        {
+          "texte": "Quittance de loyer\n\nUne quittance en règle, à imprimer ou enregistrer en PDF.\n\nUne quittance à imprimer, ou un reçu de paiement partiel si le terme n'est pas soldé.\n\nOuvrir l'outil\n→",
+          "href": "/outils/quittance-de-loyer"
+        },
+        {
+          "texte": "Comparateur GLI / Visale\n\nVisale ou assurance loyers impayés : le vrai coût, après impôt.\n\nVotre locataire est-il éligible à Visale ? Combien coûte une assurance loyers impayés, après impôt ?\n\nOuvrir l'outil\n→",
+          "href": "/outils/comparateur-gli-visale"
+        },
+        {
+          "texte": "Simulateur LMNP\n\nMicro-BIC ou régime réel : l'impôt de l'année, côte à côte.\n\nLocation meublée de longue durée : micro-BIC ou régime réel, l'impôt de l'année et l'amortissement reporté.\n\nOuvrir l'outil\n→",
+          "href": "/outils/simulateur-lmnp"
+        },
+        {
+          "texte": "Rentabilité locative\n\nRentabilité brute, nette de charges et cash-flow mensuel.\n\nRentabilité brute et nette de charges d'un investissement, et cash-flow mensuel si vous empruntez.\n\nOuvrir l'outil\n→",
+          "href": "/outils/rentabilite-locative"
+        },
+        {
+          "texte": "Créer mon compte — 2 mois d'essai\n→",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Gerimmo — accueil",
+          "href": "/"
+        },
+        {
+          "texte": "La solution",
+          "href": "/#fonctionnalites"
+        },
+        {
+          "texte": "Tarifs",
+          "href": "/tarifs"
+        },
+        {
+          "texte": "Outils gratuits",
+          "href": "/outils"
+        },
+        {
+          "texte": "Journal",
+          "href": "/journal"
+        },
+        {
+          "texte": "Créer mon compte",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Se connecter",
+          "href": "/connexion"
+        },
+        {
+          "texte": "Nous écrire",
+          "href": "/#contact"
+        },
+        {
+          "texte": "Rejoindre le réseau d’artisans",
+          "href": "/artisan/inscription"
+        },
+        {
+          "texte": "Agences",
+          "href": "/agences"
+        },
+        {
+          "texte": "Mentions légales",
+          "href": "/mentions-legales"
+        },
+        {
+          "texte": "Conditions générales",
+          "href": "/conditions"
+        },
+        {
+          "texte": "Confidentialité",
+          "href": "/confidentialite"
+        }
+      ],
+      "boutons": []
+    },
+    {
+      "route": "/artisan/inscription",
+      "format": "ordinateur",
+      "http": 200,
+      "url": "https://www.gerimmo.app/artisan/inscription",
+      "photo": "artisan-ordinateur.jpg",
+      "h1": [
+        "Inscrire mon entreprise"
+      ],
+      "titres": [
+        "1. Votre compte"
+      ],
+      "page": {
+        "largeur": 1440,
+        "hauteur": 1000,
+        "largeur_document": 1440
+      },
+      "liens": [
+        {
+          "texte": "Aller au contenu",
+          "href": "#contenu-espace"
+        },
+        {
+          "texte": "Accueil de Gerimmo",
+          "href": "/"
+        },
+        {
+          "texte": "Se connecter",
+          "href": "/connexion?suite=%2Fartisan"
+        },
+        {
+          "texte": "conditions de l’espace artisan",
+          "href": "/conditions/artisans"
+        },
+        {
+          "texte": "Se connecter",
+          "href": "/connexion?suite=%2Fartisan%2Finscription"
+        }
+      ],
+      "boutons": [
+        {
+          "texte": "Créer mon compte",
+          "largeur": 416,
+          "hauteur": 44
+        }
+      ]
+    },
+    {
+      "route": "/",
+      "format": "mobile-390",
+      "http": 200,
+      "url": "https://www.gerimmo.app/",
+      "photo": "accueil-mobile-390.jpg",
+      "h1": [
+        "Vos locations,\nl’esprit tranquille."
+      ],
+      "titres": [
+        "Un calcul à faire ?",
+        "Moins de recherches.\nPlus de clarté.",
+        "Vos biens, en un regard",
+        "Un bail, étape par étape",
+        "Des loyers bien suivis",
+        "Les bons rappels",
+        "Votre première location en trois temps",
+        "Les bonnes informations.\nPour la bonne personne.",
+        "Propriétaires bailleurs",
+        "Locataires",
+        "Artisans",
+        "Vous gérez des biens pour des mandants ?",
+        "Gardez le fil.\nMême quand tout ne va pas comme prévu.",
+        "Un tarif à la taille\nde votre patrimoine.",
+        "Des repères pour\nmieux gérer.",
+        "Un seul dossier pour retrouver votre location",
+        "Gerimmo est lancé : gérez votre premier logement",
+        "Un bail préparé depuis le dossier, pas depuis un modèle Word",
+        "Vous préférez qu’on vous appelle ?",
+        "Avant de\nvous lancer.",
+        "Écrivez-nous,\non vous répond."
+      ],
+      "page": {
+        "largeur": 390,
+        "hauteur": 844,
+        "largeur_document": 390
+      },
+      "liens": [
+        {
+          "texte": "Gerimmo — accueil",
+          "href": "/"
+        },
+        {
+          "texte": "Se connecter",
+          "href": "/connexion"
+        },
+        {
+          "texte": "",
+          "href": "/#fonctionnalites"
+        },
+        {
+          "texte": "",
+          "href": "/tarifs"
+        },
+        {
+          "texte": "",
+          "href": "/outils"
+        },
+        {
+          "texte": "",
+          "href": "/journal"
+        },
+        {
+          "texte": "",
+          "href": "/#espaces"
+        },
+        {
+          "texte": "",
+          "href": "/connexion"
+        },
+        {
+          "texte": "",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Créer mon compte",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Découvrir Gerimmo",
+          "href": "#fonctionnalites"
+        },
+        {
+          "texte": "2 mois d'essai gratuit",
+          "href": "/tarifs"
+        },
+        {
+          "texte": "Essayer nos outils gratuits",
+          "href": "/outils"
+        },
+        {
+          "texte": "Révision de loyer (IRL)",
+          "href": "/outils/calcul-irl"
+        },
+        {
+          "texte": "Quittance de loyer",
+          "href": "/outils/quittance-de-loyer"
+        },
+        {
+          "texte": "GLI ou Visale",
+          "href": "/outils/comparateur-gli-visale"
+        },
+        {
+          "texte": "Simulateur LMNP",
+          "href": "/outils/simulateur-lmnp"
+        },
+        {
+          "texte": "Rentabilité locative",
+          "href": "/outils/rentabilite-locative"
+        },
+        {
+          "texte": "Créer mon compte",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Accéder à mon espace",
+          "href": "/connexion"
+        },
+        {
+          "texte": "Rejoindre le réseau",
+          "href": "/artisan/inscription"
+        },
+        {
+          "texte": "Rejoindre la liste d’attente",
+          "href": "/agences"
+        },
+        {
+          "texte": "Commencer mon essai gratuit",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Tout le journal",
+          "href": "/journal"
+        },
+        {
+          "texte": "18 NOVEMBRE 2026\n\nUn seul dossier pour retrouver votre location\n\nUn bail dans un dossier, des quittances dans les e-mails et une fuite signalée par téléphone : retrouver une information prend vite du temps. Dans Gerimmo, ouvrez le logement pour retrouver son bail, ses documents et ses incidents.\n\nLire l’article",
+          "href": "/journal/2026-11-17-decouvrir-gerimmo"
+        },
+        {
+          "texte": "14 NOVEMBRE 2026\n\nGerimmo est lancé : gérez votre premier logement\n\nGerimmo rassemble les baux, les quittances et les incidents par logement. Les propriétaires bailleurs particuliers peuvent ouvrir un espace pour essayer gratuitement le logiciel, sans carte bancaire.\n\nLire l’article",
+          "href": "/journal/gerimmo-est-lance-gerez-votre-premier-logement"
+        },
+        {
+          "texte": "24 OCTOBRE 2026\n\nUn bail préparé depuis le dossier, pas depuis un modèle Word\n\nLe bail reprend le logement, le lot, les personnes et les conditions déjà saisis. Gerimmo contrôle les mentions obligatoires avant de produire le document.\n\nLire l’article",
+          "href": "/journal/2026-10-23-bail-structure"
+        },
+        {
+          "texte": "politique de confidentialité",
+          "href": "/confidentialite"
+        },
+        {
+          "texte": "En savoir plus",
+          "href": "/confidentialite"
+        },
+        {
+          "texte": "Gerimmo — accueil",
+          "href": "/"
+        },
+        {
+          "texte": "La solution",
+          "href": "/#fonctionnalites"
+        },
+        {
+          "texte": "Tarifs",
+          "href": "/tarifs"
+        },
+        {
+          "texte": "Outils gratuits",
+          "href": "/outils"
+        },
+        {
+          "texte": "Journal",
+          "href": "/journal"
+        },
+        {
+          "texte": "Créer mon compte",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Se connecter",
+          "href": "/connexion"
+        },
+        {
+          "texte": "Nous écrire",
+          "href": "/#contact"
+        },
+        {
+          "texte": "Rejoindre le réseau d’artisans",
+          "href": "/artisan/inscription"
+        },
+        {
+          "texte": "Agences",
+          "href": "/agences"
+        },
+        {
+          "texte": "Mentions légales",
+          "href": "/mentions-legales"
+        },
+        {
+          "texte": "Conditions générales",
+          "href": "/conditions"
+        },
+        {
+          "texte": "Confidentialité",
+          "href": "/confidentialite"
+        }
+      ],
+      "boutons": [
+        {
+          "texte": "Mensuel",
+          "largeur": 79,
+          "hauteur": 44
+        },
+        {
+          "texte": "Annuel",
+          "largeur": 71,
+          "hauteur": 44
+        },
+        {
+          "texte": "Être rappelé",
+          "largeur": 316,
+          "hauteur": 44
+        },
+        {
+          "texte": "Envoyer mon message",
+          "largeur": 262,
+          "hauteur": 44
+        }
+      ]
+    },
+    {
+      "route": "/tarifs",
+      "format": "mobile-390",
+      "http": 200,
+      "url": "https://www.gerimmo.app/tarifs",
+      "photo": "tarifs-mobile-390.jpg",
+      "h1": [
+        "L’abonnement Gerimmo pour votre espace propriétaire."
+      ],
+      "titres": [
+        "Particuliers et SCI gérant leurs propres biens",
+        "Changer, arrêter",
+        "Ce qui est dans l'abonnement",
+        "Ce qui n'est pas dans l'abonnement",
+        "Agences de gestion"
+      ],
+      "page": {
+        "largeur": 390,
+        "hauteur": 844,
+        "largeur_document": 390
+      },
+      "liens": [
+        {
+          "texte": "Gerimmo — accueil",
+          "href": "/"
+        },
+        {
+          "texte": "Se connecter",
+          "href": "/connexion"
+        },
+        {
+          "texte": "",
+          "href": "/#fonctionnalites"
+        },
+        {
+          "texte": "",
+          "href": "/tarifs"
+        },
+        {
+          "texte": "",
+          "href": "/outils"
+        },
+        {
+          "texte": "",
+          "href": "/journal"
+        },
+        {
+          "texte": "",
+          "href": "/#espaces"
+        },
+        {
+          "texte": "",
+          "href": "/connexion"
+        },
+        {
+          "texte": "",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Commencer mon essai gratuit",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Confidentialité",
+          "href": "/confidentialite"
+        },
+        {
+          "texte": "inscrivez votre agence sur la liste d'attente",
+          "href": "/agences"
+        },
+        {
+          "texte": "Tous les outils\n→",
+          "href": "/outils"
+        },
+        {
+          "texte": "GLI ou Visale\nVisale ou assurance loyers impayés : le vrai coût, après impôt.",
+          "href": "/outils/comparateur-gli-visale"
+        },
+        {
+          "texte": "Simulateur LMNP\nMicro-BIC ou régime réel : l'impôt de l'année, côte à côte.",
+          "href": "/outils/simulateur-lmnp"
+        },
+        {
+          "texte": "Rentabilité locative\nRentabilité brute, nette de charges et cash-flow mensuel.",
+          "href": "/outils/rentabilite-locative"
+        },
+        {
+          "texte": "Commencer l'essai gratuit",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Conditions générales d'utilisation et de vente",
+          "href": "/conditions"
+        },
+        {
+          "texte": "Gerimmo — accueil",
+          "href": "/"
+        },
+        {
+          "texte": "La solution",
+          "href": "/#fonctionnalites"
+        },
+        {
+          "texte": "Tarifs",
+          "href": "/tarifs"
+        },
+        {
+          "texte": "Outils gratuits",
+          "href": "/outils"
+        },
+        {
+          "texte": "Journal",
+          "href": "/journal"
+        },
+        {
+          "texte": "Créer mon compte",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Se connecter",
+          "href": "/connexion"
+        },
+        {
+          "texte": "Nous écrire",
+          "href": "/#contact"
+        },
+        {
+          "texte": "Rejoindre le réseau d’artisans",
+          "href": "/artisan/inscription"
+        },
+        {
+          "texte": "Agences",
+          "href": "/agences"
+        },
+        {
+          "texte": "Mentions légales",
+          "href": "/mentions-legales"
+        },
+        {
+          "texte": "Conditions générales",
+          "href": "/conditions"
+        },
+        {
+          "texte": "Confidentialité",
+          "href": "/confidentialite"
+        }
+      ],
+      "boutons": [
+        {
+          "texte": "Mensuel",
+          "largeur": 79,
+          "hauteur": 44
+        },
+        {
+          "texte": "Annuel",
+          "largeur": 71,
+          "hauteur": 44
+        }
+      ]
+    },
+    {
+      "route": "/inscription",
+      "format": "mobile-390",
+      "http": 200,
+      "url": "https://www.gerimmo.app/inscription",
+      "photo": "inscription-mobile-390.jpg",
+      "h1": [
+        "Ouvrir mon espace propriétaire"
+      ],
+      "titres": [],
+      "page": {
+        "largeur": 390,
+        "hauteur": 844,
+        "largeur_document": 390
+      },
+      "liens": [
+        {
+          "texte": "Gerimmo — accueil",
+          "href": "/"
+        },
+        {
+          "texte": "conditions générales d'utilisation et de vente",
+          "href": "/conditions"
+        },
+        {
+          "texte": "page confidentialité",
+          "href": "/confidentialite"
+        },
+        {
+          "texte": "J'ai déjà un compte",
+          "href": "/connexion"
+        }
+      ],
+      "boutons": [
+        {
+          "texte": "Ouvrir mon espace",
+          "largeur": 308,
+          "hauteur": 44
+        }
+      ]
+    },
+    {
+      "route": "/agences",
+      "format": "mobile-390",
+      "http": 200,
+      "url": "https://www.gerimmo.app/agences",
+      "photo": "agences-mobile-390.jpg",
+      "h1": [
+        "Gerimmo pour les agences arrive."
+      ],
+      "titres": [
+        "Votre gestion de mandats,\nau même endroit."
+      ],
+      "page": {
+        "largeur": 390,
+        "hauteur": 844,
+        "largeur_document": 390
+      },
+      "liens": [
+        {
+          "texte": "Gerimmo — accueil",
+          "href": "/"
+        },
+        {
+          "texte": "Se connecter",
+          "href": "/connexion"
+        },
+        {
+          "texte": "",
+          "href": "/#fonctionnalites"
+        },
+        {
+          "texte": "",
+          "href": "/tarifs"
+        },
+        {
+          "texte": "",
+          "href": "/outils"
+        },
+        {
+          "texte": "",
+          "href": "/journal"
+        },
+        {
+          "texte": "",
+          "href": "/#espaces"
+        },
+        {
+          "texte": "",
+          "href": "/connexion"
+        },
+        {
+          "texte": "",
+          "href": "/inscription"
+        },
+        {
+          "texte": "politique de confidentialité",
+          "href": "/confidentialite"
+        },
+        {
+          "texte": "Gerimmo — accueil",
+          "href": "/"
+        },
+        {
+          "texte": "La solution",
+          "href": "/#fonctionnalites"
+        },
+        {
+          "texte": "Tarifs",
+          "href": "/tarifs"
+        },
+        {
+          "texte": "Outils gratuits",
+          "href": "/outils"
+        },
+        {
+          "texte": "Journal",
+          "href": "/journal"
+        },
+        {
+          "texte": "Créer mon compte",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Se connecter",
+          "href": "/connexion"
+        },
+        {
+          "texte": "Nous écrire",
+          "href": "/#contact"
+        },
+        {
+          "texte": "Rejoindre le réseau d’artisans",
+          "href": "/artisan/inscription"
+        },
+        {
+          "texte": "Agences",
+          "href": "/agences"
+        },
+        {
+          "texte": "Mentions légales",
+          "href": "/mentions-legales"
+        },
+        {
+          "texte": "Conditions générales",
+          "href": "/conditions"
+        },
+        {
+          "texte": "Confidentialité",
+          "href": "/confidentialite"
+        }
+      ],
+      "boutons": [
+        {
+          "texte": "Rejoindre la liste d’attente",
+          "largeur": 262,
+          "hauteur": 44
+        }
+      ]
+    },
+    {
+      "route": "/mentions-legales",
+      "format": "mobile-390",
+      "http": 200,
+      "url": "https://www.gerimmo.app/mentions-legales",
+      "photo": "mentions-mobile-390.jpg",
+      "h1": [
+        "Mentions légales"
+      ],
+      "titres": [
+        "Éditeur",
+        "Hébergement",
+        "Médiation de la consommation"
+      ],
+      "page": {
+        "largeur": 390,
+        "hauteur": 844,
+        "largeur_document": 390
+      },
+      "liens": [
+        {
+          "texte": "Gerimmo — accueil",
+          "href": "/"
+        },
+        {
+          "texte": "Se connecter",
+          "href": "/connexion"
+        },
+        {
+          "texte": "",
+          "href": "/#fonctionnalites"
+        },
+        {
+          "texte": "",
+          "href": "/tarifs"
+        },
+        {
+          "texte": "",
+          "href": "/outils"
+        },
+        {
+          "texte": "",
+          "href": "/journal"
+        },
+        {
+          "texte": "",
+          "href": "/#espaces"
+        },
+        {
+          "texte": "",
+          "href": "/connexion"
+        },
+        {
+          "texte": "",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Conditions générales",
+          "href": "/conditions"
+        },
+        {
+          "texte": "Données personnelles et confidentialité",
+          "href": "/confidentialite"
+        },
+        {
+          "texte": "Gerimmo — accueil",
+          "href": "/"
+        },
+        {
+          "texte": "La solution",
+          "href": "/#fonctionnalites"
+        },
+        {
+          "texte": "Tarifs",
+          "href": "/tarifs"
+        },
+        {
+          "texte": "Outils gratuits",
+          "href": "/outils"
+        },
+        {
+          "texte": "Journal",
+          "href": "/journal"
+        },
+        {
+          "texte": "Créer mon compte",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Se connecter",
+          "href": "/connexion"
+        },
+        {
+          "texte": "Nous écrire",
+          "href": "/#contact"
+        },
+        {
+          "texte": "Rejoindre le réseau d’artisans",
+          "href": "/artisan/inscription"
+        },
+        {
+          "texte": "Agences",
+          "href": "/agences"
+        },
+        {
+          "texte": "Mentions légales",
+          "href": "/mentions-legales"
+        },
+        {
+          "texte": "Conditions générales",
+          "href": "/conditions"
+        },
+        {
+          "texte": "Confidentialité",
+          "href": "/confidentialite"
+        }
+      ],
+      "boutons": []
+    },
+    {
+      "route": "/conditions",
+      "format": "mobile-390",
+      "http": 200,
+      "url": "https://www.gerimmo.app/conditions",
+      "photo": "conditions-mobile-390.jpg",
+      "h1": [
+        "Conditions générales d'utilisation et de vente"
+      ],
+      "titres": [
+        "1. Objet",
+        "2. Définitions",
+        "3. Acceptation et formation du contrat",
+        "4. Nature du Service : un journal de gestion",
+        "5. Compte, accès et sécurité",
+        "6. Accès au compte",
+        "7. Espaces des locataires et des personnes invitées",
+        "8. Prix, essai et facturation",
+        "9. Réversibilité et conservation",
+        "10. Disponibilité, maintenance et support",
+        "11. Données personnelles",
+        "12. Propriété intellectuelle",
+        "13. Obligations du Client",
+        "14. Responsabilité",
+        "14 bis. Garanties légales (Client consommateur)",
+        "15. Défaut de paiement, suspension et résiliation",
+        "16. Modification des conditions",
+        "17. Droit applicable et litiges",
+        "Annexe 1 — Traitement de données pour le compte du Client (article 28 du RGPD)",
+        "Annexe 2 — Articles L. 215-1 à L. 215-3 et L. 241-3 du code de la consommation (version vérifiée le 24 octobre 2026)"
+      ],
+      "page": {
+        "largeur": 390,
+        "hauteur": 844,
+        "largeur_document": 390
+      },
+      "liens": [
+        {
+          "texte": "Gerimmo — accueil",
+          "href": "/"
+        },
+        {
+          "texte": "Se connecter",
+          "href": "/connexion"
+        },
+        {
+          "texte": "",
+          "href": "/#fonctionnalites"
+        },
+        {
+          "texte": "",
+          "href": "/tarifs"
+        },
+        {
+          "texte": "",
+          "href": "/outils"
+        },
+        {
+          "texte": "",
+          "href": "/journal"
+        },
+        {
+          "texte": "",
+          "href": "/#espaces"
+        },
+        {
+          "texte": "",
+          "href": "/connexion"
+        },
+        {
+          "texte": "",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Conditions de l'espace artisan",
+          "href": "/conditions/artisans"
+        },
+        {
+          "texte": "page confidentialité",
+          "href": "/confidentialite"
+        },
+        {
+          "texte": "mentions légales",
+          "href": "/mentions-legales"
+        },
+        {
+          "texte": "mentions légales",
+          "href": "/mentions-legales"
+        },
+        {
+          "texte": "Tarifs",
+          "href": "/tarifs"
+        },
+        {
+          "texte": "page confidentialité",
+          "href": "/confidentialite"
+        },
+        {
+          "texte": "mentions légales",
+          "href": "/mentions-legales"
+        },
+        {
+          "texte": "mentions légales",
+          "href": "/mentions-legales"
+        },
+        {
+          "texte": "Informations officielles",
+          "href": "https://supabase.com/legal/privacy-resources/data-residency-and-transfers-faq"
+        },
+        {
+          "texte": "Informations officielles",
+          "href": "https://vercel.com/legal/privacy-notice"
+        },
+        {
+          "texte": "Informations officielles",
+          "href": "https://resend.com/legal/privacy-policy"
+        },
+        {
+          "texte": "Informations officielles",
+          "href": "https://www.zoho.com/privacy.html"
+        },
+        {
+          "texte": "Informations officielles",
+          "href": "https://openai.com/policies/data-processing-addendum/"
+        },
+        {
+          "texte": "Informations officielles",
+          "href": "https://www.scaleway.com/fr/politique-confidentialite/"
+        },
+        {
+          "texte": "Informations officielles",
+          "href": "https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement"
+        },
+        {
+          "texte": "Versions archivées des conditions générales",
+          "href": "/conditions/versions"
+        },
+        {
+          "texte": "Gerimmo — accueil",
+          "href": "/"
+        },
+        {
+          "texte": "La solution",
+          "href": "/#fonctionnalites"
+        },
+        {
+          "texte": "Tarifs",
+          "href": "/tarifs"
+        },
+        {
+          "texte": "Outils gratuits",
+          "href": "/outils"
+        },
+        {
+          "texte": "Journal",
+          "href": "/journal"
+        },
+        {
+          "texte": "Créer mon compte",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Se connecter",
+          "href": "/connexion"
+        },
+        {
+          "texte": "Nous écrire",
+          "href": "/#contact"
+        },
+        {
+          "texte": "Rejoindre le réseau d’artisans",
+          "href": "/artisan/inscription"
+        },
+        {
+          "texte": "Agences",
+          "href": "/agences"
+        },
+        {
+          "texte": "Mentions légales",
+          "href": "/mentions-legales"
+        },
+        {
+          "texte": "Conditions générales",
+          "href": "/conditions"
+        },
+        {
+          "texte": "Confidentialité",
+          "href": "/confidentialite"
+        }
+      ],
+      "boutons": []
+    },
+    {
+      "route": "/outils",
+      "format": "mobile-390",
+      "http": 200,
+      "url": "https://www.gerimmo.app/outils",
+      "photo": "outils-mobile-390.jpg",
+      "h1": [
+        "Outils gratuits"
+      ],
+      "titres": [
+        "Calcul de la révision de loyer (IRL)",
+        "Quittance de loyer",
+        "Comparateur GLI / Visale",
+        "Simulateur LMNP",
+        "Rentabilité locative",
+        "Retrouvez vos locations et vos justificatifs"
+      ],
+      "page": {
+        "largeur": 390,
+        "hauteur": 844,
+        "largeur_document": 390
+      },
+      "liens": [
+        {
+          "texte": "Gerimmo — accueil",
+          "href": "/"
+        },
+        {
+          "texte": "Se connecter",
+          "href": "/connexion"
+        },
+        {
+          "texte": "",
+          "href": "/#fonctionnalites"
+        },
+        {
+          "texte": "",
+          "href": "/tarifs"
+        },
+        {
+          "texte": "",
+          "href": "/outils"
+        },
+        {
+          "texte": "",
+          "href": "/journal"
+        },
+        {
+          "texte": "",
+          "href": "/#espaces"
+        },
+        {
+          "texte": "",
+          "href": "/connexion"
+        },
+        {
+          "texte": "",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Calcul de la révision de loyer (IRL)\n\nLe nouveau loyer et la lettre au locataire, prêts à imprimer.\n\nLe nouveau loyer selon l'indice de référence des loyers, les pièges de trimestre et de délai, et la lettre au locataire.\n\nOuvrir l'outil\n→",
+          "href": "/outils/calcul-irl"
+        },
+        {
+          "texte": "Quittance de loyer\n\nUne quittance en règle, à imprimer ou enregistrer en PDF.\n\nUne quittance à imprimer, ou un reçu de paiement partiel si le terme n'est pas soldé.\n\nOuvrir l'outil\n→",
+          "href": "/outils/quittance-de-loyer"
+        },
+        {
+          "texte": "Comparateur GLI / Visale\n\nVisale ou assurance loyers impayés : le vrai coût, après impôt.\n\nVotre locataire est-il éligible à Visale ? Combien coûte une assurance loyers impayés, après impôt ?\n\nOuvrir l'outil\n→",
+          "href": "/outils/comparateur-gli-visale"
+        },
+        {
+          "texte": "Simulateur LMNP\n\nMicro-BIC ou régime réel : l'impôt de l'année, côte à côte.\n\nLocation meublée de longue durée : micro-BIC ou régime réel, l'impôt de l'année et l'amortissement reporté.\n\nOuvrir l'outil\n→",
+          "href": "/outils/simulateur-lmnp"
+        },
+        {
+          "texte": "Rentabilité locative\n\nRentabilité brute, nette de charges et cash-flow mensuel.\n\nRentabilité brute et nette de charges d'un investissement, et cash-flow mensuel si vous empruntez.\n\nOuvrir l'outil\n→",
+          "href": "/outils/rentabilite-locative"
+        },
+        {
+          "texte": "Créer mon compte — 2 mois d'essai\n→",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Gerimmo — accueil",
+          "href": "/"
+        },
+        {
+          "texte": "La solution",
+          "href": "/#fonctionnalites"
+        },
+        {
+          "texte": "Tarifs",
+          "href": "/tarifs"
+        },
+        {
+          "texte": "Outils gratuits",
+          "href": "/outils"
+        },
+        {
+          "texte": "Journal",
+          "href": "/journal"
+        },
+        {
+          "texte": "Créer mon compte",
+          "href": "/inscription"
+        },
+        {
+          "texte": "Se connecter",
+          "href": "/connexion"
+        },
+        {
+          "texte": "Nous écrire",
+          "href": "/#contact"
+        },
+        {
+          "texte": "Rejoindre le réseau d’artisans",
+          "href": "/artisan/inscription"
+        },
+        {
+          "texte": "Agences",
+          "href": "/agences"
+        },
+        {
+          "texte": "Mentions légales",
+          "href": "/mentions-legales"
+        },
+        {
+          "texte": "Conditions générales",
+          "href": "/conditions"
+        },
+        {
+          "texte": "Confidentialité",
+          "href": "/confidentialite"
+        }
+      ],
+      "boutons": []
+    },
+    {
+      "route": "/artisan/inscription",
+      "format": "mobile-390",
+      "http": 200,
+      "url": "https://www.gerimmo.app/artisan/inscription",
+      "photo": "artisan-mobile-390.jpg",
+      "h1": [
+        "Inscrire mon entreprise"
+      ],
+      "titres": [
+        "1. Votre compte"
+      ],
+      "page": {
+        "largeur": 390,
+        "hauteur": 844,
+        "largeur_document": 390
+      },
+      "liens": [
+        {
+          "texte": "Aller au contenu",
+          "href": "#contenu-espace"
+        },
+        {
+          "texte": "Accueil de Gerimmo",
+          "href": "/"
+        },
+        {
+          "texte": "Se connecter",
+          "href": "/connexion?suite=%2Fartisan"
+        },
+        {
+          "texte": "conditions de l’espace artisan",
+          "href": "/conditions/artisans"
+        },
+        {
+          "texte": "Se connecter",
+          "href": "/connexion?suite=%2Fartisan%2Finscription"
+        }
+      ],
+      "boutons": [
+        {
+          "texte": "Créer mon compte",
+          "largeur": 320,
+          "hauteur": 56
+        }
+      ]
+    }
+  ],
+  "requetes_bloquees_ordinateur": [],
+  "requetes_bloquees_mobile-390": []
+}

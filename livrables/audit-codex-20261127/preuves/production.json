@@ -1,0 +1,20 @@
+{
+  "date": "2026-11-27",
+  "lecturePublique": {
+    "url": "https://www.gerimmo.app/api/sante",
+    "http": 200,
+    "ok": true,
+    "base": true,
+    "revision": "77e33d7061a507f039768ccc5535244b0768362e",
+    "maintenance": false
+  },
+  "git": {
+    "depot": "GERIMMO/GERIMMO_V4",
+    "mainAuClonage": "77e33d7061a507f039768ccc5535244b0768362e",
+    "brancheAudit": "codex/audit-independant-20261127"
+  },
+  "reglagesGlobauxLusSansCompteClient": {
+    "souscriptionsPayantesOuvertes": true,
+    "decisionSansMediateurEnregistree": true
+  }
+}

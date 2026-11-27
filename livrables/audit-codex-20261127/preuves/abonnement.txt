@@ -1,0 +1,11 @@
+ ✓  parallele  tests/abonnement-souscription-et-hausse-stripe.test.ts (25 tests) 586ms
+ ✓  parallele  tests/garde-souscription.test.ts (77 tests) 22ms
+ ✓  parallele  tests/retractation-action.test.ts (16 tests) 18ms
+ ✓  parallele  tests/impayes-et-retractations-durables-base.test.ts (24 tests) 413ms
+ ✓  parallele  tests/resiliation-action.test.ts (9 tests) 10ms
+ ✓  parallele  tests/souscription-formulaire-navigateur.test.ts (2 tests) 5645ms
+ ✓  parallele  tests/delai-retractation.test.ts (10 tests) 18ms
+ ✓  parallele  tests/retractation-reprise.test.ts (5 tests) 5ms
+ Test Files  8 passed (8)
+      Tests  168 passed (168)
+   Duration  8.51s (transform 337ms, setup 29ms, import 1.11s, tests 6.72s, environment 0ms)

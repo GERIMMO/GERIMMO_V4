@@ -1,0 +1,171 @@
+{
+  "horodatage": "2026-11-27T16:10:25.078Z",
+  "navigateur": "Chromium 156.0.8078.4",
+  "controles": [
+    {
+      "format": "ordinateur",
+      "width": 1440,
+      "height": 1000,
+      "prix": [
+        {
+          "biensAttendus": 1,
+          "biens": 1,
+          "mensuel": "5,99 € par mois",
+          "annuel": "59,90 € en une fois par an",
+          "conformeAuTarifAnnonce": true
+        },
+        {
+          "biensAttendus": 7,
+          "biens": 7,
+          "mensuel": "17,93 € par mois",
+          "annuel": "179,30 € en une fois par an",
+          "conformeAuTarifAnnonce": true
+        },
+        {
+          "biensAttendus": 8,
+          "biens": 8,
+          "mensuel": "19,90 € par mois",
+          "annuel": "199,00 € en une fois par an",
+          "conformeAuTarifAnnonce": true
+        },
+        {
+          "biensAttendus": 20,
+          "biens": 20,
+          "mensuel": "19,90 € par mois",
+          "annuel": "199,00 € en une fois par an",
+          "conformeAuTarifAnnonce": true
+        },
+        {
+          "biensAttendus": 21,
+          "biens": 21,
+          "mensuel": "20,89 € par mois",
+          "annuel": "208,90 € en une fois par an",
+          "conformeAuTarifAnnonce": true
+        },
+        {
+          "biensAttendus": 100,
+          "biens": 100,
+          "mensuel": "99,10 € par mois",
+          "annuel": "991,00 € en une fois par an",
+          "conformeAuTarifAnnonce": true
+        }
+      ],
+      "blocages": [],
+      "lienInscription": {
+        "url": "https://www.gerimmo.app/inscription",
+        "titre": "Ouvrir mon espace propriétaire"
+      },
+      "largeurDoc": 1440
+    },
+    {
+      "format": "intermediaire",
+      "width": 768,
+      "height": 1024,
+      "prix": [
+        {
+          "biensAttendus": 1,
+          "biens": 1,
+          "mensuel": "5,99 € par mois",
+          "annuel": "59,90 € en une fois par an",
+          "conformeAuTarifAnnonce": true
+        },
+        {
+          "biensAttendus": 7,
+          "biens": 7,
+          "mensuel": "17,93 € par mois",
+          "annuel": "179,30 € en une fois par an",
+          "conformeAuTarifAnnonce": true
+        },
+        {
+          "biensAttendus": 8,
+          "biens": 8,
+          "mensuel": "19,90 € par mois",
+          "annuel": "199,00 € en une fois par an",
+          "conformeAuTarifAnnonce": true
+        },
+        {
+          "biensAttendus": 20,
+          "biens": 20,
+          "mensuel": "19,90 € par mois",
+          "annuel": "199,00 € en une fois par an",
+          "conformeAuTarifAnnonce": true
+        },
+        {
+          "biensAttendus": 21,
+          "biens": 21,
+          "mensuel": "20,89 € par mois",
+          "annuel": "208,90 € en une fois par an",
+          "conformeAuTarifAnnonce": true
+        },
+        {
+          "biensAttendus": 100,
+          "biens": 100,
+          "mensuel": "99,10 € par mois",
+          "annuel": "991,00 € en une fois par an",
+          "conformeAuTarifAnnonce": true
+        }
+      ],
+      "blocages": [],
+      "lienInscription": {
+        "url": "https://www.gerimmo.app/inscription",
+        "titre": "Ouvrir mon espace propriétaire"
+      },
+      "largeurDoc": 768
+    },
+    {
+      "format": "mobile-390",
+      "width": 390,
+      "height": 844,
+      "prix": [
+        {
+          "biensAttendus": 1,
+          "biens": 1,
+          "mensuel": "5,99 € par mois",
+          "annuel": "59,90 € en une fois par an",
+          "conformeAuTarifAnnonce": true
+        },
+        {
+          "biensAttendus": 7,
+          "biens": 7,
+          "mensuel": "17,93 € par mois",
+          "annuel": "179,30 € en une fois par an",
+          "conformeAuTarifAnnonce": true
+        },
+        {
+          "biensAttendus": 8,
+          "biens": 8,
+          "mensuel": "19,90 € par mois",
+          "annuel": "199,00 € en une fois par an",
+          "conformeAuTarifAnnonce": true
+        },
+        {
+          "biensAttendus": 20,
+          "biens": 20,
+          "mensuel": "19,90 € par mois",
+          "annuel": "199,00 € en une fois par an",
+          "conformeAuTarifAnnonce": true
+        },
+        {
+          "biensAttendus": 21,
+          "biens": 21,
+          "mensuel": "20,89 € par mois",
+          "annuel": "208,90 € en une fois par an",
+          "conformeAuTarifAnnonce": true
+        },
+        {
+          "biensAttendus": 100,
+          "biens": 100,
+          "mensuel": "99,10 € par mois",
+          "annuel": "991,00 € en une fois par an",
+          "conformeAuTarifAnnonce": true
+        }
+      ],
+      "blocages": [],
+      "lienInscription": {
+        "url": "https://www.gerimmo.app/inscription",
+        "titre": "Ouvrir mon espace propriétaire"
+      },
+      "largeurDoc": 390
+    }
+  ]
+}

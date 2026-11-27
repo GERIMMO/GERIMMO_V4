@@ -1,0 +1,12 @@
+{
+  "commit": "77e33d7061a507f039768ccc5535244b0768362e",
+  "mode": "Génération du document HTML par la fonction Gerimmo, sans compte ni base",
+  "donnees": {
+    "terme": 600,
+    "payeur_locataire": 390,
+    "payeur_caf": 210
+  },
+  "declaration": "Je soussigné(e) Bailleur fictif, bailleur du logement désigné ci-dessus, déclare avoir reçu de Locataire fictif la somme de 600,00 € , au titre du loyer et des charges pour la période du 01/11/2026 au 30/11/2026, et lui en donne quittance , sous réserve de tous mes droits.",
+  "detail_reglements": "Règlements reçus sur ce terme : 390,00 € le 05/11/2026 par virement ; 210,00 € le 06/11/2026 par versement CAF / APL .",
+  "manquants": []
+}

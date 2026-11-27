@@ -1,0 +1,7 @@
+ ✓  parallele  tests/console-supervision-base.test.ts (10 tests) 96ms
+ ✓  parallele  tests/socle.test.ts (3 tests) 121ms
+ ✓  parallele  tests/supervision-v1-lecture-bornee.test.ts (5 tests) 19ms
+ ✓  serie  tests/traversee-lecture-seule-base.test.ts (18 tests) 316ms
+ Test Files  4 passed (4)
+      Tests  36 passed (36)
+   Duration  1000ms (transform 61ms, setup 21ms, import 125ms, tests 552ms, environment 0ms)

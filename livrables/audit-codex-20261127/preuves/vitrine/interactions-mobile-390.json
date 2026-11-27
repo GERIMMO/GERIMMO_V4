@@ -1,0 +1,32 @@
+{
+  "horodatage": "2026-11-27T16:13:46.602Z",
+  "navigateur": "Chromium 156.0.8078.4",
+  "width": 390,
+  "height": 844,
+  "menuOuvertViaToucher": true,
+  "liensMenu": [
+    "La solution",
+    "Tarifs",
+    "Outils gratuits",
+    "Journal",
+    "Les espaces Gerimmo",
+    "Se connecter",
+    "Créer mon compte"
+  ],
+  "fermetureEchap": true,
+  "focusRendu": true,
+  "accesTarifsParMenu": "https://www.gerimmo.app/tarifs",
+  "menuFermeApresNavigation": true,
+  "simulateur": {
+    "geometrie": {
+      "largeur": 316,
+      "hauteur": 44,
+      "min": "1",
+      "max": "100",
+      "nomSaisie": "INPUT",
+      "taillePasApproximative": 3.191919191919192
+    },
+    "saisieNombre": 0
+  },
+  "requetesBloquees": []
+}

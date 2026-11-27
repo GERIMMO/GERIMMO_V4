@@ -1,0 +1,14 @@
+{
+  "mission": "f9fc4f45-1459-4b18-bc60-da8e878259d4",
+  "statut": "réussi",
+  "fixture": "Déclaration avec photo et choix du créneau en navigateur ; accord sur le devis dans le portail de gestion ; qualification, préparation du devis et décision depuis les portails.",
+  "incidentClos": true,
+  "resolutionConfirmeeParLocataire": true,
+  "factureValideeSansReglement": true,
+  "locatairePeutSignalerUnePersistance": true,
+  "demarrage": true,
+  "photoDeposee": true,
+  "compteRenduTransmis": true,
+  "factureDeposee": true,
+  "factureLueParGerant": true
+}

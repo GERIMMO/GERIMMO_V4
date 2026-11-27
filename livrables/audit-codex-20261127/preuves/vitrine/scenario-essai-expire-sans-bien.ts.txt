@@ -1,0 +1,114 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { renderToStaticMarkup } from "react-dom/server";
+import { CONDITIONS_DATE } from "@/lib/editeur";
+
+/** Un éditeur fictif complet (les huit faits requis par lib/editeur.ts ; domaine example : jamais une adresse réelle). */
+const EDITEUR_COMPLET: Record<string, string | null> = {
+  denomination: "Éditeur de test", forme: "SAS", typeVendeur: "personne_morale", capital: null, siege: "1 rue de l'Essai, 75000 Paris",
+  rcs: "RCS Paris 000 000 000", siret: "00000000000000", tvaIntracommunautaire: null,
+  directeurPublication: "Personne de test", email: "contact@example.com", telephone: "01 00 00 00 00",
+  mediateurNom: "Médiateur de test", mediateurAdresse: "1 rue Exemple, Paris", mediateurSite: "https://example.test/mediateur",
+};
+const EDITEUR_VIDE: Record<string, string | null> = Object.fromEntries(Object.keys(EDITEUR_COMPLET).map((k) => [k, null]));
+/**
+ * Lot B3 (19/10) : la phrase arbitrée, en toutes lettres (le test fige le
+ * libellé, il ne le recopie pas depuis le code). Complète pendant l'essai ;
+ * sans « Votre essai continue. » pour un compte gelé ou abonné (correction du
+ * 19/10). React écrit l'apostrophe droite « &#x27; » dans le HTML statique :
+ * les comparaisons se font sur la forme écrite.
+ */
+const MOTIF_IDENTITE =
+  "Le paiement en ligne n'est pas encore ouvert : les mentions légales de l'éditeur sont en cours de publication. Votre essai continue.";
+const MOTIF_IDENTITE_HORS_ESSAI =
+  "Le paiement en ligne n'est pas encore ouvert : les mentions légales de l'éditeur sont en cours de publication.";
+const enHtml = (texte: string) => texte.replace(/'/g, "&#x27;");
+const MOTIF_IDENTITE_HTML = enHtml(MOTIF_IDENTITE);
+const MOTIF_IDENTITE_HORS_ESSAI_HTML = enHtml(MOTIF_IDENTITE_HORS_ESSAI);
+const CASE_CONDITIONS = "J’ai lu et j’accepte la";
+const INFOBULLE_CONDITIONS = 'title="Acceptez d’abord la version en vigueur des conditions générales."';
+
+const mocks = vi.hoisted(() => ({
+  rpc: vi.fn(),
+  stripePret: false,
+  editeur: { editeur: {} as Record<string, string | null>, indisponible: false },
+  /** Vrai si le compte a une acceptation enregistrée pour la version en vigueur des conditions. */
+  conditionsAcceptees: true,
+  blocageIdentiteActif: true,
+  venteSansMediateurLe: null as string | null,
+  /** L'identité rangée avec la version archivée des conditions ; `null` : celle de l'éditeur complet. */
+  archive: null as Record<string, string | null> | null,
+}));
+vi.mock("@/lib/espace", () => ({
+  verifierAccesEspace: async () => ({
+    supabase: {
+      rpc: mocks.rpc,
+      from: (table: string) => {
+        const q = {
+          select: () => q,
+          eq: () => q,
+          // Reprise D4 (D4R-01) : la preuve d'accord filtre les lignes à empreinte ; ce faux client les tient pour telles.
+          not: () => q,
+          order: () => q,
+          limit: () => q,
+          maybeSingle: async () => ({
+            data: table === "versions_conditions" ? { identite_editeur: mocks.archive ?? EDITEUR_COMPLET } : table === "acceptations_cgu" && mocks.conditionsAcceptees ? { id: "acceptation-1" } : null,
+            error: null,
+          }),
+        };
+        return q;
+      },
+    },
+    user: { id: "compte-test" },
+    organisation: { type: "proprietaire_direct", name: "Parc de test" },
+    role: "proprietaire_direct",
+  }),
+}));
+vi.mock("@/lib/stripe", () => ({
+  configurationStripe: () =>
+    mocks.stripePret ? { pret: true, config: { cle: "sk_test_x", secretWebhook: "whsec_x", prix: {} } } : { pret: false },
+  clientStripe: vi.fn(),
+}));
+vi.mock("@/lib/editeur-serveur", () => ({ lireEditeur: async () => mocks.editeur }));
+vi.mock("@/lib/reglage-souscription-serveur", () => ({ lireReglageSouscription: async () => ({ blocageIdentiteActif: mocks.blocageIdentiteActif, venteSansMediateurLe: mocks.venteSansMediateurLe, revision: 1, indisponible: false }) }));
+vi.mock("@/app/actions/abonnement", () => ({ accepterConditionsGenerales: vi.fn(), demarrerAbonnement: vi.fn(), confirmerHausse: vi.fn(), demanderPeriodicite: vi.fn(), ouvrirPortailAbonnement: vi.fn(), resilierAbonnement: vi.fn() }));
+import { PageAbonnement2026 } from "@/app/agence/[orgId]/abonnement/abonnement-2026";
+
+const etatInitial = { statut: "essai", ecriture_ouverte: true, essai_fin: "2099-10-24", jours_essai_restants: 13, public_tarif: "proprietaire_direct", unites_a_couvrir: 3, unites_souscrites: null };
+const paiementInitial = { souscrit: false, paye: false, paiement_en_retard: false, annulation_demandee: false, formule: null, periodicite: "mensuel", unites_souscrites: null, montant_periode_cents: null, periode_fin: null, periodicite_suivante: null };
+let etat: Record<string, unknown>;
+let paiement: Record<string, unknown>;
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2099-10-10T23:30:00Z")); // Le 11 à Paris : 13 jours avant le 24.
+  etat = { ...etatInitial };
+  paiement = { ...paiementInitial };
+  mocks.rpc.mockImplementation(async (nom: string) => ({ data: [nom === "etat_abonnement" ? etat : paiement], error: null }));
+  mocks.stripePret = false;
+  mocks.editeur = { editeur: EDITEUR_COMPLET, indisponible: false };
+  mocks.conditionsAcceptees = true;
+  mocks.blocageIdentiteActif = true;
+  mocks.venteSansMediateurLe = null;
+});
+afterEach(() => vi.useRealTimers());
+async function rendre(recherche: Record<string, string> = {}) {
+  return renderToStaticMarkup(await PageAbonnement2026({ params: Promise.resolve({ orgId: "org-test" }), searchParams: Promise.resolve(recherche) }));
+}
+function abonner(changements = {}) {
+  etat = { ...etat, statut: "active" };
+  paiement = { ...paiement, souscrit: true, paye: true, formule: "bailleur", unites_souscrites: 3, montant_periode_cents: 999, periode_fin: "2099-11-24", ...changements };
+}
+
+describe("audit indépendant — retour après essai sans bien", () => {
+  it("un essai expiré sans bien affiche le prérequis, sans action de reprise", async () => {
+    mocks.stripePret = true;
+    mocks.venteSansMediateurLe = "2099-10-01T07:32:22Z";
+    etat = { ...etat, statut: "essai", essai_fin: "2099-10-09", jours_essai_restants: 0, ecriture_ouverte: false, unites_a_couvrir: 0 };
+    const rendu = await rendre();
+    expect(rendu).toContain("Votre essai gratuit est arrivé à son terme.");
+    expect(rendu).toContain("Aucun bien actif à facturer");
+    expect(rendu).not.toContain("Ajouter mon premier bien");
+    expect(rendu).not.toContain("Continuer vers le paiement sécurisé");
+    expect(rendu).not.toContain("Souscrivez ci-dessous pour reprendre");
+    expect(rendu).not.toContain("Écrivez-nous pour demander une prolongation");
+  });
+});

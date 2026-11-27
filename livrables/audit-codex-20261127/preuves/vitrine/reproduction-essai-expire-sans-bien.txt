@@ -1,0 +1,24 @@
+[MIXED_EXPORTS] Entry module "vitest.config.ts" is using named (including "FICHIERS_EN_SERIE", "default") and default exports together. Consumers of your bundle will have to use `chunk.default` to access the default export, which may not be what you want. Use `output.exports: "named"` to disable this warning.
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+[MIXED_EXPORTS] Entry module "vitest.config.ts" is using named (including "FICHIERS_EN_SERIE", "default") and default exports together. Consumers of your bundle will have to use `chunk.default` to access the default export, which may not be what you want. Use `output.exports: "named"` to disable this warning.
+
+[MIXED_EXPORTS] Entry module "vitest.config.ts" is using named (including "FICHIERS_EN_SERIE", "default") and default exports together. Consumers of your bundle will have to use `chunk.default` to access the default export, which may not be what you want. Use `output.exports: "named"` to disable this warning.
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 /Users/easycash/Documents/Gerimmo V3/work/audit-codex-20261127/app
+
+ ✓ |parallele| tests/audit-vitrine-essai-sans-bien-20261127.test.ts > audit indépendant — retour après essai sans bien > un essai expiré sans bien affiche le prérequis, sans action de reprise 15ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  17:12:55
+   Duration  571ms (transform 255ms, setup 13ms, import 461ms, tests 16ms, environment 0ms)

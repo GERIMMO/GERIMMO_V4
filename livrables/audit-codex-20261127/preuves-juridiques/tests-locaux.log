@@ -1,0 +1,8 @@
+
+ RUN  v4.1.11 /Users/easycash/Documents/Gerimmo V3/work/audit-codex-20261127/app
+
+
+ Test Files  9 passed (9)
+      Tests  239 passed (239)
+   Start at  17:12:17
+   Duration  1.22s (transform 560ms, setup 47ms, import 1.12s, tests 471ms, environment 0ms)

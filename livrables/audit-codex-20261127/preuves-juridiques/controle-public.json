@@ -1,0 +1,55 @@
+{
+  "date_utc": "2026-11-27T16:11:53.120545+00:00",
+  "mode": "GET publics sans session ni exécution des scripts",
+  "verifications": {
+    "/mentions-legales": {
+      "http": 200,
+      "marqueurs": {
+        "TAHIR Brahim EI": true,
+        "Entrepreneur individuel (EI)": true,
+        "821 974 474": true,
+        "TVA non applicable, article 293 B du CGI": true,
+        "aucun organisme n’est désigné": true
+      },
+      "liens_versions": []
+    },
+    "/conditions": {
+      "http": 200,
+      "liens_versions": [
+        "/conditions/versions"
+      ],
+      "contenu_navigateur": {
+        "ordinateur": {
+          "preuve": "preuves/vitrine/conditions-ordinateur.txt",
+          "formulaire_retractation": true,
+          "lien_renoncer": true,
+          "article_mediation": true
+        },
+        "mobile-390": {
+          "preuve": "preuves/vitrine/conditions-mobile-390.txt",
+          "formulaire_retractation": true,
+          "lien_renoncer": true,
+          "article_mediation": true
+        }
+      }
+    },
+    "/conditions/versions": {
+      "http": 200,
+      "marqueurs": {},
+      "liens_versions": [
+        "/conditions/versions/conditions_clients/2026-11-24",
+        "/conditions/versions/conditions_clients/2026-11-15",
+        "/conditions/versions/conditions_clients/2026-11-11",
+        "/conditions/versions/conditions_clients/2026-10-24",
+        "/conditions/versions/conditions_clients/2026-09-30",
+        "/conditions/versions/conditions_artisans/2026-10-24"
+      ],
+      "archive_clients_24_novembre": {
+        "url": "/conditions/versions/conditions_clients/2026-11-24",
+        "http": 200,
+        "libelle_EI": true
+      }
+    }
+  },
+  "parcours_sans_javascript": "Lecture du HTML brut possible. Chromium sans JavaScript est resté sur « Chargement de la page… » au relevé. Les captures du navigateur normal se trouvent dans preuves/vitrine."
+}

@@ -1,0 +1,32 @@
+Serveur de développement, Chromium, environnement fictif. Suite interrompue après redémarrages du serveur et nouvelle construction locale.
+
+  ✓   1 [sessions] › e2e/auth.setup.ts:55:6 › sessions des personas (35.4s)
+  ✓   2 [ordinateur] › e2e/abonnement.spec.ts:39:7 › Côté propriétaire bailleur › ventes fermées : les deux lots affichent le tarif mensuel de 7,98 € sans commande (3.9s)
+  ✓   3 [ordinateur] › e2e/abonnement.spec.ts:49:7 › Côté propriétaire bailleur › ventes fermées : le tarif annuel de 79,80 € reste informatif, sans prélèvement automatique (1.4s)
+  ✓   4 [ordinateur] › e2e/abonnement.spec.ts:58:7 › Côté propriétaire bailleur › ventes fermées : les conditions et le contact restent accessibles sans faux paiement (5.0s)
+  ✓   5 [ordinateur] › e2e/abonnement.spec.ts:72:7 › Côté propriétaire bailleur › sans paiement en ligne ouvert, le refus est une phrase, pas une erreur d'API (1.9s)
+  ✓   6 [ordinateur] › e2e/abonnement.spec.ts:84:7 › Côté propriétaire bailleur › aucun identifiant Stripe ne descend jusqu'au navigateur (1.3s)
+  ✓   7 [ordinateur] › e2e/abonnement.spec.ts:96:7 › Côté propriétaire bailleur › l'écran tient dans 390 px (1.7s)
+  ✓   8 [ordinateur] › e2e/abonnement.spec.ts:119:7 › Côté agence › l'écran compte des LOTS SOUS MANDAT, pas des biens (1.2s)
+  ✓   9 [ordinateur] › e2e/abonnement.spec.ts:130:7 › Côté agence › le barème est montré tranche par tranche avant paiement, sans HT ni TTC en franchise (1.8s)
+  ✓  10 [ordinateur] › e2e/abonnement.spec.ts:146:7 › Côté agence › aucun identifiant Stripe ne descend jusqu'au navigateur (1.2s)
+  ✓  11 [ordinateur] › e2e/abonnement.spec.ts:154:7 › Côté agence › l'écran tient dans 390 px (1.2s)
+  ✓  12 [ordinateur] › e2e/abonnement.spec.ts:165:7 › Un agent ne voit pas la facture de son agence › l'écran est introuvable pour un agent (1.2s)
+  ✓  13 [ordinateur] › e2e/artisan-fin-mission.spec.ts:11:63 › intervention acceptée : démarrage, photo, bilan, facture (depot) et réception gestionnaire (39.7s)
+  ✘  14 [ordinateur] › e2e/artisan-fin-mission.spec.ts:11:63 › intervention acceptée : démarrage, photo, bilan, facture (creation) et réception gestionnaire (1.2m)
+  ✘  15 [ordinateur] › e2e/artisan-fin-mission.spec.ts:11:63 › intervention acceptée : démarrage, photo, bilan, facture (sci) et réception gestionnaire (49.3s)
+  ✓  16 [ordinateur] › e2e/artisan-fin-mission.spec.ts:138:5 › devis privé : compléter son identité puis reprendre sans ressaisir ni altérer la version validée (36.0s)
+  ✘  17 [ordinateur] › e2e/compte-supervision.spec.ts:21:5 › depuis une organisation, la fiche d'un compte dit son état, ses rôles et ses journaux (57.5s)
+  ✓  18 [ordinateur] › e2e/compte-supervision.spec.ts:55:5 › la recherche de la console trouve un compte par son adresse (1.5m)
+  -  19 [ordinateur] › e2e/compte-supervision.spec.ts:73:5 › la recherche de la console retrouve un incident par son numéro et ouvre la fiche de son organisation
+  ✓  20 [ordinateur] › e2e/incident-gerant-colocation.spec.ts:15:7 › incident en colocation : la chambre est demandée, la cuisine reste proposée (390px) (16.0s)
+  ✓  21 [ordinateur] › e2e/incident-gerant-colocation.spec.ts:15:7 › incident en colocation : la chambre est demandée, la cuisine reste proposée (1440px) (2.4s)
+  ✓  22 [ordinateur] › e2e/parcours-artisan.spec.ts:25:5 › le portail s'ouvre sans organisation dans l'adresse (13.8s)
+  ✘  23 [ordinateur] › e2e/parcours-artisan.spec.ts:41:7 › /artisan s'affiche, tient dans 390 px et ne tombe pas (3.0m)
+  ✓  24 [ordinateur] › e2e/parcours-artisan.spec.ts:41:7 › /artisan/agenda s'affiche, tient dans 390 px et ne tombe pas (7.3s)
+  ✘  25 [ordinateur] › e2e/parcours-artisan.spec.ts:41:7 › /artisan/devis s'affiche, tient dans 390 px et ne tombe pas (4.3s)
+  4 failed
+  1 interrupted
+  1 skipped
+  58 did not run
+  19 passed (10.5m)

@@ -171,3 +171,7 @@ mot pour mot :
   12 h. Gestes R7 (Stripe), R6 (vente sans médiateur) et R8 (ouvrir les souscriptions) : faits par le dirigeant ou par
   Codex dans son navigateur déjà connecté (« fais un prompt pour que codex fasse etapes 1 et 2 et 3 »), jamais par cet
   agent, sans aucun mot de passe transmis. Souscription d'essai (étape 4) : par le dirigeant.
+- **Publication du bouton « Ajouter mon premier bien », 27/11**, texte reçu mot pour mot : « Publié » (réponse à
+  « écrivez-moi « Publie le bouton » ») → PR [#363](https://github.com/GERIMMO/GERIMMO_V4/pull/363) fusionnée
+  (`77e33d70`) après CI verte sans reprise, publication contrôlée après l'approbation GitHub du dirigeant
+  (« Fais », 27/11).

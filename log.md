@@ -8457,3 +8457,14 @@ cahier V3 et le wiki (sans autre document). La décision la plus récente l'empo
 - Constat d'ergonomie : un espace sans bien affiche « Aucun bien actif à facturer » sans bouton pour ajouter le premier
   bien ; le dirigeant n'a pas trouvé où payer. Correction proposée pour le week-end (bouton « Ajouter mon premier bien »).
 - Reste conseillé : vérifier un vrai prélèvement fin décembre (conseil COM-2), depuis un espace dont l'essai se termine.
+
+## [2026-11-27] deploy | Bouton « Ajouter mon premier bien » en production (PR #363, `main` `77e33d7`)
+- Constat de l'ouverture de la vente : un espace de particulier sans bien n'affichait pas de quoi payer. La page
+  « Abonnement » propose désormais « Ajouter mon premier bien » (sauf écriture fermée).
+- Première CI de la PR rouge : `tests/racine-pages-espace.test.ts` refusait une base d'espace composée à la main ;
+  corrigé en lisant la base avec `useBaseEspace` (cause reproduite en local, suite complète). CI n° 45966891417 verte
+  sans reprise sur `0019a718`.
+- Fusion squash → `main` `77e33d70` ; CI de `main` n° 45972057692 verte ; construction Vercel
+  `dpl_2hJQ9ah5eJgW9iDpSCzXU7cm4op7` ; publication contrôlée n° 45979001326 réussie (10:08Z) après l'approbation du
+  dirigeant. `/api/sante` : commit `77e33d7`, base OK, pas de maintenance. Aucune erreur d'exécution Vercel.
+- Recette de production n° 64 (run 45981483593) réussie, de 10:22Z à 10:34Z, purge comprise. Aucune migration.

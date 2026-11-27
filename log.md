@@ -8443,3 +8443,17 @@ cahier V3 et le wiki (sans autre document). La décision la plus récente l'empo
   base (lecture seule) : vendeur « entrepreneur_individuel », souscriptions fermées, vente sans médiateur non décidée,
   aucun médiateur saisi. Gestes R7, R6, R8 confiés au dirigeant (ou à Codex dans son navigateur connecté, sans mot de
   passe transmis). Le rappel du lundi 30/11 est supprimé.
+
+## [2026-11-27] deploy | Vente ouverte aux particuliers et aux SCI (essai réel de bout en bout réussi)
+- Gestes du dirigeant, faits dans son navigateur connecté (Stripe et console) : R7 (en-tête des factures Stripe ; non
+  vérifiable depuis l'agent), R6 « Ouvrir la vente aux particuliers sans médiateur » (décision datée en base le 27/11 à
+  07:32:22Z), R8 « Ouvrir les souscriptions ». Vérifié en base, en lecture seule : souscriptions ouvertes, vente sans
+  médiateur décidée, vendeur « entrepreneur_individuel », règle d'identité toujours active, deux changements seulement
+  (révision 6 → 8).
+- Essai réel du dirigeant : inscription d'un espace propriétaire (07:42Z), un bien ajouté, souscription mensuelle d'un
+  bien à 5,99 € (abonnement Stripe réel « trialing », premier prélèvement prévu le 27/01/2027), courriel de confirmation
+  livré (07:52Z) ; puis rétractation en ligne (07:56Z) : abonnement annulé aussitôt, rien à rembourser (0 €, aucun
+  prélèvement), accusé de rétractation livré. Aucune erreur enregistrée sur l'abonnement.
+- Constat d'ergonomie : un espace sans bien affiche « Aucun bien actif à facturer » sans bouton pour ajouter le premier
+  bien ; le dirigeant n'a pas trouvé où payer. Correction proposée pour le week-end (bouton « Ajouter mon premier bien »).
+- Reste conseillé : vérifier un vrai prélèvement fin décembre (conseil COM-2), depuis un espace dont l'essai se termine.

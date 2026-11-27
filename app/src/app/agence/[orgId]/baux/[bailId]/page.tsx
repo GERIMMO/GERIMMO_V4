@@ -314,6 +314,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         supabase
           .from("encaissements")
           .select("id, montant, date_paiement, mode, note")
+          .eq("organization_id", orgId)
           .eq("bail_id", bailId)
           .order("date_paiement", { ascending: false }),
         supabase
@@ -1003,7 +1004,10 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               orgId={orgId}
               bailId={bailId}
               racine={racineEspace(estProprietaire)}
+              proprietaire={estProprietaire}
               echeancier={(echeancier ?? []) as LigneEcheance[]}
+              echeancierIndisponible={Boolean(erreurEcheancier)}
+              encaissementsIndisponibles={Boolean(erreurEncaissements) || (encaissements?.length ?? 0) >= 1000}
               encaissements={(encaissements ?? []) as Encaissement[]}
               quittances={(quittances ?? []) as Quittance[]}
               revisionIrl={Boolean(bail.revision_irl)}

@@ -1,66 +1,43 @@
-import { lireToutesLesPages } from "@/lib/lecture-complete";
-import { lireEntitesPatrimoine, titulaireDuLoyer, ventilerParTitulaire } from "@/lib/entites-patrimoine";
+import { ventilerParTitulaire } from "@/lib/entites-patrimoine";
 import { deElide } from "@/lib/elision";
 import Link from "next/link";
-import { Banknote, ArrowLeftRight, FileCheck2 } from "lucide-react";
+import { Banknote, ArrowLeftRight, ChevronDown, FileCheck2 } from "lucide-react";
 import { TitreEcran } from "@/components/titre-ecran";
 import { verifierAccesEspace } from "@/lib/espace";
 import { aujourdhuiParis, eur, formaterDate, moisEnFrancais } from "@/lib/ged";
 import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
-import { QuittancementMois, type LigneQuittancement } from "@/app/agence/[orgId]/comptabilite/quittancement-mois";
+import { QuittancementMois } from "@/app/agence/[orgId]/comptabilite/quittancement-mois";
 import { marquerPlansApurement } from "@/lib/quittancement-du-mois";
 import { RecapitulatifFiscal } from "@/components/recapitulatif-fiscal";
 import { lireLivreFinances, resumerLivre, type EcritureFinances } from "@/lib/finances";
 import { NavigationFinances, FiltresFinances, OutilsComptables } from "@/components/navigation-finances";
 import { baseEspace } from "@/lib/racine-espace";
+import { lireSelectionLoyers, lireSuiviMensuelLoyers } from "@/lib/suivi-mensuel-loyers";
+import { MontantsDuLoyer } from "@/components/montants-loyer";
+import { ventilerLoyers } from "@/lib/loyers-parc-mois";
 
 export async function PageFinances({ orgId, recherche }: {
   orgId: string; recherche: Record<string, string | string[] | undefined>;
 }) {
-  const { supabase } = await verifierAccesEspace(orgId);
+  const { supabase, traverseeLectureSeule } = await verifierAccesEspace(orgId);
   const actuel = aujourdhuiParis();
-  const demandee = Number(recherche.annee);
-  const anneeCourante = Number(actuel.slice(0, 4));
-  const annee = Number.isInteger(demandee) && demandee >= 1970 && demandee <= anneeCourante + 1 ? demandee : anneeCourante;
-  const moisDemande = Number(recherche.mois);
-  const numeroMois = Number.isInteger(moisDemande) && moisDemande >= 1 && moisDemande <= 12 ? moisDemande : Number(actuel.slice(5, 7));
-  const mois = `${annee}-${String(numeroMois).padStart(2, "0")}`;
-  const bien = typeof recherche.bien === "string" ? recherche.bien : "";
-  const entiteId = typeof recherche.entite === "string" ? recherche.entite : "";
-  const patrimoine=await lireEntitesPatrimoine(supabase,orgId,annee);
-  const entite=patrimoine.entites.find(e=>e.id===entiteId);
-  const [{ data: biens, error: erreurBiens }, { data: lots, error: erreurLots }, quittancement, livre, datesAppels] = await Promise.all([
-    supabase.from("biens").select("id, nom, archived_at").eq("organization_id", orgId).order("nom"),
-    supabase.from("lots").select("id, bien_id").eq("organization_id", orgId),
-    supabase.rpc("quittancement_mois", { p_org: orgId, p_mois: `${mois}-01` }),
-    lireLivreFinances(supabase, orgId),
-    entiteId ? lireToutesLesPages<{ id: string; date_echeance: string }>((debut, fin) =>
-      supabase.from("appels_loyer").select("id,date_echeance", { count: "exact" })
-        .eq("organization_id", orgId).eq("periode", mois + "-01").order("id").range(debut, fin),
-      appel => appel.id) : null,
+  const selection = lireSelectionLoyers(recherche, actuel);
+  const { annee, anneeCourante, numeroMois, mois, bien, entiteId } = selection;
+  const [{ patrimoine, entite, biens, lots, perimetre, erreurPerimetre, lignes, incertaines, totaux }, livre] = await Promise.all([
+    lireSuiviMensuelLoyers(supabase, orgId, selection), lireLivreFinances(supabase, orgId),
   ]);
-  // Décision D27 : « Finances » n'existe que chez le propriétaire direct (/espace/<id>).
   const base = baseEspace(orgId, true);
-  const href = (a: number, m = numeroMois, anchor = "") => `${base}/loyers?${new URLSearchParams({ annee: String(a), mois: String(m), ...(bien ? { bien } : {}), ...(entiteId ? {entite:entiteId} : {}) })}${anchor}`;
-  const perimetre = bien || entiteId ? new Set((lots ?? []).filter(l => (!bien || l.bien_id === bien) && (!entiteId || !!entite?.lots.includes(l.id))).map(l => l.id)) : null;
-  const erreurPerimetre = (!!perimetre && (lots?.length ?? 0) >= 1000) || erreurBiens || erreurLots || patrimoine.erreur || (entiteId && !entite) || (bien && !(biens ?? []).some(b => b.id === bien));
-  const lignesDuParc = ((quittancement.data ?? []) as LigneQuittancement[]).filter(l => !perimetre || perimetre.has(l.lot_id));
-  const dates = new Map(datesAppels?.lignes?.map(a => [a.id, a.date_echeance]));
-  const periodesParLot = Map.groupBy(patrimoine.periodes, p => p.lot_id);
-  const attribution = (l: LigneQuittancement) => titulaireDuLoyer(periodesParLot.get(l.lot_id) ?? [], mois, dates.get(l.appel_id));
-  const lignes = entiteId ? lignesDuParc.filter(l => attribution(l) === entiteId) : lignesDuParc;
-  const incertaines = entiteId ? lignesDuParc.filter(l => attribution(l) === null) : [];
+  const parametres = (a = annee, m = numeroMois) => new URLSearchParams({ annee: String(a), mois: String(m), ...(bien ? { bien } : {}), ...(entiteId ? { entite: entiteId } : {}) });
+  const href = (a: number, m = numeroMois, anchor = "") => `${base}/loyers?${parametres(a,m)}${anchor}`;
   // Pour un premier bail, l’appel peut encore manquer. Rejoindre son échéancier
   // depuis ce même écran, sans créer de revenu et sans ouvrir un autre patrimoine.
-  const premierBail = !erreurPerimetre && !quittancement.error && !lignes.length && !bien && !entiteId && mois === actuel.slice(0,7)
+  const premierBail = totaux && !lignes.length && !bien && !entiteId && mois === actuel.slice(0,7)
     ? await supabase.from("baux").select("id").eq("organization_id",orgId).eq("etat","actif").limit(2) : null;
   // Phase 3, lot 44 (reprise, C65) : le tableau du mois en cours invitait à « Relancer sur le bail » un terme impayé sous
   // plan d'apurement en cours (relances suspendues) : ses termes non couverts portent l'état du plan de leur bail.
-  const lignesDuMois = mois === actuel.slice(0, 7) && !quittancement.error && !erreurPerimetre
+  const lignesDuMois = mois === actuel.slice(0, 7) && totaux
     ? await marquerPlansApurement(supabase, orgId, lignes) : lignes;
-  const appele = lignes.reduce((s, l) => s + Number(l.montant_du), 0);
-  const regle = lignes.reduce((s, l) => s + Math.min(Number(l.montant_du), Number(l.montant_couvert)), 0);
   // Une dépense commune d’un bâtiment mixte peut devoir être vérifiée. La
   // ventilation contrôle ensuite la détention de TOUS ses lots à la date de l’écriture.
   const biensDuLivre = entite
@@ -77,16 +54,27 @@ export async function PageFinances({ orgId, recherche }: {
   return <main className="mx-auto w-full max-w-5xl space-y-4 p-4 sm:p-7">
     <div className="entete-page gap-3"><div><TitreEcran rubrique="finances">Finances</TitreEcran><p className="mt-2 text-sm text-muted-foreground">Ce qui est attendu, ce qui est reçu et ce que vous dépensez.</p></div><Link className={`${buttonVariants()} min-h-11`} href={`${base}/comptabilite?vue=saisie`}>Ajouter une dépense</Link></div>
     <FiltresFinances key={`${annee}:${bien}:${numeroMois}:${entiteId}`} action={`${base}/loyers`}>
-      <label className="min-w-0 text-sm sm:flex-1">Patrimoine<select aria-label="Patrimoine" name="entite" defaultValue={entiteId} className="mt-1 block min-h-11 w-full max-w-full rounded-lg border border-border bg-background px-3"><option value="">Tout mon patrimoine</option>{entiteId && !entite && <option value={entiteId} disabled>Sélection indisponible pour {annee}</option>}{patrimoine.entites.map(e=><option key={e.id} value={e.id}>{e.nom}{e.qualite?.includes("SCI")?" · SCI":""}</option>)}</select></label>
+      <label className="col-span-2 min-w-0 text-sm sm:flex-1">
+        Patrimoine
+        <span className="relative mt-1 flex min-h-11 items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 focus-within:ring-2 focus-within:ring-ring">
+          <span aria-hidden="true" className="min-w-0 flex-1 break-words">{entite ? libellePatrimoine(entite) : entiteId ? `Sélection indisponible pour ${annee}` : "Tout mon patrimoine"}</span>
+          <ChevronDown aria-hidden="true" className="size-4 shrink-0" />
+          <select name="entite" defaultValue={entiteId} className="absolute inset-0 h-full w-full cursor-pointer opacity-0">
+            <option value="">Tout mon patrimoine</option>
+            {entiteId && !entite && <option value={entiteId} disabled>Sélection indisponible pour {annee}</option>}
+            {patrimoine.entites.map(e => <option key={e.id} value={e.id}>{libellePatrimoine(e)}</option>)}
+          </select>
+        </span>
+      </label>
       <label className="min-w-0 text-sm sm:flex-1">Bien<select aria-label="Bien" name="bien" defaultValue={bien} className="mt-1 block min-h-11 w-full max-w-full rounded-lg border border-border bg-background px-3"><option value="">Tous les biens</option>{(biens??[]).map(b=><option key={b.id} value={b.id}>{b.nom}</option>)}</select></label>
       <label className="text-sm">Année<input aria-label="Année" name="annee" type="number" min="1970" max={anneeCourante + 1} defaultValue={annee} className="mt-1 block min-h-11 w-24 rounded-lg border border-border bg-background px-3" /></label>
-      <input type="hidden" name="mois" value={numeroMois} /><button className={bouton} type="submit">Afficher</button>
+      <input type="hidden" name="mois" value={numeroMois} /><button className={`${bouton} min-h-11`} type="submit">Afficher</button>
     </FiltresFinances>
     {entite && <p className="text-sm text-muted-foreground">Loyers attribuables à {entite.nom} à leur échéance. Le bilan présente seulement les opérations attribuables à ce patrimoine à leur date d’enregistrement.</p>}
     {perimetre && !livre.error && livre.lignes.some(e => e.date_imputation.startsWith(annee+"-") && e.categorie==="Taxe foncière" && !e.lot_id && !e.bien_id) && <p role="status" className="text-sm">Une taxe foncière du patrimoine reste à rattacher à un bien. Vérifiez le journal complet avant d’utiliser ce total.</p>}
     {erreurPerimetre ? <p className="err" role="alert">{entiteId && !entite && !patrimoine.erreur ? "Ce patrimoine n’est pas disponible pour cette année. Choisissez une autre année ou « Tout mon patrimoine »." : "Impossible de lire le bien sélectionné. Rechargez la page ou choisissez un autre bien."}</p> : <>
     <NavigationFinances
-      vide={!erreurPerimetre && !livre.error && !quittancement.error && !biens?.length && !lots?.length && !livre.lignes.length && !lignes.length ? <section className="carte-rubrique p-6 sm:p-8" aria-labelledby="titre-finances-neuves">
+      vide={!erreurPerimetre && !livre.error && totaux && !biens?.length && !lots?.length && !livre.lignes.length && !lignes.length ? <section className="carte-rubrique p-6 sm:p-8" aria-labelledby="titre-finances-neuves">
         <h2 id="titre-finances-neuves" className="font-heading text-2xl">Vos finances commencent avec votre premier bien</h2>
         <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">Vos loyers apparaîtront ici dès votre première location. Vous pourrez suivre vos dépenses et retrouver le bilan de chaque année.</p>
         <Link href={`${base}/parc/nouveau`} className={`${buttonVariants()} mt-5 min-h-11`}>Ajouter un bien</Link>
@@ -94,15 +82,34 @@ export async function PageFinances({ orgId, recherche }: {
       loyers={
     <section id="loyers" aria-labelledby="titre-loyers" data-ton="bleu" className="carte-rubrique p-4 sm:p-5 space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2"><h2 id="titre-loyers" className="titre-rubrique text-lg font-semibold"><Banknote size={22} aria-hidden="true" />Loyers et charges</h2><span className="text-sm text-muted-foreground">Échéances {deElide(moisEnFrancais(mois))}</span></div>
-      {quittancement.error || datesAppels?.echec ? <p role="alert" className="err">Impossible de lire les loyers de cette période.</p> : <>
-        <Chiffres valeurs={[["Attendu", appele], ["Encaissé ou compensé", regle], ["Restant dû", Math.max(0, appele - regle)]]} />
-        <p className="text-xs text-muted-foreground">Pour les échéances du mois choisi : versements et compensations, hors avances. Les dépenses sont présentées à part.</p>
+      {!totaux ? <p role="alert" className="err">Impossible de lire les loyers de cette période.</p> : <>
+        <MontantsDuLoyer montants={totaux} />
+        <p className="text-xs text-muted-foreground">Le reçu correspond aux versements imputés à ces échéances, hors avances. Les crédits non imputés et les dépenses restent à part.</p>
+        {lignes.length > 0 && <details id="detail-total-loyers" open={recherche.detail === "1" || undefined} className="scroll-mt-28 rounded-lg border border-border p-3">
+          <summary className="min-h-11 cursor-pointer content-center font-medium">D’où vient ce total ?</summary>
+          <ul className="mt-2 divide-y divide-border">
+            {lignes.map(l => {
+              const montants = ventilerLoyers([l]);
+              return montants && <li key={l.appel_id} className="space-y-2 py-3">
+                <p className="font-medium">{l.lot_nom} · {l.locataire ?? "Locataire non renseigné"}</p>
+                <MontantsDuLoyer montants={montants} />
+                <div className="flex flex-wrap gap-x-4 text-sm">
+                  <Link className="inline-flex min-h-11 items-center underline" href={`${base}/baux/${l.bail_id}#versements-loyers`}>Consulter les règlements du bail</Link>
+                  {l.quittance_id && <Link className="inline-flex min-h-11 items-center underline" href={`/quittance/${l.quittance_id}`}>{l.est_quittance ? "Quittance" : "Reçu partiel"}</Link>}
+                </div>
+              </li>;
+            })}
+          </ul>
+        </details>}
+        {!traverseeLectureSeule && <nav className="flex flex-wrap gap-2" aria-label="Exports du suivi des loyers">
+          {(["pdf", "csv"] as const).map(format => <a key={format} className={`${bouton} min-h-11`} href={`${base}/loyers/export?${parametres()}&format=${format}`}>Exporter en {format.toUpperCase()}</a>)}
+        </nav>}
         {incertaines.length > 0 && <div className="rounded-lg border p-3" role="status">
           <p className="font-medium">Loyers à rattacher</p>
           <p className="text-sm">Vérifiez la détention de ces lots pour la période, c’est-à-dire qui en était propriétaire à cette date. Ces sommes sont exclues du total de {entite?.nom}.</p>
           <ul>{incertaines.map(l => <li key={l.appel_id}>{l.lot_nom} · {eur(Number(l.montant_du))} demandé</li>)}</ul>
         </div>}
-        {lignes.length ? <details className="rounded-lg border border-border p-3"><summary className="min-h-11 cursor-pointer content-center text-sm font-medium">Voir {lignes.length === 1 ? "le loyer" : `les ${lignes.length} loyers`} {deElide(moisEnFrancais(mois))}</summary>{mois === actuel.slice(0, 7) ? <Card size="sm" className="mt-3"><QuittancementMois orgId={orgId} mois={mois} moisLabel={moisEnFrancais(mois)} lignes={lignesDuMois} proprietaire envoiGroupe={!bien && !entiteId} /></Card> : <ul className="mt-3 divide-y divide-border">{lignes.map(l => <li key={l.appel_id}><Link className="flex flex-wrap justify-between gap-2 py-3 text-sm" href={`${base}/baux/${l.bail_id}#loyers`}><span>{l.locataire ?? "Locataire non renseigné"} · {l.lot_nom}</span><span>{eur(Number(l.montant_du))} demandé · {eur(Number(l.montant_couvert))} réglé →</span></Link></li>)}</ul>}</details> : <p className="text-sm text-muted-foreground">Aucun loyer demandé sur cette période.{premierBail?.data?.length === 1 && <> <Link className="underline" href={`${base}/baux/${premierBail.data[0].id}#loyers`}>Vérifier l’échéancier du bail</Link></>}</p>}
+        {lignes.length ? <details className="rounded-lg border border-border p-3"><summary className="min-h-11 cursor-pointer content-center text-sm font-medium">Voir {lignes.length === 1 ? "le loyer" : `les ${lignes.length} loyers`} {deElide(moisEnFrancais(mois))}</summary>{mois === actuel.slice(0, 7) ? <Card size="sm" className="mt-3"><QuittancementMois orgId={orgId} mois={mois} moisLabel={moisEnFrancais(mois)} lignes={lignesDuMois} proprietaire envoiGroupe={!bien && !entiteId} /></Card> : <ul className="mt-3 divide-y divide-border">{lignes.map(l => <li key={l.appel_id}><Link className="flex flex-wrap justify-between gap-2 py-3 text-sm" href={`${base}/baux/${l.bail_id}#loyers`}><span>{l.locataire ?? "Locataire non renseigné"} · {l.lot_nom}</span><span>Voir cette échéance →</span></Link></li>)}</ul>}</details> : <p className="text-sm text-muted-foreground">Aucun loyer demandé sur cette période.{premierBail?.data?.length === 1 && <> <Link className="underline" href={`${base}/baux/${premierBail.data[0].id}#loyers`}>Vérifier l’échéancier du bail</Link></>}</p>}
       </>}
       {/* Audit palier 1, P2-05 : partir du relevé exporté par la banque plutôt que confirmer les loyers un par un. */}
       <p><Link className={`${bouton} min-h-11`} href={`${base}/loyers/pointage`} data-lien-pointage>Pointer mes loyers avec un relevé de banque</Link></p>
@@ -165,6 +172,10 @@ export async function PageFinances({ orgId, recherche }: {
     </OutilsComptables>
     </>}
   </main>;
+}
+
+function libellePatrimoine({ nom, qualite }: { nom: string; qualite?: string | null }) {
+  return nom + (qualite?.includes("SCI") ? " · SCI" : "");
 }
 
 function Chiffres({ valeurs }: { valeurs: [string, number][] }) {

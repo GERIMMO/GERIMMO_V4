@@ -113,7 +113,7 @@ describe("carte de tâches sans écran intermédiaire", () => {
 
   it("affiche encore les tâches connues quand une autre source est indisponible", () => {
     const html = rendre({ indisponible: true, taches: preparer({ actions: [demande()] }) });
-    expect(html).toContain('aria-label="1 tâche connue"');
+    expect(html).toContain('1 tâche connue');
     expect(html).toContain("État des lieux à signer");
     expect(html).toContain("La liste peut être incomplète");
   });

@@ -140,8 +140,8 @@ test("une échéance de 640 € après cession apparaît uniquement chez le titu
     await expect(ancienne.locator("dl")).toContainText(/Attendu\s*0,00/);
     await expect(ancienne.locator("summary").filter({hasText:/^Voir les? loyers? de/})).toHaveCount(0);
     const actuelle=await ouvrir(sci);
-    await expect(actuelle.locator("dl")).toContainText(/Attendu\s*640,00/);
-    await expect(actuelle.locator("dl")).toContainText(/Restant dû\s*640,00/);
+    await expect(actuelle.locator('dl[aria-label="Montants des échéances"]').first()).toContainText(/Attendu\s*640,00/);
+    await expect(actuelle.locator('dl[aria-label="Montants des échéances"]').first()).toContainText(/Reste dû\s*640,00/);
     expect((await db.query("select count(*)::int n from encaissements where bail_id=$1",[bail])).rows[0].n).toBe(0);
   } finally { await db.end(); }
 });

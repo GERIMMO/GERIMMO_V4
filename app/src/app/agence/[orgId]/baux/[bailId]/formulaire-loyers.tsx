@@ -62,6 +62,9 @@ export const MODES_PAIEMENT: Record<string, string> = {
   autre: "Autre",
 };
 
+import { MontantsDuLoyer } from "@/components/montants-loyer";
+import { ventilerLoyers } from "@/lib/loyers-parc-mois";
+
 export type LigneEcheance = {
   prorata?: boolean;
   appel_id: string;
@@ -242,8 +245,11 @@ export function FormulaireLoyers({
   orgId,
   bailId,
   racine = RACINE_AGENCE,
+  proprietaire = false,
   echeancier,
+  echeancierIndisponible = false,
   encaissements,
+  encaissementsIndisponibles = false,
   quittances,
   revisionIrl,
   irlReference,
@@ -269,7 +275,10 @@ export function FormulaireLoyers({
   cautionAuBail?: boolean;
   orgId: string;
   bailId: string;
+  proprietaire?: boolean;
   echeancier: LigneEcheance[];
+  echeancierIndisponible?: boolean;
+  encaissementsIndisponibles?: boolean;
   encaissements: Encaissement[];
   quittances: Quittance[];
   revisionIrl: boolean;
@@ -396,6 +405,7 @@ export function FormulaireLoyers({
     numeroTrimestreIrl(irlTrimestre) ??
     numeroTrimestreIrl([...revisions].sort((a, b) => a.date_effet.localeCompare(b.date_effet))[0]?.irl_trimestre);
 
+  const ventilation = !echeancierIndisponible && echeancier.length < 1000 ? ventilerLoyers(echeancier) : null;
   const totalDu = echeancier.reduce((s, l) => s + Number(l.montant_du), 0);
   const totalEncaisse = encaissements.reduce((s, e) => s + Number(e.montant), 0);
   const solde = totalDu - totalEncaisse;
@@ -409,7 +419,11 @@ export function FormulaireLoyers({
           nombre qui compte — le solde. Les trois prennent la forme des tuiles
           de la charte, et le solde porte sa couleur : rouge s'il reste dû,
           vert si le bail est à jour (relevé du 19/09). */}
-      <div className="grille-kpi">
+      {proprietaire ? (ventilation ? <div className="space-y-2">
+        <MontantsDuLoyer montants={ventilation} enDecompte={!recouvrementOuvert} />
+        <p className="text-xs text-muted-foreground">Toutes les échéances du bail. Les avances non imputées sont visibles dans les règlements.</p>
+        <a className="inline-flex min-h-11 items-center text-sm underline" href="#versements-loyers">D’où vient ce total ?</a>
+      </div> : <p role="alert" className="err">Les montants du bail n’ont pas pu être vérifiés.</p>) : <div className="grille-kpi">
         <div className="kpi">
           <span className="eyebrow">Dû</span>
           <span className="chiffre block">{eur(totalDu)}</span>
@@ -439,7 +453,7 @@ export function FormulaireLoyers({
                 : "à jour"}
           </span>
         </div>
-      </div>
+      </div>}
 
       {/* LE GESTE DU QUOTIDIEN D'ABORD (24/09) : saisir un encaissement,
           juste sous les tuiles. « Générer l'échéancier » ne s'affiche ici que
@@ -531,6 +545,7 @@ export function FormulaireLoyers({
       {echeancier.length > 0 && (
         <ul className="echeancier">
           {echeancier.map((l) => {
+            const montants = proprietaire ? ventilerLoyers([l]) : null;
             return (
               <li
                 key={l.appel_id}
@@ -547,11 +562,11 @@ export function FormulaireLoyers({
                 <span className="min-w-0">
                   <span className="periode">{mois(l.periode)}</span>
                   <span className="detail-terme">
-                    échéance {formaterDate(l.date_echeance)} · couvert{" "}
-                    {eur(l.montant_couvert)}
+                    échéance {formaterDate(l.date_echeance)}
+                    {!proprietaire && <> · couvert {eur(l.montant_couvert)}</>}
                   </span>
                 </span>
-                <span className="montant-terme">{eur(l.montant_du)}</span>
+                {montants ? <div className="col-span-full min-w-0"><MontantsDuLoyer montants={montants} enDecompte={!recouvrementOuvert} /></div> : <span className="montant-terme">{eur(l.montant_du)}</span>}
                 <span
                   className={`shrink-0 ${COULEURS_STATUT_APPEL_LOYER[l.statut] ?? COULEURS_STATUT_APPEL_LOYER.attendu}`}
                 >
@@ -633,9 +648,12 @@ export function FormulaireLoyers({
 
       {/* Encaissements — la règle d'imputation est dite une fois, dans la
           description de la carte (24/09). */}
-      {encaissements.length > 0 && (
-        <div className="space-y-2 border-t border-border pt-4">
+      {(proprietaire || encaissements.length > 0) && (
+        <div id="versements-loyers" className="scroll-mt-24 space-y-2 border-t border-border pt-4">
           <p className="text-sm font-medium">Encaissements</p>
+          {encaissementsIndisponibles ? <p role="alert" className="err">La liste des règlements n’a pas pu être lue.</p>
+            : encaissements.length === 0 ? <p className="text-sm text-muted-foreground">Aucun règlement enregistré sur ce bail.</p>
+            : <p className="text-xs text-muted-foreground">Les versements couvrent les échéances les plus anciennes en premier. Les reçus et quittances sont associés à chaque échéance.</p>}
           <ul className="divide-y divide-border">
             {encaissements.map((e) => (
               <li key={e.id} className="flex flex-wrap items-center gap-2 py-1.5 text-sm">

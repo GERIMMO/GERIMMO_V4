@@ -33,7 +33,7 @@ test('PAY01 : Encaisser le reste transmet sa commande et solde une seule fois le
   // Décision D27 : l'écran du propriétaire direct vit sous /espace/<id>.
   await page.goto(`/espace/${ORG}/loyers?annee=${annee}&mois=${mois}&bien=${bien}`);
   await expect(page.getByRole('heading',{name:'Finances',exact:true})).toBeVisible();
-  const reste=page.locator('#loyers dt').filter({hasText:/^Restant dû$/}).locator('..').locator('dd');
+  const reste=page.locator('#loyers > dl dt').filter({hasText:/^Reste dû$/}).locator('..').locator('dd');
   await expect(reste).toHaveText(/840,00\s*€/);
   const ouvrir=()=>page.locator('#loyers summary').filter({hasText:/^Voir le loyer de/}).click();
   await ouvrir();

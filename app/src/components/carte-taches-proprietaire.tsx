@@ -41,7 +41,7 @@ export function CarteTachesProprietaire({ taches, base, indisponible, prioritesP
   })}</ul>;
   return <section id="taches-proprietaire" className={styles.carte} aria-labelledby="taches-proprietaire-titre" tabIndex={-1}>
     <header className={styles.entete}>
-      <h2 id="taches-proprietaire-titre">{titre}{taches.length > 0 && <span className={styles.compteur} aria-label={`${taches.length} tâche${taches.length > 1 ? "s" : ""}${indisponible ? ` connue${taches.length > 1 ? "s" : ""}` : ""}`}>{taches.length}</span>}</h2>
+      <h2 id="taches-proprietaire-titre">{titre}{taches.length > 0 && <span className={styles.compteur}>{taches.length} tâche{taches.length > 1 ? "s" : ""} {indisponible ? taches.length > 1 ? "connues" : "connue" : "dans vos logements"}</span>}</h2>
       <Link href={`${base}/alertes`}>Toutes les demandes<ArrowRight size={15} aria-hidden="true" /></Link>
     </header>
     {introduction}

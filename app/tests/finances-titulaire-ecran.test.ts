@@ -142,7 +142,7 @@ it("conserve les montants attendus, couverts et restant dus sans compter deux fo
   ],error:null})}});
   const html=renderToStaticMarkup(await PageFinances({orgId:"parc",recherche:{annee:"2026",mois:"12"}}));
   const texte=html.split('id="loyers"')[1].split('id="depenses"')[0].replace(/<[^>]+>/g," ").replace(/\s+/g," ");
-  expect(texte).toContain("Attendu 1 200,00 € Encaissé ou compensé 950,00 € Restant dû 250,00 €");
+  expect(texte).toContain("Attendu 1 200,00 € Reçu 950,00 € Compensé 0,00 € Reste dû 250,00 €");
   expect(texte).toContain("hors avances");
 });
 

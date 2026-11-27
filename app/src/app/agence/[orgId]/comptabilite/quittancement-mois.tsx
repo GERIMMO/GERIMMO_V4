@@ -1,5 +1,7 @@
 "use client";
 
+import { MontantsDuLoyer } from "@/components/montants-loyer";
+import { ventilerLoyers } from "@/lib/loyers-parc-mois";
 import { deElide } from "@/lib/elision";
 import Link from "next/link";
 import { useRef } from "react";
@@ -255,8 +257,8 @@ export function QuittancementMois({
                   {l.locataire ?? "—"}
                 </Link>
                 <span className="montant whitespace-nowrap">
-                  {eur(l.montant_du)}
-                  {l.statut === "partiel" && (
+                  {!proprietaire && eur(l.montant_du)}
+                  {!proprietaire && l.statut === "partiel" && (
                     <span className="ml-2 text-xs text-muted-foreground">
                       réglé {eur(l.montant_couvert)}
                     </span>
@@ -264,6 +266,7 @@ export function QuittancementMois({
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">{l.lot_nom}</p>
+              {proprietaire && <VentilationTerme ligne={l} />}
               <div className="flex flex-wrap items-center gap-2">
                 <ActionsLigne orgId={orgId} ligne={l} />
               </div>
@@ -279,7 +282,7 @@ export function QuittancementMois({
               <tr>
                 <th>Locataire</th>
                 <th>Lot</th>
-                <th className="nombre">Montant</th>
+                <th className="nombre">{proprietaire ? "Montants de l’échéance" : "Montant"}</th>
                 <th>
                   <span className="sr-only">Statut et actions</span>
                 </th>
@@ -298,12 +301,10 @@ export function QuittancementMois({
                   </td>
                   <td className="text-muted-foreground">{l.lot_nom}</td>
                   <td className="nombre montant">
-                    {eur(l.montant_du)}
-                    {l.statut === "partiel" && (
-                      <span className="block text-xs text-muted-foreground">
-                        réglé {eur(l.montant_couvert)}
-                      </span>
-                    )}
+                    {proprietaire ? <VentilationTerme ligne={l} /> : <>
+                      {eur(l.montant_du)}
+                      {l.statut === "partiel" && <span className="block text-xs text-muted-foreground">réglé {eur(l.montant_couvert)}</span>}
+                    </>}
                   </td>
                   <td className="text-right">
                     <span className="inline-flex flex-wrap items-center justify-end gap-2">
@@ -354,4 +355,9 @@ export function QuittancementMois({
       </CardContent>
     </>
   );
+}
+
+function VentilationTerme({ ligne }: { ligne: LigneQuittancement }) {
+  const montants = ventilerLoyers([ligne]);
+  return montants ? <MontantsDuLoyer montants={montants} compact /> : <span>Montants à vérifier.</span>;
 }

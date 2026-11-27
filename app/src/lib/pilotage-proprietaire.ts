@@ -3,6 +3,7 @@ import { lireToutesLesPages } from "@/lib/lecture-complete";
 import { occupationLot } from "@/lib/occupation-lot";
 import { coordonneesCourrierIncompletes } from "@/lib/coordonnees-courrier";
 import type { ReglagesEnvoi } from "@/lib/envois-automatiques";
+import { totalEncaissements } from "@/lib/loyers-parc-mois";
 
 export type LotPilotage = { id: string; nom: string; etat: string; bien_id: string };
 export type BailPilotage = { id: string; lot_id: string; etat: string; chambre_id: string | null };
@@ -42,20 +43,6 @@ export function diagnosticsASurveiller(diagnostics: DiagnosticPilotage[], lots: 
   }
   return [...derniers.values()].filter(d => d.classe_dpe === "F" || d.classe_dpe === "G")
     .map(d => ({ ...d, lot: connus.get(d.lot_id!)! }));
-}
-
-/** Un montant illisible n'est jamais converti en zéro ni présenté comme un total fiable. */
-export function totalEncaissements(lignes: { montant: number | string }[]): number | null {
-  let centimes = 0;
-  for (const ligne of lignes) {
-    const montant = typeof ligne.montant === "string" && !ligne.montant.trim() ? NaN : Number(ligne.montant);
-    if (!Number.isFinite(montant) || montant <= 0) return null;
-    const ajout = Math.round(montant * 100);
-    if (Math.abs(montant - ajout / 100) > Number.EPSILON * Math.max(1, Math.abs(montant)) * 4) return null;
-    if (!Number.isSafeInteger(ajout) || !Number.isSafeInteger(centimes + ajout)) return null;
-    centimes += ajout;
-  }
-  return centimes / 100;
 }
 
 export async function chargerPilotageProprietaire(db: SupabaseClient, orgId: string, aujourdHui: string) {

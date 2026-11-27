@@ -149,8 +149,19 @@ test.describe("P1 « montant faux » (Q3/Q5) : D04, D05, D37, D38", MONTANTS, ()
          from public.encaissements where bail_id = $1 order by created_at`, [d.bail]
     )).rows;
   const carteLoyers = (page: Page) => page.locator("#loyers");
+  const montantRecu = (page: Page) => carteLoyers(page).locator('dl[aria-label="Montants des échéances"]').first()
+    .locator("div").filter({ has: page.getByText("Reçu", { exact: true }) }).locator("dd");
   const montantSaisi = (page: Page) => page.locator("#enc-montant");
   const boutonEncaisser = (page: Page) => carteLoyers(page).getByRole("button", { name: "Encaisser", exact: true });
+  async function rechargerLoyers(page: Page) {
+    await page.reload();
+    await page.getByRole("tab", { name: "Suivi", exact: true }).click();
+    const volet = carteLoyers(page);
+    const resume = volet.locator(":scope > summary");
+    await expect(resume).toBeVisible();
+    if (await volet.getAttribute("open") === null) await resume.click();
+    await expect(montantRecu(page)).toBeVisible();
+  }
 
   test("D04 : « 840,00 » tapé avec la virgule est enregistré et affiché 840,00 €", async ({ page }) => {
     await page.goto(`${espaceDe("proprietaire")}/baux/${d.bail}`);
@@ -177,11 +188,12 @@ test.describe("P1 « montant faux » (Q3/Q5) : D04, D05, D37, D38", MONTANTS, ()
     // Aucune demande de confirmation : 840,00 € est le terme dû, pas un montant cent fois trop grand.
     await expect(carteLoyers(page).getByText("Vérifiez ce montant avant de l'enregistrer")).toHaveCount(0);
     expect((await encaissements()).map((e) => e.montant)).toEqual(["840.00"]);
-    // Affiché après rechargement : la liste des encaissements et la tuile « Encaissé ».
-    await page.reload();
+    // Après rechargement, la liste et le récapitulatif doivent restituer le montant exact.
+    await rechargerLoyers(page);
     const liste = carteLoyers(page).locator("li").filter({ hasText: /^840,00\s€/ });
     await expect(liste).toHaveCount(1);
-    await expect(carteLoyers(page).locator(".kpi").filter({ hasText: "Encaissé" })).toContainText(/840,00\s€/);
+    await expect(montantRecu(page)).toHaveText(/^840,00\s€$/);
+    await expect(carteLoyers(page).getByText(/^Versé d’avance/)).toHaveCount(0);
   });
 
   test("D05 : le même envoi rejoué après une réponse perdue n'encaisse qu'une fois", async ({ page }) => {
@@ -219,9 +231,11 @@ test.describe("P1 « montant faux » (Q3/Q5) : D04, D05, D37, D38", MONTANTS, ()
     const lignes = await encaissements();
     expect(lignes.map((e) => e.montant)).toEqual(["840.00", "15.00"]);
     expect(lignes[1].cle_envoi).toBe(cleEnvoi);
-    await page.reload();
+    await rechargerLoyers(page);
     await expect(carteLoyers(page).locator("li").filter({ hasText: /^15,00\s€/ })).toHaveCount(1);
-    await expect(carteLoyers(page).locator(".kpi").filter({ hasText: "Encaissé" })).toContainText(/855,00\s€/);
+    await expect(carteLoyers(page).locator("li").filter({ hasText: /^840,00\s€/ })).toHaveCount(1);
+    await expect(montantRecu(page)).toHaveText(/^840,00\s€$/);
+    await expect(carteLoyers(page).getByText(/^Versé d’avance : 15,00\s€$/)).toBeVisible();
   });
 
   test("D37 : la ligne 250 vaut le montant qualifié, à l'écran et dans le champ du récapitulatif 2044", async ({ page }) => {

@@ -111,7 +111,7 @@ describe("carte des tâches d’un grand parc", () => {
 
   it("annonce toujours le nombre de tâches, présente les groupes dépliables et chaque lien de fiche", () => {
     const html = rendre();
-    expect(html).toContain('aria-label="630 tâches"');
+    expect(html).toContain('630 tâches dans vos logements');
     expect(html).toContain("300 lots : DPE absent ou expiré");
     expect(html).toContain("30 biens : ERP absent ou expiré");
     expect(html.match(/<details/g)).toHaveLength(3);

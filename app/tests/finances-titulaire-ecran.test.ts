@@ -142,7 +142,7 @@ it("conserve les montants attendus, couverts et restant dus sans compter deux fo
   ],error:null})}});
   const html=renderToStaticMarkup(await PageFinances({orgId:"parc",recherche:{annee:"2026",mois:"12"}}));
   const texte=html.split('id="loyers"')[1].split('id="depenses"')[0].replace(/<[^>]+>/g," ").replace(/\s+/g," ");
-  expect(texte).toContain("Attendu 1 200,00 € Encaissé ou compensé 950,00 € Restant dû 250,00 €");
+  expect(texte).toContain("Attendu 1 200,00 € Reçu 950,00 € Reste dû 250,00 €");
   expect(texte).toContain("hors avances");
 });
 
@@ -176,4 +176,18 @@ it("donne au tableau du mois en cours l'état du plan d'apurement de chaque term
   expect(banc.quittancement[0].lignes.map((l) => [l.appel_id, l.plan_apurement])).toEqual([
     ["1", "en_cours"], ["2", "aucun"], ["3", "aucun"], ["4", undefined],
   ]);
+});
+
+it("garde dans le total d’ensemble le loyer du bail actif d’un lot archivé", async () => {
+  const org = { organization_id: "parc" };
+  banc.db = baseSimulee({
+    biens: [{ ...org, id: "ancien", nom: "Immeuble archivé", archived_at: "2026-09-22" }],
+    lots: [{ ...org, id: "lot-archive", bien_id: "ancien", etat: "archive" }],
+    journal_par_bien: [],
+  }, { rpc: { quittancement_mois: () => ({ data: [
+    { lot_id: "lot-archive", lot_nom: "Logement archivé", appel_id: "appel", bail_id: "bail", montant_du: 640, montant_couvert: 0 },
+  ], error: null }) } });
+  const html = renderToStaticMarkup(await PageFinances({ orgId: "parc", recherche: {} }));
+  const texteLoyers = html.split('id="loyers"')[1].split('id="depenses"')[0].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+  expect(texteLoyers).toContain("Attendu 640,00 € Reçu 0,00 € Reste dû 640,00 €");
 });

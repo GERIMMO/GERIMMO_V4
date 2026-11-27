@@ -269,7 +269,7 @@ describe("accueil : un seul geste pour chaque loyer à confirmer", () => {
     expect(avant).toBeGreaterThanOrEqual(0);
     expect(loyers).toBeGreaterThan(avant);
     expect(apres).toBeGreaterThan(loyers);
-    expect(html).toContain('aria-label="3 tâches connues"');
+    expect(html).toContain('3 tâches connues');
     expect(html).toContain('data-rappels-loyers="true"');
   });
   it.each([{ date_echeance: "2099-01-05" }, { montant_couvert: 800 }])("ne masque pas un blocage absent des confirmations : %j", async patch => {

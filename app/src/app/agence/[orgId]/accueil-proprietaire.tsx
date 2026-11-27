@@ -13,7 +13,9 @@ import { ParcoursDemarrage } from "@/components/parcours-demarrage";
 import { RappelsLoyers } from "@/components/rappels-loyers";
 import { ActionsAccueilProprietaire } from "@/components/actions-accueil-proprietaire";
 import { ConseilsAccueilProprietaire } from "@/components/conseils-accueil-proprietaire";
-import { resumerLoyersParcMois } from "@/lib/loyers-parc-mois";
+import { MontantsDuLoyer } from "@/components/montants-loyer";
+import { ventilerLoyers } from "@/lib/loyers-parc-mois";
+import { lireEcheancesMensuelles } from "@/lib/suivi-mensuel-loyers";
 import { AccueilBienvenue } from "@/components/accueil-bienvenue";
 import { pointReception } from "@/lib/paliers-reception-loyer";
 import { InformationEnvoisProprietaire } from "@/components/information-envois-proprietaire";
@@ -38,10 +40,7 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
     chargerPilotageProprietaire(supabase, orgId, aujourdHui),
     chargerVerificationsProprietaire(supabase, orgId, { userId, portefeuille: null, avecPaliers: true }),
     chargerTachesConsommations(supabase, orgId, base, aujourdHui),
-    (async () => {
-      try { return await supabase.rpc("quittancement_mois", { p_org: orgId, p_mois: `${aujourdHui.slice(0, 7)}-01` }); }
-      catch { return { data: null, error: true }; }
-    })(),
+    lireEcheancesMensuelles(supabase, orgId, aujourdHui.slice(0, 7)),
   ]);
   const { erreurs, lectureLoyers, verifications } = lectureVerifications;
   const { actions, rappels } = verifications;
@@ -54,10 +53,8 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
     : a.href?.startsWith(`${base}/incidents?`) ? "Ouvrir l’incident" : "Traiter";
   const { patrimoine, reglages, diagnostics } = pilotage;
   const envoisOuverts = await lireEnvoisProposes(supabase);
-  const idsLots = new Set(patrimoine?.lots.map(l => l.id) ?? []);
-  const loyersMois = patrimoine && !echeances.error && Array.isArray(echeances.data)
-    ? resumerLoyersParcMois((echeances.data as { lot_id: string; montant_du: number | string; montant_couvert: number | string }[]).filter(l => idsLots.has(l.lot_id))) : null;
-  const pourcentage = loyersMois && loyersMois.attendu > 0 ? Math.min(100, Math.round(loyersMois.encaisse / loyersMois.attendu * 100)) : null;
+  const loyersMois = echeances ? ventilerLoyers(echeances) : null;
+  const pourcentage = loyersMois && loyersMois.attendu > 0 ? Math.min(100, Math.round((1 - loyersMois.resteDu / loyersMois.attendu) * 100)) : null;
   const nomsLots = new Map(patrimoine?.lots.map(lot => [lot.id, lot.nom]) ?? []);
   const contexteAction = (action: ActionDuJour) => action.source === "alerte" && typeof action.alerte.details?.lot_id === "string"
     ? nomsLots.get(action.alerte.details.lot_id) : null;
@@ -133,14 +130,14 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
       prioritesPresentes={false} chambresSansBail={patrimoine?.chambresSansBail ?? 0} />}
 
     {!compteNeuf && <section className={styles.indicateurs} aria-label="Votre patrimoine en bref">
-      <Link href={`${base}/loyers`} className={styles.indicateur}>
+      <div className={styles.indicateur}>
         <span><Banknote size={22} aria-hidden="true"/>Loyers du mois</span>
         <small>Échéances {deElide(nomMois)}</small>
-        <div className={styles.montantLoyer}><strong>{loyersMois ? <ValeurVivante valeur={loyersMois.encaisse}>{eur(loyersMois.encaisse)}</ValeurVivante> : "—"}</strong>{loyersMois && loyersMois.attendu > 0 && <em>sur {eur(loyersMois.attendu)}</em>}</div>
+        {loyersMois && <MontantsDuLoyer montants={loyersMois} compact />}
         {pourcentage !== null ? <div className={styles.progressionLoyer}><span role="progressbar" aria-label={`Part des échéances couvertes en ${nomMois}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pourcentage}><i style={{width:`${pourcentage}%`}}/></span><small>{pourcentage} %</small></div> : <small>{loyersMois ? "Aucun loyer attendu ce mois-ci" : "Montants indisponibles"}</small>}
         <small>{pilotage.encaisse === null ? "Encaissements du mois indisponibles" : `${eur(pilotage.encaisse)} reçus en ${nomMois}, toutes échéances confondues`}</small>
-        <ArrowRight size={18} className={styles.flecheIndicateur} aria-hidden="true"/>
-      </Link>
+        <Link href={loyersMois?.attendu ? `${base}/loyers?detail=1#detail-total-loyers` : `${base}/loyers`} className="inline-flex min-h-11 items-center gap-2 text-sm underline">{loyersMois?.attendu ? "D’où vient ce total ?" : "Voir les finances"}<ArrowRight size={16} aria-hidden="true" /></Link>
+      </div>
       <Link href={`${base}/parc`} className={styles.indicateur}>
         <span><Building2 size={18} aria-hidden="true" />Patrimoine</span>
         <strong>{patrimoine ? <ValeurVivante valeur={patrimoine.biens}>{`${patrimoine.biens} bien${patrimoine.biens > 1 ? "s" : ""}`}</ValeurVivante> : "—"}</strong>

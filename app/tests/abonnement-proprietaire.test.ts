@@ -409,6 +409,24 @@ describe("relecture adverse du 24/10 (I2) : après une résiliation pour impayé
     const sansBien = await rendre();
     expect(sansBien).toContain("Aucun bien actif à facturer");
     expect(sansBien).not.toContain("Souscrivez de nouveau ci-dessous");
+    // Écriture fermée : l'ajout d'un bien serait refusé, aucun bouton ne le propose.
+    expect(sansBien).not.toContain("Ajouter mon premier bien");
+  });
+  it("ouverture de la vente du 27/11 : un espace en essai sans bien propose d'ajouter le premier bien", async () => {
+    mocks.stripePret = true;
+    mocks.venteSansMediateurLe = "2099-10-01T07:32:22Z";
+    etat.unites_a_couvrir = 0;
+    const html = await rendre();
+    expect(html).toContain("Aucun bien actif à facturer");
+    expect(html).toContain("Ajouter mon premier bien");
+    expect(html).toContain("/agence/org-test/parc/nouveau");
+    expect(html).not.toContain("Continuer vers le paiement sécurisé");
+  });
+  it("ouverture de la vente du 27/11 : la vente fermée, un espace en essai sans bien propose aussi d'ajouter le premier bien", async () => {
+    etat.unites_a_couvrir = 0;
+    const html = await rendre();
+    expect(html).toContain("Aucun bien actif à facturer");
+    expect(html).toContain("Ajouter mon premier bien");
   });
   it("un abonnement encore en cours garde le texte de l'impayé (tout rouvre au paiement)", async () => {
     abonner({ paiement_en_retard: true, paye: false });

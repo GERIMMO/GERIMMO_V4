@@ -164,6 +164,25 @@ function AcceptationConditions({ estAgence, onAcceptee }: { estAgence: boolean; 
   );
 }
 
+/**
+ * Ouverture de la vente du 27/11/2026 : un espace de particulier sans bien n'a rien à facturer, donc pas de bouton de
+ * paiement. Le dirigeant, en essayant la souscription, n'a pas trouvé quoi faire : on propose le geste qui débloque
+ * (ajouter le premier bien). Pas de bouton si l'écriture est fermée (essai terminé, compte suspendu) : l'ajout serait
+ * refusé.
+ */
+function AucunBienAFacturer({ base, ferme }: { base: string; ferme: boolean }) {
+  return (
+    <div className="space-y-3">
+      <p>Aucun bien actif à facturer. Le montant sera indiqué dès l’ajout de votre premier logement.</p>
+      {!ferme && (
+        <p>
+          <Link href={`${base}/parc/nouveau`} className="btn-or">Ajouter mon premier bien</Link>
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function FormulaireSouscription({
   orgId,
   publicTarif,
@@ -242,7 +261,7 @@ export function FormulaireSouscription({
           </div>)}
         </dl>
         <p className="text-sm text-muted-foreground">{montantsOffre(choisie, regime).mention} Aucun abonnement ni prélèvement ne démarre automatiquement.</p>
-      </div> : <p>Aucun bien actif à facturer. Le montant sera indiqué dès l’ajout de votre premier logement.</p>}
+      </div> : <AucunBienAFacturer base={base} ferme={ferme} />}
       <details className={styles.precisions}>
         <summary>Conditions et détails du contrat</summary>
         <p>Ces tarifs ne constituent pas une commande. Vous pourrez choisir volontairement votre abonnement lorsque la souscription sera disponible.</p>
@@ -251,7 +270,7 @@ export function FormulaireSouscription({
     </div>
   );
 
-  if (!estAgence && unites === 0) return <p>Aucun bien actif à facturer. Le montant sera indiqué dès l’ajout de votre premier logement.</p>;
+  if (!estAgence && unites === 0) return <AucunBienAFacturer base={base} ferme={ferme} />;
   // G-25 (recette du 11/11/2026) : l'envoi quitte Gerimmo pour la page de paiement (redirection serveur) avant que
   // l'envoi puisse être « confirmé » ; la périodicité choisie déclenchait alors « Quitter le site ? » et « Rester »
   // bloquait la souscription. Rien n'est perdu en partant (deux choix, aucune saisie libre) : formulaire non suivi.

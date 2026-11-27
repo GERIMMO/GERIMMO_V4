@@ -150,7 +150,43 @@ export async function restaurerControleSession(cible, attendu) {
   return { present: true, reglage: 'vérifié' };
 }
 
-export async function restaurerArchive({ dossier, prefixe, cle, destination }) {
+export async function verifierDossiersRestaures(cible, dateSauvegarde) {
+  const migration = '20261125154000';
+  if (!(Date.parse(dateSauvegarde) > Date.parse('2026-11-25T22:09:59Z'))) {
+    throw new Error('Copie antérieure à la fin des migrations du 25 novembre, ou sans date valide.');
+  }
+  const { rows: [bilan] } = await cible.query(`
+    with dossiers as (
+      select b.id, b.organization_id, b.document_signe
+      from public.baux b
+      join public.lots l on (l.id, l.organization_id) = (b.lot_id, b.organization_id)
+      join public.biens i on (i.id, i.organization_id) = (l.bien_id, l.organization_id)
+    ), pieces as (
+      select b.id as bail_id, d.storage_path
+      from dossiers b
+      join public.documents d on d.organization_id = b.organization_id
+        and d.purged_at is null and (
+          d.id = b.document_signe or exists (
+            select 1 from public.document_liens dl where dl.document_id = d.id
+              and dl.organization_id = b.organization_id and dl.entite = 'bail' and dl.entite_id = b.id
+          ))
+    )
+    select exists (select 1 from supabase_migrations.schema_migrations where version = $1) as migration_presente,
+      (select count(*)::int from dossiers) as dossiers,
+      count(distinct p.bail_id) filter (where o.id is not null)::int as dossiers_avec_piece,
+      count(*) filter (where o.id is null)::int as pieces_manquantes
+    from pieces p
+    left join storage.objects o on o.bucket_id = 'documents' and o.name = p.storage_path
+  `, [migration]);
+  const { migration_presente, dossiers, dossiers_avec_piece, pieces_manquantes } = bilan;
+  if (!migration_presente) throw new Error('La dernière migration du 25 novembre manque dans la copie.');
+  if (pieces_manquantes || !dossiers_avec_piece) {
+    throw new Error('Une pièce manque ou aucun dossier avec une pièce restaurée ne peut être démontré.');
+  }
+  return { migration, dossiers, dossiers_avec_piece, pieces_manquantes };
+}
+
+export async function restaurerArchive({ dossier, prefixe, cle, destination, verifierDossiers = false }) {
   verifierPrefixe(prefixe);
   const url = verifierDestination(destination);
   const base = url.pathname.slice(1);
@@ -233,7 +269,8 @@ export async function restaurerArchive({ dossier, prefixe, cle, destination }) {
       const taches = JSON.parse(await fs.readFile(path.join(travail, 'base', FICHIER_TACHES_CLAIR), 'utf8')).taches;
       tachesPlanifiees = await verifierRejeuTaches(cible, taches);
     }
-    return { reussi: true, controle_session: controleSession, date: new Date().toISOString(), sauvegarde: prefixe, date_sauvegarde: infoBase.date,
+    const dossiersRestaures = verifierDossiers ? await verifierDossiersRestaures(cible, infoBase.date) : undefined;
+    return { reussi: true, dossiers_restaures: dossiersRestaures, controle_session: controleSession, date: new Date().toISOString(), sauvegarde: prefixe, date_sauvegarde: infoBase.date,
       tables: tables.length, lignes, fichiers: manifeste.objets.length, fichiers_manquants: manquants,
       octets_base: infoBase.octets, protections: 'validées', historique_migrations: historiqueMigrations, support_interne: supportInterne, consommations_interne: consommationsInterne, taches_planifiees: tachesPlanifiees, duree_secondes: Math.ceil((Date.now() - debut) / 1000),
       portee: 'Base PostgreSQL et fichiers restaurés localement ; bascule des services Supabase non effectuée. Tâches pg_cron : liste et script de rejeu contrôlés sur un planificateur de façade ; pg_cron et pg_net non activés.' };
@@ -248,6 +285,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   try {
     const [dossier, prefixe, rapport] = process.argv.slice(2);
     const bilan = await restaurerArchive({ dossier, prefixe, cle: lireCle(process.env.GERIMMO_BACKUP_KEY),
+      verifierDossiers: process.env.GERIMMO_RESTORE_VERIFIER_DOSSIERS === 'true',
       destination: process.env.GERIMMO_RESTORE_URL ?? `postgres://postgres:gerimmo-reprise@127.0.0.1:5432/gerimmo_restauration_${randomBytes(6).toString('hex')}` });
     if (rapport) await fs.writeFile(rapport, JSON.stringify(bilan, null, 2));
     console.log(JSON.stringify(bilan));

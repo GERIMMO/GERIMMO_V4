@@ -22,6 +22,7 @@ concurrency:
 jobs:
   recette:
     if: github.ref == 'refs/heads/main'
+    environment: gerimmo-donnees
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     defaults:

@@ -2,6 +2,11 @@ name: Vérifier la restauration de la sauvegarde réelle
 
 on:
   workflow_dispatch:
+    inputs:
+      verifier_dossiers:
+        description: Vérifier les dossiers et pièces après les migrations du 25 novembre
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -61,6 +66,7 @@ jobs:
       - name: Restaurer la base et les fichiers dans le banc jetable
         env:
           GERIMMO_BACKUP_KEY: ${{ secrets.GERIMMO_BACKUP_KEY }}
+          GERIMMO_RESTORE_VERIFIER_DOSSIERS: ${{ inputs.verifier_dossiers }}
         run: node app/scripts/sauvegarde/restaurer-archive.mjs "$RUNNER_TEMP/restauration-archives" "$JOUR" "$RUNNER_TEMP/bilan-restauration.json"
       - name: Conserver seulement le bilan sans données personnelles
         uses: actions/upload-artifact@v7

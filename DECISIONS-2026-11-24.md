@@ -156,3 +156,18 @@ mot pour mot :
   Gerimmo. ME RENDRE RICHE !! » → [[Feuille de route — plateforme de référence, 26 novembre 2026]] et
   [[Vision de l'écosystème Gerimmo]] (brouillons à valider). Aucun interdit levé.
 - **Lot 1, approbation de la publication, 27/11 (matin)** : réponse mot pour mot : « C'est approuvé ». GitHub montre l'approbation du déploiement `gerimmo-production` par le compte `GERIMMO` (publication contrôlée n° 45911337396, contrôle lancé à 06:16:49Z). Suite donnée : `publiee_verifiee` à 06:17Z, contrôles depuis une autre adresse, recette de production n° 63 (`JOURNAL.md`, 27/11).
+
+## Réponses du 27/11 — session « Discussion Gerimmo »
+
+- **Ménage et PR documentaire** : « tout oui, 6 A » (26/11) puis « On peux réduire la pr ? Je veux faire le ménage et
+  garder une seule vraie et bonne vision » → PR [#362](https://github.com/GERIMMO/GERIMMO_V4/pull/362) réduite (preuves
+  d'audit laissées sur `claude/audit-final-pr335`) et une seule page de vision.
+- **Fusion de la PR 362**, texte reçu mot pour mot : « Fusionne, ouverture lundi 7h, j'ai l'accord de l'employeur » →
+  CI n° 45954398579 verte sans reprise sur `29eefe25`, fusion squash dans `main` (`c0f84a61`). Documentation seule :
+  aucune publication nécessaire.
+- **Ouverture de la vente avancée à aujourd'hui**, texte reçu mot pour mot : « Il ne faut pas attendre lundi, il faut
+  lancer aujourd'hui et corriger si besoin ce weekend !! » → ouverture le vendredi 27/11. Recette de production n° 63
+  (run 45950975860) réussie le 27/11 à 06:27Z sur la version en ligne `c3e2ba6` ; aucune erreur d'exécution Vercel sur
+  12 h. Gestes R7 (Stripe), R6 (vente sans médiateur) et R8 (ouvrir les souscriptions) : faits par le dirigeant ou par
+  Codex dans son navigateur déjà connecté (« fais un prompt pour que codex fasse etapes 1 et 2 et 3 »), jamais par cet
+  agent, sans aucun mot de passe transmis. Souscription d'essai (étape 4) : par le dirigeant.

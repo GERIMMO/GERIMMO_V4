@@ -8433,3 +8433,27 @@ cahier V3 et le wiki (sans autre document). La décision la plus récente l'empo
 - Santé et pages publiques relues par le connecteur Vercel : `/api/sante` sert `c3e2ba6` ; confidentialité (date du 26/11, phrase « conservées 24 mois après leur dernier traitement ») et outil de quittance (champs vides) en ligne ; 0 erreur Vercel depuis 06:16Z (relevé de 06:28Z).
 - Recette de production n° 63 (n° 45950975860) : réussie, de 06:18Z à 06:28Z : 68 parcours au premier essai, purge vérifiée.
 - Pages touchées : [[Passation — état du 26 novembre 2026]], [[Révision annuelle IRL]], `index.md` (note de passation ajoutée au catalogue ; entrée [[Révision annuelle IRL]] complétée) ; `QUESTIONS.md` (Q72, Q89, Q123), `DECISIONS-2026-11-24.md`, `JOURNAL.md`.
+
+## [2026-11-27] decision | Fusion de la PR documentaire n° 362 et ouverture de la vente avancée au 27/11
+- PR #362 (documentation seule) fusionnée en squash dans `main` (`c0f84a61`) sur l'accord écrit du dirigeant
+  (« Fusionne »), après la CI n° 45954398579 verte sans reprise sur `29eefe25`. Aucun code ni migration : pas de
+  publication contrôlée.
+- Ouverture de la vente avancée au 27/11 (« Il ne faut pas attendre lundi, il faut lancer aujourd'hui… »). Contrôles
+  faits avant : recette de production n° 63 réussie le 27/11 sur `c3e2ba6`, aucune erreur Vercel sur 12 h ; réglages en
+  base (lecture seule) : vendeur « entrepreneur_individuel », souscriptions fermées, vente sans médiateur non décidée,
+  aucun médiateur saisi. Gestes R7, R6, R8 confiés au dirigeant (ou à Codex dans son navigateur connecté, sans mot de
+  passe transmis). Le rappel du lundi 30/11 est supprimé.
+
+## [2026-11-27] deploy | Vente ouverte aux particuliers et aux SCI (essai réel de bout en bout réussi)
+- Gestes du dirigeant, faits dans son navigateur connecté (Stripe et console) : R7 (en-tête des factures Stripe ; non
+  vérifiable depuis l'agent), R6 « Ouvrir la vente aux particuliers sans médiateur » (décision datée en base le 27/11 à
+  07:32:22Z), R8 « Ouvrir les souscriptions ». Vérifié en base, en lecture seule : souscriptions ouvertes, vente sans
+  médiateur décidée, vendeur « entrepreneur_individuel », règle d'identité toujours active, deux changements seulement
+  (révision 6 → 8).
+- Essai réel du dirigeant : inscription d'un espace propriétaire (07:42Z), un bien ajouté, souscription mensuelle d'un
+  bien à 5,99 € (abonnement Stripe réel « trialing », premier prélèvement prévu le 27/01/2027), courriel de confirmation
+  livré (07:52Z) ; puis rétractation en ligne (07:56Z) : abonnement annulé aussitôt, rien à rembourser (0 €, aucun
+  prélèvement), accusé de rétractation livré. Aucune erreur enregistrée sur l'abonnement.
+- Constat d'ergonomie : un espace sans bien affiche « Aucun bien actif à facturer » sans bouton pour ajouter le premier
+  bien ; le dirigeant n'a pas trouvé où payer. Correction proposée pour le week-end (bouton « Ajouter mon premier bien »).
+- Reste conseillé : vérifier un vrai prélèvement fin décembre (conseil COM-2), depuis un espace dont l'essai se termine.

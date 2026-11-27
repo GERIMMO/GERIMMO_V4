@@ -8468,3 +8468,21 @@ cahier V3 et le wiki (sans autre document). La décision la plus récente l'empo
   `dpl_2hJQ9ah5eJgW9iDpSCzXU7cm4op7` ; publication contrôlée n° 45979001326 réussie (10:08Z) après l'approbation du
   dirigeant. `/api/sante` : commit `77e33d7`, base OK, pas de maintenance. Aucune erreur d'exécution Vercel.
 - Recette de production n° 64 (run 45981483593) réussie, de 10:22Z à 10:34Z, purge comprise. Aucune migration.
+
+## [2026-11-27] decision | Mission 1 de l'audit (Finances) : PR #364 fusionnée, publication en attente
+
+- **Missions Codex** : `livrables/MISSIONS-CODEX-2026-11-27.md` relie chaque mission aux 33 constats du rapport de Codex
+  (branche `codex/audit-produit-20261127`, `fcd41794`). Missions 9 à 12 ajoutées pour les constats « hors missions »
+  (locataire, fiscalité et baux types, console de direction, import/export). Page mobile avec un bouton « Copier » par
+  mission (artefact privé « Missions Codex Gerimmo »).
+- **PR #364** (AUD-008, AUD-009, AUD-010) : un même calcul en centimes (`ventilerLoyers`) pour l'accueil, Finances, la
+  fiche du bail, le PDF et le CSV : attendu, reçu, compensé (masqué à zéro), reste dû ; « Versé d'avance » sur la fiche du
+  bail ; filtre Patrimoine lisible à 390 px ; compteur « N tâches dans vos logements » ; « D'où vient ce total ? ».
+  - Relecture 1 (Claude) et relecture 2 (indépendante) : calcul juste, pas de double comptage, export réservé à
+    l'espace propriétaire et neutralisé contre les formules. Trois corrections demandées puis faites : tests de recette
+    de production D04/D05 adaptés (plus stricts), avance du locataire rétablie, loyers à rattacher signalés dans les
+    exports.
+  - Reste mineur, pour une prochaine mission : la page « Biens » exclut encore le loyer d'un bail actif sur un bien
+    archivé ; un montant illisible d'un loyer à rattacher s'afficherait « NaN € ».
+  - Fusion autorisée (« Fusionne ») : `main` `8f2e6178`. Publication : en attente de l'accord du dirigeant.
+- Voir [[Décisions du dirigeant]].

@@ -175,3 +175,11 @@ mot pour mot :
   « écrivez-moi « Publie le bouton » ») → PR [#363](https://github.com/GERIMMO/GERIMMO_V4/pull/363) fusionnée
   (`77e33d70`) après CI verte sans reprise, publication contrôlée après l'approbation GitHub du dirigeant
   (« Fais », 27/11).
+- **Avoirs imputés à une échéance : pas maintenant, 27/11.** Question de Codex dans la PR #364 (« Autorisez-vous à
+  enregistrer une imputation d'avoir à une échéance avec justificatif… ? »). Réponse transmise par le dirigeant à Codex,
+  sur la recommandation de Claude : pas d'enregistrement d'avoir pour l'instant, mission à part avec la régularisation
+  annuelle des charges ; aucune migration ; la ligne « Compensé » ne s'affiche que si elle n'est pas nulle.
+- **Fusion de la mission 1 (Finances), 27/11**, texte reçu mot pour mot : « Fusionne » → PR
+  [#364](https://github.com/GERIMMO/GERIMMO_V4/pull/364) fusionnée en squash (`main` `8f2e6178`) après deux relectures
+  et la CI n° 46068873262 verte sans reprise sur `48f84a6e`. **Publication non autorisée à ce stade** (la demande
+  « Fusionne et publie » n'a reçu que « Fusionne »).

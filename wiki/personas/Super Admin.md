@@ -3,8 +3,8 @@ type: persona
 tags: [role, plateforme]
 status: in-progress
 created: 2026-07-21
-updated: 2026-10-24
-sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Équipes IA et automatismes — inventaire et propositions (14 octobre 2026)]]", "[[Fiches des anomalies P3 — audit du 13 octobre 2026]]", "[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-12-documents-et-ged]]", "[[2026-07-24-gerimmo-v3-module-18-administration]]", "[[2026-07-24-gerimmo-v3-module-20-retours-utilisateurs]]", "[[2026-07-24-gerimmo-v3-a4-socle-securite]]", "[[2026-09-28-decision-tarification]]", "[[2026-09-28-reseau-national-ouvertures-locales]]"]
+updated: 2026-11-26
+sources: ["[[Grille tarifaire]]", "[[Abonnement]]", "[[Vision de l'écosystème Gerimmo]]", "[[Référentiel du palier 1]] (R-SA-01, R-SA-02, C-42)", "log.md — entrée « decision » du 25/09/2026 (« Supervision : pas d'emprunt d'identité, une fiche de débogage par compte »)", "app/src/lib/tarifs.ts (lu le 26/11/2026)", "app/supabase/migrations/20260925150000_dossier_compte_supervision.sql", "app/supabase/migrations/20260919170000_session_supervision_artisan.sql", "app/supabase/migrations/20261012222100_diagnostic_artisan_lecture.sql", "app/src/app/actions/session-artisan.ts", "app/supabase/migrations/20261111151500_abonnement_unique_fondateurs.sql", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Équipes IA et automatismes — inventaire et propositions (14 octobre 2026)]]", "[[Fiches des anomalies P3 — audit du 13 octobre 2026]]", "[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-12-documents-et-ged]]", "[[2026-07-24-gerimmo-v3-module-18-administration]]", "[[2026-07-24-gerimmo-v3-module-20-retours-utilisateurs]]", "[[2026-07-24-gerimmo-v3-a4-socle-securite]]", "[[2026-09-28-decision-tarification]]", "[[2026-09-28-reseau-national-ouvertures-locales]]"]
 ---
 
 # Super Admin
@@ -23,11 +23,30 @@ Fonction SQL `is_super_admin()` qui court-circuite quasi toutes les policies RLS
 ## Responsabilités / activités
 - Gestion des agences, propriétaires, artisans ; **validation des artisans** (réservée).
 - Imports de biens/utilisateurs ; statistiques (croissance, acquisition, rétention).
-- Support (bugs, idées), communication (articles, alertes), système (bots, sécurité,
-  journal d'audit, centre IA).
-- Supervision/**impersonation de tous les types de personas** (précision humaine, 2026-07-22) :
+- Support (bugs, idées), communication (articles, alertes), système (sécurité,
+  journal d'audit, centre IA). ~~Bots~~ : prévus par le référentiel V3, **aucun bot n'est construit** (aucun code
+  Telegram ni WhatsApp dans `app/src`, recherche du 26/11/2026 ; [[Vision de l'écosystème Gerimmo]], section 11).
+- **Supervision sans emprunt d'identité** (décision du dirigeant du **25/09/2026**, `log.md`) : à la question du
+  « voir comme », il répond « je ne veux pas me faire passer pour l'utilisateur, je veux être le super admin, que
+  toutes les actions soient enregistrées, je veux juste pouvoir déboguer au besoin ». Il garde donc **sa propre
+  identité partout** : il lit toutes les tables, entre dans tout espace (entrée **journalisée**) et ses écritures sont
+  faites **à son nom** (règles R-SA-01 et R-SA-02 du [[Référentiel du palier 1]]). Ce que fait le code (vérifié le
+  26/11/2026) :
+  - **fiche de débogage d'un compte** (`/admin/comptes/[accountId]`, RPC `dossier_compte_supervision`, migration
+    `20260925150000`) : état de connexion et second facteur, rôles et espaces, fiches locataire et artisan, journaux ;
+  - **entrée dans un espace** (agence, propriétaire) avec son propre compte : la base le laisse passer
+    (`is_super_admin()`), et chaque traversée écrit une ligne au journal d'audit (voir la décision du 09/09 plus bas) ;
+  - **espace artisan** : « session de supervision » ouverte par `ouvrir_session_artisan`, réservée au superviseur
+    permanent en double vérification, **motif obligatoire**, **30 minutes**, **lecture seule** depuis le 12/10/2026
+    (migration `20261012222100`, « SA005 : diagnostic motivé, lecture seule ») : toute écriture est refusée pendant la
+    session, ouverture et fermeture inscrites au journal avec l'auteur réel. Aucun jeton n'est émis au nom de
+    l'artisan (migration `20260919170000`).
+  - Aucune fonction d'emprunt d'identité n'est active : pas de connexion au nom d'un utilisateur, pas de jeton forgé
+    pour lui ; les liens `generateLink` du code servent seulement à l'inscription et au mot de passe oublié, envoyés à
+    l'adresse de la personne (`app/src/lib/lien-mot-de-passe.ts`).
+- ~~Supervision/**impersonation de tous les types de personas** (précision humaine, 2026-07-22) :
   il peut se mettre à la place d'une agence, d'un [[Propriétaire bailleur]], d'un [[Artisan]],
-  d'un [[Locataire]] — de n'importe quel persona (console dédiée `/admin/*`).
+  d'un [[Locataire]] — de n'importe quel persona (console dédiée `/admin/*`).~~ — **supplanté le 25/09/2026** (ci-dessus).
 
 ## Import en masse du parc (référentiel V3 — parcours 0.12)
 « **Parcours décisif commercialement** : aucune agence ne migre si elle doit ressaisir
@@ -48,16 +67,23 @@ Fonction SQL `is_super_admin()` qui court-circuite quasi toutes les policies RLS
 ## Administration V3 (module 18)
 - **Console de supervision unique** : indicateurs (agences actives/essai/suspendues,
   lots gérés = base de facturation, volumes) et **six files d'attente** (demandes de
-  modèles, contestations de notes, modèles WhatsApp, bugs, correctifs, idées).
+  modèles, contestations de notes, modèles WhatsApp, bugs, correctifs, idées). *Cible V3 : WhatsApp n'est pas
+  construit (C-38 du [[Référentiel du palier 1]]), il n'y a donc pas de modèles WhatsApp à traiter.*
 - **Facturation (18.6)** : comptage automatique des lots sous mandat au dernier jour
   du mois → Stripe prélève et facture ; échec → relance puis **suspension en lecture
   seule** (export toujours possible), résiliation → **archivage jamais suppression**,
   réactivation par lui seul. *Le modèle V3 « paliers + mise en route + mensuel +
-  redevance annuelle » est **supplanté le 28/09/2026*** : particuliers Solo /
-  Bailleur / Investisseur / Patrimoine (5,99 € à 29,99 € TTC/mois, annuel à deux
-  mois offerts), agences 39 € HT jusqu'à 10 lots puis tranches cumulatives, aucun
-  bien offert, essai de 2 mois (depuis le 30/09/2026 ; 14 jours avant) puis gel en lecture seule, franchise en base de TVA —
-  voir [[Grille tarifaire]], [[Abonnement]], [[2026-09-28-decision-tarification]].
+  redevance annuelle » est supplanté.* **Grille appliquée par le code au 26/11/2026** (`app/src/lib/tarifs.ts`) :
+  **abonnement unique** pour les particuliers et les SCI depuis le 11/11/2026 (`montantAbonnementUnique`, prix selon
+  le nombre de biens actifs) ; agences **49 € HT jusqu'à 10 lots, puis 4,90 € par lot**, grille non publiée ; essai de
+  **2 mois** sans échéance (conditions du 15/11/2026) puis gel en lecture seule ; franchise en base de TVA. Les
+  prix et exemples ne sont tenus que dans [[Grille tarifaire]] ; voir aussi [[Abonnement]].
+  ~~Grille du 28/09/2026 : Solo / Bailleur / Investisseur / Patrimoine (5,99 € à 29,99 € TTC/mois), agences 39 € HT
+  jusqu'à 10 lots puis tranches cumulatives, essai de 2 mois jusqu'au 31/12/2026 puis 1 mois~~ — supplantée le
+  11/11/2026 (grille) et le 15/11/2026 (essai) ; historique dans [[2026-09-28-decision-tarification]].
+- **Avantage « fondateur »** (migration `20261111151500`) : depuis la fiche d'un propriétaire **en essai et sans
+  souscription**, il peut porter son accès à **6 mois** ; **10 places au plus** ; double vérification exigée, geste
+  inscrit au journal d'audit.
 - **Réseau d'artisans** : du 28/09/2026 à la mise en production de la migration
   `20261023180000` (23/10/2026, vers 20 h 25 UTC), il ouvre et ferme le réseau **commune × métier** dans Supervision →
   Couverture (`/admin/couverture`) et rattache les artisans aux communes. **Décision du
@@ -110,6 +136,17 @@ agence/une table sur demande — [[Plan de reprise d'activité]]).
 > [!warning] Points à trancher / contradictions
 > - `docs/02-roles-permissions.md` liste des rôles fictifs (Gestionnaire, Collaborateur,
 >   Lecteur…) absents du code. La vérité = 6 rôles du `seed.sql`.
+> - **26/11/2026 — C-42 corrigé** : la page gardait la « précision » du 22/07 (se mettre à la place de tout
+>   utilisateur) ; elle suit désormais la décision du 25/09 (pas d'emprunt d'identité, tout est journalisé). Reste
+>   ouvert : la décision du 09/09 lui donne **les pleins pouvoirs d'écriture** dans chaque espace, sous son nom ; le
+>   cahier V3 (A4) voulait le régime le plus strict. Le [[Référentiel du palier 1]] tient C-42 pour réglé par la
+>   décision du 25/09 (« Reste à trancher ? » : non) ; l'écart avec A4 sur les écritures n'a pas été reposé au
+>   dirigeant.
+> - **Lecture seule de la session artisan** : la garde refuse toute écriture sur les tables de `public` et sur le
+>   stockage pendant la session (migration `20261012222100`, reprise par les migrations qui créent des tables
+>   ensuite). Non vérifié table par table : que chaque table créée après le 12/10 porte bien cette garde.
+> - **Grille agences** : 49 € HT puis 4,90 € par lot dans le code (PR #281, 05/11/2026), sans décision du dirigeant
+>   écrite dans une page-source du wiki ([[Grille tarifaire]]).
 >
 
 ## Décision — super admin transverse (2026-09-09)

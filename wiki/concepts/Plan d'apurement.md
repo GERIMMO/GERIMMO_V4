@@ -3,15 +3,15 @@ type: concept
 tags: [impaye, loyer, relance, plan-apurement]
 status: in-progress
 created: 2026-11-02
-updated: 2026-11-02
-sources: ["[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[Audit complet du 29 septembre 2026]]"]
+updated: 2026-11-26
+sources: ["[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[Audit complet du 29 septembre 2026]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)"]
 ---
 
 # Plan d'apurement
 
 **Définition :** accord amiable entre le bailleur (ou son mandataire) et un [[Locataire]] en
 difficulté, qui **gèle une dette locative échue à une date** et l'étale en **tranches mensuelles**
-venant s'ajouter au loyer et aux charges courants. Il ne modifie ni le [[Bail de location|bail]] ni
+venant s'ajouter au loyer et aux charges courants. Il ne modifie ni le [[Bail|bail]] ni
 le loyer ; il suspend les relances tant qu'il est respecté (RM-3.6.6) sans que le bailleur renonce à
 ses droits ni à la clause résolutoire.
 
@@ -36,8 +36,8 @@ ses droits ni à la clause résolutoire.
   manquée (puis rattrapée « en retard »), plan en défaut, caduc, soldé.
 
 ## Relations
-- Concepts liés : [[Période de loyer]], [[Encaissement]], [[Relance]], [[Caution (garant)]].
-- Processus où il apparaît : [[Relances et mise en demeure]], [[Quittancement]].
+- Concepts liés : [[Période de loyer]], [[Encaissement]], [[Relances et mise en demeure]], [[Garantie]].
+- Processus où il apparaît : [[Relances et mise en demeure]], [[Quittancement des loyers]].
 - Règles associées : RM-3.6.6 (relances suspendues pendant le plan), RM-3.3.2 (imputation du plus
   ancien au plus récent, inchangée), RM-3.6.8 (la dette survit au bail).
 
@@ -59,3 +59,23 @@ ses droits ni à la clause résolutoire.
 >   non implémenté, la soutenabilité reste à l'appréciation du gérant.
 > - Rappel du locataire à J-3 de chaque tranche par e-mail : non implémenté (le plan est visible
 >   dans son espace).
+
+## État dans l'application au 24/11/2026 (préproduction le 24/11 ; en production depuis le 25/11/2026, version `062296e2`)
+
+Relu dans le code après les lots 39 et 44 de la phase 3 ([[Mission palier 1 — audit du 22 novembre 2026]] ;
+`QUESTIONS.md`, Q44 ; `JURISTE.md`, partie 5, point 7). Détail dans [[Relances et mise en demeure]].
+- **Relances** : pendant un plan actif **ou en défaut**, aucun écran ne propose de relance et aucun courrier de relance
+  ne se prépare ; une relance datée du jour de l'activation ou après ne s'enregistre pas. Pour relancer, on annule le
+  plan.
+- **Protocole** : il se produit seulement depuis un plan enregistré et vivant (proposé, actif ou en défaut), dont il
+  reprend la dette arrêtée, les tranches, la tolérance et le seuil de caducité ; il est daté à la signature et ne promet
+  que ce que Gerimmo applique (suspension « dès l'activation du plan, après l'accord du locataire, et jusqu'à sa fin »).
+
+> [!warning] Points à trancher / contradictions (24/11/2026)
+> - La définition ci-dessus dit que le plan suspend les relances « tant qu'il est respecté » (RM-3.6.6) : l'application
+>   les suspend aussi quand il est en défaut, jusqu'à sa caducité ou son annulation (Q44, point 1).
+> - Une relance envoyée avant l'activation peut encore être consignée (reprise du lot 44). Q44 (2) et `JOURNAL.md`,
+>   lot 39, disaient le contraire ; ils ont été rectifiés le 24/11 pour décrire le code. Reste à décider si l'on veut, au
+>   contraire, refuser tout enregistrement pendant un plan (Q44).
+> - La clause de caducité imprimée est-elle suffisante et opposable pour un accord amiable ? Faut-il mentionner les
+>   délais de paiement que le juge peut accorder ? (juriste, point 7).

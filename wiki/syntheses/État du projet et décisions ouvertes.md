@@ -1,199 +1,23 @@
 ---
 type: synthesis
-tags: [etat-projet, decisions, contradictions]
-status: in-progress
+tags: [etat-projet, decisions, renvoi]
+status: stable
 created: 2026-07-21
-updated: 2026-09-30
-sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-21-fonctionnalites-par-persona-v0]]", "[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]", "[[2026-07-24-gerimmo-v3-architecture-lot-0]]"]
+updated: 2026-11-27
+sources: ["[[Décisions du dirigeant]]", "[[Passation — état du 26 novembre 2026]]"]
 ---
 
 # État du projet et décisions ouvertes
 
-**Uniquement ce qui attend une décision.** L'historique des ingests est dans `log.md`
-et dans les pages `wiki/sources/` ; les écarts entre le code actuel et le référentiel
-V3 sont dans [[Divergences code et référentiel V3]].
+Page de renvoi depuis le ménage du 26/11/2026. Beaucoup de pages pointent encore ici. Pour savoir où en est le projet
+et ce qui attend une décision :
 
-État des sources (2026-07-25) : **toutes les sources sont ingérées**. Le référentiel
-est complet : 22 modules de parcours + 6 livrables transverses A1–A6 — **les six
-points bloquants P0 de l'audit ont chacun leur livrable**. (Le « Plan de livraison »
-de `raw/assets/` est **écarté** par décision humaine du 2026-07-25 — ne pas l'ingérer.)
-
-## A. Arbitrages attendus de l'humain
-
-> [!note] Séance d'arbitrage du 2026-07-25 — 9 points clos
-> Yousign phasé **V0 sans intégration / V1 Yousign** ([[Signature électronique]]) ·
-> **identité A1 validée** (sous vigilances — [[Compte, personne et adhésion]]) ·
-> **Telegram abandonné** ([[Canaux de communication]]) · fiscalité **2044 en V1,
-> autres régimes V2** ([[Fiscalité]]) · diagnostic expiré non bloquant sur lot loué
-> **confirmé** ([[Diagnostic]]) · **devis unique autorisé avec drapeau visible**
-> ([[Devis]]) · propriétaire client d'agence **maintenu désactivé** · **vue scindée
-> du bien** actée ([[Document]]) · résidus de conservation **fixés** (diagnostics
-> gestion + 5 ans, rapport d'import 3 ans, quittances locataire 10 ans). Détail dans
-> `log.md`.
-
-> [!note] Suite et fin de la séance — les 4 derniers points clos le 2026-07-25
-> **Tarification** : structure actée — PD **par bien**, agences **par paliers de
-> lots** ([[Grille tarifaire]]) · **Décompte de restitution** : deux vitesses —
-> intégrale = email + espace ; avec retenues = **alerte LRAR au gérant**, justificatif
-> déposé en GED avec date de première présentation
-> ([[Restitution du dépôt de garantie]]) · **Machine du lot** : le module 0 fait foi,
-> registre A5 à amender ([[Lot]]) · **P1.2 : NON** — le mandant reste en réception
-> pure, **l'audit est intégralement soldé** ([[Propriétaire bailleur]]).
-
-**Plus aucun arbitrage en attente** (2026-07-25). Dernier point clos : grille PD
-validée (1ᵉʳ bien gratuit, prix par bien révisé à **5,99 €/bien/mois** le
-2026-09-05 — remplace les 2,50 € du 25/07, sans mise en place) et grille agences
-actuelle conservée → [[Grille tarifaire]]. **Feu vert au développement.**
-
-> [!warning] 28/09/2026 — nouvelle grille : ce qui est tranché, ce qui reste
-> La grille ci-dessus est **supplantée** : formules particuliers Solo → Patrimoine,
-> agences par tranches cumulatives dès 39 € HT ([[2026-09-28-decision-tarification]],
-> [[Grille tarifaire]]).
->
-> **Tranché (28–29/09/2026)**
-> - 3 logements = 3 biens (chaque lot loué séparément compte).
-> - Plus de premier bien offert pour personne : essai sans carte (14 jours, porté à
->   **2 mois** le 30/09 pour tous, particuliers, SCI et agences — **offre de
->   lancement** jusqu'au 31/12/2026 inclus, puis **1 mois** à compter du
->   01/01/2027), puis
->   **gel en lecture seule** (consultable, exportable) jusqu'au paiement.
-> - Organisations existantes : bascule sur la nouvelle grille dès l'ajout d'un bien.
-> - Pas de cumul avec les anciennes promotions. [[Parrainage]] : sans avantage du
->   28/09 au 30/09 ; **30/09 : parrainage réactivé — 1 mois offert au parrain à la
->   conversion du filleul** (rien de plus pour le filleul).
-> - TVA : **franchise en base** (art. 293 B du CGI).
-> - Préavis de révision tarifaire : au moins un mois (CGU art. 8.9).
-> - Rétractation du consommateur : 14 jours, remboursement intégral, formulaire
->   type, non ouverte aux professionnels (CGU art. 8.10, 29/09).
-> - Préavis de modification des conditions : au moins un mois (CGU art. 16, 29/09).
-> - Portail client Stripe imposé par le code : résiliation en fin de période,
->   changement de formule désactivé.
->
-> **Reste à fournir par le porteur : l'identité de l'éditeur** (dans
-> `app/src/lib/editeur.ts`) — dénomination, siège, SIRET/RCS, e-mail de contact,
-> directeur de la publication, médiateur de la consommation. Le formulaire de
-> rétractation et les [[Mentions legales (projet)|mentions légales]] en dépendent.
-
-> [!note] Décision 2026-08-19 — exclusivité PD / PM assumée
-> **Une même personne ne peut pas être à la fois propriétaire gestion directe et
-> propriétaire mandant** (pas de parc mixte partiellement confié à une agence) :
-> angle mort **connu et accepté pour le moment**. Le passage de l'un à l'autre reste
-> la bascule d'adhésion du cas n°5 d'A1 ([[Compte, personne et adhésion]]) — détail
-> dans [[Propriétaire bailleur]].
-
-> [!note] Décision 2026-08-19 — arrivée du PD : auto-inscription en ligne
-> L'arbitrage rouvert le même jour (le module 16 ne décrivait que la création
-> d'agence par le super admin) est **clos** : le propriétaire gestion directe
-> **s'inscrit seul en ligne** — page d'inscription publique, création de son compte
-> et de son organisation `independent_owner`, essai 14 jours, puis abonnement par
-> bien via Stripe ([[Grille tarifaire]]). Pas de circuit commercial ni de super
-> admin dans la boucle pour la voie normale — mais le **super admin peut créer
-> manuellement tout profil, PD compris** (voie de secours/support, précision du
-> même jour). **Priorisation actée dans la foulée** : le S9 est scindé —
-> **sprint 9a dédié au PD** (auto-inscription remontée du S11 + espace complet),
-> puis 9b administration/transverses ; le paiement Stripe reste au S11 →
-> [[Onboarding et abonnement]].
-
-**Plus aucun arbitrage en attente** (2026-08-19).
-
-> [!note] Décision 2026-08-21 — S7 incidents : le référentiel prime sur la maquette (4 points)
-> Au développement du module incidents (branche `sprint7-incidents`), quatre
-> écarts maquette/référentiel soumis et tranchés **en faveur du référentiel** :
-> qualification sans proposition automatique (RM-7.2.1 confirmée), locataire
-> informé de l'imputation **après** la décision de l'agent (RM-7.2.4),
-> description obligatoire à la déclaration (l'assouplissement RM-19.2.2
-> attendra le S13 mobile), imputations du module 7 — la « copro » du plan de
-> livraison est caduque, les parties communes se clôturent « transmis au
-> syndic » (RM-7.1.4). Détail : [[Coherence maquette-application]],
-> [[Cycle de vie d'un incident]].
-
-**Plus aucun arbitrage en attente** (2026-08-21).
-
-> [!note] Décisions 2026-09-04 — ingest de la maquette v3 (3 points tranchés)
-> À l'ingest de la [[2026-09-04-maquette-v3-prototype|maquette v3]] :
-> **pivot artisan assumé** — la conformité (RC pro, décennale) devient un
-> service de la plateforme : auto-inscription, validation par le
-> [[Super Admin]], vigilance retirée à l'agence (remplace les règles S7 du
-> 21/08 sur ce point, détail dans [[Artisan]]) · **exclusivité PD/PM
-> maintenue** (le cumul d'Hélène Rouvier dans la démo v3 n'est qu'une facilité
-> de maquette ; le multi-organisations nom propre + SCI reste prévu côté PD) ·
-> **intégration démarrée par T1 + T2** (visuel & périmètre agent, EDL de
-> sortie guidé) selon le découpage de la page source. Restent ouverts en
-> l'état : natures de bail réduites à 4, fiscalité ventilée SCI/indivision
-> (au-delà de la décision « 2044 en V1 »), Yousign (V1) et WhatsApp (canal
-> non construit) — traités tranche par tranche.
-
-> [!note] Décision 2026-09-04 (soir) — les deux derniers points v3, sur carte blanche
-> Tahir donne carte blanche « au plus cohérent » : **natures de bail** — la V0
-> s'en tient au module 1 (nu, meublé, colocation bail unique, déjà l'offre de
-> l'application) ; la colocation à contrats séparés attend la V1 (elle
-> contredit « un seul bail actif par lot ») → [[Types de baux]].
-> **Fiscalité PD** — le phasage du 25/07 tient : la ventilation par quote-part
-> (indivision, SCI à l'IR) est une présentation de la 2044 et rejoint T6 ; le
-> simulateur LMNP et le champ BIC restent V2 → [[Fiscalité]].
-
-> [!note] Décision 2026-09-10 — périmètre de la vision
-> L'énoncé fondateur ([[Proposition de valeur]]) est tranché : Gerimmo reste
-> **l'outil qui exécute le travail** d'une agence — pas une gérance opérée en
-> ligne. La frontière RM-A6.1 (pas de fonds mandants ni séquestre) est
-> confirmée ; la **contradiction n°1** de la
-> [[2026-09-08-maquette-espace-agence-v6|maquette v6]] est close — ses écrans
-> « fonds mandants » s'intègrent dans les limites du journal de gestion (T8).
-
-**Plus aucun arbitrage en attente** (2026-09-10).
-
-## B. Choix techniques et produits restant à faire (référentiel)
-
-> [!note] Décision 2026-07-25 — infrastructure : « après les devs »
-> Les sujets antivirus, configuration d'hébergement (Vercel + Supabase : région UE,
-> plan Pro, network restrictions) et jalons sécurité restent **ouverts
-> volontairement, à revoir après les développements**. Les validations externes
-> (expert-comptable, conseil juridique, audit sécurité) sont **écartées** — revue
-> interne par l'agent ; les documents juridiques ont été **rédigés par l'agent**
-> (dossier `livrables/`).
-
-- **Service antivirus** — avant l'étape 3 du lot 0 et **avant développement** (A4) ;
-  sa localisation entre au tableau des sous-traitants. → [[Architecture du socle V3]]
-- **Jalons sécurité A4** : configuration d'hébergement (avant développement),
-  procédure de notification d'incident + **premier test de restauration** (avant
-  production) ; test de restauration **trimestriel (code) vs annuel (RM-A4.12)** à
-  harmoniser. *(Audit externe : écarté le 2026-07-25 — revue interne par l'agent,
-  limite documentée.)* → [[Socle de sécurité]], [[Plan de reprise d'activité]]
-- ~~Validation expert-comptable de la doctrine A6~~ → **écartée (2026-07-25)** :
-  « Gerimmo ne gère pas la comptabilité », l'export des écritures déclarées suffit —
-  chaque agence le transmet à son propre expert-comptable ([[Comptabilité]]).
-  **L'article des CGU est rédigé** (`livrables/`) ; reste l'écran d'information au
-  paramétrage (lot 1).
-- **Format d'export définitif du journal** (séparateur, encodage — les colonnes sont
-  fixées par A6, RM-A6.11) — lot 1.
-- **Lien sécurisé ponctuel pour le devis** (réutiliser le mécanisme Yousign ?) — lot 3.
-- **Calendrier du lot 0** : quand démarrer l'architecture.
-  → [[2026-07-24-gerimmo-v3-matrice-tracabilite]]
-- ~~Validation juridique de la matrice canaux/preuve (A3)~~ → **assurée en interne**
-  (décision 2026-07-25) ; la piste du **recommandé électronique qualifié** reste à
-  instruire. → [[Notification et valeur probante]]
-- ~~Livrables juridiques A2~~ → **rédigés par l'agent le 2026-07-25** (dossier
-  `livrables/`) : contrat de sous-traitance type, politique de confidentialité,
-  **AIPD score artisan**. Restent à produire en interne avant production : **registre
-  des traitements plateforme**, **procédure de notification de violation**. → [[RGPD]]
-- ~~Résidus « indéfini / sans limite »~~ → **fixés le 2026-07-25** : diagnostics
-  = gestion du bien + 5 ans ; rapport d'import = 3 ans ; quittances côté locataire
-  = la durée de conservation (10 ans). Pages mises à jour.
-- **Surface Carrez datée** (mesureur + date) : réserve V2 — sans elle, indéfendable en
-  contestation > 5 %. → [[Lot]]
-- **RM-1.7.2 à simplifier** à la reprise du module 1 (double PDF sans objet avec
-  Yousign). → [[Signature électronique]]
-
-## C. Connaissance métier manquante (hors référentiel)
-
-- **Proposition de valeur / cible / problème résolu** : jamais formulés — l'angle
-  « gérer les problèmes, pas seulement les papiers » ([[Analyse concurrentielle]])
-  reste à valider.
-- **Points de douleur des personas** (surtout [[Locataire]]) : entretiens à mener.
-
-## D. Prochaines sources
-
-Référence produit prioritaire depuis le 20/09 : le
-[[2026-09-20-cahier-des-charges-maitre-v3|cahier des charges maître V3]]. Entretiens
-utilisateurs ; rafraîchissement périodique de l'[[Analyse concurrentielle]].
-Les `docs/` du dépôt (vides ou obsolètes) seraient à réécrire depuis le wiki.
+- **Les questions ouvertes et les décisions prises** : `QUESTIONS.md`, à la racine du dépôt. C'est le registre unique
+  (Q1 et suivantes).
+- **Les réponses du dirigeant, mot pour mot** : `DECISIONS-2026-11-24.md`, résumé dans [[Décisions du dirigeant]].
+- **L'état de la production et les décisions en attente** : [[Passation — état du 26 novembre 2026]], sections a et d.
+- **La vision et la stratégie** : [[Vision de l'écosystème Gerimmo]] et
+  [[Vision de l'écosystème Gerimmo]].
+- **Les règles métier en vigueur** : [[Référentiel du palier 1]].
+- **L'ancien contenu de cette page** (juillet à octobre 2026) :
+  [[État du projet et décisions ouvertes — archive (juillet à octobre 2026)]].

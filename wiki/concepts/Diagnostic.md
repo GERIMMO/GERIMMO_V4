@@ -3,8 +3,8 @@ type: concept
 tags: [diagnostic, dpe, obligation-legale, bien, lot]
 status: draft
 created: 2026-07-24
-updated: 2026-09-09
-sources: ["[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]"]
+updated: 2026-11-26
+sources: ["log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]"]
 ---
 
 # Diagnostic
@@ -42,6 +42,14 @@ simple du lot, RM-0.5.7). Sur un bien à lot unique, les onglets bien/lot fusion
 - Lot **déjà loué** : alerte critique **non bloquante** + relance hebdomadaire
   (RM-0.8.3) — « bloquer un bail en cours n'aiderait personne » (**confirmé par
   l'humain le 2026-07-25**).
+- **Bail déjà en cours à l'arrivée sur Gerimmo** (décision du dirigeant du 20/11/2026) : un bail dont la date
+  d'entrée est passée s'active par son contrat signé même si le DPE ou l'état des risques manquent ou sont expirés.
+  Ils ne bloquent pas ce bail et restent des actions à mener du bail en cours. Voir [[Bail]].
+- **DPE classé G sur un bail déjà en cours** (décision 2B du dirigeant du 22/11/2026) : il ne bloque plus
+  l'activation de ce bail et devient une action à mener « DPE classé G » sur le logement. Pour un nouveau bail, il
+  reste bloquant. Prête dans la PR [#357](https://github.com/GERIMMO/GERIMMO_V4/pull/357), pas encore publiée au
+  22/11 ; en production depuis le 25/11/2026 avec la version `062296e2` (PR #358, `main` = `8f9dd9ce`, qui contient
+  `e1e442dc`, la fusion de la PR #357 ; `log.md`, entrée « deploy » du 25/11/2026). Voir [[Bail]].
 - Lot **disponible** : bloquant — aucun nouveau bail tant que le diagnostic n'est pas
   redéposé (le dépôt lève le blocage sans autre action, RM-0.8.5).
 - Destinataire : l'agent en charge du mandat, à défaut l'admin agence (RM-0.8.4).
@@ -127,3 +135,7 @@ tête de leur section Diagnostics.
 > - « Zone termites déclarée par arrêté » : qui la renseigne dans
 >   l'application ? Non déterminé (la zone tendue, elle, se déduit du code
 >   postal — RM-0.1.6/7).
+> - **DPE classé G et bail déjà en cours.** L'encadré « Blocage DPE passoire » pose l'interdiction de louer un
+>   logement classé G et recommande de bloquer l'activation d'un bail ; il ne dit rien d'un bail conclu avant
+>   l'arrivée sur Gerimmo. La décision 2B du 22/11/2026 lève le blocage pour ces baux, contre la recommandation de
+>   l'agent (garder le blocage faute de source). À faire confirmer par un professionnel.

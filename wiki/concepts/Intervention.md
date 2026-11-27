@@ -1,32 +1,17 @@
 ---
 type: concept
 tags: [intervention, incident, artisan]
-status: in-progress
+status: stable
 created: 2026-07-21
-updated: 2026-07-21
+updated: 2026-11-26
 sources: ["[[Dépôt Gerimmo-V3]]"]
 ---
 
 # Intervention
 
-**Définition :** l'opération planifiée puis réalisée par un [[Artisan]] pour résoudre un
-[[Incident]], après sélection d'un [[Devis]]. Table `incident_interventions`.
+Page fusionnée le 26/11/2026 dans [[Intervention et clôture]].
 
-## Attributs métier notables
-- `execution_mode` : `artisan_gerimmo` / `artisan_prive` / `interne`.
-- Statuts : `planifiee` → `confirmee` → `en_cours` → `terminee` (+ `suspendue` / `a_reprogrammer` / `annulee`).
-- `planned/actual_starts_at`, montants **prévu vs final**, `photos_before/during/after`.
-
-## Objets liés
-- **Matériaux** (`incident_intervention_materials`) : fournitures utilisées.
-- **Rapport d'intervention** (`incident_intervention_reports`) : génère un [[Document]] PDF officiel
-  (`rapport_incident`, `official_document = true`). Cycle : `brouillon`→`genere`→`valide`.
-- **Revue de clôture** (`incident_closure_reviews`).
-- **Évaluation artisan** (`incident_artisan_evaluations`) : note multi-critères → statistiques.
-
-## Rôle dans le métier
-- Matérialiser la résolution de l'incident, tracer coûts/photos, produire le rapport et clôturer.
-
-## Relations
-- Découle d'un [[Devis]] retenu et d'un créneau validé ([[Planification d'intervention]]).
-- Voir [[Intervention et clôture]], [[Modèle de données]].
+- Définition, table `incident_interventions`, dates prévues et réelles, montants, photos, objets liés et rôle métier :
+  section « Définition et données de l'intervention » ; naissance de l'intervention : section « Déclencheur ».
+- Statuts : section « État dans l'application au 22/11/2026 » (ceux de l'ancien dépôt V3 restent sous « Étapes ») ;
+  compte rendu, clôture et évaluation : mêmes sections.

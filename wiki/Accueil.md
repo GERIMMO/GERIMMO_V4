@@ -3,100 +3,49 @@ type: synthesis
 tags: [accueil, vue-ensemble]
 status: in-progress
 created: 2026-07-20
-updated: 2026-10-23
-sources: ["[[2026-09-20-cahier-des-charges-maitre-v3]]", "[[2026-09-28-decision-tarification]]", "[[2026-09-28-reseau-national-ouvertures-locales]]", "[[Dépôt Gerimmo-V3]]"]
+updated: 2026-11-27
+sources: ["[[Vision de l'écosystème Gerimmo]]", "[[Passation — état du 26 novembre 2026]]", "[[Référentiel du palier 1]]", "livrables/OUVERTURE-VENTE-30-NOVEMBRE.md"]
 ---
 
 # Accueil — Wiki métier Gerimmo
 
-Point d'entrée du wiki. **Gerimmo** est un projet de développement d'une application de
-**gérance immobilière** ; ce wiki documente toute la **connaissance métier** qui
-soutient le projet.
+Point d'entrée du wiki : la **connaissance métier** du projet Gerimmo.
 
-## Naviguer
-- **[[index]]** — catalogue de toutes les pages
-- **`log.md`** — journal des opérations
-- **`CLAUDE.md`** — conventions et workflows du wiki
+## Ce qu'est Gerimmo
 
-## Grands domaines
-- **Personas** — les 6 acteurs : [[Super Admin]] (plateforme), [[Administrateur d'agence]],
-  [[Agent immobilier]], [[Propriétaire bailleur]] (indépendant), [[Artisan]], [[Locataire]].
-- **Processus** — le cycle incident (déclaration → [[Devis|devis]] → planification →
-  [[Intervention et clôture|intervention]]), le [[Quittancement des loyers|quittancement]],
-  les [[Relances et mise en demeure|relances]], l'[[Onboarding et abonnement|onboarding]].
-- **Concepts** — [[Organisation]] (multi-tenant), [[Bien]], [[Occupation d'un bien]],
-  [[Incident]], [[Document]], [[Période de loyer]], [[Abonnement]], [[Parrainage]],
-  [[Signature électronique]]…
-- **Règles métier** — [[Grille tarifaire]], [[Quittance conforme]], [[Isolation multi-organisation]],
-  [[Cycle de vie de l'abonnement]], [[Ouverture du réseau d'artisans]],
-  [[Archivage plutôt que suppression]], [[RGPD]], [[Socle de sécurité]],
-  [[Plan de reprise d'activité]], [[Vétusté et décote]],
-  [[Machines à états et événements]], [[Notification et valeur probante]].
-- **Synthèses** — analyses transverses : [[Proposition de valeur]]
-  (**l'énoncé fondateur du projet**), [[État du projet et décisions ouvertes]]
-  (**les arbitrages en attente — à lire en premier**),
-  [[Divergences code et référentiel V3]], [[Modèle de rôles et permissions]],
-  [[Modèle de données]], [[Architecture du socle V3]], [[Canaux de communication]],
-  [[Analyse concurrentielle]], [[Fonctionnalités par persona]].
+Gerimmo est une application de gestion locative en ligne : son cœur de cible est le propriétaire bailleur, en nom
+propre ou en SCI, qui gère lui-même ses biens, ses locataires et ses artisans. Son énoncé fondateur (10/09/2026) :
+« Faire le travail d'une agence de gestion locative — en mieux, plus rapide, et moins cher » ; Gerimmo exécute le
+travail, mais reste un logiciel et ne détient jamais l'argent des autres. L'ambition fixée par le dirigeant le
+26/11/2026 : en faire la plateforme principale de gestion immobilière de France, puis potentiellement d'Europe
+([[Vision de l'écosystème Gerimmo]]).
 
-## État au lancement (30/09/2026)
-Gerimmo est publiée le 30/09/2026 sur `gerimmo.app`. Ce qui vaut au lancement :
-- **Référence produit** : le [[2026-09-20-cahier-des-charges-maitre-v3|cahier des
-  charges maître V3]] (adopté le 20/09) prime sur les notes antérieures.
-- **Tarifs (28/09/2026)** — [[Grille tarifaire]], [[Abonnement]] : particuliers et
-  SCI Solo (1 bien, 5,99 €/mois ou 59,90 €/an), Bailleur (≤ 3, 9,99 €),
-  Investisseur (≤ 10, 19,99 €), Patrimoine (≤ 20, 29,99 €), +1 €/mois par bien
-  au-delà ; agences 39 € HT jusqu'à 10 lots puis tranches cumulatives. **Aucun bien
-  offert** : essai de 2 mois sans carte (depuis le 30/09/2026), puis gel en lecture seule jusqu'au
-  paiement. **Franchise en base de TVA** (art. 293 B du CGI). [[Parrainage]] sans
-  avantage tarifaire. CGU en production (`/conditions`) : préavis d'un mois
-  (art. 8.8 et 16), rétractation de 14 jours (art. 8.9).
-- **Réseau d'artisans** — [[Ouverture du réseau d'artisans]] : la gestion locative
-  est nationale. **Décision du 23/10/2026** (migration `20261023180000`, non appliquée
-  en production au 23/10) : chaque artisan choisit sa zone et ses métiers ; validé par
-  Gerimmo et public, il est proposé aux propriétaires de sa zone. Plus d'ouverture
-  commune × métier par le [[Super Admin]] (règle du 28/09, en vigueur jusqu'à la mise en
-  production). Les artisans du carnet personnel restent sollicitables pour les biens que
-  couvre leur zone d'intervention.
-- **[[Signature électronique]]** : circuit Zoho Sign publié le 18/10/2026 (PR #203 à
-  #210), **envois aux clients désactivés** ; *au lancement du 30/09 : non activée
-  (masquée, décision du 27/09), circuit de transition V0 — le signataire télécharge,
-  signe et dépose le document signé*.
-- **Reste à fournir** : l'identité de l'éditeur (dénomination, siège, SIRET/RCS,
-  e-mail, directeur de la publication, médiateur) —
-  [[État du projet et décisions ouvertes]].
+## L'état au 26/11/2026
 
-Les audits successifs : [[Audit et point santé du 11 septembre 2026]],
-[[Audit de nuit — fonctionnalités, personas et automatisation (20 septembre 2026)]],
-[[Audit complet du 25 septembre 2026]], [[Audit complet du 27 septembre 2026]] ; la
-décision tarifaire : [[2026-09-28-decision-tarification]] ; la recette :
-[[Recette de production]].
+- Le **palier 1** (propriétaire qui gère lui-même, locataire, artisan, incidents, gestion administrative, super admin)
+  est **en production depuis le 25/11/2026** ([[Passation — état du 26 novembre 2026]], section a).
+- Le **lot 1 de corrections** (sessions et écrans) est **en cours de publication** par la PR #361 (Passation, section c).
+- La **vente aux particuliers et aux SCI ouvre le 30/11/2026** (décision du dirigeant du 26/11,
+  `livrables/OUVERTURE-VENTE-30-NOVEMBRE.md`) ; d'ici là, les souscriptions payantes restent fermées.
+- **Aucun client réel** à ce jour : les comptes inscrits sont des comptes de test, et aucun paiement réel n'est connu
+  ([[Vision de l'écosystème Gerimmo]], section 1).
+- Les **agences** sont sur [[Liste d'attente des agences|liste d'attente]].
 
-## Historique — état au 2026-07-25
-Trois familles de sources :
-1. **Le code** ([[Dépôt Gerimmo-V3]], 2026-07-21) — l'état réel de l'application.
-2. **La concurrence** (Rentila, Smovin, Oskar + recherche web) → [[Analyse concurrentielle]].
-3. **Le référentiel V3 (2026-07-24), complet** : 22 modules de parcours + 6 livrables
-   transverses A1–A6.
+## Quoi lire d'abord
 
-Voir [[index]] pour le catalogue et [[État du projet et décisions ouvertes]] pour les
-points à trancher ; les écarts code ↔ cible sont dans
-[[Divergences code et référentiel V3]].
+1. [[Vision de l'écosystème Gerimmo]] — ce que Gerimmo veut devenir, et ce qui vaut aujourd'hui.
+2. [[Passation — état du 26 novembre 2026]] — l'état de la production, ce qui est ouvert, ce qui attend le dirigeant.
+3. [[Référentiel du palier 1]] — les règles métier du palier 1, chacune avec sa source et son statut.
+4. `QUESTIONS.md` (racine du dépôt) — le registre unique des questions et décisions.
+5. [[Décisions du dirigeant]] — ses réponses écrites, mot pour mot.
 
-## Prochaines étapes suggérées
-1. **Fournir l'identité de l'éditeur** (mentions légales, formulaire de
-   rétractation) — [[État du projet et décisions ouvertes]].
-2. **Faire entrer les premiers artisans dans le réseau** (décision du 23/10/2026 :
-   ils choisissent leur zone et leurs métiers ; Gerimmo valide l'inscription ; mettre
-   en production la migration `20261023180000`) — [[Ouverture du réseau d'artisans]].
-3. **Valider avec des experts** : doctrine financière A6 (expert-comptable),
-   matrices A2/A3 et CGU (conseil juridique).
-4. **Combler la connaissance hors-référentiel** : points de douleur des personas
-   (entretiens, surtout [[Locataire]]).
+## Comment le wiki est rangé
 
-> [!warning] Changement du 23/10/2026 — réseau d'artisans
-> - Décision du dirigeant : les communes et les métiers du réseau sont choisis par l'artisan
->   (sa zone d'intervention et ses métiers), même pendant la bêta ; l'ouverture commune ×
->   métier par le super administrateur est supplantée. Livrée par la migration
->   `20261023180000`, non appliquée en production au 23/10 : voir
->   [[Ouverture du réseau d'artisans]].
+- **Les dossiers de `wiki/`** : `personas/` (qui), `processus/` (comment ça se passe), `concepts/` (les objets du
+  domaine), `regles-metier/` (règles et réglementation), `sources/` (une page par source ingérée), `syntheses/`
+  (analyses transverses vivantes). Les sources brutes, immuables, sont dans `raw/`.
+- **Les archives** : une page qui ne décrit plus l'état actuel (audit, point d'étape, passation dépassée, page
+  remplacée) n'est jamais supprimée ; elle est rangée dans `wiki/archives/AAAA-MM/` et recensée par
+  [[Historique des audits]]. Une page fusionnée dans une autre devient une page de renvoi.
+- **Le catalogue** [[index]] (`index.md`) : une ligne par page vivante. **Le journal** `log.md` : les nouvelles
+  datées, dans l'ordre chronologique. Les conventions du wiki sont dans `CLAUDE.md`.

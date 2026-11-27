@@ -3,20 +3,25 @@ type: concept
 tags: [abonnement, saas, stripe, facturation]
 status: in-progress
 created: 2026-07-21
-updated: 2026-10-24
-sources: ["[[2026-09-28-decision-tarification]]", "[[Dépôt Gerimmo-V3]]", "[[Cycle de vie de l'abonnement]]", "log.md — entrées « decision » des 23 et 24/10/2026, « deploy » du 24/10/2026 (PR #246, PR #247)"]
+updated: 2026-11-26
+sources: ["[[Grille tarifaire]]", "[[2026-09-28-decision-tarification]]", "[[Dépôt Gerimmo-V3]]", "[[Cycle de vie de l'abonnement]]", "[[Vision de l'écosystème Gerimmo]]", "[[Passation — état du 26 novembre 2026]]", "log.md — entrées « decision » des 23 et 24/10/2026, « deploy » du 24/10/2026 (PR #246, PR #247)", "app/src/lib/tarifs.ts (montantAbonnementUnique, TRANCHES_AGENCE, MOIS_ESSAI), lu le 26/11/2026", "app/src/lib/conditions-versions.json (versions des 11/11 et 15/11/2026)", "app/supabase/migrations/20261111151500_abonnement_unique_fondateurs.sql", "app/supabase/migrations/20260911300000_encaissement_stripe.sql", "app/src/lib/parrainage.ts (commentaire de tête)"]
 ---
 
 # Abonnement
 
-> [!info] Modèle en vigueur (28/09/2026)
-> Une organisation porte sa **grille** (`historique` ou `2026-09-28`). Dans la
-> nouvelle : **formule** (particuliers) ou **lots facturés** (agences),
-> **périodicité** (mensuelle, ou annuelle pour les particuliers), **capacité
-> souscrite** (unités payées et confirmées) et **montant réel d'une période**, lu
-> chez Stripe par le webhook. Toute hausse de capacité exige une confirmation ; les
-> accès locataires, propriétaires invités et collaborateurs n'ajoutent rien. Voir
-> [[Grille tarifaire]].
+> [!info] Modèle en vigueur (code du 11/11/2026, essai du 15/11/2026) — détail dans [[Grille tarifaire]]
+> - **Particuliers et SCI** : **abonnement unique « Gerimmo »**, dont le prix dépend du nombre de biens actifs
+>   (`montantAbonnementUnique`, `app/src/lib/tarifs.ts` ; même calcul en base, `montant_proprietaire_unique`,
+>   migration `20261111151500`). Mensuel, ou annuel à dix mensualités. Une seule ligne de facture.
+> - **Agences** : 49 € HT jusqu'à 10 lots, puis 4,90 € par lot (`TRANCHES_AGENCE`). Grille **non publiée** : les
+>   agences sont sur [[Liste d'attente des agences|liste d'attente]].
+> - **Essai** : **2 mois calendaires**, sans carte, sans échéance de lancement et sans souscription automatique
+>   (`MOIS_ESSAI = 2` ; conditions du 15/11/2026, article 8.2).
+> - Les prix, les tranches et les règles d'application (hausse, baisse, périodicité, révision) ne sont tenus qu'à un
+>   endroit du wiki : [[Grille tarifaire]]. Cette page ne les recopie pas.
+> - **Ventes fermées au 26/11** : souscriptions payantes fermées, ouverture fixée au 30/11 par le dirigeant ; les gestes
+>   R6 à R8 lui reviennent ([[Passation — état du 26 novembre 2026]], section a ; `DECISIONS-2026-11-24.md`, réponses du
+>   26/11).
 
 
 **Définition :** la souscription d'une [[Organisation]] à GERIMMO (facturation **SaaS**, via
@@ -24,34 +29,50 @@ Stripe). À **ne pas confondre** avec les [[Période de loyer|loyers]] des locat
 (facturation locative).
 
 ## Objets liés
-- `subscription_plans` (offres), `organization_subscriptions` (souscription d'une org),
+- **Code V4** (vérifié le 26/11/2026) : la souscription d'une organisation est tenue dans la table `abonnements`,
+  « miroir local de la souscription Stripe » (migration `20260911300000_encaissement_stripe.sql`) ; les formules et
+  tranches de la base sont dans `tarif_formules` et `tarif_tranches` ; les mois offerts dans `mois_offerts` ; l'avantage
+  « fondateur » dans `avantages_fondateurs` (migration `20261111151500`).
+- ~~`subscription_plans` (offres), `organization_subscriptions` (souscription d'une org),
   `subscription_history`, `billing_invoices`, `billing_payments`, `billing_refunds`,
-  `promotion_codes` / `promotion_redemptions`, `stripe_webhook_events`.
+  `promotion_codes` / `promotion_redemptions`, `stripe_webhook_events`~~ — schéma du [[Dépôt Gerimmo-V3]]. Aucune de
+  ces tables `subscription_plans` ou `organization_subscriptions` n'existe dans `app/supabase/migrations` ni dans
+  `app/src` (recherche du 26/11/2026).
 
 ## Attributs métier notables
-- `status` : `trial` / `active` / `suspended` / `expired` / `cancelled`.
-- `billing_interval` : `monthly` / `annual` ; essai `trial_days` (14 j).
+- ~~`status` : `trial` / `active` / `suspended` / `expired` / `cancelled` ; `billing_interval` : `monthly` / `annual` ;
+  essai `trial_days` (14 j)~~ — attributs du [[Dépôt Gerimmo-V3]], non revérifiés dans le code V4.
 - ~~3 tarifs par offre : mensuel, frais de mise en place (one-time), gestion annuelle
   (récurrent)~~ — modèle hérité du code (`subscription_plans`), **supplanté le 28/09/2026** :
   une seule redevance, mensuelle ou annuelle (particuliers), sans frais de mise en place
   ([[2026-09-28-decision-tarification]]).
-- Essai sans carte : **offre de lancement** (décision du porteur du 30/09/2026) : **2 mois** pour toute inscription ou ouverture jusqu'au **31/12/2026 inclus** (date de Paris), **1 mois** à compter du 1er janvier 2027 (14 jours jusqu'au 29/09/2026) ; puis **gel en lecture seule** (consultable, exportable)
-  jusqu'au paiement ; **aucun bien offert**.
+- **Essai** : **2 mois calendaires** pour toute nouvelle inscription, sans carte, **sans échéance de lancement** et
+  sans souscription automatique (conditions du 15/11/2026, article 8.2 ; `MOIS_ESSAI = 2` dans `tarifs.ts`, la durée
+  affichée ne dépend plus de la date). Ensuite **gel en lecture seule** (consultable, exportable) jusqu'au paiement ;
+  **aucun bien offert**, aucune formule gratuite en permanence.
+  - ~~Offre de lancement du 30/09/2026 : 2 mois jusqu'au 31/12/2026 inclus, puis 1 mois à compter du 01/01/2027
+    (14 jours jusqu'au 29/09/2026)~~ — **supplantée le 15/11/2026** ; elle ne subsiste que dans des commentaires du
+    code (`app/src/lib/editeur.ts`, historique des versions des conditions).
+  - **Avantage « fondateur »** (migration `20261111151500`) : le super admin, en double vérification, peut porter à
+    **6 mois** l'accès d'un propriétaire **en essai, avant toute souscription** ; **10 places au plus** ; le geste est
+    inscrit au journal d'audit. Voir [[Super Admin]].
 
 ## Rôle dans le métier
-- Modèle économique de GERIMMO, grille du 28/09/2026 ([[Grille tarifaire]]) :
-  - **Particuliers et SCI** (TTC) : Solo 1 bien 5,99 €/mois ou 59,90 €/an ; Bailleur
-    jusqu'à 3 biens 9,99 € / 99,90 € ; Investisseur jusqu'à 10 biens 19,99 € / 199,90 € ;
-    Patrimoine jusqu'à 20 biens 29,99 € / 299,90 € ; au-delà de 20, +1 €/mois ou
-    +10 €/an par bien. Annuel = deux mois offerts. 3 logements = 3 biens.
-  - **Agences** (HT, mensuel, lots sous mandat actif) : socle 39 € jusqu'à 10 lots,
-    +2 € par lot du 11ᵉ au 50ᵉ, +1,50 € du 51ᵉ au 200ᵉ, +1 € à partir du 201ᵉ
-    (tranches cumulatives).
-  - **TVA** : franchise en base (art. 293 B du CGI), aucune TVA facturée.
-  - Organisations existantes : bascule sur la nouvelle grille dès l'ajout d'un bien.
+- Modèle économique de GERIMMO : la grille en vigueur est l'**abonnement unique du 11/11/2026** pour les particuliers et
+  les SCI, et la grille agences du code (non publiée). Les prix et leurs exemples sont dans [[Grille tarifaire]], seule
+  page qui les tient à jour ; la source unique côté code est `app/src/lib/tarifs.ts`.
+  - **TVA** : franchise en base, aucune TVA facturée ; mention « TVA non applicable, article 293 B du CGI » (`tarifs.ts`,
+    fonction `montants`), gardée « pour l'instant » par le dirigeant le 24/11 (`DECISIONS-2026-11-24.md`).
+  - **Contrats conclus avant le 11/11** : ils gardent leur formule (« Les conditions des contrats précédents sont
+    conservées », version des conditions du 11/11/2026) ; Solo, Bailleur, Investisseur et Patrimoine restent dans le
+    code pour les relire ([[Grille tarifaire]]). Aucun contrat payant n'est connu (ventes jamais ouvertes).
+  - ~~Grille du 28/09/2026 : Solo, Bailleur, Investisseur, Patrimoine (5,99 € à 29,99 € TTC par mois) ; agences 39 € HT
+    jusqu'à 10 lots puis tranches cumulatives ; bascule des organisations existantes dès l'ajout d'un bien~~ —
+    **supplantée le 11/11/2026** par l'abonnement unique ([[2026-09-28-decision-tarification]] pour l'historique).
   - Pas de cumul avec le [[Parrainage]], sauf depuis le 30/09 le **mois offert au
     parrain** à la conversion de son filleul : avoir de son mensuel courant (annuel
-    ÷ 12) porté au solde client Stripe, ou un mois d'essai de plus.
+    ÷ 12) porté au solde client Stripe, ou un mois d'essai de plus ; le filleul garde l'essai ordinaire de 2 mois
+    (`app/src/lib/parrainage.ts`, commentaire de tête, qui parle encore de la « grille du 28/09 »).
   - Portail client Stripe imposé par le code : changement de formule désactivé ;
     **résiliation retirée du portail le 24/10** (page « Résilier votre contrat ») ;
     préavis d'au moins un mois avant révision tarifaire (CGU art. 8.9) ; rétractation
@@ -120,15 +141,30 @@ Plan juriste/DPO du 23/10 (lots 1 et 2) ; textes contractuels inchangés (versio
 
 ## Relations
 - Souscrit par [[Administrateur d'agence]] ou [[Propriétaire bailleur]] ; administré par [[Super Admin]].
-- Cycle de vie automatisé — voir [[Cycle de vie de l'abonnement]], [[Onboarding et abonnement]].
+- Cycle de vie automatisé — voir [[Cycle de vie de l'abonnement]], [[Souscription de l'abonnement]].
 
 > [!warning] Points à trancher / contradictions
+> - **26/11/2026 — grille corrigée** : cette page donnait encore la grille du 28/09 et l'offre de lancement comme en
+>   vigueur ; elle suit désormais le code (abonnement unique du 11/11, essai de 2 mois du 15/11) et renvoie à
+>   [[Grille tarifaire]]. La **décision du dirigeant** qui fonde l'abonnement unique n'est dans aucune page-source du
+>   wiki : seuls le code, la PR #286 et le résumé des conditions du 11/11 en témoignent ([[Grille tarifaire]]). À faire
+>   confirmer.
+> - **Bascule des anciens contrats** : la règle du 28/09 (« bascule sur la nouvelle grille dès l'ajout d'un bien ») et
+>   celle du 11/11 (« les conditions des contrats précédents sont conservées ») ne disent pas la même chose. Sans
+>   contrat payant à ce jour, l'écart n'a pas d'effet ; la règle à appliquer au premier ancien contrat reste à écrire.
+> - **Parrainage** : le mécanisme du mois offert au parrain est décrit pour la grille du 28/09 ; son effet exact sur
+>   l'abonnement unique (montant de l'avoir) n'est pas revérifié.
+> - **Grille agences** (49 € HT, puis 4,90 € par lot) : entrée dans le code avec la PR #281 (05/11/2026, « révision du
+>   29/10/2026 » en tête de `tarifs.ts`) ; jamais publiée, et la décision du dirigeant n'est dans aucune page-source du
+>   wiki. À confirmer avant toute ouverture aux agences.
+> - **Unité comptée** : l'« unité locative active » de l'abonnement unique (conditions du 11/11) n'a pas été revérifiée
+>   face à la règle « lot » du 28/09 ([[Grille tarifaire]]).
 > - ~~La facturation annuelle n'est pas lancée (prix à refixer).~~ **Tranché le
 >   28/09/2026** : annuel ouvert aux particuliers, deux mois offerts
 >   ([[2026-09-28-decision-tarification]]).
-> - Le schéma hérité (`subscription_plans` à trois tarifs, frais de mise en place)
->   subsiste dans les tables historiques ; la grille `2026-09-28` le remplace pour
->   toute nouvelle souscription.
+> - ~~Le schéma hérité (`subscription_plans` à trois tarifs, frais de mise en place)
+>   subsiste dans les tables historiques~~ — ces tables viennent du [[Dépôt Gerimmo-V3]] ; elles n'existent pas dans le
+>   code V4 (recherche du 26/11/2026).
 > - ~~Identité de l'éditeur encore à fournir (nécessaire au formulaire de
 >   rétractation)~~ → saisie en production au relevé du 23/10, sauf le médiateur
 >   ([[Informations manquantes — 23 octobre 2026]]).

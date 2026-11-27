@@ -51,7 +51,7 @@ liste noire n'en sortent).
 
 ## Relations
 [[Fermeture de compte]] (les avertissements d'inactivité renvoient vers l'archive) ·
-[[Demandes sur les données et fermeture de compte]] · [[RGPD]] ·
+[[Fermeture de compte]] · [[RGPD]] ·
 [[Registre des traitements]] · [[Comptabilité]] (export du journal de gestion) ·
 [[Artisan]]
 

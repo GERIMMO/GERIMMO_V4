@@ -1,303 +1,187 @@
 # Index — Wiki métier Gerimmo
 
-- **Conformité V1 — code en production le 24/10/2026** (PR #246 `f79674c`, correctif Stripe PR #247 `31377f5`) : [[Souscription de l'abonnement]], [[Rétractation en ligne]], [[Résiliation de l'abonnement]], [[Impayé de l'abonnement]], [[Fermeture de compte]], [[Export complet des données]], [[Durées de conservation]], [[Prospection commerciale]], [[Conditions générales]] ; [[Registre des traitements]] réécrit (lot 6 du plan juriste/DPO du 23/10) ; **publication des conditions V1 prévue le 24/10** (en vigueur : version du 30/09).
-- [Publication du 23 octobre — PR 241](https://github.com/GERIMMO/GERIMMO_V4/pull/241) — bouton de souscription, signatures et conservation ; sauvegarde et deux migrations vérifiées, résultat final de publication consigné dans la PR.
-
-Catalogue de tout le wiki : lien + accroche courte. Mis à jour à chaque ingest.
-Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
-
-- [[Préparation fonctionnelle — 21 octobre 2026]] — ouverture fonctionnelle demandée, agences conservées en liste d’attente ; PR230 et CI main vérifiées ; export, relais, Santé et jeux locaux préparés et testés ; activation externe encore à vérifier.
-- [[Mission du 16 octobre — suivi vérifié]] — publication du 17 octobre, sauvegarde et huit migrations vérifiées, nettoyage des 31 fichiers fictifs ; recette n°24 réussie (49 scénarios) ; cinq comptes fixes conservés, PR201 publiée.
-- [[Cohérence des loyers de référence]] — contrôle indicatif à la saisie du bail, surface habitable et complément, sans modification automatique des montants.
+Catalogue de toutes les pages vivantes du wiki : une ligne par page, rangées par catégorie.
+Vue d'ensemble et pages à lire d'abord : [[Accueil]].
+Les nouvelles datées (publications, décisions, contrôles) sont dans `log.md`, pas ici.
 
 ## Personas
-- [[Super Admin]] — l'éditeur de la plateforme ; console, modèles, blacklist globale, facturation ; **24/10** : simplification des huit rubriques et des fiches liées préparée, publication suivie dans `log.md`.
-- [[Administrateur d'agence]] — « agent ++ » : administration, paramétrages, vue retards ; **20/10** : hors V1 publique depuis le 13/10, son agence s'inscrit sur la liste d'attente du site (`/agences`, déployé le 20/10 au soir (PR #227)) — [[Liste d'attente des agences]].
-- [[Agent immobilier]] — gestion locative quotidienne ; limité à ses mandats (V3) ; **20/10** : agences hors V1 publique, liste d'attente ouverte sur le site (déployé le 20/10 au soir (PR #227)) — [[Liste d'attente des agences]].
-- [[Propriétaire bailleur]] — deux personas V3 : mandant (aucun accès, compte rendu mensuel reçu) vs gestion directe (accès complet) ; **16/10** : le propriétaire direct invite ses artisans par e-mail (PR #194), l'ajout par SIRET restant réservé aux agences.
-- [[Artisan]] — intervenant sur incidents ; pièces auto-gérées, **décennale et RC pro** en cours pour valider l'inscription (27/09), score composite ; réseau ouvert par commune × métier (28/09) ; **16/10** : invité par un propriétaire, il s'inscrit et accepte lui-même (PR #194) ; colonnes internes de sa fiche fermées aux clients ; **24/10** : note prise en compte à partir de trois évaluations, ordre alphabétique français, conditions de l'espace artisan rédigées mais non publiées, export de l'activité étendu.
-- [[Locataire]] — occupant ; incidents, quittances, assurance annuelle, portail restreint.
+- [[Propriétaire bailleur]] — propriétaire qui gère lui-même ses biens dans sa propre organisation ; un bien relève d'un seul gestionnaire ; deux personas V3, gestion directe et mandant (code relevé le 16/10).
+- [[Locataire]] — occupant du logement, rattaché à son bail : l'espace le plus restreint (incidents, quittances, documents, attestation d'assurance annuelle) ; code relevé le 16/10.
+- [[Artisan]] — intervenant sur les incidents (devis, créneaux, compte rendu, facture) ; gratuit et sans commission, il choisit sa zone et ses métiers depuis le 23/10, puis Gerimmo le valide.
+- [[Super Admin]] — l'éditeur de la plateforme : supervise toutes les organisations sans emprunter d'identité, valide les artisans, pilote la console ; aucun bot n'est construit (26/11).
+- [[Agent immobilier]] — collaborateur d'agence pour la gestion locative quotidienne, limité à ses mandats (cible V3) ; agences hors V1 publique depuis le 13/10, sur liste d'attente.
+- [[Administrateur d'agence]] — dirigeant d'une agence cliente, « agent ++ » qui administre membres et paramétrages ; agences hors V1 publique depuis le 13/10, sur liste d'attente.
 
 ## Processus
-- [[Demandes sur les données et fermeture de compte]] — demande privée, délai d'un mois civil, réponses et historique ; procédure contrôlée incluant les copies Zoho ; courriel professionnel et rappels de signature préparés le 21 octobre ; **24/10** : la demande de fermeture devient exécutable ([[Fermeture de compte]]) et l'archive complète téléchargeable.
-- [[Fermeture de compte]] — **24/10, en production** : fermeture programmée par la supervision (second facteur) avant le 30/11, libre-service au lot 5 ; fin de période payée ou J+14 remboursé au prorata ; effacement la nuit de la date d'effet après la sauvegarde du jour (gardes, archive de la preuve, neutralisation, effacements rejouables) ; preuve 10 ans, factures 6 ans, rétractations 10 ans, trace 3 ans ; inactivité de 24 mois avec avertissements J-60 et J-15, **règle inactive jusqu'à la V1**.
-- [[Souscription de l'abonnement]] — **24/10, en production** : récapitulatif avec le droit de rétractation, case de demande expresse, texte d'obligation de paiement sous le bouton Stripe (`submit_type` retiré par la PR #247), confirmation sur support durable envoyée une fois, même sans médiateur, conditions en PDF si archivées.
-- [[Rétractation en ligne]] — **24/10, en production** : « Renoncer au contrat ici », toutes formules, 14 jours (jour non compté, jour ouvrable, 23 h 59 Paris), remboursement intégral, accusé qui reprend la déclaration, passage à l'annuel avec nouveau délai, reprise de nuit, preuve 10 ans même après fermeture.
-- [[Résiliation de l'abonnement]] — **24/10, en production** : un seul chemin (page « Résilier votre contrat », résiliation retirée du portail Stripe), accusé unique ; avis de reconduction entre trois mois et un mois avant la date limite, avec encadré ; non-reconduction faute d'accord à une version substantielle.
-- [[Impayé de l'abonnement]] — **24/10, en production** : courrier de J+0 valant mise en demeure, rappels J+7 et veille, lecture seule à J+15 après courrier (dès l'échec au premier prélèvement), statut « impayé » sans gel anticipé, résiliation manuelle au plus tôt à J+30, facture annulée.
-- [[Courriel de contact Gerimmo]] — transfert de la boîte contact vers le Gmail du dirigeant, pièces jointes et adresse de réponse ; connexion préparée le 22 octobre, activation et réception réelle à confirmer.
-- [[Cycle de vie d'un incident]] — déclaration → qualification → intervention → clôture.
-- [[Demande et sélection de devis]] — mise en concurrence des artisans.
-- [[Invitation d'un artisan par un propriétaire]] — **16/10, brouillon** : en production (PR #194, `f24dfb0`, migrations `20261014840000` à `…849000`) : le propriétaire direct invite par e-mail, l'artisan crée son compte, inscrit son entreprise et accepte, Gerimmo valide, sollicitation même en commune fermée dans la zone de l'artisan ; réglages par défaut (30 jours, plafonds d'envoi, aucune relance) ; « première confirmation » contre la prise de compte par pré-inscription ; **réglages Supabase hors dépôt non faits**, parcours jamais joué en production, recette n° 17 verte (38875612888) ; `invitations_artisans` toujours sans durée de conservation au catalogue (la PR #195 ne la couvre pas).
-- [[Liste d'attente des agences]] — **24/10** : base légale (intérêt légitime) et durée (36 mois depuis l'inscription, règle inactive) tranchées le 23/10 ; inscription retirée supprimée avec empreinte d'opposition, export sans retirées. **20/10, brouillon, déployé le soir même (PR #227)** : les agences (hors V1 publique depuis le 13/10) s'inscrivent sur `/agences` (agence, contact, adresse, téléphone facultatif, code postal, tranche de lots, message facultatif) pour être prévenues de l'ouverture de leur offre ; aucun e-mail envoyé, aucun prix ni date annoncés ; table `liste_attente_agences` (bornes, 30 inscriptions par heure, insertion par l'action serveur et la clé de service seulement, lecture et statut par le super-administrateur) ; console `/admin/liste-attente` (quatre gestes de statut, export CSV) ; différence avec `liste_attente` du 29/09 ; à trancher : base légale et durée de conservation (P11), date d'ouverture, grille agences, sort de `liste_attente`, comptage dans l'e-mail de 5 h ; sortie officielle visée le 30 novembre 2026.
-- [[Planification d'intervention]] — négociation de créneaux 3+3, arbitrage du gérant.
-- [[Intervention et clôture]] — exécution, compte rendu, évaluation.
-- [[Quittancement des loyers]] — appel → encaissement → quittance (ou reçu si partiel).
-- [[Révision annuelle IRL]] — proposition validée, prescription 1 an, DPE F/G bloqué.
-- [[Solde de tout compte]] — décompte final de fin de bail, émis dans les deux sens.
-- [[Rapport de gestion]] — compte rendu mensuel sans accès propriétaire, PDF détaillé joint et conservé ; relecture agence et reprise d’envoi.
-- [[Recette de production]] — **20/09, brouillon** : le tour de `gerimmo.app` persona par persona le jour du déploiement — prérequis (Santé du service sans manque, modèles d'e-mails Supabase, données de développement), étapes, les dix courriers à lire, critères de sortie ; **16/10** : recettes n° 4 à 18 consignées au journal ; projet `recette-montants` (`montants-p1.spec.ts`, PR #195 : contrôles des quatre P1 sur des données éphémères purgées après passage, sans PDF 2044 ni chemin confirmé de D38) ; « Créer la fiche » (recettes n° 6 à 18) = défaut du test, corrigé (`72e1e0b`, confirmé par la n° 19) ; D04 (une fois, n° 18) : cause établie le 16/10 au soir par la trace ; **17/10** : recettes n° 19 à 24 ; n° 24 (39022945703) : 49 réussis, cinq comptes fixes conservés (PR #201), artisan, supervision (MFA) et D18/D22/D23 joués, P1 au premier essai ; invitation d'artisan toujours non jouée ; **19/10** : aucune recette depuis la n° 24 malgré dix fusions (PR #202 à #211). ; **19/10 au soir** : recette n° 25 (39306114779) verte sur `e25c0f7`, première depuis la n° 24, comptes de recette bloqués entre deux passages.
-- [[Restitution du dépôt de garantie]] — délai légal 1/2 mois, imputabilité des écarts d'EDL ; **16/10** : décompte et date d'envoi au jour de Paris (PR #195), interprétation à ratifier.
-- [[Régularisation des charges]] — provisions vs réel, année civile, justificatifs bloquants.
-- [[Relances et mise en demeure]] — impayés à seuils paramétrables, relances = preuve.
-- [[Relais du dirigeant]] — **16/10, brouillon** : D46-B, partie alerte, en production (PR #192) : e-mail quotidien à 5 h (Paris) s'il y a quelque chose à signaler, e-mail immédiat des urgences du mode vacances (passage `pg_cron` toutes les 10 min, au plus 11 min, 6 envois par heure), non coupé par l'arrêt d'urgence ; deux adresses gardées hors du dépôt ; **16/10, PR #195** : passage de 5 h borné sous 60 s (envoi en parallèle, 45 s pour les envois), registres au catalogue de conservation (six mois, purges propres codées en dur), écran des arrêts avec `maintenance-artisans` ; aucun envoi réel encore constaté. **19/10 (M16, préparé)** : l'e-mail de 5 h comptera les demandes de contact du site vitrine en attente de réponse (dont celles de plus de 48 h), sans leur contenu.
-- [[Onboarding et abonnement]] — création d'agence, invitations, essai sans carte — 2 mois jusqu'au 31/12/2026 (offre de lancement), 1 mois ensuite — puis **gel en lecture seule** jusqu'au paiement ; aucun bien offert (28/09) ; préavis d'un mois et rétractation de 14 jours (CGU) ; **24/10** : case des conditions selon l'espace, souscription, résiliation et rétractation en ligne.
-- [[Retours utilisateurs]] — suivi privé, contestations, revue mensuelle des idées et conservation des signalements ; réalisation et preuves séparées des fonctionnalités restantes ; **24/10** : nature « Faire une réclamation », clôture qui renvoie au médiateur ; rétractation sortie de l'aide.
+- [[Courriel de contact Gerimmo]] — transfert de la boîte de contact de Gerimmo vers la boîte Gmail du dirigeant, approuvé le 22/10 ; préparé, aucune réception réelle confirmée.
+- [[Cycle de vie d'un incident]] — du signalement à la clôture : qualification, devis, mission, créneaux, intervention, compte rendu, facture, règlement déclaré ; relu dans le code le 26/11.
+- [[Demande et sélection de devis]] — mise en concurrence d'artisans sur un incident et choix d'un devis ; compléments de la mission palier 1 en production depuis le 25/11.
+- [[Demandes sur les données et fermeture de compte]] — renvoi vers [[Fermeture de compte]].
+- [[Fermeture de compte]] — fermeture sur demande ou après 24 mois d'inactivité, effacement de nuit après la sauvegarde ; demandes sur les données ; en production depuis le 24/10, factures gardées dix ans depuis le 25/11.
+- [[Impayé de l'abonnement]] — prélèvement échoué : mise en demeure le jour même, rappels, lecture seule à J+15, résiliation à la main au plus tôt à J+30 ; en production depuis le 24/10.
+- [[Intervention et clôture]] — mission de l'artisan, compte rendu, clôture de l'incident et évaluation ; reprend l'ancienne page Intervention ; ordre et compte rendu d'intervention en production depuis le 25/11.
+- [[Invitation d'un artisan par un propriétaire]] — le propriétaire direct invite par e-mail un artisan, qui s'inscrit et accepte, puis Gerimmo le valide ; en production depuis le 16/10, brouillon.
+- [[Liste d'attente des agences]] — les agences s'inscrivent sur `/agences` pour être prévenues de l'ouverture, rien ne leur est envoyé ; en production depuis le 20/10, base légale et durée décidées le 23/10.
+- [[Onboarding et abonnement]] — renvoi vers [[Souscription de l'abonnement]].
+- [[Planification d'intervention]] — négociation des créneaux entre artisan et locataire, arbitrage du gestionnaire ; en production depuis le 25/11, rappel de rendez-vous et relance de report fermés.
+- [[Quittancement des loyers]] — appel du loyer, encaissement, quittance (ou reçu si le paiement est partiel) ; avis d'échéance revu par la mission palier 1, en production depuis le 25/11.
+- [[Rapport de gestion]] — **en sommeil (palier 2)** : compte rendu mensuel au propriétaire mandant, relu et envoyé par l'agent, figé à l'envoi (module 6 du cahier V3).
+- [[Recette de production]] — après chaque publication, parcours du site en ligne avec cinq comptes éphémères supprimés ensuite ; dernière recette, n° 62 du 26/11, réussie.
+- [[Relais du dirigeant]] — e-mail de 5 h au dirigeant s'il y a quelque chose à signaler, e-mail immédiat des urgences ; en production depuis le 16/10, inscriptions signalées depuis le 25/11.
+- [[Relances et mise en demeure]] — relances des loyers impayés jusqu'à la mise en demeure, suspendues sous plan d'apurement ; en production depuis le 25/11, envois par e-mail encore fermés.
+- [[Restitution du dépôt de garantie]] — restitution sous un ou deux mois après la remise des clés, retenues justifiées par l'état des lieux ; une pièce par retenue exigée depuis le 25/11.
+- [[Retours utilisateurs]] — deux circuits : signalement de bug traité aussitôt, idée revue chaque mois ; réclamations et renvoi au médiateur en production depuis le 24/10.
+- [[Régularisation des charges]] — comparaison annuelle des provisions et des charges réelles, justificatifs exigés ; étalement et courrier revus, en production depuis le 25/11.
+- [[Résiliation de l'abonnement]] — un seul chemin, la page « Résilier votre contrat », et un seul accusé ; résiliation retirée du portail Stripe ; en production depuis le 24/10.
+- [[Rétractation en ligne]] — renonciation en ligne sous quatorze jours, sans motif, avec remboursement intégral et accusé de réception ; en production depuis le 24/10.
+- [[Révision annuelle IRL]] — révision du loyer à la date anniversaire selon l'IRL, perdue si elle n'est pas demandée dans l'année ; rappel et date limite en production depuis le 25/11.
+- [[Solde de tout compte]] — décompte final de fin de bail, établi après l'état des lieux de sortie et émis quel que soit le sens du solde ; spécification du cahier V3, brouillon.
+- [[Souscription de l'abonnement]] — choix de la formule, récapitulatif, paiement Stripe, confirmation unique ; en amont, inscription et essai ; en production, ventes encore fermées au 26/11.
 
 ## Concepts
-- [[Organisation]] — l'entité cliente, racine de l'isolation multi-tenant.
-- [[Compte, personne et adhésion]] — identité V3 : compte global, adhésions par agence.
-- [[Dossier locataire]] — pièces versionnées rattachées à la personne ; purge à 5 ans.
-- [[Patrimoine et résidences]] — regroupements au-dessus du bien (code actuel).
-- [[Bien]] — l'unité physique (adresse, clé, diagnostics communs).
-- [[Lot]] — l'unité locative V3 : porte bail, loyer, détention et mandat ; qui en voit quoi (gérant, locataire, artisan).
-- [[Clé de répartition]] — répartit une dépense commune entre lots ; 100 % exact, datée.
-- [[Diagnostic]] — DPE, ERP… ; expiré = création de bail bloquée.
-- [[Appel de charges]] — charges de copro : saisie poste à poste, ventilation récupérable.
-- [[Plan d'apurement]] — dette échue gelée, tranches mensuelles, relances suspendues tant qu'il est respecté (02/11).
-- [[Mandat de gestion]] — contrat-pivot agence↔propriétaire ; taux par lot, seuil de délégation.
-- [[Occupation d'un bien]] — le « bail » simplifié du code actuel.
-- [[Gérant]] — terme générique : agent immobilier ou propriétaire bailleur.
-- [[Bail]] — nu/meublé/colocation, contrat commun et inventaire générables ; signature Zoho Sign (18/10, circuit publié, envois clients désactivés) et contrats séparés encore à compléter.
-- [[Types de baux]] — panorama des 10 régimes locatifs ; périmètre V3 vs hors périmètre.
-- [[Structure du modèle-type de bail]] — les 11 sections du formulaire officiel, blueprint du générateur 1.16 ; 7 champs manquants.
-- [[État des lieux]] — constat mobile pièce par pièce ; sans EDL d'entrée, pas de retenue ; **24/10** : signé dans Gerimmo avec la confirmation « établi contradictoirement, sur place » (décision du 23/10), rappel du droit de le compléter « dans les dix jours qui suivent son établissement ».
-- [[Signature électronique]] — **18/10** : Zoho Sign Europe (PR #203 à #210) : bail, avenant, cautionnement, états des lieux, accords d'échelonnement et de travaux, acceptation de devis ; compte ouvert et essai externe signé par le dirigeant le 18/10, circuit et cinq migrations publiés, webhook actif, **envois aux clients désactivés** (plafond zéro) ; recette humaine et offre API à confirmer ([dossier technique](app/docs/signature-electronique-bail.md)) ; ~~EDL dans le circuit en contradiction avec RM-13.1.6~~ (**fermé le 23/10** par la décision du dirigeant) ; **24/10, en production** : caution et garant confirment eux-mêmes leur mobile, EDL confirmé sur place, signature non qualifiée sans présomption, certificat commun, invitation qui informe de la transmission à Zoho ; historique : Yousign/Youtrust (simple, séquentiel, bailleur en dernier), **non activée au lancement** du 30/09 (circuit de transition V0).
-- [[Marque blanche]] — logo + couleurs par agence ; mention Gerimmo conservée.
-- [[Dépôt de garantie]] — plafonné, jamais révisé ; colocation à bail commun nue/meublée clarifiée le 14/09 ; **16/10** : encaissement (PR #189) et restitution (PR #195, à ratifier) au jour de Paris.
-- [[Garantie]] — caution solidaire (acte signé électroniquement, Zoho Sign depuis le 18/10) et garanties externes ; **24/10** : case « aucune assurance ni autre garantie » avant l'acte, la caution confirme son mobile, garant du bail aligné, mention « reconnaît avoir reçu un exemplaire ».
-- [[Comptabilité]] — déclarative de caisse ; écritures 2 dates, clôture verrouillante.
-- [[Fiscalité]] — aide à la déclaration (récap 2044) ; régimes LMNP/SCI à trancher.
-- [[Journal éditorial]] — le journal public et son **moteur de propositions** : huit veines ancrées sur le wiki, un angle et un plan, jamais un chiffre inventé.
-- [[Incident]] — désordre signalé ; l'imputation (qui paie) tranchée par l'agent, **requalifiable** depuis le 23/08 pour répondre à une contestation sans clôturer (contredit RM-7.5.3, à trancher).
-- [[Devis]] — 2 max, validité 30 j, accord du mandant au-delà du seuil. **19/10 (B5)** : un devis signé peut encore expirer ou être annulé (archive conservée), une seule offre signée vivante par dossier, validité jugée au jour de Paris (`retenir_devis`, `deposer_devis`).
-- [[Intervention]] — mission de l'artisan ; compte rendu + photo obligatoires.
-- [[Document]] — GED sans arborescence ; le type pilote droits et conservation.
-- [[Période de loyer]] — le loyer attendu du code actuel ; cible : appel/encaissement.
-- [[Abonnement]] — souscription SaaS Stripe de l'organisation ; grille du 28/09 (formules particuliers, tranches agences), franchise de TVA, portail Stripe limité à la résiliation ; **19/10 (lot B3)** : paiement refusé (souscription et hausse) tant que l'identité de l'éditeur (`supervision_identite`) est incomplète, et souscription refusée tant que le compte n'a pas accepté la version en vigueur des CGV (case à l'écran, `acceptations_cgu`, source `compte`). **22/10 :** levée réversible du seul blocage d’identité par bouton superadmin, préparée en local à la demande du dirigeant ; autres contrôles conservés. **24/10** : conformité V1 du code (souscription, rétractation, résiliation, impayé, réclamation, fermeture) ; résiliation retirée du portail Stripe.
-- [[Conditions générales]] — **24/10** : version en vigueur du 30/09 ; V1 rédigée (agences retirées, 4.7 signature, 8.10, 9, 14 bis, 15, 16, 17 médiateur lu en base, annexes 1 et 2) et conditions de l'espace artisan, **publication prévue le 24/10** ; archive des versions en ajout seul avec empreinte (`/conditions/versions`), acceptation selon l'espace, écran « Nos conditions générales évoluent » (inactif).
-- [[Export complet des données]] — **24/10, en production** : archive ZIP de l'espace (CSV par table, compte et acceptations, fichiers et certificats), réservée au titulaire avec second facteur ou mot de passe récent, lien de 24 h, archive supprimée après sept jours, journalisée.
-- [[Agenda et échéances]] — écran unique agenda + 27 types d'alertes, escalade nominative. Contient le relevé du 19/09 : l'écran de traitement contredisait RM-14.3.2 (« fermeture par l'action, jamais par marquage »), et les **douze** types d'alerte qui se referment d'eux-mêmes.
-- [[Parrainage]] — **19/09** : savoir qui a amené qui — un code par organisation, un parrain au plus par filleul, saisi à l'inscription ou à l'ouverture d'une agence ; le seul levier de croissance autorisé vers les particuliers. **Un mois pour vous, un mois pour lui** : essai du filleul porté à 30 jours, un mois offert au parrain quand son filleul devient client payant. **28/09** : sans avantage (pas de cumul avec la nouvelle grille). **30/09 : réactivé — 1 mois offert au parrain à la conversion du filleul** (première facture payée), rien de plus pour le filleul.
-
-- [[Guide de ton du journal]] — la voix du journal et des posts Facebook (un gestionnaire qui explique à un bailleur), ce qu'on retire, gabarits d'un relais de veille et d'un sujet éditorial ; repris dans la consigne de l'IA de rédaction.
+- [[Abonnement]] — souscription d'une organisation à Gerimmo : abonnement unique selon le nombre de biens actifs, essai de deux mois ; ventes fermées, ouverture fixée au 30/11.
+- [[Agenda et échéances]] — écran unique agenda et alertes (27 types, criticité, escalade) du cahier V3 ; l'agenda du propriétaire montre ses échéances (mission palier 1).
+- [[Appel de charges]] — appel de charges du syndic, saisi poste par poste et ventilé entre récupérable et non récupérable (module 0c) ; brouillon du 24/07.
+- [[Bail]] — contrat de location porté par un lot (nu, meublé, colocation) ; reprend l'ancienne page Occupation d'un bien ; congés, contrat et signature revus, en production depuis le 25/11.
+- [[Bien]] — unité physique (adresse, copropriété, diagnostics communs) ; ce n'est pas le bien qui est loué, mais son lot ; relu dans le code le 26/11.
+- [[Clé de répartition]] — répartit une dépense commune du bien entre ses lots, à 100 % exacts et datée ; parcours le plus critique du module 0 ; brouillon du 24/07.
+- [[Comptabilité]] — journal de gestion déclaratif de caisse (module 4), jamais une comptabilité de gérance ; livre du propriétaire direct livré le 30/08.
+- [[Compte, personne et adhésion]] — modèle d'identité validé le 25/07 : un compte global, une adhésion par organisation avec son rôle, une fiche personne par organisation.
+- [[Conditions générales]] — conditions d'utilisation et de vente sur `/conditions`, chaque version archivée ; version du 24/11 en production depuis le 25/11, archivée le 26/11 ; ventes fermées.
+- [[Devis]] — proposition chiffrée d'un artisan sur un incident, comparée par un score de recommandation ; compléments de la mission palier 1 en production depuis le 25/11.
+- [[Diagnostic]] — diagnostics réglementaires datés, rattachés au bien ou au lot (DPE, ERP…) ; un diagnostic obligatoire expiré bloque la génération d'un bail ; alertes d'expiration.
+- [[Document]] — fichier métier rattaché à toutes les entités qu'il concerne, sans arborescence ; catalogue des documents générés relu et corrigé, en production depuis le 25/11.
+- [[Dossier locataire]] — pièces versionnées du locataire et du garant, qui suivent la personne ; pièces d'un candidat limitées à la liste du décret n° 2015-1437 depuis le 25/11.
+- [[Dépôt de garantie]] — somme versée à la signature, plafonnée selon le bail, restituée à la sortie moins les retenues justifiées ; reçu et notice revus, en production depuis le 25/11.
+- [[Export complet des données]] — archive ZIP de tout l'espace (données, fichiers, certificats), téléchargée par le titulaire par un lien signé ; en production depuis le 24/10.
+- [[Fiscalité]] — aide à la déclaration des revenus locatifs du propriétaire (récapitulatif 2044) ; repères du micro-foncier réglés par le Super Admin depuis le 25/11, sans calcul d'impôt.
+- [[Garantie]] — caution ou garantie externe (Visale, GLI…) rattachée au bail, éteinte avec lui ; acte de cautionnement relu sur le texte fourni, en production depuis le 25/11.
+- [[Guide de ton du journal]] — la voix du journal public et des posts Facebook, un gestionnaire qui explique à un bailleur ; repris dans la consigne de l'IA de rédaction.
+- [[Gérant]] — terme générique, non technique : l'agent immobilier ou le propriétaire bailleur qui gère le bien face au locataire ; synonyme « Gestionnaire ».
+- [[Incident]] — problème signalé sur un logement ou les parties communes : sept états, trois portes de déclaration, imputation (« qui paie ») ; relu dans le code le 26/11.
+- [[Intervention]] — renvoi vers [[Intervention et clôture]].
+- [[Journal éditorial]] — le journal public `/journal` et son moteur de propositions ancrées sur le wiki, qui n'invente aucun chiffre ; livré le 11/09.
+- [[Lot]] — unité locative qui porte bail, loyer, propriétaires et mandat : « le bail porte toujours sur un lot » ; étage imprimé une seule fois depuis le 25/11.
+- [[Mandat de gestion]] — **en sommeil (palier 2)** : contrat entre le propriétaire mandant et l'agence, sur des lots, avec un taux par lot et des avenants signés (module 5 du cahier V3).
+- [[Marque blanche]] — **en sommeil (palier 2)** : habillage aux couleurs de l'agence (logo, deux couleurs), mention Gerimmo conservée (module 17 du cahier V3).
+- [[Occupation d'un bien]] — renvoi vers [[Bail]].
+- [[Organisation]] — l'entité cliente (agence ou propriétaire en gestion directe) et la racine de l'isolation des données ; réécrite d'après le code le 26/11.
+- [[Parrainage]] — un code par organisation pour savoir qui a amené qui ; un mois offert au parrain quand son filleul devient client payant (décision du 30/09).
+- [[Patrimoine et résidences]] — renvoi vers [[Bien]] et [[Lot]] : notion V3 absente du code actuel.
+- [[Plan d'apurement]] — accord qui gèle une dette échue et l'étale en tranches mensuelles, relances suspendues tant qu'il est respecté ; complété en production depuis le 25/11.
+- [[Période de loyer]] — le terme mensuel d'un bail, une ligne d'appel de loyer par mois, départ du flux appel → encaissement → quittance ; réécrite d'après le code le 26/11.
+- [[Signature électronique]] — signature en ligne par Zoho Sign (bail, avenant, cautionnement, devis…) ; proposée en premier depuis le 25/11, papier toujours possible ; interrupteurs non relus.
+- [[Structure du modèle-type de bail]] — les onze sections du modèle-type réglementaire du bail nu et meublé, gabarit du générateur de baux ; brouillon.
+- [[Types de baux]] — panorama des régimes locatifs (durée, dépôt, préavis) et périmètre de Gerimmo : bail nu, bail meublé et colocation.
+- [[État des lieux]] — constat d'entrée et de sortie pièce par pièce ; sans état des lieux d'entrée, aucune retenue ; signé dans Gerimmo sur place depuis le 24/10, document revu le 25/11.
 
 ## Règles métier
-- [[Grille tarifaire]] — **28/09/2026** : particuliers Solo 5,99 € → Patrimoine 29,99 € TTC/mois (annuel = 2 mois offerts, +1 €/bien au-delà de 20) ; agences 39 € HT jusqu'à 10 lots puis tranches cumulatives ; plus de premier bien offert ; essai 2 mois jusqu'au 31/12/2026 (offre de lancement), puis 1 mois ; franchise en base de TVA (art. 293 B du CGI) ; grilles antérieures en historique.
-- [[Quittance conforme]] — loyer/charges séparés, identité légale du bailleur.
-- [[Mentions obligatoires du bail]] — modèle-type et compléments DPE, servitude, clauses et honoraires revus le 14/09/2026 ; revue de tous les régimes encore ouverte.
-- [[Clauses abusives et clauses résolutoires]] — 9 clauses non écrites, 4 résolutoires admises.
-- [[Cycle de vie de l'abonnement]] — essai 2 mois (30/09 ; 14 j avant) → paiement, ou **gel en lecture seule** (consultable, exportable) ; résiliation en fin de période, préavis de révision d'un mois (art. 8.9), rétractation 14 j (art. 8.10), préavis de modification d'un mois (art. 16) ; **24/10** : avis de reconduction entre trois mois et un mois, rétractation en ligne pour toutes les formules, article 15 (lecture seule à J+15, résiliation au plus tôt à J+30), suppression après 24 mois sans connexion ni abonnement (règle inactive jusqu'à la V1).
-- [[Archivage plutôt que suppression]] — on archive, on ne supprime pas ; **24/10** : journal d'audit 12 mois (contrôle interne 36, preuves du contrat 10 ans), fin de cycle des comptes (fermeture, 24 mois).
-- [[Isolation multi-organisation]] — RLS partout + test d'isolation par table.
-- [[RGPD]] — droits des personnes, durées de conservation, purge encadrée ; **16/10** : durées D13, D14, D48 ; les quatre registres du relais et du compteur IA au catalogue `retention_rules` (six mois, PR #195), purges propres du relais codées en dur ; amorce du registre des traitements de la plateforme ; **24/10** : délai de réponse d'un mois civil, conformité V1 (catalogue de 58 règles, gel, alertes, fermeture, export, prospection).
-- [[Durées de conservation]] — **24/10, en production** : le catalogue `retention_rules` (58 règles) — pièces et actes du bail 36 mois après la fin du bail, quittances 36 mois (120 sans bail), journal d'audit 12 mois, preuve du contrat 10 ans, factures 6 ans (éditeur non commerçant), comptes 24 mois (inactive) ; règles actives ou non ; gel en cas de litige (12 mois renouvelable) ; alertes J-30 et J-15.
-- [[Prospection commerciale]] — **24/10** : décision 8 du 23/10 (jamais de courriel commercial à un particulier sans consentement ; artisans et agences si l'adresse vient d'eux, avec opposition dans chaque message) ; origine en liste fermée, mention du premier message, « Stop » qui supprime toutes les fiches et garde une empreinte 3 ans.
-- [[Registre des traitements]] — **24/10, réécrit** (lot 6 du plan juriste/DPO) : identité lue en base par `lireEditeur()` (renvoi aux mentions légales), capital sans objet, **DPO non désigné, référent le dirigeant**, P1 à P16 (preuve des conditions, facturation, artisans, contacts, journaux, listes d'attente, suivi commercial à deux régimes, demandes de droits, parrainage, fermetures et archives, aide et retours), volet 2 aux durées du 24/10, sous-traitants figés (OpenAI ajouté, Yousign et Base Adresse Nationale retirés). Historique : **20/09, brouillon** : les deux volets de l'article 30 (Gerimmo responsable pour la plateforme, sous-traitant pour la gestion locative), traitement par traitement, durées de `retention_rules`, sous-traitants du déploiement ; DPO, AIPD du score artisan et contrat de sous-traitance à trancher ; **16/10** : durées d'octobre à reporter depuis [[RGPD]] (registres du relais et compteur IA au catalogue depuis la PR #195). **19/10** : ligne P10 « liste d'attente du site » ajoutée (adresses électroniques ; base légale et durée à décider). **20/10** : ligne P11 « liste d'attente des agences » (agence, contact, adresse, téléphone, code postal, tranche de lots, message, statut de suivi ; base légale et durée à décider par le dirigeant / DPO, aucune règle `retention_rules`) ; P10 distinguée de P11 — [[Liste d'attente des agences]].
-- [[Procédure de notification de violation]] — **20/09, brouillon** : la chaîne A4 rendue opérationnelle (détecter, qualifier en 2 h, confiner en 4 h, informer les organisations, CNIL sous 72 h, personnes si risque élevé, registre des violations), qui fait quoi, gestes disponibles, gabarits de fiche et de messages.
-- [[Notification et valeur probante]] — Gerimmo ne notifie jamais ; trace GED ≠ preuve ; **24/10** : famille 2 chez Zoho Sign (et non Yousign), certificat commun, signature non qualifiée sans présomption, EDL signé dans Gerimmo avec confirmation « sur place », mandat hors circuit.
-- [[Machines à états et événements]] — 8 machines, transitions interdites, idempotence.
-- [[Vétusté et décote]] — grille de durées de vie, décote linéaire ; amorti = zéro retenue.
-- [[Le jour de référence est le jour de Paris]] — **16/10, brouillon** : « aujourd'hui » = date du calendrier à Paris (`aujourdhui_paris()`), jamais le jour UTC ; loyers, encaissements et quittances (X13, #186), dépôt, journal, IRL, terme, charges, rapports et « Fait le » (#189), fonctions des 15-16/10 ; restitution du dépôt (`finaliser_decompte`, `marquer_decompte_envoye`, PR #195, `20261014851000`) : **interprétation à ratifier** ; hors décision en callout (alertes de restitution, honoraires, copropriété, abonnement…).
-- [[Plan de reprise d'activité]] — RPO 24 h / RTO 4 h, test de restauration documenté.
-- [[Socle de sécurité]] — MFA super administrateur, contrôle AAL2 et séparation des droits de supervision et de signature.
-- [[Ouverture du réseau d'artisans]] — **23/10, décision du dirigeant (migration `20261023180000`, non appliquée en production)** : le réseau suit la zone (codes postaux ou départements) et les métiers **choisis par l'artisan** ; proposé dès que Gerimmo l'a validé (SIRET vérifié) et qu'il est public ; plus d'ouverture commune × métier par le super admin (`/admin/couverture` en lecture) ; téléphone et e-mail transmis avec la demande ; zone et métiers journalisés ; **écart à ratifier** (codes postaux au lieu de communes). Règle supplantée du **28/09** (ouverture commune INSEE × métier par le super admin) en vigueur jusqu'à la mise en production ; carnet du propriétaire direct par invitation (PR #194).
+- [[Archivage plutôt que suppression]] — archiver ou désactiver plutôt que supprimer à chaud, et journaliser ; corrigé par A2 : l'archivage est une étape du cycle de vie, jamais un sort final.
+- [[Clauses abusives et clauses résolutoires]] — les clauses réputées non écrites par la loi de 1989 et les quatre clauses résolutoires admises, à exclure ou à proposer dans le modèle de bail.
+- [[Cohérence des loyers de référence]] — contrôle indicatif (X08) du loyer face aux loyers de référence là où l'encadrement s'applique, sur la surface habitable ; sans certification juridique.
+- [[Cycle de vie de l'abonnement]] — essai sans carte, souscription, hausse, résiliation, rétractation, lecture seule, suppression après 24 mois d'inactivité ; conformité V1 en production depuis le 24/10.
+- [[Durées de conservation]] — catalogue `retention_rules` (58 règles : durée, déclencheur, sort final), seules les règles actives purgées ; factures dix ans depuis le 25/11 ; aucune règle activée (Q39).
+- [[Grille tarifaire]] — les prix : abonnement unique selon le nombre de biens actifs depuis le 11/11 (5,99 € par mois pour un bien) ; grille agences non publiée ; ventes fermées au 26/11.
+- [[Isolation multi-organisation]] — les données d'une organisation ne sont jamais visibles d'une autre : `organization_id` partout et RLS ; réécrite d'après le code le 26/11.
+- [[Le jour de référence est le jour de Paris]] — « aujourd'hui » est la date du calendrier à Paris, jamais le jour UTC ; convention du produit (14-16/10) ; restitution du dépôt : interprétation à ratifier.
+- [[Machines à états et événements]] — huit machines à états (46 états) du cahier V3 : toute transition non listée est interdite, un état terminal n'a aucune sortie.
+- [[Mentions obligatoires du bail]] — modèle-type du décret n° 2015-587 et ses compléments ; contrat type et notice relus sur le texte fourni (non recontrôlé sur Légifrance), en production depuis le 25/11.
+- [[Notification et valeur probante]] — Gerimmo génère et suit, il ne notifie jamais ; une trace GED n'est pas une preuve ; cinq niveaux de preuve, de l'acte de commissaire de justice à la mise en ligne.
+- [[Ouverture du réseau d'artisans]] — le réseau propose les artisans validés et publics selon la zone et les métiers qu'ils ont choisis ; en production depuis le 23/10, plus d'ouverture par commune.
+- [[Plan de reprise d'activité]] — restaurer le service sous contrôle humain, jamais directement en production : RPO 24 h, RTO 4 h, sauvegarde quotidienne ; relevé au 16/10.
+- [[Procédure de notification de violation]] — chaîne en cas de violation de données (qualifier en 2 h, confiner en 4 h, CNIL sous 72 h), qui fait quoi, gabarits ; brouillon du 20/09.
+- [[Prospection commerciale]] — Gerimmo n'envoie aucun message commercial ; jamais à un particulier sans consentement, aux professionnels avec opposition possible ; en production depuis le 24/10.
+- [[Quittance conforme]] — quittance gratuite qui sépare loyer et charges, courriers à l'identité légale du bailleur ; émetteur et adresse revus, en production depuis le 25/11.
+- [[RGPD]] — droits des personnes, durées et purge encadrée, réponse sous un mois civil ; conformité V1 en production depuis le 24/10 ; brouillon à faire valider par un DPO.
+- [[Registre des traitements]] — registre de l'article 30 en deux volets (plateforme, gestion locative) ; réécrit le 24/10, mis à jour les 25 et 26/11 ; ni juriste ni DPO mandaté.
+- [[Socle de sécurité]] — exigences de sécurité transverses du livrable A4 : MFA obligatoire du super admin, chiffrement, fichiers, incidents ; brouillon.
+- [[Vétusté et décote]] — l'usure normale n'est pas une dégradation ; décote linéaire des retenues selon une grille de durées de vie, élément amorti : aucune retenue.
 
 ## Sources
-- [[2026-09-28-decision-tarification|Décision tarifaire du 28/09/2026]] — consigne du porteur : formules particuliers, tranches agences, fin du premier bien offert, règles d'essai, de changement et de migration.
-- [[2026-09-28-reseau-national-ouvertures-locales|Réseau national, ouvertures locales (PR #132)]] — doc et migration du 28/09 : ouverture du réseau d'artisans par commune × métier, intérêts signalés, carnet personnel.
-- [[2026-09-20-cahier-des-charges-maitre-v3|Cahier maître V3 — audit des 100 sections]] — référence prioritaire ; couverture réelle, écarts et plan V1 documentés dans app/docs.
-- [[2026-09-14-service-public-depot-colocation]] — source officielle : bail commun nu/meublé et plafond du dépôt hors charges.
-- [[Dépôt Gerimmo-V3]] — le code (2026-07-21) : SQL, services, état réel.
-- [[2026-07-21-fonctionnalites-par-persona-v0|Fonctionnalités par persona (v0)]] — note produit interne.
-- [[2026-07-22-rentila-site-web|Rentila]] — concurrent bailleur particulier.
-- [[2026-07-22-smovin-site-web|Smovin]] — concurrent investisseurs (BE/FR).
-- [[2026-07-22-oskar-la-boite-immo|Oskar (La Boîte Immo)]] — concurrent agences.
-- [[2026-07-24-gerimmo-v3-a1-modele-identite|V3 · A1 — Modèle d'identité]] — compte global, adhésions ; à valider.
-- [[2026-07-24-gerimmo-v3-a2-conservation-rgpd|V3 · A2 — Conservation et RGPD]] — matrice des durées, 3 sorts finaux ; corrige 5 règles.
-- [[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve|V3 · A3 — Documents, canaux et preuve]] — canal et date d'effet par document.
-- [[2026-07-24-gerimmo-v3-a4-socle-securite|V3 · A4 — Socle sécurité]] — MFA, chiffrement, fichiers, sauvegardes, sous-traitants.
-- [[2026-07-24-gerimmo-v3-a5-etats-et-evenements|V3 · A5 — États et événements]] — 8 machines, webhooks ; clôt la phase A.
-- [[2026-07-24-gerimmo-v3-a6-doctrine-financiere|V3 · A6 — Doctrine financière]] — journal de gestion, immutabilité, exports ; dernier P0 clos.
-- [[2026-07-24-gerimmo-v3-architecture-lot-0|V3 · Architecture du lot 0]] — le socle : 9 tables, RLS, pg_cron.
-- [[2026-07-24-gerimmo-v3-matrice-tracabilite|V3 · Matrice de traçabilité]] — 71 règles × 23 modules ; clôt la phase B.
-- [[2026-07-24-gerimmo-v3-module-0-biens-et-lots|V3 · Module 0 — Biens et lots]] — bien/lot, détention, diagnostics, import.
-- [[2026-07-24-gerimmo-v3-module-0b-dossier-locataire|V3 · Module 0b — Dossier locataire]] — pièces, assurance, purge RGPD.
-- [[2026-07-24-gerimmo-v3-module-0c-copropriete|V3 · Module 0c — Copropriété]] — appel de charges et ventilation.
-- [[2026-07-24-gerimmo-v3-module-1-bail|V3 · Module 1 — Bail]] — création, colocation, signature, congés, EDL.
-- [[2026-07-24-gerimmo-v3-module-2-garanties|V3 · Module 2 — Garanties]] — dépôt, caution, restitution, vétusté.
-- [[2026-07-24-gerimmo-v3-module-3-loyers-et-charges|V3 · Module 3 — Loyers et charges]] — cycle mensuel, impayés, IRL.
-- [[2026-07-24-gerimmo-v3-module-4-comptabilite|V3 · Module 4 — Comptabilité]] — déclaratif assumé, clôture, catégories.
-- [[2026-07-24-gerimmo-v3-module-5-mandat-de-gestion|V3 · Module 5 — Mandat]] — multi-lots, paramètres pivots, signature.
-- [[2026-07-24-gerimmo-v3-module-6-rapport-et-fiscalite|V3 · Module 6 — Rapport et fiscalité]] — rapport figé, récap 2044.
-- [[2026-07-24-gerimmo-v3-module-7-incidents|V3 · Module 7 — Incidents]] — imputation, compte rendu, réouverture.
-- [[2026-07-24-gerimmo-v3-module-8-artisans|V3 · Module 8 — Artisans]] — pièces, décennale, visibilité, blacklist.
-- [[2026-07-24-gerimmo-v3-module-9-devis-et-facturation|V3 · Module 9 — Devis et facturation]] — 2 devis, accord mandant, imputation.
-- [[2026-07-24-gerimmo-v3-module-10-rdv-et-planning|V3 · Module 10 — RDV et planning]] — créneaux 3+3, arbitrage, rappels.
-- [[2026-07-24-gerimmo-v3-module-11-notation|V3 · Module 11 — Notation]] — 3 sources 25/50/25, contestation au SA.
-- [[2026-07-24-gerimmo-v3-module-12-documents-et-ged|V3 · Module 12 — Documents et GED]] — sans dossiers, modèles figés.
-- [[2026-07-24-gerimmo-v3-module-13-signature-electronique|V3 · Module 13 — Signature électronique]] — Yousign V1, séquentiel.
-- [[2026-07-24-gerimmo-v3-module-14-agenda-et-alertes|V3 · Module 14 — Agenda et alertes]] — 27 alertes, escalade, annonces.
-- [[2026-07-24-gerimmo-v3-module-15-messagerie|V3 · Module 15 — Messagerie]] — conversations rattachées, WhatsApp.
-- [[2026-07-24-gerimmo-v3-module-16-onboarding-et-invitations|V3 · Module 16 — Onboarding]] — invitations, consentement WhatsApp.
-- [[2026-07-24-gerimmo-v3-module-17-marque-blanche|V3 · Module 17 — Marque blanche]] — logo + couleurs, mention conservée.
-- [[2026-07-24-gerimmo-v3-module-18-administration|V3 · Module 18 — Administration]] — 3 rôles, paramétrage, facturation.
-- [[2026-07-24-gerimmo-v3-module-19-mobile|V3 · Module 19 — Mobile]] — site adapté, EDL hors ligne ; clôt le référentiel.
-- [[2026-07-24-gerimmo-v3-module-20-retours-utilisateurs|V3 · Module 20 — Retours utilisateurs]] — bugs et idées.
-- [[2026-08-01-bailpdf-com|bailpdf.com]] — modèles de documents locatifs FR (bail, EDL, congés, caution…) ; reverse-engineering pour la génération Gerimmo.
-- [[2026-08-05-bailpdf-contrat-de-bail|BailPDF — Contrat de bail]] — panorama des baux, mentions 2024, clauses ; source de vulgarisation à recouper.
-- [[2026-08-05-bailpdf-modele-bail-non-meuble|BailPDF — Modèle bail non meublé (PDF)]] — le formulaire officiel du modèle-type ; base du blueprint 1.16.
-- [[2026-08-05-bailpdf-modele-bail-meuble|BailPDF — Modèle bail meublé (PDF)]] — même squelette que le vide ; variantes durée, forfait, dépôt 2 mois, inventaire mobilier.
-- [[2026-08-08-maquette-prototype-cliquable|Maquette — prototype cliquable (août 2026)]] — référence charte v2 (encre/laiton/crème, Instrument Sans) appliquée à l'app bloc 0 → S3 ; spécifie aussi la refonte des alertes. ⚠ Habillage supplanté le 17/09 par [[Charte visuelle v3 bleue]].
-- [[2026-09-04-maquette-v3-prototype|Maquette v3 — prototype cliquable (sept. 2026)]] — ~20 chantiers nouveaux (réseau artisan, reprise de portefeuille, dossier de pièces, EDL de sortie guidé, quittancement, SCI/fiscalité PD, « mon portefeuille » agent…) ; inventaire classé, 6 contradictions à trancher, découpage T1→T8.
-
-- [[2026-09-08-maquette-espace-agence-v6|Maquette espace agence v6]] — agent + admin d'agence : inventaire, contradictions (fonds mandants vs RM-A6.1), découpage d'intégration.
+- [[2026-07-21-fonctionnalites-par-persona-v0|Fonctionnalités par persona (note produit v0)]] — note produit interne du 21/07 : les fonctionnalités attendues, persona par persona ; plusieurs points divergent du code.
+- [[2026-07-22-oskar-la-boite-immo|Oskar (La Boîte Immo)]] — concurrent : logiciel de gestion locative de La Boîte Immo pour les agences (ex-Tylto) ; extrait du site du 22/07.
+- [[2026-07-22-rentila-site-web|Rentila]] — concurrent : logiciel des bailleurs particuliers en gestion directe, « les moins chers », gratuit pour un bien ; extrait du site du 22/07.
+- [[2026-07-22-smovin-site-web|Smovin]] — concurrent : logiciel belge, décliné pour la France, centré sur le contrat de bail, pour investisseurs et petites structures ; extrait du 22/07.
+- [[2026-07-24-gerimmo-v3-a1-modele-identite|V3 · A1 — Modèle d'identité]] — livrable transverse du cahier V3 : un compte global, une adhésion par agence ; conditionne les 22 modules.
+- [[2026-07-24-gerimmo-v3-a2-conservation-rgpd|V3 · A2 — Conservation et RGPD]] — corrige les durées de tous les modules ; Gerimmo sous-traitant pour les données d'agence, responsable pour la plateforme.
+- [[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve|V3 · A3 — Documents, canaux et preuve]] — canal, date d'effet et preuve exigés document par document ; « Gerimmo génère et suit, il ne notifie jamais ».
+- [[2026-07-24-gerimmo-v3-a4-socle-securite|V3 · A4 — Socle sécurité]] — 14 règles de sécurité transverses (MFA, mots de passe, chiffrement, fichiers, sauvegardes) ; à valider avant production.
+- [[2026-07-24-gerimmo-v3-a5-etats-et-evenements|V3 · A5 — États et événements]] — registre des huit machines à états (46 états) et des contrats d'événements ; consolide sans rien modifier.
+- [[2026-07-24-gerimmo-v3-a6-doctrine-financiere|V3 · A6 — Doctrine financière]] — journal de gestion, jamais comptabilité de gérance ; écritures immuables ; à valider par un expert-comptable.
+- [[2026-07-24-gerimmo-v3-architecture-lot-0|V3 · Architecture du lot 0]] — traduction technique des livrables A1 à A6 : socle Next.js, Supabase et Vercel de neuf tables, sans donnée métier.
+- [[2026-07-24-gerimmo-v3-matrice-tracabilite|V3 · Matrice de traçabilité]] — 71 règles transverses face aux 23 modules : aucune contradiction, 29 règles appliquées sans être citées ; clôt la phase B.
+- [[2026-07-24-gerimmo-v3-module-0-biens-et-lots|V3 · Module 0 — Biens et lots]] — module racine, 10 parcours : le bail porte toujours sur un lot, la propriété est au niveau du lot.
+- [[2026-07-24-gerimmo-v3-module-0b-dossier-locataire|V3 · Module 0b — Dossier locataire]] — 8 parcours sur les pièces du locataire et du garant : le dossier appartient à la personne, pas au bail.
+- [[2026-07-24-gerimmo-v3-module-0c-copropriete|V3 · Module 0c — Copropriété]] — 6 parcours pour recevoir, saisir et ventiler l'appel de charges du syndic ; clôt le socle.
+- [[2026-07-24-gerimmo-v3-module-1-bail|V3 · Module 1 — Bail]] — le cœur métier, 15 parcours (bail, occupant, garantie, état des lieux) ; cible : baux conclus à partir du 01/10/2026.
+- [[2026-07-24-gerimmo-v3-module-2-garanties|V3 · Module 2 — Garanties]] — dépôt, caution et garanties externes ; la restitution du dépôt, à criticité maximale ; 7 parcours.
+- [[2026-07-24-gerimmo-v3-module-3-loyers-et-charges|V3 · Module 3 — Loyers et charges]] — le cycle financier locatif en 12 parcours (échéancier, appel, encaissement, quittance, régularisation).
+- [[2026-07-24-gerimmo-v3-module-4-comptabilite|V3 · Module 4 — Comptabilité]] — comptabilité déclarative de caisse, sans comptabilité de gérance ni comptes mandants ; 8 parcours.
+- [[2026-07-24-gerimmo-v3-module-5-mandat-de-gestion|V3 · Module 5 — Mandat]] — le contrat-pivot entre propriétaire et agence, sur des lots, jamais sur des biens ; 6 parcours.
+- [[2026-07-24-gerimmo-v3-module-6-rapport-et-fiscalite|V3 · Module 6 — Rapport et fiscalité]] — le rapport au propriétaire mandant et l'aide fiscale ; clôt le cœur métier (modules 0 à 6).
+- [[2026-07-24-gerimmo-v3-module-7-incidents|V3 · Module 7 — Incidents]] — 8 parcours, du signalement à la clôture : « l'imputation décide de qui paie ».
+- [[2026-07-24-gerimmo-v3-module-8-artisans|V3 · Module 8 — Artisans]] — pièces et expirations de l'artisan : « aucun artisan sans assurance valide chez un locataire ».
+- [[2026-07-24-gerimmo-v3-module-9-devis-et-facturation|V3 · Module 9 — Devis et facturation]] — deux devis au plus ; le module qui relie l'intervention à la comptabilité.
+- [[2026-07-24-gerimmo-v3-module-10-rdv-et-planning|V3 · Module 10 — RDV et planning]] — deux tours de trois créneaux, l'artisan propose en premier, sans agenda partagé.
+- [[2026-07-24-gerimmo-v3-module-11-notation|V3 · Module 11 — Notation]] — trois sources de notation de l'artisan (gérant 50 %, locataire 25 %, plateforme 25 %) ; clôt le bloc intervention.
+- [[2026-07-24-gerimmo-v3-module-12-documents-et-ged|V3 · Module 12 — Documents et GED]] — lieu commun des documents, sans arborescence : droits d'accès et durées de conservation.
+- [[2026-07-24-gerimmo-v3-module-13-signature-electronique|V3 · Module 13 — Signature électronique]] — décision « signature en V1 » avec Yousign, en signature simple.
+- [[2026-07-24-gerimmo-v3-module-14-agenda-et-alertes|V3 · Module 14 — Agenda et alertes]] — un écran commun pour les 27 types d'alertes, criticité et escalade.
+- [[2026-07-24-gerimmo-v3-module-15-messagerie|V3 · Module 15 — Messagerie]] — toute conversation est rattachée à un objet (bail, incident, lot), jamais de fil général.
+- [[2026-07-24-gerimmo-v3-module-16-onboarding-et-invitations|V3 · Module 16 — Onboarding]] — comptes et consentements : une personne existe avant d'avoir un compte ; import du parc.
+- [[2026-07-24-gerimmo-v3-module-17-marque-blanche|V3 · Module 17 — Marque blanche]] — habillage de l'agence (logo, deux couleurs), aucun parcours métier modifié.
+- [[2026-07-24-gerimmo-v3-module-18-administration|V3 · Module 18 — Administration]] — trois rôles figés, paramétrage des autres modules, facturation entrée dans le périmètre.
+- [[2026-07-24-gerimmo-v3-module-19-mobile|V3 · Module 19 — Mobile]] — site adapté, pas d'application native ; trois déclinaisons mobiles ; clôt le référentiel.
+- [[2026-07-24-gerimmo-v3-module-20-retours-utilisateurs|V3 · Module 20 — Retours utilisateurs]] — deux circuits : bug traité aussitôt, idée en revue mensuelle.
+- [[2026-08-01-bailpdf-com|bailpdf.com]] — site de modèles de documents locatifs, référence pour le catalogue des documents à générer.
+- [[2026-08-05-bailpdf-contrat-de-bail|BailPDF — Contrat de bail]] — article de vulgarisation : panorama des baux, mentions et clauses ; à recouper avec Légifrance.
+- [[2026-08-05-bailpdf-modele-bail-meuble|BailPDF — Modèle bail meublé (PDF)]] — le modèle-type réglementaire du bail meublé, rempli à blanc.
+- [[2026-08-05-bailpdf-modele-bail-non-meuble|BailPDF — Modèle bail non meublé (PDF)]] — le modèle-type réglementaire du bail nu (décret n° 2015-587), rempli à blanc.
+- [[2026-09-04-maquette-v3-prototype|Maquette v3 — prototype cliquable]] — troisième prototype cliquable (04/09) : fonctionnalités et visuel à intégrer à l'application.
+- [[2026-09-08-maquette-espace-agence-v6|Maquette espace agence v6]] — maquette interactive du 08/09 de l'espace agence, vues de l'agent et de l'administrateur d'agence.
+- [[2026-09-14-service-public-depot-colocation|Service Public — dépôt et colocation]] — source officielle (14/09) : bail commun nu ou meublé et plafond du dépôt hors charges.
+- [[2026-09-20-cahier-des-charges-maitre-v3|Cahier maître V3]] — cahier des charges maître V3 (100 sections), adopté le 20/09 comme référence produit prioritaire.
+- [[2026-09-28-decision-tarification|Décision tarifaire du 28/09/2026]] — consigne du porteur : nouvelle tarification, le premier bien n'est plus gratuit ; détail dans [[Grille tarifaire]].
+- [[Référentiel vérifiable Gerimmo du 12 septembre 2026]] — 465 exigences et neuf parcours de personas ; « le minimum » selon le porteur (14/09).
+- [[Décisions du dirigeant]] — `DECISIONS-2026-11-24.md` : les réponses écrites du dirigeant mot pour mot depuis le 24/11, avec ce que l'agent en a fait.
+- [[Recueil des textes officiels (v6)]] — recueil de 166 pages fourni par le dirigeant le 24/11 (bail, consommation, RGPD…) ; non recontrôlé sur Légifrance.
 
 ## Synthèses
+- [[Vision de l'écosystème Gerimmo]] — la seule page de vision : ambition, principes, acteurs, marché et concurrence, étages, revenu, marque, idées abandonnées ; brouillon à valider.
+- [[Passation — état du 26 novembre 2026]] — état de la production et du travail en cours, mis à jour le 27/11 (lot 1 publié, recette n° 63 réussie) ; décisions en attente, règles de publication, outillage.
+- [[Référentiel du palier 1]] — le document de référence du palier 1 : cahier V3 et wiki fusionnés, règles numérotées, décisions du 24/11, registre des contradictions.
+- [[Mission palier 1 — audit du 22 novembre 2026]] — audit puis corrections en autonomie du palier 1, publiés le 25/11 ; réglages de la console encore à faire (en cours).
+- [[Premiers clients — acquisition sans budget — 20 novembre 2026]] — chantier du 20/11 : freins d'activation levés ; les inscrits étaient des comptes de test, le premier frein est d'attirer des visiteurs.
+- [[Analyse concurrentielle]] — panorama des concurrents en France et en Belgique (22/07) ; marché et prix actualisés par la feuille de route du 26/11.
+- [[Canaux de communication]] — l'e-mail et l'espace personnel au palier 1 ; Telegram abandonné, WhatsApp non construit ; relu dans le code le 26/11.
+- [[Design system Gerimmo]] — la direction « A — Maison » en production depuis le 20/11 : principes, couleurs, typographie ; en cas de désaccord, le code fait foi.
+- [[Refonte visuelle « Maison » et Design System — 20 novembre 2026]] — audit des 133 pages puis harmonisation sous l'identité « Maison », en production depuis le 20/11.
+- [[Modèle de données]] — le schéma actuel (576 migrations, environ 235 tables) par domaine et tables pivots ; réécrit d'après le code le 26/11.
+- [[Modèle de rôles et permissions]] — un seul axe, le rôle porté par l'adhésion, et ce que chaque rôle peut faire ; réécrit d'après le code le 26/11.
+- [[Expansion territoriale autonome]] — idée du 19/09 : gagner du terrain département par département, sans démarcher les particuliers ; gestion nationale précisée le 28/09.
+- [[Choisir son locataire selon les conditions des assurances loyers impayés]] — brouillon d'octobre : rapprocher un dossier des conditions d'une GLI ; conseils masqués, sources à relire.
+- [[État du projet et décisions ouvertes]] — renvoi vers `QUESTIONS.md`, [[Décisions du dirigeant]] et [[Passation — état du 26 novembre 2026]].
 
-- [[Bilan de l'audit de la refonte #264 — 27 octobre 2026]] — **27/10, publié en deux temps** (corrections de l'audit à 15 h 12, cinq décisions à 21 h 05 via PR #269) : audit de la refonte propriétaire (`555c5282`) ; 70 défauts confirmés (2 critiques, 20 majeurs), 53 corrigés, 12 partiels, 5 décisions produit ; PR #267 fusionnée (`79a7aadd`) après les 5 migrations `20261027100000` → `100500` (run 40526954680) ; rapport complet `app/docs/audit-refonte-264-20261027.md`, preuves `app/docs/preuves-audit-264/`.
-- [[Informations manquantes — 23 octobre 2026]] — ce qui manque encore (médiateur seul côté identité, désormais non bloquant ; avis du juriste, du DPO et de l'expert-comptable ; décisions ; prestataires et continuité), relevé en production sans valeur recopiée.
-- [[Prompt de passation à Codex — conformité V1, 24 octobre 2026]] — ce qui est en production, la branche prête (conditions V1, confidentialité, inactivité, wiki) et les étapes de publication laissées à Codex le 24/10.
-- [[Point d'étape — 21 octobre 2026]] — **21/10, brouillon** : où en est Gerimmo au matin du 21/10, avec la preuve de chaque fait (production `4ba53f5`, 400 versions, recette 66/1/0, sauvegardes, disponibilité, 0 erreur Vercel) ; six PR livrées depuis l'audit ; état des huit bloquants ; décisions attendues du dirigeant avec leurs échéances ; § 8 « comment vérifier » (requêtes et pages) ; limites.
-- [[Contrôle des livraisons de Codex — 22 octobre 2026]] — **22/10, brouillon** : contrôle indépendant des six PR de Codex fusionnées les 21 et 22/10 (#230 à #236, `main` `cc53dd7`) : 20 constats confirmés par contradicteurs, aucun bloquant ; fusions, CI et migrations conformes ; écarts : aucune recette depuis le 21/10 18 h 54, modules artisans et relances Zoho ouverts sur accords non nommés, cautionnement rouvert, journal en retard, mentions légales encore « en cours de finalisation » ; relevé SQL (403 versions, 1 compte) ; actions proposées.
-- [[Suites de l'audit — 20 octobre 2026]] — Corrections préparées : accès, sauvegardes, reprises Stripe, retrait Youtrust, dépôts et 17 rubriques de supervision ; preuves, limites et décisions encore ouvertes.
-- [[Calendrier de lancement — 30 novembre 2026]] — **20/10, brouillon** : décision du dirigeant (sortie officielle le 30 novembre 2026, premier client particulier le soir même, agences sur liste d'attente) traduite en critères de sortie, plan semaine par semaine, butées (mandats juriste/DPO/expert-comptable et identité de l'éditeur avant le 24/10 ; paiement réel et CGU réécrites avant le 15/11 ; gel le 20/11 ; décision d'ouverture écrite le 27/11), règles de la publicité dans l'entourage, risques et plans de repli.
-- [[Choisir son locataire selon les conditions des assurances loyers impayés]] — 16/10/2026, brouillon : conseils masqués dans la version candidate en attendant relecture ; aucune validation juridique annoncée.
+## Archives
+- [[Historique des audits]] — recense les 73 pages archivées dans `wiki/archives/AAAA-MM/` (audits, points d'étape, passations, pages remplacées), avec leur date et leur résumé.
 
-- [[Dossier de validation — version candidate du 13 octobre 2026]] — **dossier de livraison** : contenu, migrations, contrôles sur le SHA figé, observation de la production en lecture seule, porte de validation, dix critères de clôture cochés séparément (au 16/10 : « fonctions majeures » partiel, « automatisations » non rempli, « version autorisée déployée » rempli, « production vérifiée » partiel), **mise en production du 14/10/2026** (PR #179, § 5 bis) et **déploiements du 14 au 19/10** (PR #181 à #211 : migrations, sauvegardes, simulations, recettes, § 5 quater ; #195 : sauvegarde 38875875213, simulation 38875594376, application 38879864823, recette n° 18 38880135882 ; #202 : trois migrations appliquées hors chantier ; #203 et #206 : cinq migrations Zoho ; #210 : `20261018231827`) ; mission non terminée (P1 au premier essai aux recettes n° 19, 20 et 24 ; cause de D04 établie le 16/10 au soir ; réglages Supabase faits le 16/10 au soir ; PDF 2044 et chemin confirmé de D38 toujours non joués ; **dix fusions #202 à #211 sans recette**, hors de l'autorisation du 14/10).
-- [[Prompt de passation à Codex — état du 16 octobre 2026]] — **16/10, à transmettre** : prompt autonome à copier dans Codex : règles absolues (aucun secret, aucune adresse réelle, production en lecture seule par défaut, la recette avec nettoyage exceptée), état de la production après les PR #181 à #195 (recettes n° 4 à 18), ce qui est éteint ou partiel, environnement et pièges, tâches T1 à T15 par priorité, gestes du dirigeant (Supabase, Stripe, Vercel, GitHub, dont l'adresse des commits) et questions Q1 à Q15, protocole de déploiement (feu vert écrit au commit nommé avant sauvegarde, application et fusion) ; porté par la PR #196.
-- [[Prompt de passation à Codex — état du 14 octobre 2026]] — **remplacé le 16/10** par celui du 16/10 ; instantané du 14/10 gardé tel quel.
-- [[Registre des anomalies — audit du 13 octobre 2026]] — **13/10, mission opérationnelle** : registre vivant de 237 anomalies (P0 0, P1 5, P2 66, P3 166) ; **au 16/10** : 66 déployées avec leur PR (dont les quatre P1 « montant faux », **contrôlés en production le 16/10 par la recette n° 18 (38880135882), réussis au second essai, puis au premier essai aux recettes n° 19, 20 et 24 (17/10)** — premier essai de D04 refusé « Montant invalide », cause établie le 16/10 au soir par la trace ; PDF 2044 non généré, chemin confirmé de D38 non joué ; fermeture à trancher ; aucune recette sur les PR #202 à #211 —, PRO2-01 avec l'invitation d'artisan, PR #194, et IA-11 complétée par la PR #195), 109 corrigées en branche puis déployées le 14/10, 41 à trancher, 18 ouvertes ; fiches P0 à P2 complètes ; version testée par fiche.
-- [[Fiches des anomalies P3 — audit du 13 octobre 2026]] — fiches complètes des anomalies P3 (préconditions, étapes, attendu, observé, preuve, cause, correction, propriétaire, statut).
-- [[Registre d'exécution — audit du 13 octobre 2026]] — ce qui a réellement été exécuté : contrôles automatiques de la référence et de la candidate, totaux des scénarios, ce qui n'a pas été exécuté, état des livrables.
-- [[Registre d'exécution — scénarios, audit du 13 octobre 2026]] — annexe : un scénario par ligne, douze colonnes de la mission (ID, fonction, rôle, environnement, version, scénario, attendu, obtenu, statut, horodatage, preuve, anomalie liée).
-- [[Décisions groupées — version candidate du 13 octobre 2026]] — **pour le dirigeant** : 49 décisions (D01 à D49, avec le complément), points de procédure Q1 à Q5, ratifications R1 à R10, points X01 à X21 (options, recommandation, coût estimé, risque, retour arrière). Réponses du dirigeant le 14/10 (« P1 bloquants, pour le reste les recommandations ») et le 15/10 (invitation d'artisan, relais, jour de Paris, D24-C, X16) ; **état de livraison par décision au 16/10** (PR, SHA, manques, différés, en attente ; invitation d'artisan livrée par la PR #194 ; correctifs du tour final par la PR #195, `db0a95f` : P1 contrôlés en production au second essai puis au premier essai (n° 19, 20, 24), D48 complétée, D06 écran complet ; relevé du 19/10 : réglages Supabase faits, PR #198 à #211 publiées) et écarts à faire ratifier, dont la restitution du dépôt au jour de Paris (interprétation du 16/10) et la publication des PR #202 à #211 hors de l'autorisation du 14/10.
-- [[Complément à la page « Décisions groupées » — fiches de la vague 6]] — décisions D34 à D49, point Q5 et ratifications R7 à R10 (sortie de bail, charges et fiscalité, automatismes, sécurité) ; décidées les 14 et 15/10, en grande partie livrées (état en tête de page, au 16/10 : P1 contrôlés en production au second essai, D48 complétée par la PR #195 ; depuis : P1 au premier essai aux recettes n° 19, 20 et 24, voir [[Registre des anomalies — audit du 13 octobre 2026]] ; page non actualisée au 19/10).
-- [[Propositions de fonctions majeures — version candidate du 13 octobre 2026]] — trois fonctions décidées le 14/10 et **en production depuis le 15/10** : devis refusable puis révisable (D18, PR #187), règlement déclaratif de la facture d'intervention (D23-A, PR #188), report ou annulation d'un rendez-vous par le locataire (D22-B, PR #188) ; manques déclarés ; parcours navigateur joués en production par la recette n° 24 (17/10 ; non joués au 16/10) ; prérequis D17 levé pour l'artisan invité par le propriétaire (PR #194, 16/10) ; proposition d'origine conservée.
-- [[Équipes IA et automatismes — inventaire et propositions (14 octobre 2026)]] — inventaire du 14/10 (alors 11 tâches Vercel et 8 pg_cron ; **13 et 10 au 16/10**) et propositions pour six équipes IA (support, exploitation locative, coordination des artisans, contrôle financier, qualité et sécurité, synthèse de direction) ; **aucune équipe IA n'est installée** ; depuis, arrêt d'urgence étendu (D06-A), limite des appels IA (X19) et relais du dirigeant par e-mail (D46-B) sont en production.
-- [[Prêt à démarcher]] — **24/10** : règles de démarchage (décision 8 du 23/10 : jamais un particulier sans consentement ; artisans et agences avec opposition) et ce que la conformité V1 du code permet ou non de promettre. **19/10, brouillon** : PR #198 à #212 en production (`e25c0f7` le soir, correctifs de l'audit final : six migrations, 392 versions), recette n° 25 verte sur `e25c0f7` (49 réussis, P1 au premier essai ; aucune recette entre la n° 24 du 17/10 et elle), Zoho Sign publié sans envoi aux clients ; e-mail de 5 h parti les 17 et 19/10 ; limites de paiement, signature, identité légale et avis spécialisés conservées ; relevés du 16 et du 17 octobre conservés comme historique datés ; **20/10** : liste d'attente des agences préparée (site, table, console), déployée le 20/10 au soir (PR #227) ; sortie officielle visée le 30 novembre 2026.
-- [[Audit final avant publication — 19 octobre 2026]] — **19/10, audit complet et final** de la version en ligne `2fffec6`, en lecture seule, avec vérification contradictoire de chaque constat : verdict **« pas prêt »**, huit bloquants (éditeur non identifié, pages légales figées, vente ouverte sans garde, offre Vercel Hobby, verrou des devis signés et tâche de nuit du 29/10, textes et actes non relus par un juriste, mention de caution collée, aucune recette depuis le 17/10), 29 majeurs par thème, mineurs, points forts, décisions attendues du dirigeant, plan en dix étapes, 90 points non vérifiables ; détails d'exploitation des défauts de sécurité remis hors dépôt ; **suites du 19/10 au soir** : dix lots de correctifs déployés par la PR #212 (`e25c0f7`, six migrations, CI 39303242371, application 39305241960), tableau point par point en § 10 ; le reste est dans le prompt Codex remis au dirigeant.
-- [[Dossier sécurité et restauration — retour arrière des migrations du 13 octobre 2026]] — retour arrière des deux migrations essayé (état revenu identique), sauvegarde et restauration sur le banc ; **aucune sauvegarde de production n'est qualifiée valide** ; **19/10** : vérification de restauration automatisée rejouée sur la sauvegarde du jour (exécution 39254195845 : 206 tables, 37 628 lignes, 64 fichiers, 0 manquant), bascule complète toujours non jouée.
-- [[Charges et fiscalité — jeu de référence et sources officielles (audit du 13 octobre 2026)]] — 74 montants sur 77 égaux au centime avec un calcul indépendant ; règles fiscales **non confrontées à une source officielle** (accès bloqué).
-- [[Sortie de bail — scénario joué le 14 octobre 2026]] — fin de bail, états des lieux, restitution du dépôt, accès après départ, PDF réels ; renouvellement absent de la V1.
-- [[Performances et liens — mesures du 14 octobre 2026]] — 507 chargements mesurés sur 157 écrans, 733 liens internes explorés, 631 accès croisés refusés.
-- [[Cartographie vérifiable de Gerimmo (pages, actions, base, stockage, authentification, intégrations, rôles)]] — cartographie générée par scripts rejouables : pages, actions serveur, base (145 tables, 554 fonctions), stockage, rôles. **19/10** : relevé des lectures et écritures `anon` actualisé (seule écriture anonyme restante : `liste_attente`, bornée).
-- [[Matrice fonctions × rôles × droits (RPC SQL et actions serveur)]] — matrice des droits croisée avec les matrices du banc.
-- [[Inventaire de couverture — écrans, actions serveur, RPC]] — ce qui est ouvert, ce qui est exercé, ce qui ne l'est pas.
-- [[Référence des tests — commandes, volumes, durées, dépendances, limites]] — référence des suites de tests et de leurs limites.
-- [[Audit complet du 27 septembre 2026]] — **27/09, trois jours avant le lancement** : six relevés (métier, sécurité, agence, propriétaire-locataire, artisan-public, console) confrontés au wiki, 7 bloquants et 50 majeurs ; 41 migrations (révision IRL sans composition, zone tendue figée au bail, bail verrouillé hors fonctions métier, cloison du portefeuille agent, conservation depuis la fin du contrat, purge physique et sauvegarde quotidienne, quittance conforme côté locataire, dépôt de facture artisan, gestes de contrôle journalisés) ; § 3 ce qui reste structurel, § 4 ce qui ne dépend que du porteur.
-- [[Audit complet du 29 septembre 2026]] — audit de la veille du lancement (sécurité, facturation, conformité, parcours, wiki) et corrections mises en production.
-- [[Réécriture des six articles parus (propositions du 7 octobre 2026)]] — les six articles du journal réécrits selon le guide de ton, à valider un par un ; rien n'est modifié en base avant accord.
-- [[Audit d'acquisition du 3 octobre 2026]] — **3/10, audit d'acquéreur** (« une IA qui veut gagner de l'argent vite ») : verdict en une page, cinq rédhibitoires (éditeur anonyme, zéro client, pas d'encaissement en ligne, pas de mise en location, croissance bornée par un humain), carte fonctionnelle par persona, critique esthétique écran par écran, dette technique, commercial et juridique, ce qui vaut quelque chose, ce qui pèse sur le prix. Aucune correction.
-- [[Audit des refus de doublon du 2 octobre 2026]] — les vingt circuits de dépôt face à la règle « un fichier = un dépôt » : blocages, messages faux, fichiers orphelins, remède commun.
-- [[Audit complet du 25 septembre 2026]] — **25/09, la veille du lancement** : audit de code (console, utilisateurs, production) et de 134 écrans par persona après la nuit de travail avec ChatGPT ; le **point du matin** (bilan par passage, point daté par équipe, décisions à valider ou refuser, page « Aujourd'hui »), la console remise dans l'ordre, les notifications sortantes en marque blanche, ≈110 défauts d'écrans corrigés, deux migrations ; § 3 ce qui reste structurel, § 4 ce qui ne dépend que du porteur (faits légaux, prestataires réels, sauvegardes, Vercel).
-- [[Audit de nuit — fonctionnalités, personas et automatisation (20 septembre 2026)]] — **20/09** : six personas traversés écran par écran ; ce qui est automatique et ce qui attend un clic ; bugs corrigés (404 du menu v4, hydratation des alertes, widget d'aide) ; écran « Loyers & charges » ; relances d'impayé automatiques (migration écrite, non appliquée) ; sept propositions pour retirer des clics.
-- [[Lancement dans 10 jours — ce qu'il reste à faire (20 septembre 2026)]] — **20/09** : publication visée le 30/09 sans le bot WhatsApp ; constat de la production (Stripe absent, tâches du matin qui tournent, données de développement, un seul MFA) ; bloquant / important / peut attendre ; calendrier J-10 → J0 ; quatre points à trancher.
-- [[Audit et point santé du 11 septembre 2026]] — **le point de fin de chantier** : 107 pages mesurées au navigateur, 3 requêtes que PostgREST refusait (dont la veille DPE, en silence), la charte qui battait 60 utilitaires, les 4 parcours recomptés dans le code ; 10 points à trancher par un humain.
-- [[Proposition de valeur]] — **l'énoncé fondateur (2026-09-10)** : faire le travail d'une agence, en mieux, plus vite, moins cher ; conséquences sur les priorités.
-- [[État des lieux du design et des parcours]] — **relevé du 11/09** : 254 trouvailles, l'incohérence domine ; les parcours chiffrés en clics ; les écrans qui promettent ce que la base refuse. ⚠ Ses nombres de clics sont **contredits** par la marche dans le code du même jour (callout en tête de section).
-- [[Audit du 10 septembre 2026]] — **audit complet** : 2 failles d'étanchéité inter-agences et 1 P0 documentaire corrigés, durcissement du journal, 89 défauts mobiles ; 4 points à trancher.
-- [[Modèle de rôles et permissions]] — rôles, portails, autorisation ; 6 (code) vs 3 (V3).
-- [[Canaux de communication]] — Telegram (code), WhatsApp (V3), email, messagerie.
-- [[Modèle de données]] — schéma du code + cible socle V3.
-- [[Architecture du socle V3]] — lot 0 : 9 tables, RLS, pg_cron, séquence en 5 étapes.
-- [[Design system Gerimmo]] — **24/09, la page de référence** : principes (la couleur dit l'état, une surface colorée par écran, marque blanche par `color-mix`), jetons (couleurs, Manrope/Figtree, échelle, `--cible-tactile` 44 px, durées et courbe du mouvement), primitives (coquille, tuiles, assistant, fenêtre, tiroir), et le compte rendu de la remise au propre : feuille de style fusionnée (≈60 déclarations mortes, mode sombre retiré), couche d'animations, 82 défauts d'ergonomie relevés par persona dont ~60 corrigés ; puis **le tour du site** (120 écrans, 1 176 relevés, 562 défauts uniques, 469 corrigés : un seul bandeau par écran, tout le carré se clique, pas de clic pour rien, 44 px au doigt) ; points ouverts et décisions à prendre en § 5 ; **nuit du 25 au 26/09** : retour à la respiration du 24/09 (jetons `RESPIRATION`, menus fixes sans accordéon, formulaires à 14 px, console sur les primitives communes), 136 écrans comparés.
-- [[Charte visuelle v3 bleue|Charte visuelle v3 — bleue]] — **la refonte du 17/09** : blanc et gris perle, bleu `#2457f5` seule couleur de marque, Manrope + Figtree, rayons 10–24 px, transitions ; jetons historiques remappés, marque blanche intacte, PDF inchangés. **Validée le 18/09** et appliquée à **tout** le produit (seconde passe : console, portail artisan, « Mes espaces », pages légales, assistance) : supplantée pour les **valeurs** par [[Design system Gerimmo]] (24/09) ; reste la mémoire des décisions. Contient les trois défauts de contraste nés du remappage et leur correction, puis le **second relevé du 19/09** (grilles réglées sur la fenêtre au lieu du conteneur, libellés insécables, la couleur comme porteuse d'état, l'échéancier en colonne).
-- [[Gerimmo en autonomie]] — **19/09** : ce que « se gérer seul » peut vouloir dire, et où s'arrêter. Constat sur le code et la base (aveugle à ses pannes, pas de préproduction, pont retours → développement non livré, 205 RPC `security definer`, 7 tables sans politique) ; cinq boucles — voir, veiller, corriger, évoluer, rester en France — chacune avec sa ligne d'arrêt fixée par RM-20.3 et le PRA.
-- [[Expansion territoriale autonome]] — **19/09** : Gerimmo gagne du terrain seule, département après département (Essonne → voisins → région → région suivante choisie par score, automatiquement). Boucle mensuelle, sources publiques (INSEE, SIRENE, zones tendues), limites d'argent, de loi (particuliers jamais démarchés ; publicité Instagram/Facebook autorisée), de santé et de rythme ; ordre de construction.
-- [[Charte visuelle de l'espace agent]] — complète le design-system V3 : 6 patterns validés en recette, états d'interface, formats, accessibilité. ⚠ Valeurs supplantées par la charte v3.
-- [[Coherence maquette-application|Cohérence maquette ↔ application]] — audit du 14/08 : conformités des écrans Tableau de bord/Parc/Personnes et **tableau des écarts assumés** (à lire avant toute recette visuelle).
-- [[État du projet et décisions ouvertes]] — arbitrages tranchés (tarifs, TVA, préavis, rétractation au 28–29/09) ; reste l'identité de l'éditeur.
-- [[Divergences code et référentiel V3]] — les écarts à résorber par la migration.
-- [[Audit espaces locataire et proprietaire|Audit des espaces locataire et propriétaire]] — audit pré-recette du 06/09 : 10 bloquants (congé en ligne vs RM-A3, colocataires, préavis, storage des justificatifs, déconnexion mobile, impasse détention PD…), conformités vérifiées, plan de correction en 3 vagues.
-- [[Analyse concurrentielle]] — panorama FR/BE, différenciateur incidents/artisans.
-- [[Grille tarifaire agence — proposition]] — barème par tranches sans marche du 12/09 ; **supplantée le 28/09** par [[Grille tarifaire]].
-- [[Fonctionnalités par persona]] — matrice qui-fait-quoi (implémenté vs cible).
-- [[Etat des lieux generation de documents]] — **catalogue complet (16/09)** : 55 entrées, **55 générables** ; la facture d’honoraires clôt la liste — numérotation continue, mentions de l’émetteur, TVA extraite du TTC. Épreuves historiques toujours absentes ; avoir, Cerfa CAF/MSA et livrables techniques restent ouverts.
-- [[Documents a generer et automatisation WhatsApp]] — blueprint des documents (bail, EDL, congés…) : champ par champ AUTO vs à demander, données manquantes, surface de questions minimale pour le bot.
-- [[Récapitulatif fonctionnel et lacunes de spécification]] — **archivée** (statut `stable`, contenu figé) (snapshot du 2026-07-22, supplanté par le référentiel V3).
+## Livrables
+- `livrables/OUVERTURE-VENTE-30-NOVEMBRE.md` — le pas-à-pas pour ouvrir la vente aux particuliers et aux SCI le 30/11.
+- `livrables/MENAGE-WIKI-2026-11-26.md` — le plan de ménage du wiki du 26/11, en sept décisions.
+- `livrables/PLAN-CORRECTIONS-2026-11-26.md` — le plan de correction des défauts restants (lots L1 à L8), établi en lecture seule le 26/11.
+- `livrables/NON-FAIT.md` — ce qui n'a pas été fait pour la version du palier 1, pourquoi, le risque et ce qu'il faudrait.
+- `livrables/PARCOURS-15-MINUTES.md` — le parcours de vérification que le dirigeant fait lui-même en production après la publication.
+- `livrables/PLAN-DE-PUBLICATION.md` — le plan de publication du palier 1 : exécuté le 25/11 ; les réglages de la console R1 à R8 restent à faire.
+- `livrables/refonte-design-20261120/DESIGN-SYSTEM.md` — le résumé du Design System « Maison » pour qui ne lit pas le code.
+- `livrables/recette-commerciale/VENTES-ET-CONDITIONS.md` — la première souscription d'un particulier : textes contractuels proposés, médiateur, TVA et courriels à valider.
+- `livrables/Mentions legales (projet).md` — projet de mentions légales du 11/09 ; les faits d'entreprise attendent une réponse humaine et une relecture juridique.
+- `livrables/Politique de confidentialite (projet).md` — projet de politique de confidentialité du 25/07 pour les traitements dont Gerimmo est responsable.
+- `livrables/AIPD - Score artisan (projet).md` — projet d'analyse d'impact (art. 35 du RGPD) du score composite de l'artisan.
+- `livrables/Contrat de sous-traitance RGPD (modele).md` — modèle de contrat de sous-traitance (art. 28 du RGPD) à annexer au contrat de chaque agence ; à faire relire.
+- Autres dossiers de `livrables/` : traces et preuves d'audit, gardées telles quelles.
 
-## Livrables (dossier `livrables/` — projets de documents)
-- [[Contrat de sous-traitance RGPD (modele)|Contrat de sous-traitance RGPD]] — annexe art. 28 des contrats d'agence (matrice A2, mesures A4, sous-traitants).
-- [[Politique de confidentialite (projet)|Politique de confidentialité]] — traitements plateforme, droits, transfert Meta.
-- [[Conditions generales d'utilisation (projet)|Conditions générales d'utilisation]] — **le contrat que l'inscription fait accepter depuis toujours, et qui n'existait pas** (11/09) : 17 articles, alignés sur ce que le produit fait réellement. Non publiable en l'état.
-- [[Mentions legales (projet)|Mentions légales]] — **obligation légale non remplie** (11/09) : éditeur, hébergeurs, médiation. Les faits d'entreprise restent à fournir.
-- [[Article CGU - journal de gestion (projet)|Article CGU « journal de gestion »]] — traduit la doctrine A6 en clause contractuelle ; repris à l'article 4 des CGU.
-- [[AIPD - Score artisan (projet)|AIPD — Score artisan]] — analyse d'impact du profilage artisan (art. 35 RGPD).
-- [[Plan de livraison et sprints]] — **le plan de référence** : 16 sprints, V0 mi-décembre 2026, V1 fin mars 2027.
-- [[Reste a faire V0 - sprints et ecarts maquette|Reste à faire V0]] — détail fin S8/S9b + inventaire des écarts maquette ↔ app du 26/08 ; S9a et « Alertes & documents » livrés le 30/08 (§3, §5 bis).
-- [[Recette S3-S8 - scenarios]] — les 24 scénarios de recette humaine remis le 05/08 (référence de numérotation).
-- [[Recette - test par sprint et persona]] — **le fichier central de recette** (ex « Recette S3-S8 - tests par sprint et persona », renommé le 23/08) : Partie 1 recetté OK / Partie 2 reste à recetter (re-tests du 23/08, Sprint 7 incidents, sprints jamais déroulés, transverse).
-- [[Recette Sprint 2 - scenarios]] — les scénarios de recette du Sprint 2 (le parc) remis le 30/07 : pop-up d'alertes, mise en location depuis la fiche du bien.
-- [[Recette S7 - incidents]] — les scénarios détaillés du Sprint 7 (déclaration locataire, qualification, clôture, réouverture, pop-up de traitement).
-
-- [[Référentiel vérifiable Gerimmo du 12 septembre 2026]] — 465 exigences et neuf personas ; minimum demandé, couverture à prouver dans la version publiée.
-
-- [[Bail#Contrats individuels de colocation — réalisation du 14 septembre 2026|Contrats individuels de colocation]] — chambres, gestion indépendante, plafonds et confidentialité testés ; contrats nu et meublé.
-
-
-### Actualisation de la mission du 16 octobre
-
-Les pages [[Registre des anomalies — audit du 13 octobre 2026]], [[Dossier de validation — version candidate du 13 octobre 2026]], [[Décisions groupées — version candidate du 13 octobre 2026]], [[Prêt à démarcher]], [[Relais du dirigeant]] et [[Invitation d'un artisan par un propriétaire]] renvoient au relevé du soir : [[Mission du 16 octobre — suivi vérifié]], contrôles réalisés et changements candidats distingués de la production.
-
-- 2026-10-16 — [[Mission du 16 octobre — suivi vérifié]] : PR198, simulation GitHub réussie, batterie et parcours locaux finaux, captures inspectées, CI et interventions sécurisées encore attendues ; statut candidat.
-
-- 2026-10-16 — [[Prêt à démarcher]] : anciens constats remplacés par les preuves du soir (Auth, recettes n°19/20, sauvegarde restaurée en environnement isolé et mode Stripe) ; limites de production conservées.
-
-- 2026-10-16 — [[Mission du 16 octobre — suivi vérifié]] : diagnostic des trois échecs CI, correction du banc local et huitième migration de compatibilité du changement d’adresse, modèle de courrier conservé ; nouvelle validation en cours.
-
-- 2026-10-17 — [[Mission du 16 octobre — suivi vérifié]] : publication PR198 et huit migrations réussies après sauvegarde, 31 fichiers fictifs supprimés après accord ; recette n°21 arrêtée puis intégralement nettoyée, diagnostic du banc dans PR199.
-
-- 2026-10-17 — [[Recette de production#Aperçu local du superadmin — environnement distinct à conserver|Compte superadmin local permanent]] : aperçu visuel séparé, conservation de l’identité et des données, exception MFA locale seulement ; menu continu de 17 entrées, bureau avec comptes rendus filtrables, annuaire utilisateurs avec recherche et statuts, suivi des dossiers harmonisé, réseau et assistance repensés, finances détaillées ; marketing organisé par relecture, programmation et diffusion, développement commercial recentré sur les demandes et clients, automatismes filtrables avec leurs états et consignes. Audit de pertinence des 17 destinations et 28 modèles terminé (rapport dans outputs/superadmin-visuel/audit du workspace), 8 constats relevés ; annonce marketing sans état suffisant corrigée localement et périmètre des 100 derniers articles explicité. Présentation des pages modifiées vérifiée sur ordinateur et mobile, non publiée.
-
-- **18 octobre 2026 — défauts du superadmin corrigés en local (SA-01 à SA-08)** : accès distincts de Stripe, relais distinct du superviseur, erreurs de lecture explicites, vérifications partielles, jour de Paris, qualification des contacts, pagination et programmation conditionnelle. 63 tests ciblés réussis ; compte permanent conservé. État détaillé dans le rapport `outputs/superadmin-visuel/audit/audit-superadmin.html` du workspace de conversation. Aucun déploiement.
-
-- **18 octobre 2026 — sept volets de supervision développés** : trésorerie distincte du MRR, annuaire individuel paginé, décision/exécution/résultat, vacances guidées, contrôles d’accès, registres et identité éditable, suivi des prospects. Deux migrations additives, 244 tests ciblés réussis et vérifications locales. Publication demandée ensuite par le dirigeant ; publiée le 18/10 (PR #202, `4466ad4`, ci-dessous) ; audit post-publication à consigner séparément.
-
-- **18 octobre 2026 — pilotage superadmin publié** : PR #202 (`4466ad4`, fusion 08 h 14 UTC) ; ses trois migrations (fichiers `20261017180829`, `20261018061548`, `20261018071556`) appliquées hors chantier GitHub par Supabase `apply_migration` et enregistrées sous les versions `20261018071151`, `20261018071200`, `20261018071811` ; sauvegarde planifiée 39102694451, simulation 39106106513, CI 39110705193 ; aucun script de retour ; aucune recette de production ; identifiant Vercel non relevé.
-
-- **18 octobre 2026 — signature Zoho Sign en production** : PR #203 (`b5f70e6`, migrations `20261018085521`, `20261018100243`, `20261018143644`, application 39149075958), #204 (`2e20241`), #205 (`81d19d8`, essai avec le compte permanent), #206 (`6cb2468`, migrations `20261018185515`, `20261018193308`, application 39161862763), #207 à #209 (mention de caution ; `cce71b6`, `b78f73d`, `a209ba9`) ; compte Zoho Sign Europe ouvert et essai externe signé par le dirigeant ; webhook actif ; **envois aux clients désactivés** ; aucun script de retour ; aucune recette ; détail sur la page de la section Concepts (Signature électronique) et dans [le dossier de signature](app/docs/signature-electronique-bail.md).
-
-- **19 octobre 2026 — abonnement au jour de Paris, contenus publics, calendrier artisan** : PR #210 (`4b3439f`, 01 h 49 Paris, migration `20261018231827` avec script de retour ; simulation 39176221493, application 39178050558 : 386 versions) et PR #211 (`2fffec6`, 02 h 33 Paris, aucune migration) ; CI 39178107816 et 39181284265 ; Vercel `dpl_6iLvRpEu4fdLERWkSH9KQuBCjxag` et `dpl_Fktqsq11AQ6tbmddNHCDaL28jxFp` ; **aucune recette de production depuis la n° 24 du 17/10 : dix fusions (#202 à #211) sans recette**. Pages complétées au 19/10 : [[Prêt à démarcher]], [[Recette de production]], [[Registre des anomalies — audit du 13 octobre 2026]], [[Décisions groupées — version candidate du 13 octobre 2026]], [[Dossier de validation — version candidate du 13 octobre 2026]].
-
-- [Livraison préparée du 20 octobre : accès, sauvegarde, reprises Stripe et signatures](app/docs/livraison-audit-20-octobre.md) — non appliquée en production.
-
-- 20/10 : complément de [[Suites de l'audit — 20 octobre 2026]] — transferts de fichiers et 71 retours historiques atomiques, limites G5 explicitement maintenues.
-
-- **20 octobre — signatures, complément local** : abandon atomique avant création distante et annulation concurrente contrôlée ; cinq migrations préparées au total, aucune publiée. Voir [[Suites de l'audit — 20 octobre 2026]].
-
-- **20 octobre — consultation PDF** : scénario navigateur adapté au transfert Storage direct, 17 vérifications locales réussies ; contrôle CI du dernier lot encore requis. Voir [[Suites de l'audit — 20 octobre 2026]].
-
-- **20 octobre — contrôles complémentaires** : téléchargement PDF effectivement éprouvé et réglages Stripe relevés en lecture seule ; aucune modification financière ni de configuration. Voir [[Suites de l'audit — 20 octobre 2026]].
-
-- [[Suites de l'audit — 20 octobre 2026|Suites de l’audit du 20 octobre]] : conclusion locale CI747 sur le dernier SHA préparé, 200 tests navigateur réussis ; contrôle différé des devis prévu le 29 octobre, sans mise en production.
-
-- **20 octobre — archives volumineuses** : lecture des devis, preuves et pièces privées avec empreinte vérifiée, taille bornée et confirmation de génération légère ; complément testé localement. Voir [[Suites de l'audit — 20 octobre 2026]].
-
-- **20 octobre — validation éditoriale** : accord du dirigeant enregistré à 10 h 17 Paris, les prochaines diffusions attendent sa validation ; article de 9 h déjà diffusé. CI748 : exception de taille HTTP corrigée et 43 tests ciblés réussis, nouvelle CI attendue. Voir [[Suites de l'audit — 20 octobre 2026]].
-
-- **20 octobre — dépôts directs et suivi** : fichiers privés jusqu’à 10 Mio, rapprochement des brouillons et rappels durables préparés mais désactivés ; sept migrations, 9 079 tests locaux réussis et recette de dépôt sur build à deux largeurs. Livraison encore à vérifier. Voir [[Suites de l'audit — 20 octobre 2026]].
-
-- [[Dépendances et formulaires — 21 octobre 2026]] — Versions regroupées, accessibilité, conservation des saisies du bail et preuves locales.
-
-- [[Préparation fonctionnelle — 21 octobre 2026]] — publication PR231, contrôles consolidés et décision de retrait des comptes d'essai ; effacement des dix comptes confirmé, superadmin et publications conservés ; contrôle final en cours.
-
-- **21/10 — Mentions légales essentielles** : identification et contacts obligatoires, hébergement, médiation concise ; renvois vers les conditions et la confidentialité. Voir le journal du 21 octobre.
-
-- [[Conservation et exploitation — 22 octobre 2026]] — base séparée reconstruite sans comptes ni dossiers ; contrôles d'archives, de sauvegarde et d'isolation préparés localement. SMTP Resend arrêté sur la branche isolée ; inventaire des 29 règles de conservation et contradictions documentées. Raccordement Vercel, redirections Auth, revue des permissions et validation des durées encore ouverts.
-
-- **22 octobre 2026 — signatures et conservation, local** : états détaillés des actes, protection des preuves et bilan sans suppression ; adresse personnelle conservée, anciens réglages Youtrust supprimés le 23 octobre après confirmation. [Bilan et limites](app/docs/signatures-conservation-22-octobre.md). Aucun nouveau déploiement.
-
-- **23 octobre 2026 — réglages et accès Youtrust retirés** : trois variables Production supprimées sur Vercel, redéploiement de la version existante réussi, sonde du site et de la base au vert ; dernière clé Sandbox révoquée chez le fournisseur et ancien webhook Gerimmo supprimé après confirmation finale. Documents et abonnement fournisseur conservés. [État](app/docs/signatures-conservation-22-octobre.md).
-
-- [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] — corrections adverses, sources officielles et preuves de publication.
-
-- **24 octobre 2026 — réglage des durées par le dirigeant, en validation locale** : [[Durées de conservation#Réglage par le dirigeant — préparation du 24 octobre 2026|écran superadmin, décisions tracées et conservation des échéances déjà constituées]].
-
-- **24 octobre 2026 — bureau de direction simplifié, en validation** : demandes regroupées en trois catégories, problèmes en premier, recherche et six demandes par page ; toutes les décisions restent explicites. Preuves dans `log.md`.
-
-- 24/10/2026 : périmètre logement/bâtiment et plafonds de propositions (5 veilles, 2 articles), anciens hors-sujets en réserve ; [[Guide de ton du journal]]. Suite de la PR #252, publication après CI.
-
-- **24 octobre 2026 — présentation mobile des espaces, en validation** : [[Présentation mobile des espaces — 24 octobre 2026]] — rubriques courtes, documents explicites et conservation des saisies.
-
-- **25 octobre 2026 — mois offerts, en validation** : [[Cycle de vie de l'abonnement#Mois offerts depuis le superadmin — décision du 25 octobre 2026]].
+## Registres de la racine
+- `QUESTIONS.md` — le registre unique des questions et décisions (Q1 et suivantes).
+- `DECISIONS-2026-11-24.md` — les réponses du dirigeant, mot pour mot ; voir [[Décisions du dirigeant]].
+- `JURISTE.md` — les points de droit qu'un juriste, un expert-comptable ou la CNIL doit trancher ; aucun n'est présenté comme conforme.
+- `GUIDE-DE-REPRISE.md` — le guide pour qu'un informaticien reprenne le projet : où est quoi, lancer, publier, revenir en arrière.

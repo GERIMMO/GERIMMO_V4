@@ -7282,3 +7282,1154 @@ Premiers contrôles : types et lint ciblé réussis ; 14 tests locaux réussis, 
   et dans « Mes paiements » du locataire (demander, suivre) ; relances automatiques suspendues pendant un plan
   respecté ; avis de taxe foncière saisi sur le bien (TEOM répartissable, reste déductible) ; rappels taxe foncière
   (15 septembre) et régularisation N-1 (février) sur le tableau de bord du propriétaire.
+
+## [2026-11-15] audit | Audit final indépendant de la PR 335 (SHA cbf31679)
+- Page : [[Audit final indépendant — PR 335 — 15 novembre 2026]].
+- Verdicts : publication technique **GO** ; exploitation autonome **NO GO** ; souscriptions payantes **NO GO**.
+- Preuves : CI et Stripe TEST verts sur le SHA exact (journaux bruts relus) ; 498 migrations sur base vide ; 127 tests ciblés rejoués ;
+  code en ligne (`b470bf1b`) vérifié sur le schéma migré ; production lue en SELECT seulement (aucune écriture).
+- Bloquants pour Codex : B1 accusé de résiliation perdu si un échéancier est libéré (rejoué en base), B2 confirmation non envoyée
+  quand l'adresse de facturation diffère de la connexion (1 organisation sur 5), R1 suivi de l'atelier rompu, A1-A3 états Facebook
+  sans issue applicative. Quatorze défauts non bloquants (N1 à N14).
+- Décisions du dirigeant : médiateur de la consommation, ouverture des ventes ou prolongation des essais avant le 24/12/2026.
+
+## [2026-11-15] audit | Contre-vérification ciblée de la PR 335 (SHA 962f2c76)
+- Page : [[Contre-vérification ciblée — PR 335 — candidat 962f2c76]] ; référence précédente cbf31679.
+- Verdict : publication technique **GO**. B1, B2, R1, A1 à A3, N1 à N3 corrigés (rejeux en base : annulation enregistrée
+  après échéancier libéré, confirmation au signataire vérifié, résolution Facebook réservée au superviseur AAL2, preuve sans exception).
+- Preuves : CI verte sur le SHA exact (12 534 tests, 274 parcours + 1 instable hors périmètre, 73 WebKit), Stripe TEST 16/16,
+  499 migrations sur base vide, 193 tests ciblés, code en ligne vérifié sur le schéma migré (147 + 23).
+- N10 : migrations limitées à `main` et à l'environnement approuvé ; le mot de passe Supabase reste un secret de dépôt
+  partagé avec la sauvegarde et la recette (risque antérieur, non étendu par la PR, à isoler séparément).
+
+## [2026-11-16] audit | Audit avant vente — ergonomie, visuel et fonctions
+- Page : [[Audit avant vente — ergonomie, visuel et fonctions — 16 novembre 2026]].
+- Version : `main` à `a6538f71` (#336), identique au déploiement de production `dpl_7ogEZxcvfmRwwhcHNfz3gr2WqSb5`.
+- Couverture : 182 écrans du banc fictif et 24 pages publiques de production, à 390 et 1440 px (412 captures) ; 21 écrans
+  principaux à 768, 1024 et 1366 px ; robot de mesure (erreurs, débordements, images, petits textes, cibles, axe) puis
+  cinq revues avec parcours réels (vitrine, propriétaire, agence, locataire et artisan, super-administrateur).
+- Verdict : prêt à être montré, pas encore prêt à être vendu sans accompagnement. Aucune erreur JavaScript, aucune page
+  en erreur, aucun débordement ; 6 écrans avec un défaut de contraste.
+- P1 : bandeau « envois suspendus » permanent et signature électronique promise mais en préparation ; médiateur de la
+  consommation absent et contact Gmail ; chiffres de loyers et de tâches contradictoires (agence, propriétaire) ; retrait
+  d'un collaborateur impossible ; confirmation de rendez-vous, prérequis du devis et erreur du bail invisibles ; données
+  de démonstration « E2E » ; console interne (page Santé, tour du matin, retards en vert).
+- Aucune donnée de production modifiée ; écritures fictives sur le banc local seulement.
+
+## [2026-11-16] audit | Contre-vérification de la PR 341 (candidat V1, SHA 06d8e8fd)
+- Page : [[Contre-vérification de la PR 341 — candidat V1 06d8e8fd — 16 novembre 2026]].
+- Verdicts : publication technique **GO** ; pilote gratuit **GO** sous condition du correctif B6-a ; qualité bonne et
+  premium sur les écrans clés ; vente payante non ouverte (obligations externes listées).
+- Preuves : CI verte du SHA exact relue ; production = `main` (bd4cdfbe servi, registre identique) ; 5 migrations jouées
+  comme `migrations.yml` sur copie historique (46 ms) ; 313 tests SQL sur base mise à niveau ; 16/16 parcours v1-bailleurs
+  sur 1440 et 390 ; retrait d'un collaborateur avec session ouverte et ancien locataire éprouvés ; démonstration
+  reconstruite, figée et restaurée (32 fichiers SHA-256).
+- P1 : B6-a (régression, filtre titulaire de Finances) ; A1-a (antérieur, colocataire parti) ; adresse technique sur la
+  quittance de démonstration. Aucun P0.
+- Correction : le rapport du 16/11 indiquait à tort a6538f71 comme version servie (bd4cdfbe, 4 fichiers de recette d'écart).
+- Lecture seule en production ; aucune fusion ; écritures sur bases locales fictives seulement.
+
+## [2026-11-16] audit | Audit de qualité commerciale V1 (version servie a776ed43)
+- Page : [[Audit de qualité commerciale V1 — a776ed43 — 16 novembre 2026]].
+- Verdicts :
+  - pilote gratuit **GO sous trois conditions** : rétablir les alertes du dirigeant, aligner la vitrine, décider de la fin des essais ;
+  - abonnements payants **NO GO** ;
+  - exploitation **GO accompagné** ; console **NO GO en autonomie**.
+- Preuves :
+  - production : version, registre des migrations, chaîne de livraison du 16/11, 12 tâches pg_cron, alertes du relais en échec du 12 au 16/11, 6 courriels « intervention requise », essais de 61–62 jours, 0 bail actif ;
+  - banc fictif : recette 136/139, compléments 42/47 (échecs dépendant des données ou hors périmètre), invitation du locataire de bout en bout, isolation, révocation, finances SCI ;
+  - captures : 369 sur le banc et 69 de la vitrine en production, à 390, 768 et 1440 px ;
+  - quatre relectures UX indépendantes et un audit de la promesse commerciale, dont les points majeurs ont été revérifiés.
+- P0 :
+  - V1-01 alertes du dirigeant bloquées par le périmètre pilote ;
+  - V1-02 promesses de la vitrine (relances, IRL, « Gerimmo le fait pour vous ») ;
+  - V1-03 médiateur absent ;
+  - V1-04 courriers contractuels bloqués et impayé jamais en lecture seule.
+- Limites : téléphone simulé ; aucun utilisateur réel observé ; l'émulateur du banc renvoie les grands entiers en texte (V1-21).
+- Lecture seule en production ; aucune modification de code, aucune PR, aucune fusion.
+
+## [2026-11-18] audit | Audit UX/UI complet et indépendant (version dca39641)
+- Page : [[Audit UX-UI complet — dca39641 — 18 novembre 2026]] ; rapport complet dans `livrables/audit-ux-ui/`.
+- Périmètre : propriétaire (particulier, SCI, débutant, compte neuf), locataire (avec et sans bail), artisan, super-admin, pages d'entrée ; agences hors périmètre.
+- Méthode :
+  - inventaire des routes du code, confronté à la navigation réelle ;
+  - 163 écrans, chacun regardé à 390, 768 et 1440 px sur banc local fictif ;
+  - test des 10 secondes et notes sur 5.
+- Constats :
+  - identité premium cohérente ;
+  - gestes courts excellents (quittance, mission artisan, signalement locataire) ;
+  - densité et vocabulaire à réduire (accueil propriétaire, bandeau « suspendus », Finances comptables, fiche incident, console de développeur, facturation artisan, « Mon gestionnaire — Parc de … »).
+- Livrables : inventaire, synthèse par espace, 41 recommandations P1/P2/P3, plan en 12 chantiers, verdict.
+- Audit uniquement : aucune correction ; écritures limitées à la base locale fictive (une mission avancée pour voir trois écrans artisan).
+
+## [2026-11-19] audit | Audit fonctionnel en production (version 2928d63f, PR #345)
+- Page : [[Audit fonctionnel en production — 2928d63f — 19 novembre 2026]] ; rapport et preuves dans `livrables/audit-production-20261119/`.
+- Technique : version = candidat `f489641f` (0 ligne d'écart), CI verte, migration appliquée, ventes fermées, comptages de données inchangés, aucune erreur serveur pendant les tests ; relais du dirigeant en échec quotidien depuis le 12/11.
+- Parcours en production, avec comptes fictifs (`delivered+audit-…@resend.dev`) créés avec l'accord du dirigeant puis purgés :
+  - particulier complet, de l'inscription progressive à l'espace locataire ;
+  - SCI : nu, colocation, meublé partiel, paiement partiel, congé, clôture de mois.
+- Sécurité : isolement interface et API vérifié ; encaissement par le locataire refusé ; session révoquée à la déconnexion ; RLS sur 227 tables.
+- Recette n° 50 (44476817457) : 63 réussis, 4 échecs (tests non alignés sur la PR #345), purge vérifiée.
+- Verdict : **GO** pour les particuliers ; P1-1 SCI et P1-2 relais à corriger ; inscription réelle à vérifier avec une vraie boîte.
+- Purge : base revenue à l'identique ; 19 fichiers en file `purge_fichiers` (tâche de 03 h 40 UTC), contrôle programmé le 20/11.
+
+## [2026-11-19] audit | Audit indépendant complet avant lancement (version 341b770f, PR #346)
+- **Demandé par** : le dirigeant, après la publication des PR #345 et #346. Ventes fermées.
+- **Vérifié** :
+  - version servie, CI, migrations, tâches et configuration (lecture seule) ;
+  - recette n° 51 réussie ;
+  - parcours SCI complet en production avec un compte fictif, purgé ensuite (7 fichiers en file de purge) ;
+  - bancs isolés à 341b770f : tests unitaires et navigateur, sonde des 419 fonctions SECURITY DEFINER, sondes de
+    chemin de fichier.
+- **Constats** :
+  - aucun P0 ;
+  - P1 : SEC-1 (fiche de document visant le fichier d'un autre espace), SCI-1 (représentant refusé faute de prénom),
+    OPS-1 (alerte du dirigeant en échec du 12/11 au 19/11, destinataire corrigé le 19/11).
+- **Verdicts** : GO particuliers sous conditions ; NO GO SCI avant correctif ; NO GO vente payante.
+- **Pages créées ou modifiées** :
+  - [[Audit indépendant complet avant lancement — 341b770f — 19 novembre 2026]] ;
+  - `index.md`.
+- **Rapport** : `livrables/audit-complet-20261119/`.
+- **Reste à constater le 20/11** : purge des 26 fichiers à 03 h 40 UTC et envoi de l'alerte à 04 h 00 UTC.
+
+## [2026-11-19] audit | Audit après publication de la PR #347 (version 8c0449c6)
+- **Demandé par** : le dirigeant, après la publication de la PR #347. Ventes fermées.
+- **Corrections vérifiées** :
+  - **SEC-1** (provenance des documents, conservation, purge de nuit et purge manuelle) : banc isolé, sondes en
+    transactions annulées, et production (0 document hors de son organisation, téléchargements entre espaces
+    refusés) ;
+  - **double authentification** : production, vrai service d'authentification (mot de passe seul → `/securite` et
+    API 428 ; code faux refusé ; code juste ; déconnexion 401 ; locataire sans régression) ;
+  - **SCI** : production, de l'inscription à la quittance (prénom exigé, représentant enregistré avec son
+    justificatif).
+- **Autres vérifications** :
+  - recette n° 52 réussie ;
+  - suite navigateur 282/282 hors 3 tests ignorés ;
+  - sonde des 420 fonctions sans contournement ;
+  - aucune erreur serveur depuis la publication.
+- **Reste** :
+  - SCI-2 : fiche de la société sans coordonnées (P2) ;
+  - P2 commerciaux inchangés ;
+  - alerte du dirigeant et purge des 33 fichiers à constater le 20/11.
+- **Verdicts** : GO particuliers ; GO SCI avec accompagnement ; NO GO abonnements payants.
+- **Pages créées ou modifiées** :
+  - [[Audit après publication PR 347 — 8c0449c6 — 19 novembre 2026]] ;
+  - `index.md`.
+- **Rapport** : `livrables/audit-pr347-20261119/`.
+
+## [2026-11-19] maintenance | Corrections après l'audit de la PR #347 (branche non publiée)
+Le dirigeant a demandé de corriger ce qui pouvait l'être et de lister le reste. Il a choisi quatre lots : SCI,
+locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-mail partagée, il a délégué le choix
+(« fait au mieux »).
+- **Branche** : `claude/corrections-post-pr347`, partie de `8c0449c6`. Poussée sans PR, sans fusion, sans
+  publication.
+- **Corrigé** :
+  - SCI-2, SCI-3, SCI-4 ;
+  - UX-1 ;
+  - bandeau d'alerte dans la console ;
+  - Next 16.4.6 ;
+  - TEC-3, TEC-4, TEC-5.
+- **Migrations** : quatre, à appliquer par le circuit protégé.
+- **Règle métier modifiée sur délégation** : l'e-mail d'une fiche est unique par agence et par nature (une
+  société peut partager l'adresse de son gérant). À confirmer.
+- **Hors de portée du code** : médiateur, paiement réel, réception de l'alerte, antivirus, réglages Supabase Auth,
+  secret Resend, validation juridique de la quittance SCI, publication.
+- **Pages créées ou modifiées** :
+  - [[Corrections après l'audit PR 347 — 19 novembre 2026]] (créée) ;
+  - [[Compte, personne et adhésion]] ;
+  - [[Audit après publication PR 347 — 8c0449c6 — 19 novembre 2026]] ;
+  - `index.md`.
+- **Tests sur le banc, dernier commit `bba781a2`** :
+  - suite navigateur : 281 réussis, 0 échec ;
+  - suite unitaire : 12 941 réussis, 1 échec qui dépend de l'ordre des essais sur le banc et passe sur base neuve.
+- **Trois défauts trouvés et corrigés pendant ces essais** :
+  - rôle du bandeau ;
+  - rejeu du lot « finance-dates » ;
+  - test du locataire invité.
+- **Rapport** : `livrables/corrections-post-pr347-20261119/`.
+
+## [2026-11-19] deploy | Corrections après l'audit de la PR #347 en production (PR #348)
+- Le dirigeant a demandé la PR, puis la publication (« surveille la PR, publie par la suite »). Il a approuvé dans GitHub
+  les trois passages de l'environnement `gerimmo-production`.
+- PR [#348](https://github.com/GERIMMO/GERIMMO_V4/pull/348) :
+  - CI verte sur la tête `bba781a2` (run 44622626401) ;
+  - avant fusion, lecture seule de la production : ancres des 4 migrations présentes une fois chacune, aucun doublon
+    d'adresse par nature ;
+  - fusion squash au SHA exact → `main` = `be3bf5b0` (22:23Z). CI de `main` verte (run 44628238250, 22:55Z).
+- **Simulation des migrations (run 44628266944) : échec sans effet**, « lock timeout ». La sauvegarde lancée en même
+  temps verrouillait la table `persons` pendant sa copie ; la simulation a tout annulé. Erreur d'ordonnancement de
+  l'agent, pas des migrations.
+- Sauvegarde à la demande réussie (run 44628477049, 22:31Z).
+- **Application réelle des 4 migrations** `20261119200000` → `200300` (run 44633587803), réussie à 23:09Z. Lecture
+  seule ensuite :
+  - 4 versions enregistrées ;
+  - index par nature en place, ancien index retiré ;
+  - `completer_fiche_societe_depuis_profil` présente ;
+  - quittance avec représentant ;
+  - deux recherches par e-mail départagées ;
+  - 0 fonction ouverte à `anon`, 12 tâches pg_cron actives.
+- **Publication contrôlée** (run 44635317531, `dpl_BgrANQM5G5dMrEfrAYu53Q35FTqM`, base compatible avec la version
+  précédente) réussie à 23:12Z :
+  - `/api/sante` sert `be3bf5b0`, base OK ;
+  - pages publiques en 200 ;
+  - 0 erreur d'exécution Vercel depuis 23:11Z.
+- **Recette de production avec nettoyage n° 53** (run 44635613659) réussie à 23:24Z. Purge vérifiée : 0 compte et 0
+  espace de recette restants.
+- Contrôle programmé du 20/11 à 04:15Z **annulé à la demande du dirigeant** : la purge des 33 fichiers d'audit et
+  l'envoi de l'alerte du 20/11 restent à constater.
+- Pause demandée par le dirigeant après la publication.
+
+## [2026-11-20] maintenance | Refonte visuelle « Maison » et Design System (PR #350, non fusionnée)
+
+- **Demande du dirigeant** : audit exhaustif, identité commune et même finition pour toutes les sessions, en autonomie.
+- **Version auditée** : `be3bf5b0` (production ; la version communiquée, `8c0449c6`, n'était plus la dernière).
+- **Fait** : cartographie des 133 pages ; audit (559 constats, parcours « avant » de 180 écrans à 4 largeurs) ; trois
+  directions maquettées, « Maison » retenue ; Design System (`app/src/app/systeme.css`, `app/docs/design-system.md`) ;
+  fondations (police de titre embarquée, taille unique des titres, jetons, action principale bleu nuit, rien sous 12 px) ;
+  bandeau de retour vers l'espace ; écrans d'erreur et « introuvable » dans la coquille ; harmonisation en sept lots.
+- **Non touché** : migrations, actions serveur, routes d'API, gardes d'accès, calculs, tarifs, textes juridiques.
+- **Tests (banc isolé, données fictives)** : style et types 0 erreur ; 12 949 tests unitaires ; 282 parcours navigateur ;
+  second parcours 932 passages sans défaut ; 180 écrans dans un moteur WebKit réel à 390 et 360 px (un débordement trouvé
+  sur `/admin/territoire`, corrigé).
+- **Intégration continue** : **rouge** sur `9a656950`, à la seule étape des parcours WebKit mobile (verte sur `main`) ; le journal de cette étape n'est pas lisible depuis l'environnement de travail (accès réseau refusé), la cause reste à lire. Deux causes d'échec trouvées et corrigées en route (fondu d'arrivée sous le contraste
+  requis ; libellé trop long dans WebKit).
+- **Suivi** : 192 lignes page × session, toutes améliorées ou vérifiées, testées aux 4 largeurs et relues.
+- **Reste** : essai sur de vrais téléphones ; relecture et décision de fusion du dirigeant ; marque blanche de l'assistant
+  et de deux écrans d'entrée ; libellés figés par des tests ; 338 remarques des lots à trier.
+- **Pages du wiki** : créée [[Refonte visuelle « Maison » et Design System — 20 novembre 2026]] ; mise à jour
+  [[Charte visuelle v3 bleue]] (supplantée pour les couleurs et la typographie) ; `index.md`.
+- **Livrables** : `livrables/refonte-design-20261120/`. Rien n'est fusionné, rien n'est publié.
+
+## [2026-11-20] maintenance | Refonte « Maison » : cause de l'échec WebKit de la CI trouvée et corrigée (PR #350)
+
+- **Constat** : la CI de la PR #350 échouait à l'étape « parcours essentiels sur WebKit mobile », sur
+  `e2e/bouton-envoi-hydratation` (« script retardé »). Elle réussit sur `main`.
+- **Accès** : le journal de l'étape et le WebKit de Playwright étaient hors d'atteinte (politique réseau de
+  l'environnement). Le dirigeant a autorisé l'hôte `cdn.playwright.dev` ; l'échec a alors été reproduit sur banc isolé.
+- **Cause** : la refonte déclarait deux fichiers de la police de titre sans les précharger (`preload: false`). Dans
+  WebKit, une police déclarée mais non chargée retarde le premier affichage jusqu'à la fin du chargement des scripts
+  quand l'écran ne montre que « Chargement de la page… ». Sur un réseau lent, Safari aurait montré un écran figé.
+- **Correctif** (`843cc3c1`, `656fe141`) : latin étendu préchargé ; fichier italique retiré (81 Ko pour une phrase de
+  l'accueil, mise en valeur par la couleur) ; test de garde `tests/polices-prechargees.test.ts` ; règle écrite dans
+  `app/docs/design-system.md`. Vérifié sur les 180 écrans : aucune police déclarée sans être préchargée.
+- **Autre défaut WebKit corrigé** (`9a656950`) : un libellé dépassait de 12 px sur `/admin/territoire` à 390 px.
+- **Fausse piste écartée** : le test du simulateur de prix de la vitrine (instable une fois sous Chromium sur le banc).
+- **Tests sur le commit final (banc isolé, données fictives)** : style et types 0 erreur ; 12 952 tests unitaires ;
+  282 parcours Chromium ; suite WebKit 72 sur 75 (les 3 autres échouent aussi sur `main` sur ce banc et réussissent
+  dans l'intégration continue) ; pages publiques reparcourues aux 4 largeurs sans défaut.
+- **État** : intégration continue **verte** sur `656fe141`. Rien n'est fusionné, rien n'est publié.
+- **Pages du wiki** : mise à jour [[Refonte visuelle « Maison » et Design System — 20 novembre 2026]] ; `index.md`.
+
+## [2026-11-20] query  | Avis de l'agent sur le projet : où il en est, son objectif, son évolution
+
+- **Question du dirigeant** : « pour le projet, d'où ça en est, l'objectif, l'évolution, t'en penses quoi ? »
+- **Pages lues** : `index.md` ; [[Proposition de valeur]] ; [[Calendrier de lancement — 30 novembre 2026]] ;
+  [[Audit après publication PR 347 — 8c0449c6 — 19 novembre 2026]] ; [[Corrections après l'audit PR 347 — 19 novembre 2026]] ;
+  [[Audit de qualité commerciale V1 — a776ed43 — 16 novembre 2026]] ; [[Audit UX-UI complet — dca39641 — 18 novembre 2026]] ;
+  [[Audit d'acquisition du 3 octobre 2026]].
+- **Réponse donnée (avis, pas un fait métier)** : socle technique solide et objectif bien posé ; le risque principal
+  n'est plus dans le code mais dans l'absence d'usage réel (aucun utilisateur observé, production sans bail actif au
+  16/11) ; ce qui ferme la vente est hors du code (médiateur, premier paiement réel, relectures) ; le calendrier fixait
+  le gel des fonctionnalités au 20/11 et la décision d'ouverture au 27/11 ; recommandation : geler, faire les gestes du
+  dirigeant, mettre de vrais bailleurs devant le produit avant le 30/11.
+- **Non filé en synthèse** : proposé au dirigeant.
+
+## [2026-11-20] deploy | Refonte visuelle « Maison » en production (PR #350)
+
+- Le dirigeant a demandé la publication (« Publie. »), puis a approuvé dans GitHub le passage de l'environnement
+  `gerimmo-production` (« C'est approuvé, continue »). L'agent avait recommandé un essai sur un vrai téléphone avant.
+- PR [#350](https://github.com/GERIMMO/GERIMMO_V4/pull/350) :
+  - CI verte sur la tête `656fe141` (run 44706525726) ;
+  - fusion squash au SHA exact → `main` = `d315257d` (10:28Z). CI de `main` verte (run 44719461252, 11:01Z).
+- **Aucune migration** : ni simulation, ni sauvegarde à la demande, ni application. Base inchangée, compatible avec la
+  version précédente.
+- **Publication contrôlée** (run 44724507715, `dpl_2xcydxZaMfWiAFvToPDaS3hepXuJ`) réussie à 11:51Z :
+  - `/api/sante` sert `d315257d`, base OK ;
+  - 10 pages publiques en 200, adresse inconnue en 404 ;
+  - 8 polices préchargées sur l'accueil, aucune italique ;
+  - 0 erreur d'exécution Vercel de 11:50Z à 12:40Z, recette comprise.
+- **Recette de production avec nettoyage n° 54** (run 44731759495) réussie à 12:09Z. Purge vérifiée en lecture seule :
+  0 compte et 0 espace de recette restants.
+- Ventes payantes toujours fermées (non modifié, relu en base).
+- **Signalé par le dirigeant après la mise en ligne** : « Les règles à connaître » ouvre une page hors de l'espace
+  (`/veille`) pour le propriétaire, l'agence et le locataire. Antérieur à la refonte, non corrigé par elle ; seul
+  l'artisan a cette page dans son espace depuis le 25/09. Correction proposée, non faite.
+- **Reste** : essai sur un vrai iPhone et un vrai Android ; validation du titre de l'accueil sans italique ; gel des
+  fonctionnalités prévu ce 20/11 par le [[Calendrier de lancement — 30 novembre 2026]].
+- **Pages du wiki** : mise à jour [[Refonte visuelle « Maison » et Design System — 20 novembre 2026]] ; `index.md`.
+
+## [2026-11-20] maintenance | « Les règles à connaître » dans l'espace de l'agence et du locataire (PR #351, non fusionnée)
+
+- **Constat du dirigeant**, après la mise en ligne de la refonte : « Pourquoi les règles à connaître emmène sur une
+  page différente ? »
+- **Cause** : la rubrique du menu ouvrait `/veille`, une page unique servie hors des espaces (plus de menu, un seul lien
+  de retour). Antérieur à la refonte, qui avait harmonisé son titre sans la déplacer. Seul l'artisan lisait ses règles
+  dans sa coquille (`/artisan/regles`, 25/09).
+- **Correction** (branche `claude/refonte-design-gerimmo` repartie de `main`, commit `6b49496f`,
+  PR [#351](https://github.com/GERIMMO/GERIMMO_V4/pull/351)) : pages `/agence/<id>/regles` (aussi sous `/espace/<id>/regles`)
+  et `/locataire/<id>/regles`, même contenu, mêmes onglets (décision D33), mêmes textes ; les menus de l'agence et du
+  locataire y pointent ; `/veille` reste servie pour les liens enregistrés.
+- **Non touché** : aucune lecture nouvelle (même vue `regulatory_watch_published`, derrière la garde de chaque espace),
+  aucune écriture, aucune migration, aucune action serveur.
+- **Tests (banc isolé, données fictives)** : style et types 0 erreur ; 12 972 tests unitaires ; 282 parcours Chromium ;
+  nouvelles pages aux 4 largeurs pour 4 profils, vides puis avec deux règles fictives : 64 passages sans défaut ; clic
+  depuis le menu vérifié à l'ordinateur et au téléphone. Un test de navigation mis à jour, un fichier de tests ajouté.
+- **Non fait** : suite WebKit complète sur ce commit (la CI la lance) ; essai sur un vrai téléphone.
+- **À trancher par le dirigeant** : le propriétaire particulier n'a pas cette entrée dans son menu.
+- **État** : PR ouverte, non fusionnée, non publiée. La production (`d315257d`) ouvre encore `/veille`.
+- **Pages du wiki** : mise à jour [[Refonte visuelle « Maison » et Design System — 20 novembre 2026]].
+
+## [2026-11-20] query  | Comment trouver des clients sans autre budget que Claude et Codex
+
+- **Question du dirigeant** : « Comment tu peux m'aider à avoir des clients ? […] je ne paierai pas autre chose que
+  Claude et Codex, je peux te connecter à LinkedIn, Insta et Facebook. »
+- **Pages lues** : [[Prêt à démarcher]] ; [[Expansion territoriale autonome]] ; [[Proposition de valeur]] ;
+  [[Calendrier de lancement — 30 novembre 2026]] ; [[Audit de qualité commerciale V1 — a776ed43 — 16 novembre 2026]].
+- **Relevé en production (lecture seule, comptages sans donnée personnelle)** : 6 espaces de propriétaires, tous créés
+  depuis le 24/10, dont 3 sans aucun bien ; aucun bail à l'état actif ; 0 agence en liste d'attente ; l'agent de
+  contenus est actif (validation obligatoire, mardi et vendredi à 9 h) : 13 articles parus, 12 posts Facebook, le
+  dernier le 18/11.
+- **Connecteurs** : la recherche dans l'annuaire ne montre pas de connecteur officiel gratuit pour publier sur
+  LinkedIn ; les connecteurs multi-réseaux trouvés sont des services tiers payants au-delà d'un essai. La Page Facebook
+  est déjà reliée à Gerimmo par l'API de Meta (gratuite).
+- **Réponse donnée (avis)** : le contenu automatique tourne mais ne produit pas d'utilisateurs actifs ; priorité aux
+  relations directes du dirigeant, à l'activation des comptes déjà ouverts et aux outils gratuits du site ; respect
+  des règles de démarchage déjà décidées ; le médiateur reste la seule dépense que rien ne remplace pour vendre aux
+  particuliers.
+- **Proposé** : filer le plan en synthèse une fois tranché avec le dirigeant.
+
+## [2026-11-20] deploy | « Les règles à connaître » dans l'espace, en production (PR #351)
+
+- Le dirigeant a demandé la publication (« Publie »), puis a approuvé dans GitHub le passage de l'environnement
+  `gerimmo-production`.
+- PR [#351](https://github.com/GERIMMO/GERIMMO_V4/pull/351) :
+  - CI verte sur la tête `6b49496f` (run 44743388346), WebKit compris ;
+  - fusion squash au SHA exact → `main` = `96c56647` (13:53Z). CI de `main` verte (run 44748236962, 14:25Z).
+- **Aucune migration** : base inchangée, compatible avec la version précédente.
+- **Publication contrôlée** (run 44754175430, `dpl_B4dzvXx8zDUQpqZXFdtyHUr8f2Tv`) réussie à 14:40Z :
+  - `/api/sante` sert `96c56647`, base OK ;
+  - pages publiques en 200 ; `/agence/<id>/regles`, `/locataire/<id>/regles` et `/espace/<id>/regles` demandent une
+    connexion (307 vers `/connexion`), comme `/veille` ;
+  - 0 erreur d'exécution Vercel de 14:39Z à 15:05Z, recette comprise.
+- **Recette de production avec nettoyage n° 55** (run 44756823595) réussie à 14:59Z. Purge vérifiée en lecture seule :
+  0 compte et 0 espace de recette restants. Ventes payantes toujours fermées (relu en base).
+- **Reste à décider par le dirigeant** : l'entrée « Les règles à connaître » dans le menu du propriétaire particulier.
+- **Pages du wiki** : mise à jour [[Refonte visuelle « Maison » et Design System — 20 novembre 2026]].
+
+## [2026-11-20] query  | Acquisition : l'agent peut-il la mener seul, le dirigeant ne répondant qu'aux appels ?
+
+- **Question du dirigeant** : « Es-tu capable de développer ça seul et je réponds aux potentiels appels ? » Contexte
+  donné par lui : il ne connaît aucun propriétaire, il vend ses propres biens, il a du temps ; aucun budget hors Claude
+  et Codex ; LinkedIn, Instagram et Facebook peuvent être connectés.
+- **Relevé dans le code (branche `main`, `96c56647`)** : le formulaire de contact de la vitrine demande déjà un
+  téléphone ; une mission « marketing » tourne chaque jour à 8 h UTC ; le plan du site liste les outils gratuits et les
+  articles ; les images des publications passent par une clé OpenAI (dépense à l'usage, hors abonnements).
+- **Vérifié sur le web le 20/11** : LinkedIn permet de publier au nom d'un membre par son produit « Share on
+  LinkedIn » (permission `w_member_social`, jeton d'environ 60 jours selon des guides tiers) ; Meta permet de publier
+  sur un compte Instagram professionnel par son API. Conditions exactes à confirmer sur les portails avant de promettre.
+- **Réponse donnée (avis)** : oui pour construire et faire tourner l'entrée des demandes (rappel demandé par le
+  visiteur, référencement des outils et des réponses aux questions de bailleurs, publications automatiques) ; non pour
+  contacter des inconnus en premier ; délai de plusieurs semaines à plusieurs mois ; deux fuites à fermer avant
+  (activation du bail, paiement et médiateur).
+- **En attente** : accord du dirigeant sur le plan, et sa décision sur le bail activable sans le PDF signé.
+
+## [2026-11-20] query  | Premiers clients : où les inscrits décrochent, et deux décisions du dirigeant
+
+- **Accord du dirigeant** sur le plan d'acquisition mené par l'agent : « Oui, fais ce qui te semble nécessaire ».
+- **Relevé de production (lecture seule, aucune donnée personnelle)** : 6 espaces propriétaires ouverts du 24/10 au
+  19/11 ; 4 sans aucun bien, dont 2 au profil sans adresse ; 11 baux saisis, tous en brouillon, aucun état des risques,
+  aucun contrat déposé ; 0 bail actif.
+- **Rejeu sur le banc local** (compte fictif neuf, « j'ai déjà un locataire ») : trois murs — le profil complet exigé
+  avant le premier bien, la naissance du locataire exigée sur sa fiche, le dépôt du contrat signé fermé tant que le
+  logement n'est pas « mis en location » (DPE et état des risques de moins de six mois).
+- **Décisions du dirigeant** (« B et oui ») :
+  - **B** — un bail dont la date d'entrée est passée s'active par son contrat signé ; DPE et état des risques manquants
+    deviennent des alertes, sans blocage. Options écartées : A (ne rien changer), C (DPE exigé, pas l'état des risques).
+  - **Oui** — la date et la commune de naissance deviennent facultatives sur la fiche d'un locataire déjà en place.
+- **Pull requests ouvertes** : [#353](https://github.com/GERIMMO/GERIMMO_V4/pull/353) (données structurées pour
+  Google, CI verte), [#354](https://github.com/GERIMMO/GERIMMO_V4/pull/354) (coordonnées du bailleur sur la page
+  « Ajouter un bien », CI verte après correction d'un marqueur de formulaire),
+  [#355](https://github.com/GERIMMO/GERIMMO_V4/pull/355) (les deux décisions ; migration `20261120190000` et son
+  retour arrière).
+- **« Être rappelé »** : PR [#352](https://github.com/GERIMMO/GERIMMO_V4/pull/352) fusionnée (`3fd11ae9`), CI de `main`
+  verte (run 44788654969) ; publication contrôlée lancée (run 44794208593), **en attente de l'approbation du dirigeant**.
+- **Points laissés ouverts** : alerte d'état des lieux d'entrée sur un bail déjà en cours ; DPE classé G sur un bail déjà
+  en cours ; libellé « Indiquer mon adresse et créer mon premier bien » ; code de vérification Google Search Console.
+- **Pages du wiki** : création de [[Premiers clients — acquisition sans budget — 20 novembre 2026]] ; mise à jour de
+  [[Bail]], [[Diagnostic]], [[Compte, personne et adhésion]] et de l'index.
+
+## [2026-11-20] query  | Que se passe-t-il après l'activation d'un bail repris en cours ? (premier loyer)
+
+- **Question posée par l'agent en poursuivant le plan d'acquisition** : une fois la décision B en place, le propriétaire
+  qui a activé le bail d'un locataire déjà en place arrive-t-il à sa première quittance ?
+- **Constat (banc local, données fictives)** : non. « Générer l'échéancier » sur un bail entré le 01/11/2024 crée 25
+  termes, 18 750 € « impayés », et une alerte d'impayé ; le cycle du 1ᵉʳ du mois ferait de même. Envois automatiques au
+  locataire : désactivés par défaut (relevé des valeurs par défaut des réglages).
+- **Production (lecture seule)** : 11 baux en brouillon, aucun terme appelé ; 2 ont une entrée antérieure au mois en
+  cours. Empreinte de `generer_appels_loyer_interne` identique à celle du banc ; `activer_bail` diffère du dépôt d'une
+  ligne de commentaire.
+- **Proposition, non validée** : « date de bascule » — le premier mois suivi est celui de l'activation
+  (PR [#356](https://github.com/GERIMMO/GERIMMO_V4/pull/356), brouillon, empilée sur #355 ; migration `20261120200000` et
+  son retour arrière). Notion tirée des maquettes de reprise de portefeuille (sources du 04/09 et du 08/09).
+- **Preuves sur le banc** : parcours complet à 390 px (bail de 2024 → actif → 1 terme de 750 € → encaissement →
+  quittance) ; suite unitaire complète, 13 191 réussis, 2 échecs hors de la PR.
+- **Défaut trouvé au passage dans la PR #355 et corrigé** (`a8c37a8b`) : `tests/sprint4-bail.test.ts` datait ses baux du
+  jour de la session ; entre minuit et 1 h à Paris, la décision B s'appliquait et un test échouait.
+- **CI de la PR #355** : verte à 21 h 31 UTC (run 44816292574) ; relancée par la correction.
+- **En attente du dirigeant** : approbation de la mise en ligne de « Être rappelé » (run 44794208593) ; accord pour
+  fusionner et publier #353, #354, #355 ; décision A / B / C sur le premier mois suivi (#356).
+- **Contrepartie trouvée en construisant la proposition** : la régularisation des charges compare aux provisions
+  appelées dans Gerimmo ; pour l'exercice de la bascule, 500 € auraient été réclamés à tort au locataire dans l'exemple
+  du banc. La PR #356 refuse la régularisation d'un exercice commencé avant le premier mois suivi (déclencheur sur
+  `regularisations_charges`, qui couvre les deux chemins). Suite complète rejouée : 13 206 réussis, 2 échecs propres à
+  l'état du banc.
+- **Pages du wiki** : mise à jour de [[Premiers clients — acquisition sans budget — 20 novembre 2026]], de [[Bail]] et de
+  l'index.
+
+## [2026-11-21] query  | Décision du dirigeant : premier mois suivi d'un bail repris, et accord de publication
+
+- **Réponse du dirigeant** au point du 21/11 : « Choix A, oui publie ».
+- **Décision A** : pour un bail déjà en cours, Gerimmo suit les loyers à partir du mois de l'activation. Options
+  écartées : B (mois choisi par le propriétaire), C (depuis l'entrée du locataire).
+- **Accord de fusion et de publication** des pull requests #353, #354, #355 et #356.
+- **Fusions faites** : [#353](https://github.com/GERIMMO/GERIMMO_V4/pull/353) (`b9bfd7d2`),
+  [#354](https://github.com/GERIMMO/GERIMMO_V4/pull/354) (`0dfc53f8`, après mise à jour avec `main` : le dépôt exige
+  une branche à jour et sa CI verte, run 44903502168). La PR #356 a rejoint la branche de la PR #355, qui porte donc
+  les trois décisions et les deux migrations ; sa CI à jour avec `main` est en cours.
+- **Reste à faire** : fusion de #355, CI de `main`, sauvegarde, « Migrations Supabase » (simulation puis application de
+  `20261120190000` et `20261120200000`), publication contrôlée, vérifications de production.
+- **Pages du wiki** : [[Bail]] (la règle n'est plus une proposition), [[Premiers clients — acquisition sans budget — 20 novembre 2026]].
+
+## [2026-11-21] deploy | « Être rappelé » en production (PR #352)
+
+- Le dirigeant a approuvé dans GitHub le passage de l'environnement `gerimmo-production`, au moment de sa réponse
+  « Choix A, oui publie ».
+- PR [#352](https://github.com/GERIMMO/GERIMMO_V4/pull/352) : fusion squash → `main` = `3fd11ae9` (20/11, 18:00Z) ;
+  CI de `main` verte (run 44788654969, 18:34Z).
+- **Aucune migration** : base inchangée, compatible avec la version précédente.
+- **Publication contrôlée** (run 44794208593, `dpl_iZ6Crrnhwcan9zoDBfwB7cYT8oE2`), lancée le 20/11 à 18:35Z, approuvée et
+  réussie le 21/11 à 12:19Z :
+  - `/api/sante` sert `3fd11ae9`, base OK, pas de maintenance ;
+  - accueil, `/outils`, `/tarifs`, `/journal`, `/connexion`, `/inscription` en 200 ;
+  - la carte « Être rappelé » est présente sur l'accueil, sous un outil (`/outils/calcul-irl`) et sous un article du
+    journal ; absente de `/tarifs`, comme prévu ;
+  - 0 erreur d'exécution Vercel sur les trois heures autour de la publication.
+- **Recette de production avec nettoyage n° 56** (run 44927650523) réussie à 17:12Z, étape « Supprimer les comptes
+  éphémères, dossiers et supervision » comprise. La relecture de la purge en base n'a pas été faite : l'outil de
+  lecture a demandé une approbation restée sans réponse ; à refaire au prochain passage.
+- **Suite, le même jour** : PR #353 (`b9bfd7d2`), #354 (`0dfc53f8`) et #355 avec #356 (`81740dec`) fusionnées ; CI de
+  `main` verte sur `81740dec` (run 44910220705, 14:15Z) ; construction Vercel prête (`dpl_AV9825DKz3JzKQhDXd699x8yhfvu`) ;
+  simulation des deux migrations lancée (run 44910249679), **en attente de l'approbation du dirigeant**. Rien d'autre
+  n'est en ligne tant que les migrations ne sont pas appliquées.
+
+## [2026-11-21] deploy | Google, premier bien, bail déjà en cours et date de bascule en production (PR #353 à #356)
+
+- Le dirigeant a demandé la publication (« Choix A, oui publie »), puis a approuvé dans GitHub les trois passages de
+  l'environnement `gerimmo-production` : simulation des migrations, application, publication.
+- **Fusions** (squash au SHA exact, chaque branche à jour avec `main` et sa CI verte, comme le dépôt l'exige) :
+  - PR [#353](https://github.com/GERIMMO/GERIMMO_V4/pull/353) → `b9bfd7d2` (12:19Z) ;
+  - PR [#354](https://github.com/GERIMMO/GERIMMO_V4/pull/354) → `0dfc53f8` (12:55Z, CI 44903502168) ;
+  - PR [#355](https://github.com/GERIMMO/GERIMMO_V4/pull/355), qui porte aussi la PR
+    [#356](https://github.com/GERIMMO/GERIMMO_V4/pull/356) fusionnée dans sa branche → `main` = `81740dec` (13:42Z,
+    CI 44906332443). CI de `main` verte (run 44910220705, 14:15Z).
+- **Migrations**, par le chantier « Migrations Supabase » sur `81740dec` :
+  - simulation (run 44910249679) réussie à 17:34Z ;
+  - sauvegarde à la demande (run 44930804957) réussie à 17:41Z ;
+  - application de `20261120190000_bail_deja_en_cours.sql` puis de `20261120200000_loyers_suivis_depuis.sql`
+    (run 44931598508) réussie à 18:02Z, gardes « CI verte » et « sauvegarde récente » passées.
+- **Publication contrôlée** (run 44931906214, `dpl_AV9825DKz3JzKQhDXd699x8yhfvu`) réussie à 18:03Z, après l'application des
+  migrations :
+  - `/api/sante` sert `81740dec`, base OK, pas de maintenance ;
+  - accueil, `/outils`, `/outils/calcul-irl`, `/tarifs`, `/journal`, un article, `/connexion`, `/inscription` en 200 ;
+    adresse inconnue en 404 ;
+  - données structurées relues en JSON valide : accueil (`Organization`, `WebSite`, `FAQPage` à 6 questions), outil
+    (`BreadcrumbList`), article (`BlogPosting`, `BreadcrumbList`) ; aucune offre ni prix ;
+  - la carte « Être rappelé » toujours présente sur l'accueil, sous l'outil et sous l'article, absente de `/tarifs` ;
+  - 0 erreur d'exécution Vercel dans l'heure qui suit, recette comprise.
+- **Recette de production avec nettoyage n° 57** (run 44933397659) réussie à 18:12Z sur la version publiée.
+- **Non fait** : la relecture directe de la base (empreintes des fonctions migrées, colonne et déclencheurs, purge des
+  comptes de recette). L'outil de lecture a demandé deux fois une approbation restée sans réponse. Les preuves
+  disponibles sont l'étape « Appliquer » réussie du chantier des migrations et la recette réussie.
+- **À suivre** : en production, 11 baux en brouillon au relevé du 20/11, dont 2 avec une entrée antérieure au mois en
+  cours ; ils peuvent désormais s'activer par leur contrat signé, et leurs loyers seront suivis depuis le mois de
+  l'activation.
+
+## [2026-11-22] query  | Quelles décisions restent à prendre ? — réponse du dirigeant « 1A - 2B - 3A - 4 ok »
+
+- **Question** (« Quelle décision je dois prendre ? ») : quatre points laissés ouverts après la publication du 21/11,
+  présentés avec leurs options et la recommandation de l'agent.
+- **Réponse du dirigeant, 22/11/2026 : « 1A - 2B - 3A - 4 ok ».**
+  - **1A** — envoyer aux propriétaires inscrits un court message de service : le blocage du bail est levé, le contrat
+    signé suffit à activer un bail déjà en cours. L'agent rédige ; **le dirigeant valide le texte et les destinataires
+    avant tout envoi**. Rien n'est envoyé à ce stade.
+  - **2B** — un DPE classé G ne bloque plus l'activation d'un bail déjà en cours ; il devient une alerte. Choix fait
+    **contre la recommandation de l'agent** (A, garder le blocage) : aucune source du wiki n'établit l'effet de
+    l'interdiction de louer un logement classé G sur un bail en cours. Point signalé dans [[Bail]] et [[Diagnostic]].
+  - **3A** — un bail repris en cours ne reçoit plus l'alerte « État des lieux d'entrée à signer ».
+  - **4** — le libellé « Indiquer mon adresse et créer mon premier bien », déjà en ligne, est validé.
+- **Engagement pris le 22/11** (question du dirigeant sur le nombre de contrôles pour de petits changements) :
+  regrouper les petits changements en un seul lot — une seule demande de fusion, un seul contrôle. Un lot qui modifie
+  la base demande toutefois trois approbations dans GitHub : simulation, application, publication.
+- **Lot préparé** : PR [#357](https://github.com/GERIMMO/GERIMMO_V4/pull/357) (`272dcc18`), une migration
+  `20261122090000_bail_repris_dpe_g_et_edl_entree.sql` avec son retour arrière.
+  - Banc local : 936 fichiers de tests passés, 13 230 tests ; 4 fichiers en échec, tous propres au banc partagé
+    (`exercice-restauration`, `api-isolation`, `lot2-auth-reel`, `lot3-notifications-base`). Types et lint : 0 erreur.
+  - CI de la demande verte sur `272dcc18` (run 45002641134, terminée à 08:58Z), branche à jour avec `main`.
+  - Rejoué dans l'application réelle sur le banc (compte et données fictifs, téléphone) : un propriétaire neuf, un
+    logement dont le DPE est classé G, un bail entré le 01/11/2024. Le dépôt du contrat signé active le bail ; la
+    base ne porte aucune alerte `edl_entree` ; la fiche du bail ne propose ni « déclarer les pièces » ni « réaliser
+    l'état des lieux d'entrée » ; l'accueil affiche « DPE classé G — … Un nouveau bail ne pourra pas être activé sur
+    ce logement tant que son DPE reste classé G » et aucune tâche d'état des lieux d'entrée, tâches repliées comprises.
+  - **Ni fusionnée ni publiée** : attend l'accord explicite du dirigeant.
+- **Message de service (1A)** : brouillon rédigé dans
+  [[Premiers clients — acquisition sans budget — 20 novembre 2026]] (section 4 quater). Moyen proposé : envoi par le
+  dirigeant depuis sa propre boîte, après la publication de la PR #357 ; Gerimmo n'a pas d'outil d'envoi aux inscrits
+  et il n'en est pas construit pour six destinataires. **Aucun envoi fait.**
+- **Pages mises à jour** : [[Bail]], [[Diagnostic]], [[État des lieux]],
+  [[Premiers clients — acquisition sans budget — 20 novembre 2026]], `index.md`.
+
+## [2026-11-22] query  | Les inscrits relevés en production sont des comptes de test — message de service sans objet
+
+- **Précision du dirigeant, 22/11/2026**, en réponse au brouillon du message de service : les personnes déjà
+  inscrites sont des tests, donc inutile de s'en occuper ; elles seront supprimées dans moins de dix jours.
+- **Conséquences** :
+  - **Décision 1A sans objet.** Aucun message n'est envoyé ; aucun outil d'envoi n'est construit. Le brouillon est
+    retiré de la page de synthèse (il reste dans l'historique, commit `b013656b`).
+  - **Lecture du 20/11 corrigée.** Le relevé de production (6 espaces, 11 baux en brouillon, 0 bail actif) portait
+    sur des comptes de test. La conclusion « le premier frein est l'activation, pas l'audience » ne tient plus :
+    d'après le dirigeant, aucun propriétaire réel n'a encore ouvert d'espace. Les trois freins levés (premier bien,
+    naissance du locataire, bail déjà en cours) restent établis par le rejeu sur le banc.
+  - **Entrées antérieures de ce journal** (20/11 et 21/11) : elles parlent d'« inscrits » et de baux « saisis par des
+    propriétaires » ; à lire avec cette précision. Le journal n'est pas réécrit.
+  - **Comptes de test** : l'agent n'y touche pas ; leur suppression relève du dirigeant.
+- **Lot du 22/11** (PR [#357](https://github.com/GERIMMO/GERIMMO_V4/pull/357)) : inchangé, prêt, en attente d'accord.
+  Aucun utilisateur réel n'étant bloqué, sa publication n'a rien d'urgent.
+- **Pages mises à jour** : [[Premiers clients — acquisition sans budget — 20 novembre 2026]], [[Bail]], `index.md`.
+
+## [2026-11-22] query  | Acquisition : comment le dirigeant saura-t-il qu'un vrai propriétaire s'est inscrit ?
+
+- **Constat.** Les espaces présents en production sont des comptes de test (précision du dirigeant du même jour) ;
+  rien ne signale au dirigeant l'ouverture d'un nouvel espace, sauf à ouvrir la console.
+- **Réponse construite** (étape 3 du plan d'acquisition, accord du 20/11 « fais ce qui te semble nécessaire ») :
+  l'e-mail du matin ([[Relais du dirigeant]]) signale, par un seul point, les espaces de propriétaires ouverts dans
+  les dernières 24 h, avec cinq nombres (24 h, 7 jours, total, sans aucun bien, avec un bail en cours). Sans
+  inscription en 24 h : aucun point, aucun e-mail de plus. Aucune donnée personnelle.
+- **En base** : migration `20261122100000_relais_point_inscriptions.sql` (une fonction de comptage réservée au
+  traitement), retour arrière fourni.
+- **Regroupé avec le lot du 22/11** : même demande de fusion,
+  PR [#357](https://github.com/GERIMMO/GERIMMO_V4/pull/357) (`35da40f1`), pour une seule publication.
+  - Banc local : suite complète passée (13 242 tests), hors les quatre fichiers propres au banc partagé ; la fonction,
+    appelée à travers l'API locale, rend ses cinq nombres au serveur et un refus à un visiteur ; l'e-mail rendu et
+    relu.
+  - Un passage complet du relais, rejoué sur la base fictive du banc avec un faux envoi : la fonction est appelée dans
+    la chaîne réelle et l'e-mail porte le bloc « Nouvelles inscriptions » avec ses trois lignes.
+  - CI de la demande verte sur `35da40f1` (run 45007278133, terminée à 09:56Z), branche à jour avec `main`.
+  - **Ni fusionnée ni publiée** : attend l'accord explicite du dirigeant.
+- **Limite** : les nombres ne distinguent pas un compte de test d'un vrai inscrit.
+- **Pages mises à jour** : [[Relais du dirigeant]], [[Premiers clients — acquisition sans budget — 20 novembre 2026]],
+  `index.md`.
+
+## [2026-11-22] query  | Mission « palier 1 » : audit, corrections en autonomie, publication unique
+
+- **Demande du dirigeant (22/11/2026)** : terminer Gerimmo pour le palier 1 (propriétaire bailleur, locataires,
+  artisans, incidents, gestion administrative, super admin), sans validation intermédiaire ; une seule validation,
+  à la fin. Quatre phases : audit (`AUDIT.md`), corrections par lots (`JOURNAL.md`), vérification finale, livraison.
+  Le palier 2 (agences) vient après. Aucun vrai utilisateur en production, seulement des données de test.
+- **Règles posées** : production gelée (aucun déploiement, aucune migration ni suppression) jusqu'à « je valide la
+  publication » ; préproduction (branche, aperçu Vercel, copie de base) ; aucun test, aucune règle de sécurité ni
+  l'isolation RLS désactivés ; aucune référence légale inventée ; rien copié des plateformes de référence ; les
+  points incertains dans `QUESTIONS.md` et `JURISTE.md` ; interrupteur super admin « IA activée / désactivée ».
+- **Conséquence immédiate** : la publication du lot #357, lancée sur « Oui publie », est arrêtée. La simulation des
+  migrations (run 45013346518) est annulée avant toute approbation. La production sert toujours `81740dec`
+  (`/api/sante` relu à 11:07Z). Le lot reste dans `main` (`e1e442dc`) et partira avec la publication unique.
+- **Point de départ** : la création d'étiquettes Git est refusée depuis la session (403) ; deux branches repères les
+  remplacent — `claude/depart-palier-1` (`e1e442dc`) et `claude/production-2026-11-22` (`81740dec`). Branche de
+  travail : `claude/palier-1-preproduction`.
+- **Coût annoncé** : une copie de base hébergée (branche Supabase) coûte environ 10 $ par mois, à l'heure
+  (documentation Supabase lue le 22/11). Rien de payant n'est créé sans l'accord du dirigeant ; en attendant, base
+  d'essai locale.
+- **« Référentiel du palier 1 »** : aucun document de ce nom dans le dépôt ; le cahier Gerimmo V3 (`raw/assets/`) et
+  les décisions du wiki sont pris pour référentiel, dans le périmètre donné. Consigné dans `QUESTIONS.md` (Q2).
+- **Constat relevé au passage** : les aperçus Vercel (environnement « Preview ») reçoivent aujourd'hui l'adresse et
+  la clé publique de la base de **production**. La préproduction devra avoir ses propres réglages avant tout usage.
+- **Phase 1 lancée** : huit volets d'audit en lecture seule (textes officiels, plateformes de référence, dépendance
+  à l'IA, état des modules, sécurité).
+
+## [2026-11-22] lint   | Mission palier 1, phase 1 : audit en huit volets (première version)
+
+- **Version auditée** : `e1e442dc`, CI de `main` verte (run 45013333857, 11:12Z). Aucune modification de code, de base
+  ni de production pendant l'audit.
+- **Huit relevés en lecture seule**, copiés dans `audit-palier-1/` : modules du bailleur, modules locataire /
+  incidents / artisan, super admin et sécurité, bail et loi de 1989, états des lieux / charges / pièces, RGPD et flux
+  financiers, écart avec les plateformes de référence, dépendance à l'IA. Plus les avis de sécurité de la base de
+  production (5 types, 453 constats, tous lus).
+- **Constats principaux** : aucun module en maquette ; cloisonnement des 227 tables prouvé par requête ; un risque de
+  double comptage entre régularisation des charges et dépôt de garantie, à confirmer en exécution ; signature
+  électronique d'un bail avec garant cassée ; envois suspendus par la liste fermée du pilote ; deux envois à OpenAI
+  non déclarés ; aucun réglage ne coupe l'IA proprement.
+- **Limite majeure** : la règle réseau de l'environnement refuse les sites officiels (403 du proxy) et ceux des
+  plateformes de référence. Tout le volet juridique repose sur des extraits de recherche ; **aucun point n'est noté
+  conforme**. Deux textes signalés par les extraits et absents du wiki : décret n° 2026-596 du 6 juillet 2026 et
+  arrêté du 9 octobre 2026 — à lire à la source avant toute affirmation.
+- **Fichiers créés à la racine** : `AUDIT.md`, `QUESTIONS.md` (14 points), `JURISTE.md`, `JOURNAL.md`.
+- **Pages** : [[Mission palier 1 — audit du 22 novembre 2026]] créée ; `index.md` mis à jour.
+- **Suite** : demande d'ouverture des sites officiels (QUESTIONS Q5), seconde lecture, puis phase 2.
+
+
+## [2026-11-22] lint   | Mission palier 1, phase 2 : onze lots de corrections vérifiés (préproduction)
+
+- **Fait** : lots 1 à 11 du plan fermé (P0-02, interrupteur IA, P0-10, P1-17, P1-19, P1-01, P1-04, P1-07, P1-18,
+  P1-02, P1-06, P1-03), chacun vérifié sur une base d'essai remise à neuf puis poussé sur la branche de
+  préproduction. Rien n'est publié en production (gel maintenu).
+- **Règle métier consignée** : une intervention ne porte qu'une facture d'artisan « en vigueur » ; une facture
+  refusée reste au dossier avec son motif (cahier V3, module 9, variante V5). Avoir et numérotation : question posée
+  à l'expert-comptable, non tranchée.
+- **Limites dites** : aucun texte officiel n'a pu être ouvert (Q5 sans réponse) ; aucun service payant n'a été joué
+  (signature électronique, recommandé) ; deux fichiers de tests ne tournent que dans le contrôle automatique de GitHub.
+- **Pages** : [[Mission palier 1 — audit du 22 novembre 2026]] complétée (tableau de la phase 2) ; `index.md` mis à jour.
+- **Suite** : lot 12 (messagerie d'intervention, P1-05) en vérification ; puis P1-08, P1-14, P1-16.
+
+## [2026-11-22] lint   | Mission palier 1, phase 2 : lots 12 à 16 vérifiés (préproduction)
+
+- **Fait** : lots 12 à 16 du plan fermé (P1-05 messages d'intervention signalés, P1-14 avenant signé, P1-13 rappel de
+  révision et indice Insee, P1-08 quatre e-mails automatiques prêts et fermés, P1-16 motifs envoyés à l'artisan
+  refusé), chacun vérifié sur une base d'essai remise à neuf puis poussé sur la branche de préproduction. Dernier
+  passage complet : 13 765 tests réussis, 294 parcours navigateur réussis, aucun échec. Rien n'est publié en
+  production (gel maintenu).
+- **Règle consignée** : un e-mail automatique ne part que si le Super Admin a ouvert l'envoi, si l'espace a donné son
+  accord quand il est demandé, et si la base confirme juste avant qu'il est toujours dû (prudence de l'agent, à
+  confirmer : `QUESTIONS.md`, Q6 et Q24).
+- **Limites dites** : aucun e-mail réel n'a été envoyé (service d'envoi simulé) ; l'Insee n'a pas pu être joint depuis
+  l'environnement de travail ; aucun texte officiel n'a pu être ouvert (Q5 sans réponse) ; pas de copie de base
+  hébergée (Q1 sans réponse) : la préproduction reste la base d'essai locale.
+- **Pages** : [[Mission palier 1 — audit du 22 novembre 2026]] complétée (lots 12 à 16).
+- **Suite** : lots 17 à 19 écrits, en vérification (déclaration d'incident depuis la fiche du bien, date de l'entrée
+  sur l'état des lieux de sortie, charges de copropriété à confirmer poste par poste).
+
+## [2026-11-22] lint   | Mission palier 1, phase 2 : lots 17 à 23 vérifiés (préproduction)
+
+- **Fait** : lots 17 à 23 du plan fermé (P1-19 incident depuis la fiche du bien avec catégorie et urgence, P0-06 date
+  de l'entrée sur l'état des lieux de sortie, P0-03 charges de copropriété à confirmer poste par poste, P1-09 et P1-12
+  écran de restitution du dépôt, P1-10 référence d'article retirée, P2-02 disponibilités du locataire, P2-01 photos à
+  l'état des lieux), vérifiés ensemble sur une base d'essai remise à neuf puis poussés sur la branche de
+  préproduction. Passage complet : 13 951 tests réussis ; 299 parcours navigateur réussis du premier coup, 1 au
+  second essai (cause trouvée dans le parcours lui-même, corrigée), 3 mis de côté par conception, aucun échec. Rien
+  n'est publié en production (gel maintenu).
+- **Erratum de l'audit** : le relevé 14 (a) — « un ancien DPE classé G bloque encore après un nouveau diagnostic » —
+  est faux à l'exécution ; `AUDIT.md` porte une section « Errata ». Constat à la place : le dernier diagnostic
+  enregistré décide (`QUESTIONS.md`, Q28).
+- **Défauts trouvés par la vérification et corrigés avant de pousser** : les disponibilités du locataire n'étaient
+  pas affichées au propriétaire en gestion directe (lot 22) ; un fichier de photo pouvait être déposé avant que la
+  base refuse l'ajout (lot 23).
+- **Limites dites** : aucun texte officiel ouvert (Q5 sans réponse) : les lots 18 à 21 corrigent ce qui ne dépend
+  d'aucun texte et laissent le reste au juriste ; pas de copie de base hébergée (Q1 sans réponse) ; la prise de photo
+  sur un vrai téléphone n'a pas été essayée.
+- **Pages** : [[Mission palier 1 — audit du 22 novembre 2026]] complétée (lots 17 à 23, règles posées).
+- **Suite** : lot 24 écrit, en vérification (garantie annoncée par l'artisan sur son devis).
+
+## [2026-11-22] lint   | Mission palier 1, phase 2 : lots 24 à 26 vérifiés (préproduction)
+
+- **Fait** : trois lots du plan P2, côté [[Artisan]] — garantie annoncée sur le devis (lot 24, P2-02), absences et
+  semaine type (lot 25, P2-03), rendez-vous manqué consigné et relance d'une facture (lot 26, P2-04, deux parties sur
+  trois). Détail dans `JOURNAL.md`.
+- **Vérifié** : passage complet sur base d'essai remise à neuf — 14 032 tests réussis ; 303 parcours navigateur
+  réussis du premier coup, 3 mis de côté par conception, aucun échec, aucun second essai. Branche de préproduction
+  poussée. Rien n'est publié en production (gel maintenu).
+- **Défauts trouvés par la vérification et corrigés avant de pousser** : sur téléphone, le libellé d'une rangée
+  d'information ne passait jamais à la ligne (corrigé à la source, pour toute l'application) ; un bouton écrit à la
+  main à la place du bouton commun ; une table neuve sans deux de ses trois gardes ; une fonction qui en appelait une
+  plus ancienne et aurait empêché de défaire celle-ci.
+- **Deux parcours « réussis au second essai » expliqués** (abonnement, interrupteur IA) : la cause était dans les
+  parcours, pas dans les écrans ; aucun contrôle allégé.
+- **Décisions laissées au dirigeant** : `QUESTIONS.md`, Q29 à Q32. **Questions au juriste** : `JURISTE.md`, partie 4,
+  points 7 et 8. Aucun texte de loi cité, rien présenté comme conforme.
+- **Pages** : [[Mission palier 1 — audit du 22 novembre 2026]] complétée (lots 24 à 26, règles posées) ; `index.md`.
+- **Suite** : lot 27 (lignes de devis réutilisables) écrit, en vérification ; lot 28 (pointage des loyers sur relevé
+  de banque) en cours d'écriture.
+
+## [2026-11-22] lint   | Mission palier 1, phase 2 : lots 27 et 28 vérifiés (préproduction)
+
+- **Fait** : lignes de devis réutilisables de l'[[Artisan]] (lot 27, fin de P2-04) ; pointage des loyers à partir du
+  relevé exporté par la banque (lot 28, P2-05). Détail dans `JOURNAL.md`.
+- **Vérifié** : passage complet sur base d'essai remise à neuf — 14 110 tests réussis ; 305 parcours navigateur
+  réussis du premier coup, 3 mis de côté par conception, aucun échec, aucun second essai. Branche de préproduction
+  poussée. Rien n'est publié en production (gel maintenu).
+- **Défauts trouvés par la vérification et corrigés avant de pousser** : deux gestes de l'artisan illisibles comme
+  boutons sur téléphone (lot 27) ; la fonction de base du pointage sans garde d'accès propre, et trois autres règles
+  du projet non respectées (lot 28).
+- **Limites dites** : aucun vrai relevé de banque essayé (formats courants seulement) ; pas de PDF ; pas de connexion
+  bancaire.
+- **Décisions laissées au dirigeant** : `QUESTIONS.md`, Q33. **Question au juriste** : `JURISTE.md`, partie 3,
+  A19quater (libellé bancaire conservé).
+- **Pages** : [[Mission palier 1 — audit du 22 novembre 2026]] complétée (lots 27 et 28, règle du pointage) ;
+  `index.md`.
+- **Suite** : lots 29 (agenda du propriétaire) et 30 (repère de prix) écrits, en vérification.
+
+## [2026-11-22] lint   | Mission palier 1, phase 2 : lots 29 à 31 vérifiés (préproduction)
+
+- **Fait** : l'agenda du [[Propriétaire bailleur]] montre ses échéances (lot 29, P2-06) ; repère de prix avant de
+  solliciter un [[Artisan]] (lot 30, P2-07) ; ménage de la base, sans rien supprimer (lot 31, première partie de
+  P2-08). Détail dans `JOURNAL.md`.
+- **Vérifié** : passage complet sur base d'essai remise à neuf — 14 140 tests réussis ; 306 parcours navigateur
+  réussis du premier coup, 3 mis de côté par conception, aucun échec, aucun second essai. Branche de préproduction
+  poussée. Rien n'est publié en production (gel maintenu).
+- **Trouvé par la vérification et corrigé avant de pousser** : un test du lot 26 qui dépendait de l'heure (changement
+  d'heure près de minuit) ; un ancien test qui attendait un refus silencieux, devenu un refus explicite.
+- **Erratum de l'audit** : la recommandation de fixer le chemin de recherche de la tâche de nuit des fermetures de
+  compte était fausse (essayée, elle l'aurait arrêtée) ; non appliquée (`AUDIT.md`, « Errata »).
+- **Décisions laissées au dirigeant** : `QUESTIONS.md`, Q34 (échéances retenues), Q35 (trois métiers seulement), Q36
+  (ce qui n'a pas été supprimé). **Question au juriste** : `JURISTE.md`, partie 4, point 9 (repère de prix).
+- **Pages** : [[Mission palier 1 — audit du 22 novembre 2026]] complétée (lots 29 à 31, règles) ; `index.md`.
+- **Suite** : lot 32 (P2-09, repères fiscaux réglables) écrit, en vérification.
+
+## [2026-11-22] lint   | Wiki : cinq pages en retard remises à jour (fin de P2-08)
+
+- **Pourquoi** : l'audit de la mission palier 1 relevait des pages qui décrivaient l'ancien dépôt ou l'état d'octobre.
+  Chaque fait ajouté a été relu dans le code ou la base d'essai le 22/11/2026 ; les sections sont datées.
+- **[[Planification d'intervention]]** : le rappel de rendez-vous **ne part plus** depuis la liste fermée des e-mails
+  (la page le disait « en place ») ; « J'en prends acte » et l'affichage dans l'agenda de l'artisan existent depuis le
+  16/10 (la page les disait manquants) ; aucun parcours navigateur ne joue le report ni l'annulation par le locataire
+  (toujours vrai) ; lots 22, 25 et 26 de la mission.
+- **[[Intervention et clôture]]** : les cinq étapes décrivaient l'ancien dépôt (rapport PDF, matériaux, cinq critères) ;
+  encadré d'avertissement et section « État dans l'application » : sept états, compte rendu sans PDF, clôture à
+  trois motifs, évaluation par le gestionnaire sur trois critères ; lots 7, 11, 12, 24 et 26.
+- **[[Agenda et échéances]]** : échéances du propriétaire (lot 29) et écart avec le module 14.
+- **[[Devis]]**, **[[Demande et sélection de devis]]** : garantie annoncée, lignes gardées, repère de prix, artisan
+  absent (lots 24, 25, 27, 30).
+- **Constat nouveau, hors plan** : la relance de l'artisan avant l'échéance d'une demande de report est écrite mais
+  son e-mail est retenu par la liste fermée — l'audit ne l'avait pas vu. Non corrigé (plan fermé) ; erratum dans
+  `AUDIT.md`, `QUESTIONS.md` Q37 ; tous les sites d'envoi d'e-mail seront repris un par un en phase 3.
+- **Contradictions signalées** dans les pages : cahier V3 ≠ application sur le rapport d'intervention ; absences de
+  l'artisan comptées mais hors de sa note (Q32) ; agenda livré pour un seul persona.
+- **Lacunes** : pas de page [[Congé]] (lien posé depuis [[Agenda et échéances]]).
+
+## [2026-11-23] lint   | Wiki : une erreur de la veille corrigée (évaluation de l'artisan par le locataire)
+
+- **Erreur** : en remettant à jour [[Intervention et clôture]] le 22/11, l'agent a écrit que seul le gestionnaire
+  évaluait l'artisan et qu'aucune fonction n'écrivait l'évaluation du locataire. **C'est faux** : la fonction
+  `noter_artisan_locataire` existe depuis le socle artisans du 11/09/2026 (note globale de 1 à 5 et commentaire,
+  facultatifs). La recherche de la veille ne portait que sur les fonctions nommées « evaluer_artisan… ».
+- **Corrigé** : la section « État dans l'application » de la page, la ligne de `index.md`. La correction est signalée
+  dans la page elle-même. Le journal du 22/11 (ci-dessus) reste tel quel : il est en ajout seul.
+- **Leçon** : chercher un fait par ce qu'il fait (ici : toute fonction qui écrit dans `artisan_evaluations`), pas par
+  le nom qu'on lui suppose.
+
+## [2026-11-23] ingest | Mission palier 1, lot 32 : repères fiscaux du micro-foncier (préproduction)
+
+- **Source** : le code de la branche de préproduction (lot 32, point P2-09 du plan) et son passage de vérification ;
+  aucune source déposée dans `raw/`.
+- **Pages mises à jour** : [[Fiscalité]] (section « État dans l'application au 23/11/2026 » et avertissement),
+  [[Mission palier 1 — audit du 22 novembre 2026]] (ligne 32 du tableau, règle « Repères fiscaux »), `index.md`.
+- **Ce que le wiki n'affirme pas** : que 15 000 € et 30 % sont les valeurs en vigueur. L'agent n'a pas pu les
+  contrôler à la source (sites officiels inaccessibles) ; la page le dit dans un avertissement, et la question est
+  posée au dirigeant (`QUESTIONS.md`, Q38). Le tableau des régimes de la page, plus ancien, portait déjà
+  l'avertissement « Sources non officielles — à reconfirmer ».
+
+## [2026-11-23] ingest | Mission palier 1, lots 33 et 34 : prudences sans texte, promesse du rappel (préproduction)
+
+- **Source** : le code de la branche de préproduction (lots 33 et 34) et leur passage de vérification ; aucune source
+  déposée dans `raw/`.
+- **Pages mises à jour** : [[Dossier locataire]], [[Garantie]], [[Mentions obligatoires du bail]] (sections « État dans
+  l'application au 23/11/2026 » et avertissements), [[Planification d'intervention]] (promesse du rappel, report joué en
+  navigateur), [[Mission palier 1 — audit du 22 novembre 2026]] (lignes 33 et 34, deux règles), `index.md`.
+- **Ce que le wiki n'affirme pas** : qu'un de ces écrans est conforme. Les textes (liste des pièces, notice officielle,
+  mentions du congé, cas d'interdiction de la caution, numérotation des factures) n'ont pas été relus ; chaque page le
+  dit dans un avertissement, et les questions sont dans `JURISTE.md` (partie 1, points 36 à 40).
+- **Correction de l'agent avant publication** : la première rédaction du lot 33 annonçait que la lettre de reprise
+  s'imprimerait avec des blancs ; c'était faux (elle est refusée). Corrigé dans l'écran avant d'être poussé ; la page
+  [[Mentions obligatoires du bail]] décrit le comportement vérifié.
+
+## [2026-11-24] ingest | Mission palier 1, phase 3 : documents générés (lots 35 à 49, préproduction)
+
+- **Source** : `JOURNAL.md` (entrées du 23 et du 24/11 à partir de « Phase 3, vérification des documents », et la
+  vérification complète du 24/11), `QUESTIONS.md` (Q40 à Q53), `JURISTE.md` (partie 5, points 1 à 19), et le code de la
+  branche de préproduction (lots 35 à 49, d43eb1a0), relu pour chaque affirmation ; aucune source déposée dans `raw/`.
+- **Pages mises à jour** : [[Mission palier 1 — audit du 22 novembre 2026]] (section « Phase 3 — documents générés » :
+  méthode de relecture contradictoire, tableau des lots 35 à 49, règles, alignement de la quittance en ligne retiré au
+  lot 49), [[Relances et mise en demeure]] (relances sous plan d'apurement, protocole, avis d'un terme échu, IBAN,
+  destinataire), [[Quittancement des loyers]], [[Quittance conforme]], [[État des lieux]],
+  [[Restitution du dépôt de garantie]], [[Dépôt de garantie]], [[Mentions obligatoires du bail]], [[Bail]],
+  [[Signature électronique]], [[Révision annuelle IRL]], [[Régularisation des charges]], [[Intervention et clôture]],
+  [[Devis]], [[Plan d'apurement]], [[Document]], [[Lot]] (sections « État dans l'application au 24/11/2026
+  (préproduction, non publié) » et avertissements), [[Etat des lieux generation de documents]] (avertissement en tête :
+  page d'août, non réécrite), `index.md`.
+- **Ce que le wiki n'affirme pas** : qu'un document est conforme. Chaque point de droit renvoie à `JURISTE.md`
+  (partie 5) et chaque choix à `QUESTIONS.md` ; l'option prudente appliquée en attendant est décrite comme telle. Rien
+  n'est publié en production ; la quittance consultée en ligne reste celle de la production (Q52).
+- **Contradiction relevée en rédigeant** : `QUESTIONS.md`, Q44 (2), dit qu'aucune relance ne s'enregistre pendant un
+  plan d'apurement, « même datée d'avant son activation », et `JOURNAL.md`, lot 39, qu'aucune relance n'est « proposée
+  ni enregistrée pendant un plan d'apurement » ; le code (reprise du lot 44, enregistrement d'une relance) accepte une
+  relance datée d'avant l'activation et ne refuse que celles datées de l'activation ou après. Le wiki décrit le code et
+  signale l'écart (pages [[Relances et mise en demeure]], [[Plan d'apurement]],
+  [[Mission palier 1 — audit du 22 novembre 2026]]) ; ni `QUESTIONS.md` ni `JOURNAL.md` ne sont modifiés par l'agent du
+  wiki.
+- **Suite donnée par l'agent principal** : la contradiction relevée est une erreur de ma rédaction de `QUESTIONS.md`
+  (Q44, point 2) et de `JOURNAL.md` (lot 39), pas du code. Les deux textes sont rectifiés le 24/11 pour décrire ce que
+  fait l'application ; les encadrés des pages [[Relances et mise en demeure]], [[Plan d'apurement]] et
+  [[Mission palier 1 — audit du 22 novembre 2026]] le disent, et la seule question qui reste au dirigeant est de savoir
+  s'il veut, au contraire, tout refuser pendant un plan.
+
+## [2026-11-24] ingest | Mission palier 1 : décisions du dirigeant du 24/11 et lots 50 à 54
+
+- **Source** : `DECISIONS-2026-11-24.md` (réponses du dirigeant à Q1–Q53, mot pour mot), `REPONSES-JURISTE.md` (réponses
+  reçues aux questions de `JURISTE.md`, non signées), `TEXTES-OFFICIELS-LUS-2026-11-24.md` (fiches officielles lues le
+  24/11), `JOURNAL.md` (entrées du 24/11 : « Phase 3, lots 50 à 54 » et « Décisions du dirigeant reçues ») ; aucune
+  source déposée dans `raw/`.
+- **Pages mises à jour** : aucune. Les pages du wiki seront mises à jour quand le code des lots 50 à 54 et des décisions
+  sera vérifié et poussé. Seuls `QUESTIONS.md` (colonne « Décision du 24/11/2026 », Q54 à Q64, points informatifs),
+  `JURISTE.md` (note en tête, partie 6, points informatifs) et `JOURNAL.md` sont complétés.
+- **Lots 50 à 54** : 48 défauts de documents relevés par la première passe de recette, traités en cinq lots, chacun
+  relu par un relecteur indépendant. Vérification complète : 15 183 tests réussis ; un parcours navigateur corrigé,
+  rejoué ensuite quatre fois de suite avec succès. Les lots sont poussés sur la branche de préproduction ; rien n'est publié.
+- **Décisions** : 24 options confirmées, 29 questions tranchées autrement ; plan d'application en sept lots (D1 à D7),
+  non commencé. Contrôle de la production en lecture seule le 24/11 : aucun appel ni régularisation de charges, aucune
+  ancienne demande de signature, un seul circuit de signature (un bail, terminé).
+- **Ce que le wiki n'affirme pas** : qu'une règle ou un document est conforme. Légifrance n'a pas pu être lu : aucun
+  article de loi n'a été relu mot à mot, aucune question n'est retirée de `JURISTE.md`, et les réponses reçues ne sont
+  pas une consultation signée.
+- **Contradictions relevées, à reporter dans les pages concernées lors de leur mise à jour** : (1) révision du loyer —
+  la décision Q43 applique la révision « au premier terme qui suit la demande », la fiche officielle lue dit « à partir
+  de la date de la demande » ([[Révision annuelle IRL]]) ; (2) mention de franchise de TVA — une fiche officielle donne
+  une nouvelle référence depuis le 01/09/2026, deux autres et la doctrine fiscale citent toujours l'ancienne ;
+  (3) quittance — la décision Q52 garde l'adresse de l'espace en ligne alors que la réponse reçue (partie 5, point 19)
+  demande le même émetteur en ligne et sur le PDF ([[Quittance conforme]]) ; (4) diagnostic énergétique — la décision
+  Q28 retient le plus récent, aucune page officielle lue ne le dit ([[Mission palier 1 — audit du 22 novembre 2026]]).
+
+## [2026-11-24] ingest | Mission palier 1 : lots D1 et D2 des décisions du 24/11 (préproduction), relecture des écrans
+
+- **Source** : `DECISIONS-2026-11-24.md` (décisions du dirigeant, compléments du 24/11 au soir sur le vendeur et sur
+  les questions nouvelles du lot D1), `JOURNAL.md` (entrées du 24/11 : « lot D1 (écrans) » et « lot D2 (révision du
+  loyer) »), `TEXTES-OFFICIELS-LUS-2026-11-24.md` (fiche F1311), `REPONSES-JURISTE.md` (réponses reçues, non signées) ;
+  aucune source déposée dans `raw/`.
+- **Pages mises à jour** : aucune. Les pages du wiki seront mises à jour dans un passage à part. Seuls `QUESTIONS.md`
+  (colonne « Décision du 24/11/2026 » de Q7, Q11, Q13, Q18, Q20, Q23, Q34, Q43 et Q63 ; Q65 à Q74 ajoutées),
+  `JURISTE.md` (partie 7) et `JOURNAL.md` sont complétés.
+- **Lot D1 — écrans** (Q11, Q13, Q18, Q20) : appliqué, deux reprises après relecture (deux défauts sur la signature
+  proposée en premier, puis un défaut sur l'export complet d'un espace), corrigés.
+- **Lot D2 — révision du loyer** (Q23, Q34, Q43) : appliqué, trois reprises ; chacune des trois premières relectures a
+  trouvé un vrai défaut de calcul, corrigé. Quatrième relecture : calcul refait de son côté sur 1 400 baux et 97 790
+  demandes, aucun écart, aucun défaut bloquant ; des points mineurs restent.
+- **Vérification** : 15 444 tests réussis ; 314 parcours navigateur réussis au premier essai. Les deux lots sont
+  poussés sur la branche de préproduction ; rien n'est publié en production.
+- **Relecture des écrans de la première passe** : 224 défauts confirmés (21 majeurs, 203 mineurs, beaucoup comptés
+  deux fois, téléphone et ordinateur), à traiter dans des lots à venir.
+- **Vendeur** (Q7, Q63) : entrepreneur individuel, nom commercial SAUVEXPERT, et non une société. Décisions : « TVA
+  non applicable » pour l'instant, adresse publiée, ventes ouvrables sans médiateur.
+- **Ce que le wiki n'affirme pas** : qu'une règle est conforme. L'article 17-1 de la loi de 1989 n'a pas été lu ; seule
+  la fiche officielle l'a été.
+- **Contradictions relevées, à reporter dans les pages concernées lors de leur mise à jour** : (1) révision du loyer —
+  l'application retient « le premier terme qui suit la demande », la fiche officielle dit « à partir de la date de la
+  demande » ([[Révision annuelle IRL]]) ; (2) vendeur — la décision du matin et les réponses reçues parlent de « la
+  société Sauve Expert », l'avis de situation officiel montre un entrepreneur individuel ; (3) médiateur — la décision
+  du matin ouvrait les abonnements « dès que le vendeur et le médiateur sont saisis », celle du soir ouvre les ventes
+  sans médiateur, et la réponse reçue dit l'information due dès la vente à des particuliers ; (4) évaluation retirée —
+  la décision Q20 dit « le client qui a noté lit le motif », le choix appliqué est « seul l'auteur de la note » :
+  l'espace ne lit plus le motif de la note de son locataire ; (5) quittance — toujours ouverte (Q52, Q74).
+
+## [2026-11-24] query | Référentiel unique du palier 1 (décision Q2)
+
+Demande du dirigeant (décision Q2 du 24/11/2026) : « on remet à plat. Produis UN seul référentiel en fusionnant le
+cahier V3 et le wiki (sans autre document). La décision la plus récente l'emporte ; note chaque contradiction. »
+
+- **Page créée** : [[Référentiel du palier 1]] (`wiki/syntheses/`), ajoutée à `index.md`. Ligne Q2 de `QUESTIONS.md`
+  mise à jour. Aucun autre fichier touché ; `raw/` intact.
+- **Contenu** : 337 règles numérotées, par public (propriétaire bailleur, locataire, artisan, incidents, gestion
+  administrative, super admin) et par domaine (bail, loyers et charges, révision, impayés, dépôt de garantie et sortie,
+  états des lieux, documents, signature, rendez-vous et interventions, devis, factures et évaluations, comptabilité et
+  fiscalité, données personnelles, abonnement, intelligence artificielle). Chaque règle porte sa source datée et son
+  statut : en vigueur, remplacée par…, palier 2, à trancher ; 18 portent la mention « cahier V3 seul ».
+- **Sources de fond** : le cahier V3 (toutes les règles numérotées des 23 modules et des 6 annexes, datées du
+  24/07/2026) et le wiki. Les décisions du 24/11 et `QUESTIONS.md` n'ont servi qu'à dater et à départager.
+- **Registre** : 53 contradictions relevées ; 23 réglées par la décision la plus récente, 11 qui ne dépendent plus que
+  d'un point de droit (`JURISTE.md`), **19 à trancher par le dirigeant**.
+- **Limites de lecture** : le texte courant des modules du cahier et les synthèses d'audit du wiki n'ont pas été relus
+  ligne à ligne (catalogue, encadrés « à trancher » et sections datées seulement) ; une règle écrite seulement dans le
+  texte courant d'une page peut manquer.
+- **Ce que la page n'affirme pas** : qu'une règle est conforme à la loi.
+- **Pages en retard relevées, non modifiées** : [[Révision annuelle IRL]] (date d'effet du 29/09 et saisie de l'indice,
+  remplacées par Q43 et par le lot 14), [[Super Admin]] (« impersonation » du 22/07, contredite par la décision du
+  25/09), [[Incident]], [[Artisan]] (note à trois sources), [[Signature électronique]] (historique Yousign).
+
+## [2026-11-24] ingest | Mission palier 1 : lot D3 des décisions du 24/11 et lot 61 (espace du locataire), faits localement
+
+- **Source** : les messages des commits `c309760f`, `3fdd87df`, `fde4cbb4` (lot D3) et `4405265a`, `f152b3ba` (lot 61)
+  de l'arbre de travail de préproduction, et les notes de travail des relectures ; aucune source déposée dans `raw/`.
+- **Pages mises à jour** : aucune page du wiki. Sont complétés : `JOURNAL.md` (deux entrées), `QUESTIONS.md` (colonne
+  « Décision du 24/11/2026 » de Q28, Q38, Q46 et Q49), `JURISTE.md` (partie 8, quatre points), `GUIDE-DE-REPRISE.md`
+  (section « La base d'abord » : les six migrations du lot D3, dans l'ordre du manifeste).
+- **Lot D3** (Q28, Q38, Q46, Q49) : notice d'information déposée par le bailleur, envoi en signature électronique
+  bloqué sans elle, pour les seuls biens d'habitation ; avertissement quand un logement a plusieurs diagnostics de
+  performance énergétique, règle de choix inchangée ; une pièce par retenue, un devis suffit, pour les deux
+  décomptes ; source du contrôle des repères fiscaux enregistrée avec sa date. Deux reprises après relecture : un
+  défaut bloquant (un devis ne pouvait justifier qu'une retenue), puis cinq points mineurs, corrigés.
+- **Migrations du lot D3** : `20261124180000`, `20261124190000`, `20261124200000`, `20261124210000`,
+  `20261124220000`, `20261124230000`, chacune avec son retour arrière ; à jouer avant le code.
+- **Lot 61** : 26 défauts d'écran côté locataire (17 différents) traités, sauf E141 (texte de la politique de
+  confidentialité, question au dirigeant) ; une reprise, six points mineurs corrigés ; aucune migration.
+- **Vérification** : la vérification complète est **en cours**, son résultat n'est pas connu. Les deux lots ne sont
+  pas encore poussés sur la branche de préproduction ; rien n'est publié en production.
+- **Ce que le wiki n'affirme pas** : qu'une règle est conforme. Ni l'article 22 de la loi de 1989 ni l'arrêté de la
+  notice n'ont été lus ; Gerimmo ne fournit pas le texte de la notice et ne vérifie pas le fichier déposé.
+- **Contradictions relevées, à reporter dans les pages concernées lors de leur mise à jour** : (1) diagnostics — la
+  décision Q28 dit « le plus récent par date d'établissement décide » ; l'application retient toujours le diagnostic
+  non remplacé (en général le dernier enregistré), et le contrôle de la mise en location regarde tous les
+  diagnostics en vigueur ; (2) notice — la décision Q46 demande
+  la notice officielle entière dans la version en vigueur à la signature ; l'application ne vérifie ni le contenu ni
+  la version du fichier déposé ; (3) notice — le blocage suit le type de bien (habitation), alors que l'obligation
+  n'a été relevée que pour la location vide et meublée.
+- **Questions notées dans les relectures, pas encore numérotées dans `QUESTIONS.md`** : durée de conservation et
+  accès du locataire à la notice déposée ; pièce exigée dès la saisie d'une retenue ; pièces liées à un mandat ;
+  trois points d'écran du lot 61.
+
+## [2026-11-24] ingest | Recueil des textes officiels (37 références, v6) déposé par le dirigeant
+
+- Fichier : `raw/Gerimmo-textes-officiels-recueil-v6.pdf` (166 pages). Chaque texte porte une adresse Légifrance et une date de version.
+- Provenance : recueil assemblé pour le dirigeant ; non recontrôlé par nous sur Légifrance (accès refusé). Traité comme « texte fourni, source déclarée ».
+- En cours : confrontation au code et aux réponses du juriste (trois lectures). Page-résumé du wiki et pages touchées à écrire une fois les lectures rendues.
+
+## [2026-11-25] ingest | Recueil des textes officiels (v6) — page-résumé, lots tirés du recueil, questions et points de droit
+
+- **Source** : `raw/Gerimmo-textes-officiels-recueil-v6.pdf` (37 références, édition V6 du 24/11/2026), fourni par le
+  dirigeant ; **non recontrôlé sur Légifrance**. Lus aussi : les trois analyses du recueil (`livrables/recueil/`), les
+  notes et rapports de relecture des lots (`livrables/notes-banc/` : D7, L60, T1 à T4, D4, D5, PR, majeurs ;
+  relectures D7R, L60R, T1R à T4R, D4R ; `PETITES-REPRISES.md`, `PLAN-PUBLICATION-NOTES.md`), `DECISIONS-2026-11-24.md`,
+  `QUESTIONS.md`, `JURISTE.md`, `REPONSES-JURISTE.md`. Aucun fichier de notes demandé ne manquait ; il n'y a pas de
+  rapport de relecture pour D5, les défauts majeurs, les petites reprises, la seconde reprise D7 ni la reprise D4.
+- **Page créée** : [[Recueil des textes officiels (v6)]] (contenu, provenance, limites : miroir, coquilles, textes
+  « à venir » en 2027, textes absents ; liens vers les pages touchées). `index.md` mis à jour.
+- **Hors wiki** : `JOURNAL.md` (onze entrées : neuf lots, et la reprise du lot T3 et la case « mariés ou pacsés »,
+  toutes deux en cours) ; `QUESTIONS.md` (Q78 à Q115, dont Q99 à Q101 déjà tranchées le 25/11) ;
+  `DECISIONS-2026-11-24.md` (« Réponses du 25/11 », trois réponses du dirigeant) ; `JURISTE.md` (note d'en-tête du
+  25/11, partie 9 de 38 points, et une mention « Texte fourni par le dirigeant (recueil v6, non recontrôlé sur
+  Légifrance) » sur chaque point que les notes disent tranché, sans rien retirer).
+- **État des lots** : tous faits localement, sauvegardés sur `claude/sauvegarde-banc-principal` et
+  `claude/sauvegarde-banc-vendeur` ; **pas encore réunis ni vérifiés en entier, pas poussés sur la préproduction** ;
+  rien n'est publié en production ; rien n'est noté « conforme ».
+- **Pages du wiki devenues fausses pour la version préparée, non réécrites dans ce lot** (à reprendre dans un lot
+  suivant) : [[Bail]] et [[Types de baux]] (préavis d'un mois en zone tendue, « première présentation », congé du
+  bailleur), [[Révision annuelle IRL]] (outil public sans indice prérempli ; gel F/G plus large que le texte fourni),
+  [[Restitution du dépôt de garantie]] et [[Dépôt de garantie]] (majoration de 10 %, plafond du reçu), [[Signature
+  électronique]] (circuit « télécharger, signer, redéposer » retiré), [[Durées de conservation]], [[Fermeture de
+  compte]] et [[Registre des traitements]] (factures six ans → dix ans), [[Conditions générales]] et [[Souscription de
+  l'abonnement]] (version du 24/11, médiateur, accord exprès), [[Garantie]] (caution d'un bailleur société),
+  [[Dossier locataire]] (liste du décret), [[Régularisation des charges]] (plus de refus « prescrit »), [[État des
+  lieux]], [[Mentions obligatoires du bail]], [[Grille tarifaire]] (« article 293 B »), [[Relances et mise en demeure]]
+  et [[Planification d'intervention]] (relance à la main, cinquième envoi).
+
+## [2026-11-25] lint | Mise à jour des pages après la fusion du palier 1
+
+- **Objet** : reprendre les pages que l'entrée « ingest » du 25/11 signalait comme fausses pour la version préparée,
+  puis les relire en contrôle croisé. Sources : `livrables/notes-banc/` (notes, relectures, `fusion/`),
+  `livrables/recueil/`, `DECISIONS-2026-11-24.md`, fin de `JOURNAL.md`, `QUESTIONS.md`, `JURISTE.md`, code de
+  `89cb87ff` lu en lecture seule. Textes officiels : [[Recueil des textes officiels (v6)]], fourni par le dirigeant,
+  **non recontrôlé sur Légifrance** ; rien n'est noté « conforme ».
+- **État décrit** : en production aujourd'hui, la version du 21/11/2026 (`81740dec`), gelée depuis le 22/11 ; version
+  préparée, `89cb87ff` (branche `claude/palier-1-fusion`), vérifiée en entier sur le banc (16 506 tests réussis, seuls
+  2 fichiers en échec attendus ; 355 parcours réussis, 3 ignorés) et poussée le 25/11 à 03:16 UTC sur la branche de
+  préproduction `claude/palier-1-preproduction` ; **non publiée en production**.
+- **Pages modifiées (19)** : [[Bail]], [[Types de baux]], [[Mentions obligatoires du bail]], [[Garantie]],
+  [[Dossier locataire]], [[Révision annuelle IRL]], [[Régularisation des charges]], [[Relances et mise en demeure]],
+  [[Dépôt de garantie]], [[Restitution du dépôt de garantie]], [[Signature électronique]], [[État des lieux]],
+  [[Planification d'intervention]], [[Durées de conservation]], [[Fermeture de compte]], [[Conditions générales]],
+  [[Souscription de l'abonnement]], [[Grille tarifaire]], [[Registre des traitements]]. Chacune porte `updated:
+  2026-11-25`, la source du recueil et une section « Version préparée, à publier » séparée de la production, avec un
+  callout « Points à trancher / contradictions » daté du 25/11 ; aucune contradiction antérieure n'est supprimée (les
+  points tranchés sont marqués comme tels).
+- **Corrections de la relecture croisée** :
+  - 12 pages disaient encore `89cb87ff` « non poussée sur la préproduction », « branche locale » ou « vérification
+    complète en cours » / « non vérifiée en entier » : remplacé par l'état lu dans le dépôt distant et dans
+    `JOURNAL.md` (entrée du 25/11) ; le callout de [[Bail]] sur l'état des lots dans le journal est noté tranché, sans
+    être retiré.
+  - [[État des lieux]] : l'adresse de sortie n'« existait » pas « déjà » au relevé du 09/09 ; elle a été ajoutée le
+    21/09 (migration `20260921060000_edl_champs_pdf_complets`).
+  - [[Registre des traitements]] : « reprise du lot T3 en cours » corrigé (reprise T3R-2 faite, contenue dans
+    `89cb87ff`) ; libellé libre des pièces précisé.
+  - [[Mentions obligatoires du bail]] : lien vers le recueil coupé sur deux lignes, donc cassé, réparé.
+  - Liens vers des pages qui n'existent pas encore et présentées comme à consulter ([[Entrepreneur individuel (EI)]],
+    [[Médiation de la consommation]]) : marqués « page à créer » dans [[Conditions générales]], [[Souscription de
+    l'abonnement]] et [[Grille tarifaire]].
+  - Renvois ajoutés aux nouvelles questions et aux nouveaux points du juriste : Q116 à Q122 et `JURISTE.md`, partie 9,
+    points 39 à 43 ([[Bail]], [[Garantie]], [[Relances et mise en demeure]], [[Conditions générales]]) ; à
+    [[Bail]], la mention que l'article 17-1 figure maintenant au recueil.
+  - [[Conditions générales]] et [[Souscription de l'abonnement]], réécrites par les rédacteurs : points des anciens
+    callouts qui avaient disparu sans être marqués tranchés (points « à aligner avant de publier la V1 », encadré 14 bis
+    et essai gratuit, médiateur en production, recours « setup » du bouton, PDF joint seulement après archivage)
+    remis, signalés comme non relus le 25/11.
+  - Champ `sources` complété (registres, notes du banc, analyses du recueil, code lu) pour [[Révision annuelle IRL]],
+    [[Régularisation des charges]], [[Relances et mise en demeure]], [[Dépôt de garantie]] et
+    [[Restitution du dépôt de garantie]].
+- **Contrôles faits** : frontmatter YAML des 19 pages lu par programme (valide) ; aucun « conforme » écrit au sens
+  d'une conformité de Gerimmo ; liens `[[…]]` vérifiés (restent, assumés, [[Congé du bailleur]], [[Médiation de la
+  consommation]] et [[Entrepreneur individuel (EI)]], notions à créer listées par la page du recueil).
+- **index.md** : résumé « 25/11 » ajouté aux 19 entrées.
+- **Reste** : créer les trois pages de notions ; relire les entrées de l'index antérieures au 25/11 qui décrivent encore
+  la V1 du 24/10 comme « prévue » ; la seconde passe de vérification, démarrée sur `89cb87ff`, n'est pas terminée (`JOURNAL.md`).
+
+## [2026-11-25] lint | Seconde passe complète et livrables finalisés
+
+- **Objet** : reporter dans les livrables le résultat de la seconde passe complète, des essais de publication au banc et
+  de la première vérification automatique de GitHub (CI), et le changement de version préparée. Sources :
+  `livrables/notes-banc/passe2/`, `livrables/notes-banc/essais/`, faits vérifiés par le pilote, `git log` et `git diff`
+  de `89cb87ff` à `ee28d874` (lecture seule). Aucun code, aucune base, aucun service, aucune production touchés.
+- **État décrit** : en production, toujours la version du 21/11/2026 (`81740dec`, gelée). Version préparée :
+  `ee28d874` (branche `claude/palier-1-preproduction`), soit `89cb87ff` plus `140f4216` (RET-01, retours arrière),
+  `f78e3a3f` (L-01, carte « Mon logement » du locataire) et `ee28d874` (trois tests). Vérification complète au banc
+  de `f78e3a3f` : 16 574 tests réussis, seuls 2 fichiers en échec attendus ; 355 parcours réussis, 3 ignorés. Seconde
+  passe sur `89cb87ff` : 355 puis 354 parcours réussis, un seul défaut majeur (L-01, corrigé). CI : échec sur
+  `89cb87ff` (4 tests, dus aux tests eux-mêmes, corrigés) ; exécution sur `ee28d874` en cours, **résultat en
+  attente**. **Non publiée en production.**
+- **Fichiers modifiés** : `livrables/PLAN-DE-PUBLICATION.md` (version préparée, § 1, P5, résultat de P6 a, É1 à É3,
+  § 5.4, § 7) ; `livrables/RESUME-UNE-PAGE.md`, `livrables/PARCOURS-15-MINUTES.md`, `livrables/NON-FAIT.md` (résultat
+  de la seconde passe, commit, essais, CI) ; `JOURNAL.md` (entrée du 25/11) ; `QUESTIONS.md` (Q123 complétée : outil
+  public de quittance prérempli, bouton d'impression actif ; Q124 : quittance avec une part payée par la CAF) ;
+  `JURISTE.md` (partie 9, point 44, même question).
+- **Contrôles faits** : plus aucun « à compléter » de la seconde passe dans les livrables ; résumé sous 60 lignes ;
+  faits de git refaits sur `ee28d874` (859 fichiers changés depuis `81740dec`, 52 migrations ajoutées et inchangées
+  depuis `89cb87ff`, chantiers GitHub et réglages inchangés, `main` et la version en ligne contenues).
+- **Reste** : le résultat de la CI sur `ee28d874` ; les 19 pages du wiki et `index.md` qui citent encore `89cb87ff`
+  comme version préparée, à reprendre dans un prochain lint ; les décisions P1 à P3 et l'accord écrit sur P6 b du plan.
+
+## [2026-11-25] lint | Pages du wiki : version préparée complétée par ee28d874
+
+- Les mentions de la branche réunie `89cb87ff` dans 17 pages disent qu’elle est complétée par `ee28d874` (retours arrière RET-01, texte L-01 du locataire, trois tests rendus indépendants de la machine). Plan de publication : Q64 notée tranchée.
+
+## [2026-11-25] lint | Version préparée 062296e2 : livrables, wiki et index
+
+- **Objet** : reporter dans les livrables la nouvelle version préparée `062296e2` (branche `claude/palier-1-preproduction`),
+  qui ajoute à `ee28d874` trois commits nés de la vérification automatique de GitHub (CI) : `becd15c0` (rubrique d'un bail
+  qui ramenait l'écran à son ancre sur iPhone ; deux parcours rendus indépendants), `e821bb49` (un parcours d'accessibilité
+  attend le titre de la page), `062296e2` (avertissement d'annulation de l'artisan : un paragraphe qui portait un
+  formulaire faisait redessiner toute la fiche de mission ; il devient un bloc). Sources : `git log`, `git diff`, journaux
+  des CI n° 45547334372, 45561874554, 45582618122, 45587450943 et 45591695035 (lecture seule), vérifications au banc.
+- **État décrit** : en production, toujours `81740dec` (gelée). `062296e2` : vérification complète au banc (16 578 tests,
+  seuls 2 fichiers en échec attendus ; 355 parcours au premier essai) ; CI GitHub verte sans aucune reprise. Les 52
+  migrations ne changent pas depuis `89cb87ff`. **Non publiée en production.**
+- **Fichiers modifiés** : `livrables/PLAN-DE-PUBLICATION.md` (§ 1, P5, É1 à É3, § 7, sources, fin), `livrables/RESUME-UNE-PAGE.md`,
+  `livrables/PARCOURS-15-MINUTES.md`, `livrables/NON-FAIT.md`, `JOURNAL.md` (entrée du 25/11 sur la CI, avec la
+  correction de ma lecture de la CI de `ee28d874`), `QUESTIONS.md` (note de mise à jour), 17 pages du wiki et `index.md`
+  (« complétée jusqu'à `062296e2` »).
+- **Reste** : votre message « je valide la publication » ; les décisions P1 à P3 et l'accord écrit sur P6 b du plan.
+
+## [2026-11-25] lint | Clé des sauvegardes remplacée, sauvegarde et restauration contrôlées
+
+- Plan de publication : P1 (clé remplacée par le dirigeant) et P2 (sauvegarde n° 45692125958, contrôle de restauration
+  n° 45693311092 réussi : 269 tables, 51 746 lignes, 112 fichiers) notés faits. `JOURNAL.md` : entrée du 25/11 au soir.
+  Production non modifiée (ni site ni base).
+- P3 décidé : le dirigeant seul joue les retours de la base (éditeur SQL de Supabase, voie non essayée) ; `DECISIONS-2026-11-24.md` et plan mis à jour.
+- P3 complété : l'agent peut jouer les retours de la base par le connecteur Supabase, après accord écrit du dirigeant à chaque fois ; plan (P3, § 5.4) et décisions mis à jour.
+- P4 fait par l'agent (lecture seule de Vercel et GitHub) : production servie par `81740dec` vérifiée ; résultats dans le plan, § 1 et § 7.
+- P6 b accepté par écrit par le dirigeant (points supposés A-05) ; plan et décisions mis à jour.
+
+## [2026-11-25] deploy | Publication unique du palier 1 : `062296e2` en production (PR #358, `main` `8f9dd9ce`)
+
+- **Accord** : message du dirigeant « Je valide la publication » ; quatre approbations GitHub (`GERIMMO`) : vérification, simulation, application, publication.
+- **Exécutions** : PR [#358](https://github.com/GERIMMO/GERIMMO_V4/pull/358) fusionnée en squash (21:15Z) ; CI de `main` n° 45702663673 ; contrôle n° 45708465217 (`prete_a_valider`) ; simulation n° 45708871873 ; sauvegarde n° 45709572024 (`20261125-2201`) ; application des 52 migrations n° 45710263565 (22:09Z, `COMMIT`, aucune erreur) ; publication n° 45711136251 (`publiee_verifiee`, 23:17Z) ; recette n° 58 (n° 45720418609) réussie, 1 parcours au second essai, purge vérifiée.
+- **Contrôles** : base relue en lecture seule (52 versions, `accepter_cgu` inchangée, accord à l'empreinte exigé, A-01 sans ligne) ; `/api/sante` sert `8f9dd9ce` ; neuf pages publiques en 200 ; conditions du 24/11 en vigueur ; ventes toujours fermées ; aucune erreur d'exécution Vercel jusqu'au 26/11 05:30Z.
+- **Constat** : renvoi vers la connexion après « Créer mon espace » au premier essai de la recette. Le code concerné est identique avant et après la publication (défaut antérieur) ; enquête en lecture seule en cours. Détail : `JOURNAL.md`, entrée du 25/11 (nuit).
+- **Reste** : gestes R1 à R8 du dirigeant dans la console, puis le parcours R4 bis ; pages du wiki à passer de « non publiée » à « en production ».
+
+## [2026-11-26] lint | Réglages de la console R1 à R4 et wiki après la publication
+
+- R1 (identité), R2 (archivage des conditions du 24/11, 05:56Z), R4 (repères fiscaux 15 000 € / 30 %, source BOFiP relue le 26/11) faits par le dirigeant et vérifiés par l'agent (pages publiques, base en lecture seule) ; R3 : IA activée en base. Détail : `JOURNAL.md`, entrée du 26/11 (matin).
+- Wiki : `index.md` et 19 pages passées de « version préparée, non publiée » à « en production depuis le 25/11/2026 » (commits `ed02ee5`, `333aec9`, `2e1ba72`) ; relecture hostile : 14 pages oubliées et 5 reprises, seconde passe en cours.
+- Wiki, seconde passe (26/11) : 14 pages oubliées corrigées (Types de baux, Devis, Plan d'apurement, Fiscalité, Agenda et échéances, Lot, Document, Demande et sélection de devis, Intervention et clôture, Quittancement des loyers, Quittance conforme, État des lieux de la génération de documents, Référentiel du palier 1, Audit PR 347), R1 à R4 reportés comme faits le 26/11, plus Diagnostic, Relais du dirigeant (M16 en production depuis le 19/10, PR #212, vérifié dans `81740dec`) et la page source du recueil v6 ; `index.md` (PR #357 en production depuis le 25/11). Deux relectures hostiles ; restes de la seconde corrigés par l'agent. Nouveau point au callout de [[Conditions générales]] : date « en vigueur depuis le 24/11 » d'un texte mis en ligne le 26/11 à 00 h 17 (non posé au juriste) ; nom commercial absent de l'identité archivée.
+
+## [2026-11-26] lint | Parcours de vérification, partie A, fait par l'agent en production
+
+- À la demande du dirigeant, parcours A (`livrables/PARCOURS-15-MINUTES.md`) joué par l'agent avec un compte fictif et des boîtes de test Resend : A1 à A6 et A8, A10 à A13 conformes ; A7 vérifié en base seulement ; A9, A14 et A15 non faits (console). Q125 reproduit à A6. Constat : adresse du bailleur saisie au premier bien non reprise sur sa fiche « personne » (bail : « Adresse à compléter »). Demande de fermeture du compte fictif enregistrée ; programmation dans la console à faire. Détail : `JOURNAL.md`, entrée du 26/11.
+
+## [2026-11-26] deploy | Correctif Q125 en production (PR #359, `main` `1dca28b`)
+
+- Accord du dirigeant : « Publie le correctif Q125 », sous condition de CI verte et de relectures sans point bloquant (remplie). CI de la PR n° 45781383488 et de `main` n° 45786610412 vertes sans reprise ; publication contrôlée n° 45792561969 `publiee_verifiee` à 09:50Z (aucune migration) ; santé et pages publiques relues depuis une autre adresse ; 0 erreur Vercel.
+- Recettes de production n° 59, 60, 61 réussies (68 parcours chacune au premier essai, purge vérifiée). Action du correctif VÉRIFIÉE en production par une sonde à session factice : effacement en navigation de document, aucun en arrière-plan.
+- Incident annexe : contrôle anti-robot de Vercel sur l'adresse de la machine de l'agent depuis 09:29Z (public non concerné, vérifié). Détail : `JOURNAL.md`, 26/11.
+
+## [2026-11-26] deploy | Correctif de l'adresse du bailleur en production (PR #360, `main` `f9e874b`)
+
+- Accord du dirigeant : « Publie ce correctif, fais une reprise de données, fais le reste » (Q126). CI de la PR n° 45868044631 verte sans reprise ; CI de `main` n° 45875096490 verte (un parcours public, `e2e/outils.spec.ts:159`, passé au second essai, sans lien avec le correctif) ; publication contrôlée n° 45881769432 `publiee_verifiee` à 19:14Z (aucune migration).
+- Santé relue depuis une autre adresse : `/api/sante` sert `f9e874b` ; 0 erreur Vercel. Reprise des données : recompte en lecture seule, 0 vrai compte à reprendre, rien d'écrit en base.
+- Recette de production n° 62 (n° 45882154250) réussie, de 19:14Z à 19:26:49Z, purge comprise. Détail : `JOURNAL.md`, 26/11 (soir).
+
+## [2026-11-26] query  | Faire de Gerimmo la plateforme de référence de la gestion immobilière (France, puis Europe)
+- Ambition fixée par le dirigeant le 26/11 : toutes les portes d'entrée (carnet du locataire, aide pour les aides,
+  administratif, incidents, artisans, factures, finances), « toute la gestion immobilière sur Gerimmo », avec un
+  objectif de revenu explicite. Travail repris dans une nouvelle session ; l'ancienne a écrit la
+  [[Passation — état du 26 novembre 2026]] (premier état, lot 1 encore en reprise).
+- Trois analyses menées : couverture fonctionnelle du dépôt (`main` `f9e874b`, lecture seule) ; marché français et
+  concurrents ; aides, banque et Europe (recherches web du 26/11, sources officielles quand elles étaient lisibles).
+- Constats principaux : souscription payante fermée, aucun client réel ni paiement réel ; manques majeurs : paiement
+  du loyer, synchronisation bancaire, mise en location, entrée autonome du locataire, accompagnement des aides ;
+  décret n° 2026-84 (tiers payant de l'APL au 01/01/2027) absent du dépôt.
+- Page créée : [[Feuille de route — plateforme de référence, 26 novembre 2026]], corrigée après lecture de la passation
+  (les inscrits sont des comptes de test ; identité du vendeur réglée le 26/11). `index.md` mis à jour ; renvoi ajouté
+  dans [[Proposition de valeur]].
+- Branche : `claude/inspiring-faraday-nz2i4q`, qui intègre la branche de documentation `claude/audit-final-pr335`
+  (documents seulement, aucun fichier de `app/` ni de `.github/`). Rien n'est fusionné dans `main` ni publié.
+
+## [2026-11-26] decision | Ouverture de la vente le 30/11, entrepreneur individuel, sans médiateur
+- Réponse du dirigeant, mot pour mot : « Oui, on ouvre le 30/11, entrepreneur individuel, sans médiateur » ; recopiée
+  dans `DECISIONS-2026-11-24.md` (réponses du 26/11).
+- Gestes du dirigeant : R7 (en-tête des factures dans Stripe), R6 (« Ouvrir la vente aux particuliers sans
+  médiateur »), R8 (« Ouvrir les souscriptions », le 30/11), puis une souscription d'essai avec sa carte, résiliée
+  aussitôt. L'agent ne fait aucun de ces gestes ; il contrôle la santé et la recette de production le matin du 30/11.
+- Constaté dans le code : une souscription pendant l'essai ne prélève rien avant la fin de l'essai. Premier revenu
+  attendu vers la fin janvier 2027 pour un inscrit du 30/11. Premier débit réel proposé fin décembre, depuis un espace
+  de test dont l'essai finit, suivi d'une rétractation (conseil COM-2).
+- Point de droit toujours ouvert, jamais présenté comme conforme : L612-1 et L616-1 (`JURISTE.md`, 7·6 et 9·26).
+- Pas-à-pas : `livrables/OUVERTURE-VENTE-30-NOVEMBRE.md`. Rien n'est publié ni fusionné.
+
+## [2026-11-26] lint   | Vision unique de l'écosystème et plan de ménage du wiki
+- Demande du dirigeant : reprendre toutes les discussions et en extraire une vision d'écosystème propre, pour faire le
+  ménage. Les conversations claude.ai elles-mêmes ne sont pas lisibles d'ici ; l'export reçu (sommaire de 7 fichiers)
+  n'a pas pu être téléchargé : claude.ai demande une vérification de navigateur, aucun contournement tenté.
+- Trois lectures, sans rien modifier : vision du wiki et des décisions ; 14 artefacts claude.ai Gerimmo ; inventaire
+  des 217 pages du wiki (121 à jour, 48 historiques, 18 supplantées, 4 doublons, 8 orphelines, 18 à vérifier).
+- Page créée : [[Vision de l'écosystème Gerimmo]] (brouillon à valider). Ambition du 26/11 recopiée mot pour mot dans
+  `DECISIONS-2026-11-24.md` et dans la [[Feuille de route — plateforme de référence, 26 novembre 2026]].
+- Plan de ménage en 7 décisions à valider : `livrables/MENAGE-WIKI-2026-11-26.md`. Rien n'est déplacé ni supprimé.
+
+## [2026-11-26] lint   | Ménage du wiki exécuté (décisions du dirigeant : « tout oui, 6 A »)
+- Décision 1 : 71 pages historiques (67 synthèses, 3 sources, l'ancien contenu d'« État du projet ») déplacées dans
+  `wiki/archives/AAAA-MM/`, statut `archived`, renvoi `superseded-by` et encadré ; page [[Historique des audits]] ;
+  règle d'archivage ajoutée au schéma (`CLAUDE.md`) ; page « Bilan #264 » renommée sans « # » ; chemins en clair
+  corrigés (`app/CLAUDE.md`, `GUIDE-DE-REPRISE.md`, `app/docs/`, `audit-palier-1/`). Aucune page supprimée.
+- Décision 2 : « État du projet et décisions ouvertes » devient une page de renvoi ; page source
+  [[Décisions du dirigeant]]. Le renommage de `DECISIONS-2026-11-24.md` attend la fin de l'ancienne session (elle y écrit
+  encore). Le fichier reste à la racine : `raw/` est immuable, ce registre reçoit encore des décisions.
+- Décision 3 : `index.md` réécrit (en-tête de 3 lignes, une ligne de 200 caractères au plus par page, 150 pages
+  vivantes couvertes, aucune entrée morte) ; [[Accueil]] réécrit ; [[Design system Gerimmo]] réécrit d'après « Maison »
+  et le code (11 écarts signalés).
+- Décision 4 : pages réécrites d'après le code actuel : [[Modèle de données]], [[Modèle de rôles et permissions]],
+  [[Organisation]], [[Isolation multi-organisation]], [[Période de loyer]], [[Incident]], [[Bien]],
+  [[Cycle de vie d'un incident]], [[Recette de production]], [[Canaux de communication]] ; [[Patrimoine et résidences]]
+  devient un renvoi.
+- Décision 5 : quatre fusions (Onboarding → [[Souscription de l'abonnement]] ; Demandes sur les données →
+  [[Fermeture de compte]] ; Intervention → [[Intervention et clôture]] ; Occupation d'un bien → [[Bail]]).
+- Corrections de contradictions : [[Abonnement]], [[Super Admin]], [[Artisan]], [[Analyse concurrentielle]],
+  [[Proposition de valeur]] (encadré « État au 26/11 »), [[Cycle de vie de l'abonnement]] (règle R3 de l'essai).
+- Décision 6 (A) : preuves de `livrables/` laissées en place ; avertissement en tête de `REPONSES-JURISTE.md` (rédigé par
+  Claude, pas un avis de juriste) ; `AUDIT.md`, `JOURNAL.md`, `audit-palier-1/` et la page Mission palier 1 seront
+  archivés à la clôture de la mission (lot 1 en cours de publication). Décision 7 : aucun artefact supprimé.
+- Contrôle des liens : aucun lien cassé par les déplacements ; restent des liens vers des pages à créer (SCI,
+  Entrepreneur individuel, Médiation de la consommation, Congé du bailleur, Appel de loyer, Encaissement).
+- Restes repérés, non traités : encadrés périmés dans [[Cycle de vie de l'abonnement]] (28/09), [[Comptabilité]]
+  (« non implémentée »), [[Relais du dirigeant]] (relevé du 16/10) ; [[Référentiel du palier 1]] R-ABO-01 et R-ABO-03
+  à aligner sur l'abonnement unique.
+
+## [2026-11-27] lint   | Une seule vision, PR documentaire réduite
+- Demande du dirigeant : « On peux réduire la pr ? Je veux faire le ménage et garder une seule vraie et bonne vision ».
+- Vision : [[Vision de l'écosystème Gerimmo]] devient la seule page de vision. Elle reprend le marché, la concurrence,
+  le revenu et le plan de décembre de la feuille de route du 26/11, ainsi que les trois promesses et l'indicateur de
+  réussite de l'énoncé fondateur. [[Proposition de valeur]] et
+  [[Feuille de route — plateforme de référence, 26 novembre 2026]] sont archivées (renvoi vers la vision) ; liens
+  vivants, [[Accueil]], `index.md` et [[Historique des audits]] mis à jour (73 pages archivées).
+- PR documentaire n° 362 : 421 fichiers de preuves d'audit (captures, relevés texte et JSON) et notes de banc retirés de
+  la branche. Ils restent intacts sur `claude/audit-final-pr335`. La PR passe de 624 à environ 200 fichiers.
+- Contrôle des liens : aucun lien cassé par ces changements.
+## [2026-11-27] deploy | Lot 1 de corrections en production (PR #361, `main` `c3e2ba6`)
+
+- Accord du dirigeant : « Oui, publie le lot 1 ici (Recommandé) » (26/11), puis « C'est approuvé » (27/11). Lots L1 (sessions) et L4a, L4b, L4c (écrans de la console, des espaces, des pages publiques) ; aucune migration.
+- CI de la PR n° 45901793551 et de `main` n° 45907193348 vertes sans reprise (16 829 tests, 357 parcours au premier essai) ; fusion squash le 26/11 à 22:49Z ; publication contrôlée n° 45911337396 `publiee_verifiee` le 27/11 à 06:17Z.
+- Santé et pages publiques relues par le connecteur Vercel : `/api/sante` sert `c3e2ba6` ; confidentialité (date du 26/11, phrase « conservées 24 mois après leur dernier traitement ») et outil de quittance (champs vides) en ligne ; 0 erreur Vercel depuis 06:16Z (relevé de 06:28Z).
+- Recette de production n° 63 (n° 45950975860) : réussie, de 06:18Z à 06:28Z : 68 parcours au premier essai, purge vérifiée.
+- Pages touchées : [[Passation — état du 26 novembre 2026]], [[Révision annuelle IRL]], `index.md` (note de passation ajoutée au catalogue ; entrée [[Révision annuelle IRL]] complétée) ; `QUESTIONS.md` (Q72, Q89, Q123), `DECISIONS-2026-11-24.md`, `JOURNAL.md`.

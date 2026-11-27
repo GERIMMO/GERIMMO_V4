@@ -1,0 +1,187 @@
+---
+type: synthesis
+tags: [acquisition, activation, onboarding, bail, diagnostic, referencement, prospection]
+status: in-progress
+created: 2026-11-20
+updated: 2026-11-22
+sources: []
+---
+
+# Premiers clients — acquisition sans budget — 20 novembre 2026
+
+**En une phrase :** le 20/11/2026, le dirigeant a demandé à l'agent de mener seul la recherche des premiers clients,
+lui-même ne répondant qu'aux appels ; l'agent a levé trois freins d'**activation** rencontrés en rejouant le parcours
+d'un propriétaire neuf, et six pull requests y répondent.
+
+> [!warning] Correction du 22/11/2026 — les inscrits relevés en production sont des comptes de test
+> Le dirigeant l'a précisé le 22/11 : les personnes déjà inscrites sont des tests, et ces comptes seront supprimés
+> sous dix jours. Le relevé ci-dessous ne décrit donc **pas** le comportement de vrais inscrits, et la lecture qu'en
+> faisait cette page le 20/11 (« le premier frein n'est pas l'audience mais l'activation ») ne tient plus : d'après le
+> dirigeant, **aucun propriétaire réel n'a encore ouvert d'espace**. Les trois murs décrits plus bas restent établis,
+> mais par le rejeu sur le banc, pas par la production. Le premier frein est en amont : faire venir des visiteurs.
+
+Cadre posé par le dirigeant : il ne connaît aucun propriétaire, il a du temps, **aucun budget** hors Claude et Codex,
+et LinkedIn, Instagram et Facebook peuvent être connectés. La règle du 23/10 reste entière : aucun particulier n'est
+contacté sans l'avoir demandé ([[Prospection commerciale]]).
+
+## Ce que montre la production (lecture seule, aucune donnée personnelle)
+
+Relevés du 20/11/2026, sur les espaces de [[Propriétaire bailleur]] en gestion directe — **des comptes de test,
+selon la précision du dirigeant du 22/11** (voir l'encadré ci-dessus) :
+
+| Mesure | Valeur |
+|---|---|
+| Espaces ouverts du 24/10 au 19/11 | 6 |
+| Espaces sans aucun bien | 4 |
+| dont profil sans adresse (arrêtés devant « Complétez d'abord votre profil ») | 2, dont l'inscrit du 19/11 |
+| Baux saisis | 11, **tous en brouillon** |
+| Baux avec un locataire renseigné | 11 |
+| Baux avec un état des risques déposé | 0 |
+| Baux avec un contrat signé déposé | 0 |
+| Baux actifs | 0 |
+| Agences sur la liste d'attente | 0 |
+
+Rejoué sur le banc local avec un compte fictif neuf (« un propriétaire qui a déjà un locataire »), trois murs se
+suivent :
+
+1. **Le profil.** Juste après l'inscription, « Ajouter un bien » renvoyait vers le profil complet au lieu d'un
+   formulaire (décision D29 B du 13/10 : l'adresse est facultative à l'inscription, exigée au premier bien).
+2. **La fiche du locataire.** Elle exigeait sa date et sa commune de naissance, même pour un locataire en place depuis
+   des années.
+3. **L'activation du bail.** Le dépôt du contrat signé restait fermé tant que le logement n'était pas « mis en
+   location », ce qui exige un DPE et un état des risques de moins de six mois ([[Diagnostic]]).
+
+## Les décisions du dirigeant (20/11/2026)
+
+- **« Oui, fais ce qui te semble nécessaire »** — accord sur le plan d'acquisition mené par l'agent.
+- **Décision B — bail déjà en cours.** Pour un bail dont la date d'entrée est passée, le contrat signé (PDF) suffit à
+  l'activer ; le DPE et l'état des risques manquants deviennent des alertes, sans blocage. Options écartées : A (ne rien
+  changer) et C (exiger le DPE mais pas un état des risques récent). Détail dans [[Bail]] et [[Diagnostic]].
+- **« Oui » — naissance du locataire.** La date et la commune de naissance deviennent facultatives sur la fiche d'un
+  locataire déjà en place. Détail dans [[Compte, personne et adhésion]].
+- **21/11/2026 — « Choix A, oui publie ».** Décision A sur le premier loyer d'un bail repris en cours : Gerimmo suit
+  les loyers à partir du mois de l'activation (options B, mois choisi par le propriétaire, et C, depuis l'entrée du
+  locataire, écartées). Et accord pour fusionner et publier les pull requests #353 à #356. Détail dans [[Bail]].
+- **22/11/2026 — « 1A - 2B - 3A - 4 ok ».** Quatre réponses aux points laissés ouverts :
+  - **1A — prévenir les inscrits.** Un court message de service devait leur dire que le blocage du bail est levé.
+    **Sans objet depuis le 22/11** : le dirigeant a précisé le même jour que les inscrits sont des comptes de test,
+    bientôt supprimés. Rien n'a été envoyé.
+  - **2B — DPE classé G sur un bail déjà en cours** : simple alerte, plus de blocage. Option écartée : A, garder le
+    blocage, que l'agent recommandait faute de source. Détail dans [[Bail]] et [[Diagnostic]].
+  - **3A — état des lieux d'entrée d'un bail repris** : l'alerte « État des lieux d'entrée à signer » n'est plus
+    posée. Option écartée : B, la laisser. Détail dans [[Bail]] et [[État des lieux]].
+  - **4 — libellé** « Indiquer mon adresse et créer mon premier bien » : validé tel qu'il est en ligne.
+
+## Les chantiers
+
+| # | Chantier | Pull request | État au 21/11, 18 h 15 UTC |
+|---|---|---|---|
+| 1 | **« Être rappelé »** : le visiteur laisse lui-même son numéro et son accord ; le dirigeant le rappelle | [#352](https://github.com/GERIMMO/GERIMMO_V4/pull/352) | **En production** depuis le 21/11, 12:19Z |
+| 2 | **Google** : données structurées (éditeur, questions fréquentes, fil d'Ariane, articles) | [#353](https://github.com/GERIMMO/GERIMMO_V4/pull/353) | **En production** depuis le 21/11, 18:03Z (`81740dec`) |
+| 3 | **Premier bien** : les coordonnées du bailleur se remplissent sur la page « Ajouter un bien » | [#354](https://github.com/GERIMMO/GERIMMO_V4/pull/354) | **En production** depuis le 21/11, 18:03Z |
+| 4 | **Bail déjà en cours** et **naissance facultative** (décisions du 20/11) | [#355](https://github.com/GERIMMO/GERIMMO_V4/pull/355) | **En production** depuis le 21/11, 18:03Z ; migration appliquée à 18:02Z |
+| 4 bis | **Date de bascule des loyers** (décision A du 21/11) | [#356](https://github.com/GERIMMO/GERIMMO_V4/pull/356) | **En production** depuis le 21/11, 18:03Z ; migration appliquée à 18:02Z |
+| 4 ter | **DPE classé G en alerte** et **plus d'alerte d'état des lieux d'entrée** pour un bail déjà en cours (décisions 2B et 3A du 22/11) | [#357](https://github.com/GERIMMO/GERIMMO_V4/pull/357) | **Prête au 22/11**, ni fusionnée ni publiée : attend l'accord du dirigeant (une migration, donc trois approbations) |
+| 4 quater | **Message de service aux inscrits** (décision 1A du 22/11) | — | **Sans objet** (22/11) : les inscrits sont des comptes de test ; rien n'a été envoyé |
+| 4 quinquies | **Inscriptions dans l'e-mail du matin** : un espace de propriétaire ouvert en 24 h devient un point du relais de 5 h | [#357](https://github.com/GERIMMO/GERIMMO_V4/pull/357) (même lot) | **Prête au 22/11**, ni fusionnée ni publiée |
+| 5 | Publications Instagram et LinkedIn | — | Non commencé : demande l'accès aux comptes |
+
+Recette de production n° 57 réussie sur la version publiée (21/11, 18:12Z).
+
+### 1. « Être rappelé »
+
+Une carte sur l'accueil, sous chaque outil gratuit et sous chaque article du journal : nom, téléphone, e-mail, créneau,
+case d'accord **obligatoire et non cochée**. La demande entre par la même porte que le formulaire de contact (même
+table, même limite de débit, même durée de conservation) et se reconnaît à son message. Dans la console, un badge
+« Rappel demandé » et un lien « Appeler le … ». La page des tarifs n'est pas touchée.
+
+Limite connue : pas d'alerte immédiate. Le dirigeant voit la demande dans le courriel de 5 h et dans la console ; la
+carte promet donc un rappel « sous un jour ouvré ».
+
+### 2. Google
+
+Les pages publiques décrivent aux moteurs ce qu'elles montrent déjà. Rien n'y est déclaré qui ne soit à l'écran : ni
+prix, ni offre, ni note. Reste à faire par le dirigeant : fournir le code de vérification de Google Search Console (le
+nom de domaine est géré chez Vercel, l'enregistrement s'ajoute sans toucher au code).
+
+### 3. Premier bien
+
+La règle D29 B ne change pas — aucun bien sans adresse complète ni e-mail de contact du bailleur. Seul le chemin
+change : les quatre champs manquants se remplissent sur place, l'e-mail du compte est proposé. Le bouton de « Mes
+lots » vide devient « Indiquer mon adresse et créer mon premier bien » (libellé à valider par le dirigeant).
+
+### 4. Bail déjà en cours, naissance facultative
+
+Voir les deux décisions ci-dessus. La mise en ligne suit l'ordre habituel d'une migration : fusion, CI de `main`,
+sauvegarde, chantier protégé « Migrations Supabase », puis publication du code.
+
+### 4 bis. Le premier loyer d'un bail repris en cours
+
+Constat sur le banc, une fois la décision B en place : un propriétaire active le bail d'un locataire entré le
+01/11/2024, puis clique « Générer l'échéancier ». Gerimmo crée **25 termes** (novembre 2024 à novembre 2026), soit
+**18 750 €** affichés « impayés », et pose une alerte d'impayé le lendemain. L'échéancier part toujours de la date
+d'entrée, et le cycle du 1ᵉʳ du mois passe par la même fonction : il aurait créé ces termes tout seul. Le comportement
+n'est pas nouveau ; la décision B en fait le chemin normal d'un propriétaire qui arrive avec un locataire en place. En
+production au 20/11 : aucun terme appelé ; 2 des 11 baux en brouillon ont une entrée antérieure au mois en cours.
+
+**Règle retenue (décision A du 21/11).** À l'activation d'un bail dont le mois d'entrée est antérieur au mois en cours,
+Gerimmo note le mois en cours comme premier mois suivi ; l'échéancier ne commence qu'à ce mois. C'est la « date de
+bascule » que prévoient déjà les maquettes de reprise de portefeuille
+([[2026-09-04-maquette-v3-prototype|Maquette v3]], [[2026-09-08-maquette-espace-agence-v6|Maquette agence v6]]),
+ramenée à un bail. La reprise complète décrite par ces maquettes (soldes d'ouverture, dettes et crédits du locataire)
+n'est pas construite : un arriéré antérieur au premier mois suivi n'existe pas dans l'outil.
+
+Rejoué sur le banc avec la règle : le même bail reçoit **un** terme (novembre 2026, 750 €) ; l'encaissement enregistré
+produit la quittance ; l'accueil affiche « 750,00 € sur 750,00 € ». Détail dans [[Bail]].
+
+**Contrepartie relevée en la construisant.** La régularisation annuelle des charges compare les charges de l'exercice
+aux provisions appelées dans Gerimmo. Pour l'exercice de la bascule, les provisions versées avant n'y sont pas : sans
+garde-fou, 500 € auraient été réclamés à tort au locataire dans l'exemple du banc. La PR refuse donc la régularisation
+d'un exercice commencé avant le premier mois suivi ; ces exercices se régularisent hors de Gerimmo.
+
+### 4 ter. DPE classé G et état des lieux d'entrée d'un bail déjà en cours (décisions 2B et 3A du 22/11)
+
+Un seul lot, une seule demande de fusion ([#357](https://github.com/GERIMMO/GERIMMO_V4/pull/357)) : le DPE classé G
+devient une alerte pour un bail dont l'entrée est passée, et un bail repris en cours ne reçoit plus l'alerte « État des
+lieux d'entrée à signer ». Détail et réserve sur l'absence de source dans [[Bail]] et [[Diagnostic]].
+
+### 4 quater. Message de service aux inscrits (décision 1A du 22/11) — sans objet
+
+Un brouillon avait été rédigé le 22/11 pour dire aux propriétaires inscrits que le blocage du bail était levé. Le
+dirigeant a précisé le même jour que ces inscrits sont des comptes de test, supprimés sous dix jours : le message n'a
+plus de destinataire. **Rien n'a été envoyé**, et aucun outil d'envoi n'a été construit. Le brouillon reste lisible
+dans l'historique du dépôt (commit `b013656b`).
+
+### 4 quinquies. Les inscriptions dans l'e-mail du matin (22/11)
+
+Le dirigeant ne répond qu'aux appels et n'ouvre pas la console chaque jour : rien ne lui disait qu'un propriétaire
+venait d'ouvrir un espace. Les comptes présents étant des comptes de test, le premier vrai inscrit doit se remarquer.
+L'e-mail du matin ([[Relais du dirigeant]]) reçoit un bloc « Nouvelles inscriptions », affiché dès qu'un espace de
+propriétaire a été ouvert dans les dernières 24 h : ouverts en 24 h, sur 7 jours, au total ; puis, tous espaces
+confondus, combien n'ont aucun bien et combien ont un bail en cours. Des nombres seulement ; sans inscription en 24 h,
+aucun e-mail de plus. Les demandes de rappel (« Être rappelé ») y figuraient déjà, comptées avec les demandes de
+contact du site. Même lot que 4 ter (PR #357).
+
+Limite connue : ces nombres ne distinguent pas un compte de test d'un vrai inscrit. Un espace ouvert par le dirigeant
+pour un essai sera signalé comme les autres.
+
+## Ce qui reste à décider
+
+> [!warning] Points à trancher
+> - **Dépôt de garantie d'un bail repris** : Gerimmo propose de l'encaisser alors qu'il a été versé à l'entrée.
+> - **Révision du loyer (IRL) d'un bail repris** : la rubrique calcule « loyer actuel × IRL nouveau / IRL de
+>   référence », l'indice de référence étant celui de la dernière révision enregistrée dans Gerimmo, à défaut celui du
+>   bail. Quel indice saisir pour un bail dont le loyer a déjà été révisé avant Gerimmo n'est dit nulle part à l'écran,
+>   et aucune source du wiki ne le tranche.
+> - **DPE classé G sur un bail déjà en cours** : tranché le 22/11 (décision 2B, simple alerte). L'effet de
+>   l'interdiction de louer sur un bail en cours n'est établi par aucune source du wiki : à faire confirmer par un
+>   professionnel.
+> - **Aucun inscrit réel à ce jour** (précision du dirigeant du 22/11). Les chiffres d'acquisition à venir devront
+>   distinguer les comptes de test des vrais inscrits, faute de quoi ils ne diront rien.
+> - **Vente** : toujours fermée (médiateur de la consommation, paiement), indépendamment de ce chantier.
+
+## Liens
+
+[[Propriétaire bailleur]] · [[Bail]] · [[Diagnostic]] · [[Compte, personne et adhésion]] · [[Prospection commerciale]] ·
+[[Onboarding et abonnement]] · [[Audit d'acquisition du 3 octobre 2026]] ·
+[[Refonte visuelle « Maison » et Design System — 20 novembre 2026]]

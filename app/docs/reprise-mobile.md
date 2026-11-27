@@ -47,7 +47,7 @@ central, fusion de tout l'historique).
 2. **Suite des documents** : vagues B → D et les manques transverses qui les
    bloquent (adresse postale des personnes, identité complète de l'agence — S9b —,
    IBAN, lieu de signature, table `textes` réglementaires). Tout est cartographié
-   dans `wiki/syntheses/Etat des lieux generation de documents.md` (statuts vérifiés
+   dans `wiki/archives/2026-08/Etat des lieux generation de documents.md` (statuts vérifiés
    contre le schéma de production le 31/08).
 3. **Reste V0** : fin du S8 (caution formalisée, Visale/GLI, alertes d'approche
    d'échéance de restitution, provision 20 %, relances copro), **S9b**
@@ -55,14 +55,14 @@ central, fusion de tout l'historique).
    `livrables/Reste a faire V0 - sprints et ecarts maquette.md`.
 
 Aucun arbitrage métier en attente (dernier point clos le 21/08 — voir
-`wiki/syntheses/État du projet et décisions ouvertes.md`).
+`wiki/syntheses/État du projet et décisions ouvertes.md`, devenue une page de renvoi le 26/11/2026).
 
 ## Directive produit permanente
 
 Concevoir pour un **agent immobilier débutant** : simple, progressif (« le site se
 déroule au fur et à mesure des clics »), une prochaine étape évidente par écran,
 aucun jargon à l'écran, le manquement signalé là où on regarde avec le bouton qui y
-mène. Détail des patterns : `wiki/syntheses/Charte visuelle de l'espace agent.md`.
+mène. Détail des patterns : `wiki/archives/2026-08/Charte visuelle de l'espace agent.md`.
 
 ## Ce qui ne marchera PAS depuis un environnement cloud
 
@@ -91,7 +91,7 @@ page publique (essai 14 jours).
 - `livrables/Recette - test par sprint et persona.md` — le livrable de recette
   central (dont § 2.000 : Documents-0)
 - `livrables/Reste a faire V0 - sprints et ecarts maquette.md` — l'inventaire V0
-- `wiki/syntheses/Etat des lieux generation de documents.md` — la carte des 50
+- `wiki/archives/2026-08/Etat des lieux generation de documents.md` — la carte des 50
   documents à générer
 - `log.md` (racine) — le journal : `grep "^## \[" log.md | tail -10`
 - `CLAUDE.md` (racine) — les règles d'entretien du wiki métier

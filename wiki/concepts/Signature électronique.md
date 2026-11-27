@@ -3,11 +3,24 @@ type: concept
 tags: [signature, zoho-sign, yousign, demande-de-signature]
 status: in-progress
 created: 2026-07-24
-updated: 2026-10-24
-sources: ["[[2026-07-24-gerimmo-v3-module-13-signature-electronique]]", "app/docs/signature-electronique-bail.md (dossier technique Zoho Sign, 18-19/10/2026, complété le 24/10/2026)", "log.md — entrées « decision » et « deploy » des 18 et 19/10/2026 (Zoho Sign, PR #203 à #210)", "log.md — entrées « decision » du 23/10/2026 (« Cautionnement et état des lieux signés dans Gerimmo ») et du 24/10/2026 (choix délégués n° 1 et 8), « deploy » du 24/10/2026 (PR #246)", "[[Notification et valeur probante]]"]
+updated: 2026-11-26
+sources: ["[[2026-07-24-gerimmo-v3-module-13-signature-electronique]]", "app/docs/signature-electronique-bail.md (dossier technique Zoho Sign, 18-19/10/2026, complété le 24/10/2026)", "log.md — entrées « decision » et « deploy » des 18 et 19/10/2026 (Zoho Sign, PR #203 à #210)", "log.md — entrées « decision » du 23/10/2026 (« Cautionnement et état des lieux signés dans Gerimmo ») et du 24/10/2026 (choix délégués n° 1 et 8), « deploy » du 24/10/2026 (PR #246)", "[[Notification et valeur probante]]", "[[Mission palier 1 — audit du 22 novembre 2026]]", "[[Recueil des textes officiels (v6)]]", "DECISIONS-2026-11-24.md (Q11, Q21, Q40, Q46 ; case « mariés ou pacsés »)", "JOURNAL.md — lots 10, D1, D3, D5 et T2 (22 au 25/11/2026)", "QUESTIONS.md — Q11, Q21, Q40, Q46, Q77", "JURISTE.md — partie 2, point 1 ; partie 9, points 11 à 13", "livrables/notes-banc/notes-D5.md, notes-T2.md, notes-mariage.md, notes-majeurs.md (E173)", "livrables/notes-banc/fusion/ (fusion-notes.md, PLAN-PUBLICATION-NOTES.md, relecture-ecrans.md, relecture-envois.md)", "livrables/recueil/analyse-refs-01-09.md (réf. 04 et 06) et analyse-refs-10-24.md (réf. 14 et 15)", "code de la branche fusionnée claude/palier-1-fusion (89cb87ff, lecture seule) : lib/voie-signature.ts, lib/signature-ouverture.ts, lib/signature-bail.ts", "log.md — entrée « deploy » du 25/11/2026 (publication de 062296e2)", "livrables/PLAN-DE-PUBLICATION.md (§ 1 ; § 4, réglages R1 à R8)", "JOURNAL.md — entrée du 26/11/2026 (matin) : réglages R1 à R4"]
 ---
 
 # Signature électronique
+
+> [!info] Comment lire cette page (mise à jour du 26/11/2026)
+> Les sections datées d'octobre décrivent ce qui a été publié en octobre ; ce code est contenu dans la version
+> `062296e2`, en production depuis le 25/11/2026, qui contient `81740dec` (publié le 21/11/2026, servi jusqu'au 25/11 ;
+> plan de publication, § 1, `git merge-base`), sauf ce que la section finale remplace ; l'état des interrupteurs Zoho en
+> production n'est pas relu (fin de page). La section du 24/11 et la section **« En production depuis le 25/11/2026 »** en fin
+> de page décrivent la branche fusionnée de la mission palier 1 (`claude/palier-1-fusion`, `89cb87ff`, complétée
+> jusqu'à `062296e2`) : **en production depuis le 25/11/2026** à 23:17Z (26/11 à 00 h 17, heure de Paris), par la
+> PR #358, après le message « Je valide la publication » du dirigeant (`main` = `8f9dd9ce`, identique à `062296e2` ;
+> `log.md`, entrée « deploy » du 25/11). Réglages de la console (plan de publication, § 4) : R1, R2 et R4 faits le
+> 26/11, R3 (IA) vérifié en base ; R4 bis à R8 restent à faire ou à décider au 26/11 (`JOURNAL.md`, entrée du 26/11
+> matin) ; aucun ne cite les interrupteurs Zoho (voir les points à trancher en fin de page). Ce qui était « non
+> vérifié » ou « non recontrôlé » le reste.
 
 ## Conformité V1 du 24 octobre 2026 — en production (PR #246)
 
@@ -121,6 +134,7 @@ voir le callout ci-dessous) ; le mandat est hors circuit.*
 > [!warning] Points à trancher / contradictions (relevé du 19/10/2026)
 > - ~~**États des lieux** : le référentiel (RM-13.1.6, ci-dessus), le circuit de transition V0 (« jamais un EDL ») et la note du 18/10 en journée (« l'EDL garde son circuit sur place ») excluent l'EDL de la signature électronique ; la PR #206 (18/10) ajoute pourtant « états des lieux » au circuit Zoho. **Question au dirigeant** : l'EDL doit-il être signable par Zoho Sign ?~~ → **RM-13.1.6 fermé le 23/10/2026 par la décision du dirigeant** « le cautionnement et l'état des lieux doivent etre signé sur gerimmo directement ! » : l'EDL est signable par Zoho Sign, avec la confirmation « établi contradictoirement, sur place » (code en production le 24/10, PR #246). La phrase « Les états des lieux conservent leur signature sur place » du dossier technique (section « Parcours livré ») est historique.
 > - **24/10 — à confirmer sur Légifrance (source non ouverte le 23/10/2026)** : valeur d'une signature par code SMS pour l'acte de cautionnement et l'état des lieux (C. civ. 1366, 1367, 1175, 2297 ; décret 2017-1416 ; règlement 910/2014 art. 25-26 ; loi 89-462 art. 3-2 et 22-1) ; formule de la mention de caution (« ou l'une des autres cautions », C. civ. 2297 al. 2) ; délai de complément de l'état des lieux.
+>   - *Complément du 25/11 — recueil fourni par le dirigeant, non recontrôlé sur Légifrance ([[Recueil des textes officiels (v6)]])* : l'article 3-2 y fixe le complément « dans un délai de dix jours à compter de son établissement », la formule que Gerimmo imprime ; le contenu de la mention de caution a été relu face à l'article 2297 du recueil sans écart relevé, mais la mention **saisie au clavier** en signature électronique vaut-elle « appose elle-même » : question ouverte (analyse des réf. 04 et 14). Les articles 1366, 1367 et 1175, le décret 2017-1416 et le règlement 910/2014 (art. 25-26) ne sont pas traités par les analyses du recueil : la valeur d'une signature par code SMS reste à confirmer.
 > - **24/10 — exemplaire signé remis à chaque partie (R28)** : non vérifié tant que la recette à trois signataires n'est pas faite ; la V1 n'écrit pas « Chaque signataire reçoit un exemplaire ».
 > - **Avenants et cautionnement** : le dossier technique dit « Mandats et avenants ne sont pas intégrés dans ce circuit » (limites de la première version, PR #203) et « cette extension ajoute avenant, cautionnement » (PR #206) ; le cautionnement, que la note du 18/10 disait distinct, est intégré comme acte distinct du garant. Le mandat de gestion reste hors circuit.
 > - **Offre Zoho** : paiement effectué par le titulaire (500 crédits affichés), montant non consigné ; conditions de l'offre et droit d'intégration SaaS non confirmés.
@@ -133,6 +147,12 @@ ajouter) ; déclenche les chaînes critiques ([[Machines à états et événemen
 webhooks Yousign) ; alertes au module 14 ([[Agenda et échéances]]).
 
 ## Circuit de transition V0 — le signé déposé (2026-09-09)
+
+> [!note] État au 26/11/2026
+> **Jusqu'au 25/11**, en production (`81740dec`), la carte « Documents à signer » de l'espace du locataire existait
+> encore (les nouveaux envois de ce type étaient déjà fermés ; contrôle en lecture seule du 24/11 : aucune ancienne
+> demande en cours). **Depuis le 25/11/2026** (`062296e2`), ce parcours est retiré (décision Q21, lot D5) : voir la
+> section « En production depuis le 25/11/2026 » en fin de page.
 
 En attendant Yousign (S10), l'application porte un circuit minimal honnête :
 « Envoyer pour signature » (fiche de la pièce) place le document dans
@@ -159,3 +179,99 @@ courriers générés — jamais sur un bail ni un EDL.
 ## Relecture avant publication du 24 octobre
 
 Voir [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] pour les sources officielles consultées, les corrections retenues et les réserves encore ouvertes. Les mentions « non publié » ci-dessus décrivent l’état avant la mise en ligne ; seule une entrée `deploy` du journal en atteste l’achèvement.
+
+## État dans l'application au 24/11/2026 (préproduction ce jour-là ; publié le 25/11/2026, complété par la section finale) — documents dans le circuit (mission palier 1, phase 3)
+
+Relu dans le code après les lots 35, 40, 43 et 45 ([[Mission palier 1 — audit du 22 novembre 2026]] ; `QUESTIONS.md`,
+Q40 et Q46 ; `JURISTE.md`, partie 5, point 9).
+- **Empreintes** : l'envoi d'un circuit et l'activation d'un bail signé comparent une empreinte du document. Les
+  corrections des lots 35 à 49 changent la mise en page : pour l'activation d'un [[Bail]] signé, l'ancienne mise en page
+  est gardée (même empreinte sur 70 dossiers variés) ; un circuit **préparé mais pas encore envoyé** (bail, état des
+  lieux, cautionnement, avenant, protocole, autorisation de travaux) est refusé à l'envoi avec « Le dossier a changé
+  depuis la préparation » et se prépare de nouveau. Les circuits déjà envoyés ou signés ne sont pas touchés (Q40).
+- **Résumé de la notice** : joint sous le nom « resume-notice-information.pdf », listé à part sur la page de garde
+  (« Document d'information joint », « n'est pas une annexe du contrat ») ; le texte officiel n'est pas joint (Q46).
+- **Datés à la signature** : l'avenant, les inventaires, le protocole d'apurement et l'autorisation de travaux ne sont
+  plus datés du jour de leur génération au-dessus de cadres vides.
+
+> [!warning] Points à trancher / contradictions (24/11/2026)
+> - Le bail déclare la notice « annexée au présent contrat » ; l'enveloppe ne contient qu'un résumé qui « n'est pas une
+>   annexe du contrat » (juriste, point 9 ; [[Mentions obligatoires du bail]]).
+>   - *25/11* : dans la version en production depuis le 25/11, la notice déposée par le bailleur est jointe comme annexe
+>     (voir ci-dessous) ; jusqu'au 25/11, en production, l'écart demeurait.
+
+## En production depuis le 25/11/2026 (branche fusionnée, version `062296e2`)
+
+Ce qui suit est fait dans la branche `claude/palier-1-fusion` (`89cb87ff`, complétée jusqu'à `062296e2`, poussée le 25/11 sur la branche de préproduction `claude/palier-1-preproduction`), vérifié sur le banc local avec des données
+fictives, puis **publié en production le 25/11/2026** à 23:17Z (26/11 à 00 h 17, heure de Paris) par la PR #358
+(`main` = `8f9dd9ce`, identique à `062296e2`) ; 52 migrations appliquées le 25/11 (22:09Z) ; recette de production
+n° 58 réussie. Au banc, la signature de bout en bout chez Zoho n'a pas été jouée (service payant) ; le compte rendu
+de la recette n° 58 n'en parle pas. Sources :
+`DECISIONS-2026-11-24.md`, `JOURNAL.md`, `QUESTIONS.md`, notes du banc (`livrables/notes-banc/`) ; publication :
+`log.md`, entrée « deploy » du 25/11/2026.
+
+- **Signature électronique proposée en premier, papier toujours possible** (décision Q11, lot D1). Chez le
+  [[Propriétaire bailleur|propriétaire]] qui gère lui-même, et seulement quand le service est ouvert pour ce document,
+  le bouton « Signature électronique » vient en premier, accompagné de « La signature sur papier reste toujours
+  possible ». Service fermé : le bouton dit « (en préparation) » et l'écran présente le papier comme la voie qui
+  fonctionne ; nouveaux actes de cautionnement fermés (`ZOHO_SIGN_CAUTIONNEMENT_FERME`) : « (nouveaux envois
+  suspendus) », un envoi déjà parti se suit par le même bouton. En agence, l'écran reste celui d'avant. Une même règle,
+  lue côté serveur, décide du bouton et du panneau de signature (`lib/signature-ouverture.ts`). L'ouverture du service
+  est un réglage du jour de la publication (QUESTIONS.md, Q11) ; son état en production n'est pas relu au 26/11 (voir
+  les points à trancher ci-dessous).
+- **Ancien parcours « télécharger, signer, redéposer » retiré** (décision Q21, lot D5) : la carte « Documents à
+  signer » de l'espace du [[Locataire]], son action, le badge du menu et le courriel « Document à signer » sortent du
+  code. **En base, rien n'est supprimé** : la migration `20261125140000_ancien_parcours_signature_manuelle_droits_retires`
+  retire seulement aux comptes le droit d'exécuter `envoyer_pour_signature`, `retourner_document_signe` et
+  `annuler_demande_signature`, et s'arrête d'elle-même si une ancienne demande manuelle est en attente ; elle fait
+  partie des 52 migrations appliquées en production le 25/11/2026 (22:09Z, sans erreur). Le jour de la publication,
+  avant la migration, le contrôle en lecture seule de `demandes_signature` devait rendre 0 et 0 (24/11 : table vide ;
+  son exécution et son résultat ne sont pas repris dans les sources lues). L'historique en lecture seule côté gestionnaire est
+  gardé ; le circuit Zoho et le dépôt du bail signé sur papier par le bailleur ne sont pas touchés. Le reste (fonctions
+  encore appelables, historique) est renvoyé à un lot de nettoyage.
+- **Le locataire suit la signature** (lot 10) : dans « Mes documents », « à signer », « vous avez signé », « signé par
+  tous », « refusé » ou « expiré », avec le nombre de signatures reçues, sans le nom ni les coordonnées des autres
+  signataires. Rien n'est à déposer : la signature se fait par le lien reçu par e-mail.
+- **Notice d'information** (décision Q46, lot D3) : le bailleur dépose lui-même la notice officielle (PDF) à l'étape
+  Documents du [[Bail]] ; sans elle, la préparation et l'envoi en signature électronique sont bloqués (« Déposez la
+  notice d'information officielle à l'étape Documents : l'envoi en signature électronique est bloqué sans elle. ») ;
+  déposée, elle est jointe au dossier comme annexe. Exigée pour un bien d'habitation seulement ; la signature sur papier
+  n'est pas bloquée (l'écran rappelle d'annexer la notice). Gerimmo ne vérifie ni le fichier ni sa version et ne joint
+  pas lui-même le texte officiel : celui du recueil vient d'un site miroir (adresses coupées, tableaux à reconstruire)
+  et n'est pas imprimé (Q77 ; [[Recueil des textes officiels (v6)]], non recontrôlé sur Légifrance). La première
+  partie de la décision Q46 (joindre la notice officielle entière, dans la version en vigueur à la signature) reste à
+  faire. Voir [[Mentions obligatoires du bail]].
+- **Acte de cautionnement** (lot T2, d'après le recueil, non recontrôlé) : refusé quand un bailleur est une SCI non
+  familiale ou une personne morale, sauf case « logement loué à un étudiant qui ne bénéficie pas d'une bourse »
+  (article 22-1 tel que reproduit par le recueil) ; refusé aussi tant que le garant n'est pas rattaché à un
+  colocataire. La déclaration « étudiant non boursier » s'imprime dans l'acte et fait partie des champs signés en
+  ligne. Voir [[Garantie]].
+- **Bail d'époux ou de partenaires pacsés** (case « mariés ou pacsés », décision du 24/11) : le contrat coché dit
+  « Contrat de location » et « Locataire 1 / 2 » ; dans le circuit Zoho, le second signataire garde la qualité
+  « Colocataire », pour ne toucher aucune empreinte. Voir [[Bail]].
+- **Lien de signature non valable** (défaut E173) : la page publique dit « Un document à signer en ligne. » (et non
+  plus toujours « Un acte de cautionnement à signer en ligne. ») ; l'état « suspendu » garde le cautionnement.
+- **Dossiers préparés avant la publication** (Q40, complétée par les lots 50 à 54, T2 et T3) : un circuit « prêt »
+  mais pas envoyé — bail, acte de cautionnement (y compris celui qui attend que la caution confirme son mobile),
+  [[État des lieux]] (de sortie notamment), avenant, protocole d'apurement, autorisation de travaux — est refusé à
+  l'envoi (« Le dossier a changé depuis la préparation ») et se prépare de nouveau ; un bail déjà signé garde son
+  ancienne mise en page pour son activation. Contrôle du 24/11 en production (lecture seule) : un seul circuit, celui
+  d'un bail, terminé ; à refaire juste avant la publication (contrôle C3 du plan de publication ; son exécution et son
+  résultat ne sont pas repris dans les sources lues).
+
+> [!warning] Points à trancher / contradictions (25/11/2026)
+> - **Notice** : le bail déclare la notice « annexée au présent contrat » ; dans la version en production depuis le
+>   25/11, la notice jointe est celle que dépose le bailleur, sans contrôle de version (écart R06-A1 de l'analyse du
+>   recueil, classé « important ») ; jusqu'au 25/11, en production, l'enveloppe ne contenait que le résumé (section du
+>   24/11 ci-dessus).
+> - **État des lieux signé à distance** : le recueil (loi de 1989, article 3-2 ; décret n° 2016-382, article 3, non
+>   recontrôlés) admet la remise « par voie dématérialisée » au moment de la signature, mais ne traite pas la signature
+>   à distance après la visite, sur la seule confirmation « établi sur place » (JURISTE.md, partie 2, point 1).
+> - **Mention de caution saisie au clavier** : vaut-elle « appose elle-même » (article 2297 du recueil) ? Question
+>   ouverte.
+> - **Qualité « Colocataire »** du second signataire dans le circuit d'un bail coché « mariés ou pacsés », alors que le
+>   contrat dit « Locataire 2 » (notes du lot, question 4).
+> - **État des interrupteurs Zoho en production** : la section du 22/10 dit baux, autres documents et devis activés sur
+>   Vercel ; QUESTIONS.md (Q11, 22/11) décrit un service « sous interrupteurs » dont l'ouverture « est un réglage du jour
+>   de la publication ». Non relu en production dans les sources du 25/11, publication comprise, ni dans celles du
+>   26/11 (les réglages R1 à R8 du plan ne le citent pas) : reste à vérifier en lecture seule.

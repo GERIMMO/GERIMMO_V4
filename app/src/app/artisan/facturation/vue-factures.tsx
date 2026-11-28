@@ -28,8 +28,16 @@ export function preparerVueFactures(data: ActiviteArtisanPrivee, clients: Factur
       : client?.etat === "deposee" ? "En attente de validation" : "À régler";
     return { f, bilan, client, statut };
   });
-  const attendues = lignes.filter(l => l.bilan.solde > 0 && l.client?.etat !== "refusee");
-  return { lignes, attendues: attendues.length, reste: attendues.reduce((s, l) => s + l.bilan.solde, 0), enValidation: attendues.filter(l => l.client?.etat === "deposee").length };
+  const attendues = lignes.filter(l => l.bilan.solde > 0 &&
+    (l.client?.etat === "validee" || l.client?.etat === "partiellement_reglee"));
+  const enValidation = lignes.filter(l => l.client?.etat === "deposee" && !l.bilan.avoir);
+  return {
+    lignes,
+    attendues: attendues.length,
+    reste: attendues.reduce((total, l) => total + l.bilan.solde, 0),
+    enValidation: enValidation.length,
+    montantEnValidation: enValidation.reduce((total, l) => total + Number(l.f.montant_ttc_cents), 0),
+  };
 }
 
 export function VueFactures({ data, erreur, clients, erreurClients, agenda, actions }: {
@@ -39,8 +47,9 @@ export function VueFactures({ data, erreur, clients, erreurClients, agenda, acti
   const vue = preparerVueFactures(data, clients, erreurClients);
   const peutDeclarer = activationModuleArtisan("reglements") && data.activation.reglements;
   return <div className="space-y-4">
-    <section className={styles.resume} aria-label="Sommes restant à recevoir">
-      <div><p>Restant à recevoir</p><strong>{euros(vue.reste)}</strong><p>{vue.attendues} facture{vue.attendues > 1 ? "s" : ""} concernée{vue.attendues > 1 ? "s" : ""}{vue.enValidation > 0 && ` · dont ${vue.enValidation} en attente de validation`}</p></div>
+    <section className={styles.resume} aria-label="Suivi des factures Gerimmo">
+      <div><p>À recevoir</p><strong>{erreurClients ? "Indisponible" : euros(vue.reste)}</strong><p>{vue.attendues} facture{vue.attendues > 1 ? "s" : ""} à recevoir</p></div>
+      <div><p>En attente de validation</p><strong>{erreurClients ? "Indisponible" : euros(vue.montantEnValidation)}</strong><p>{vue.enValidation} facture{vue.enValidation > 1 ? "s" : ""} à valider</p></div>
       <p className={styles.precision}>Selon vos règlements déclarés, sans confirmation bancaire. Vérifiez la réception sur votre compte avant de déclarer un règlement.</p>
     </section>
     {erreurClients && <Erreur>Les déclarations de vos clients sont indisponibles. Votre registre reste visible ; aucune absence de règlement client n’est déduite de cette erreur.</Erreur>}

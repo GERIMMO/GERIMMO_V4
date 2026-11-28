@@ -8,7 +8,8 @@ import { baseApiFictive } from "./base-api-fictive";
 // vérifient le résultat sur les données synthétiques, sans créer de mission.
 export type MomentAvisFuite = { evenement: "devis_recu" | "rdv_report_demande" | "rdv_report_accepte"; incident: string; mission?: string; destinataire: Page };
 export async function preparerEtPlanifierFuite(db: Client, browser: Browser, artisan: Page, organisation: string, artisanId: string, loc: {email:string;mot:string;description?:string},
-  verifierAvis?: (moment: MomentAvisFuite) => Promise<void>) {
+  verifierAvis?: (moment: MomentAvisFuite) => Promise<void>,
+  verifierCreneaux?: (dossier: { locataire: Page; incident: string; mission: string }) => Promise<void>) {
   baseApiFictive(process.env.SUPALOCAL_DB);
   const locataire = await browser.newContext({storageState:{cookies:[],origins:[]}, viewport:artisan.viewportSize()});
   try {
@@ -75,9 +76,16 @@ export async function preparerEtPlanifierFuite(db: Client, browser: Browser, art
         await expect(diagnostic).toBeVisible();
         await expect(completer).toHaveCount(0);
       }
+      // La proposition initiale peut remonter le formulaire. Attendre sa fin
+      // puis vérifier le total calculé avant de quitter l’étape.
+      await artisan.getByRole("button", { name: "Repartir d’un devis vierge", exact: true }).click();
+      await expect(artisan.getByRole("heading", { name: "Devis vierge", exact: true })).toBeVisible();
       await artisan.getByLabel("Ligne 1 : prestation",{exact:true}).fill("Réparation du joint de l’évier");
-      await artisan.getByLabel("Ligne 1 : prix unitaire HT",{exact:true}).fill("100");
+      const prix = artisan.getByLabel("Ligne 1 : prix unitaire HT", { exact: true });
+      await prix.fill("");
+      await prix.pressSequentially("100");
       await artisan.getByLabel("Ligne 1 : TVA",{exact:true}).selectOption("0");
+      await expect(artisan.locator("[data-totaux-devis]")).toContainText(/Total TTC\s*:\s*100,00/);
       async function etape(n:number) {
         const menu=artisan.getByLabel("Aller à une étape",{exact:true});
         if (await menu.isVisible()) await menu.selectOption(String(n-1));
@@ -150,6 +158,7 @@ export async function preparerEtPlanifierFuite(db: Client, browser: Browser, art
     await expect.poll(async()=>(await db.query("select count(*)::int n from intervention_creneaux where intervention_id=$1 and statut='propose'",[mission])).rows[0].n).toBe(3);
     await page.goto(`/locataire/${organisation}/demandes`);
     const dossier=page.locator("#demande-"+incident.id);
+    await verifierCreneaux?.({ locataire: page, incident: incident.id, mission });
     await dossier.locator("input[type=radio] + label").first().click({timeout:12000});
     await dossier.getByRole("button",{name:"Confirmer ce rendez-vous"}).click();
     await expect.poll(async()=>(await db.query("select statut from incident_interventions where id=$1",[mission])).rows[0].statut).toBe("planifiee");

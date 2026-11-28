@@ -36,7 +36,7 @@ type Saisie = LigneDevisSaisie;
 // quel dans un devis que l'artisan n'avait pas relu ; le taux dépend de son
 // régime et des travaux, et lui seul le sait. Le choix est obligatoire.
 const vide = (): Saisie => ({ code: "", libelle: "", quantite: "1", prix: "", tva: "" });
-export function LignesDevis({ initiales = [], saisieInitiale, titre = "Détail des travaux", afficherHtIncomplet = false, mesLignes }: { mesLignes?: MesLignesGardees; afficherHtIncomplet?: boolean; saisieInitiale?: LigneDevisSaisie[]; initiales?: (Omit<LigneDevis, "tva_bps" | "prix_unitaire_ht_cents"> & {code?: string; tva_bps: number | null; prix_unitaire_ht_cents: number | null})[]; titre?: string }) {
+export function LignesDevis({ initiales = [], saisieInitiale, titre = "Détail des travaux", afficherHtIncomplet = false, referenceDevisCents, mesLignes }: { referenceDevisCents?: number | null; mesLignes?: MesLignesGardees; afficherHtIncomplet?: boolean; saisieInitiale?: LigneDevisSaisie[]; initiales?: (Omit<LigneDevis, "tva_bps" | "prix_unitaire_ht_cents"> & {code?: string; tva_bps: number | null; prix_unitaire_ht_cents: number | null})[]; titre?: string }) {
   const id = useId();
   const [lignes, setLignes] = useState<Saisie[]>(() => saisieInitiale ?? (initiales.length ? initiales.map(l => ({ code: l.code ?? "", libelle: l.libelle, quantite: String(l.quantite).replace(".", ","), prix: l.prix_unitaire_ht_cents === null ? "" : (l.prix_unitaire_ht_cents/100).toFixed(2).replace(".", ","), tva: l.tva_bps === null ? "" : String(l.tva_bps) })) : [vide()]));
   const donnees = lignes.map(l => ({ code: l.code ?? "", libelle: l.libelle, quantite: lireQuantite(l.quantite) ?? Number.NaN, prix_unitaire_ht_cents: montantEnCentimes(l.prix), tva_bps: l.tva === "" ? Number.NaN : Number(l.tva) }));
@@ -126,6 +126,9 @@ export function LignesDevis({ initiales = [], saisieInitiale, titre = "Détail d
         <p className="text-[1.0625rem] font-semibold text-[var(--encre)]">Total TTC : {euros(total?.montant_ttc_cents ?? 0)}</p>
         {!total && <p className="mt-1 text-[0.9375rem] text-[var(--texte-secondaire)]">{aDesErreurs ? "Le total n’est pas calculé : corrigez les champs signalés ci-dessus." : "Le total se met à jour à mesure que les lignes se complètent (prestation, prix et taux de TVA)."}</p>}
       </>}
+      {total && referenceDevisCents != null && <p className="text-sm">
+        Écart avec le devis retenu : {euros(total.montant_ttc_cents - referenceDevisCents)} TTC
+      </p>}
     </div>
   </fieldset>;
 }

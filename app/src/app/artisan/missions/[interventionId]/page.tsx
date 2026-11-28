@@ -1,3 +1,5 @@
+import { prochaineActionIncident } from "@/lib/prochaine-action-incident";
+import { BandeauProchaineAction } from "@/components/prochaine-action-incident";
 import { LectureImpossibleArtisan } from "../../ui";
 import { EchangesIntervention } from "@/components/echanges-intervention";
 import { lireEtatDiscussion, phraseContactOccupant, type EtatDiscussion } from "@/lib/contact-occupant";
@@ -198,6 +200,11 @@ export default async function PageMission(
           </p>
         )}
       </EnteteSousPage>
+      <BandeauProchaineAction action={prochaineActionIncident(
+        mission.statut === "terminee" ? "termine" : "affecte",
+        { statut: mission.statut, date: mission.debut_prevu, attendLocataire: mission.creneaux_en_attente > 0 && mission.dates_locataire_en_attente === 0 },
+        mission.agence_nom,
+      )} />
 
       {/* 25/09 (A12) : renvoyé du bilan sans avoir démarré, l'artisan lisait
           la même fiche sans un mot. La raison du retour s'écrit — sous

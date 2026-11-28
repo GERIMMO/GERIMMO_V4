@@ -65,7 +65,16 @@ export async function FacturesIncident({orgId,incidentId,imputation,base=baseEsp
   const reglementsDe = (factureId:string) => ((reglements ?? []) as Reglement[]).filter(r=>r.facture_id===factureId);
   // Audit palier 1 (P1-03) : la facture en vigueur d'abord ; une facture refusée reste lisible en dessous, sans geste.
   const ordonnees = [...factures.filter(f=>!f.refusee_le), ...factures.filter(f=>f.refusee_le)];
-  return <>{ordonnees.map(f=>{
+  const totaux = { aRecevoir: 0, enValidation: 0 };
+  for (const facture of ordonnees) {
+    const { etat, resteCents } = etatReglementFacture(facture, reglementsDe(facture.id));
+    if (etat === "deposee") totaux.enValidation += Number(facture.montant_ttc_cents);
+    if (etat === "validee" || etat === "partiellement_reglee") totaux.aRecevoir += resteCents;
+  }
+  return <><dl className="flex flex-wrap gap-x-6 gap-y-2 rounded-lg border border-[var(--filet)] p-3 text-sm">
+    <div><dt>À recevoir par l’artisan</dt><dd className="font-semibold">{eur(totaux.aRecevoir / 100)}</dd></div>
+    <div><dt>En attente de validation</dt><dd className="font-semibold">{eur(totaux.enValidation / 100)}</dd></div>
+  </dl>{ordonnees.map(f=>{
     const mission = missionDe.get(f.intervention_id);
     const termineLe = mission?.terminee_le ?? null;
     const termineAvant = termineLe !== null && avantRendezVous(mission?.debut_prevu, new Date(termineLe));

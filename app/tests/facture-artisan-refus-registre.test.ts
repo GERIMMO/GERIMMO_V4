@@ -58,9 +58,9 @@ describe("la synthèse de la facturation", () => {
     const v = preparerVueFactures(sim.activite as ActiviteArtisanPrivee, sim.clients.lignes as FactureVueParArtisan[]);
     expect(v.lignes.map((l) => l.statut)).toEqual(["Refusée par votre client", "À régler"]);
     expect([v.attendues, v.reste, v.enValidation]).toEqual([1, 100000, 0]);
-    // Sans le refus, la même facture serait attendue : c'est bien le refus qui la retire du compte.
+    // Une facture déposée figure uniquement dans le compteur de validation.
     const sans = preparerVueFactures(sim.activite as ActiviteArtisanPrivee, [client("refusee", "deposee"), client("corrigee", "validee")]);
-    expect([sans.attendues, sans.reste, sans.enValidation]).toEqual([2, 220000, 1]);
+    expect([sans.attendues, sans.reste, sans.enValidation]).toEqual([1, 100000, 1]);
   });
 
   it("la liste la dit refusée, sans lien pour déclarer un règlement reçu", () => {

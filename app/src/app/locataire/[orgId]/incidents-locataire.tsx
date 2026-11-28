@@ -1,5 +1,8 @@
 "use client";
 
+import { prochaineActionIncident } from "@/lib/prochaine-action-incident";
+import { BandeauProchaineAction } from "@/components/prochaine-action-incident";
+
 import Link from "next/link";
 import { noteSignalementFerme } from "./types";
 import type { InterlocuteurLocataire } from "@/lib/interlocuteur-locataire";
@@ -174,6 +177,19 @@ function CarteIncident({
     incident.etat === "qualifie" &&
     incident.imputation === "proprietaire";
 
+  const statutsSuivi: Record<string, string> = {
+    artisan_retenu: "proposee", creneau_a_choisir: "acceptee", ma_proposition: "acceptee",
+    creneaux_attendus: "acceptee", planifiee: "planifiee", en_cours: "en_cours", terminee: "terminee",
+    reaffectation: "refusee", reaffectation_agence: "annulee",
+  };
+  const action = prochaineActionIncident(incident.etat, suivi && !suiviHistorique ? {
+    statut: statutsSuivi[suivi.etape],
+    date: suivi.rdv_debut,
+    attendLocataire: peutAgir && suivi.etape === "creneau_a_choisir",
+    arbitrage: suivi.arbitrage || (!peutAgir && suivi.etape === "creneau_a_choisir"),
+    devis: suivi.etape === "devis_recus" ? "recu" : suivi.etape === "recherche" && suivi.nb_artisans_consultes > 0 ? "attendu" : undefined,
+  } : undefined, interlocuteur === "bailleur" ? "Propriétaire" : "Gestionnaire");
+
   return (
     <div
       id={`demande-${incident.id}`}
@@ -183,6 +199,7 @@ function CarteIncident({
         <h2 className="titre-carte text-base font-medium">{titreIncident(incident.categorie)}</h2>
         <span className={pastille}>{textePastille}</span>
       </div>
+      <BandeauProchaineAction action={action} />
       {incident.description && (
         incident.description.length > 180 ? (
           <details className="rounded-xl bg-muted/40 p-3 text-sm">

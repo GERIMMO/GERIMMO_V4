@@ -1,3 +1,4 @@
+import { partsVersements, versementsDuTerme } from "./quittance";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Fusion, assemblerPage, cadreSignature, blocSignatureEmetteur, cartouches, enTete, faitA, faitALaSignature, section, tableau, titre, eur, nombreFr, pointFinal, facultatif, ouNeant, echapper, formaterDateFr, moisEnToutesLettres } from "../gabarit";
 import { CATALOGUE_DOCUMENTS } from "../catalogue";
@@ -147,7 +148,7 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
     } else if (code === "attestation_loyer" || code === "attestation_caf") {
       // Phase 3, lot 52 (W31) : le dossier CAF se dit récapitulatif d'un bout à l'autre ; il reprenait les formules de
       // l'attestation de loyer (« Le bailleur atteste », « Destinataire », « Cette attestation ») puis disait ne pas valoir
-      // formulaire. L'attestation de loyer ne change pas.
+      // formulaire.
       const caf = code === "attestation_caf";
       // Lot 52 : dans ce paragraphe, le « € » passait seul à la ligne (« 40,00 » / « € (forfait) ») ; une espace insécable le
       // garde avec le nombre, comme le plafond de l'acte de cautionnement (lot 51, W13). eur() n'est pas touché.
@@ -172,6 +173,31 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
         ${ctx.chambre ? "Les montants concernent exclusivement la chambre et le droit d’usage des espaces partagés de ce contrat individuel." : ""}</p>
         <p>${caf ? "Caisse concernée" : "Destinataire"} : ${opt("destinataire","organisme ou destinataire")}${pointFinal(options.destinataire)}</p>
         <p>${caf ? "Ce récapitulatif reprend" : "Cette attestation décrit"} les conditions du bail ; les paiements effectifs sont justifiés par les quittances ou reçus.</p>`;
+      const paiements = await lireLignes(supabase.from("encaissements")
+        .select("date_paiement, mode, montant, created_at").eq("organization_id", orgId)
+        .eq("bail_id", bailId).lte("date_paiement", aujourdhui));
+      if (paiements.some((p) => p.mode === "caf")) {
+        const periode = `${aujourdhui.slice(0, 7)}-01`;
+        const appels = await lireLignes(supabase.from("appels_loyer")
+          .select("id, periode, montant_du").eq("organization_id", orgId).eq("bail_id", bailId)
+          .lte("periode", periode));
+        const terme = appels.find((a) => a.periode === periode);
+        if (terme) {
+          const parts = partsVersements(versementsDuTerme(
+            appels.map((a) => ({ id: texte(a.id), periode: texte(a.periode), montant_du: montant(a.montant_du) })),
+            paiements.map((p) => ({
+              date_paiement: texte(p.date_paiement), mode: texte(p.mode) || null,
+              montant: montant(p.montant), created_at: texte(p.created_at),
+            })),
+            texte(terme.id),
+          ));
+          if (parts.caf > 0) {
+            contenu += `<p>Encaissements imputés au terme ${deElide(moisEnToutesLettres(periode))} au ${formaterDateFr(aujourdhui)} :
+              Total reçu : ${eur(parts.locataire + parts.caf)}.<br>Montant versé par le locataire : ${eur(parts.locataire)}.<br>
+              Dont aide au logement versée par la CAF : ${eur(parts.caf)}.</p>`;
+          }
+        }
+      }
       if (code === "attestation_caf") contenu += `${section("Informations pour l’attestation officielle")}
         <p>Numéro allocataire : ${opt("allocataire","numéro allocataire CAF ou MSA")} ; ${/* Phase 3, lot 52 (W32) : le nombre compté est celui des
         locataires titulaires du bail (principal et colocataires) ; Gerimmo ne connaît pas les autres personnes du foyer, que

@@ -15,7 +15,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Fusion, type DocumentAssemble } from "@/lib/documents/gabarit";
-import { construireQuittance, libelleMode, signataireQuittance, versementsDuTerme } from "@/lib/documents/modeles/quittance";
+import { construireQuittance, partsVersements, libelleMode, signataireQuittance, versementsDuTerme } from "@/lib/documents/modeles/quittance";
 import { mentionEtage } from "@/lib/documents/modeles/communs";
 import { refusDocumentIncomplet } from "@/lib/documents/completude";
 
@@ -132,6 +132,10 @@ function nombre(v: number | string | null | undefined): number | null {
 }
 
 /** Le document conforme, prêt à afficher ou à contrôler. */
+function versementsQuittance(d: DonneesQuittanceDocument) {
+  return versementsDuTerme(d.appels ?? [], d.encaissements ?? [], d.appel_id);
+}
+
 export function assemblerQuittanceDelivree(d: DonneesQuittanceDocument): DocumentAssemble {
   const f = new Fusion();
   const { emetteur, bailleur, mandataire, identiteLegale } = parties(d);
@@ -172,16 +176,7 @@ export function assemblerQuittanceDelivree(d: DonneesQuittanceDocument): Documen
     chargesMode: d.charges_mode,
     // Les seuls versements qui ont couvert CE terme — la même imputation que
     // le PDF (du plus ancien terme au plus récent).
-    encaissements: versementsDuTerme(
-      (d.appels ?? []).map((a) => ({ id: a.id, periode: a.periode, montant_du: Number(a.montant_du) })),
-      (d.encaissements ?? []).map((e) => ({
-        date_paiement: e.date_paiement,
-        mode: e.mode,
-        montant: Number(e.montant),
-        created_at: e.created_at,
-      })),
-      d.appel_id
-    ).map((e) => ({ ...e, mode: libelleMode(e.mode) })),
+    encaissements: versementsQuittance(d),
     bailleurNom: bailleurHtml,
     soussigne: signataire?.soussigne,
     signataire: signataire?.signature,
@@ -289,7 +284,8 @@ export type DisponibiliteQuittance = "disponible" | "en_preparation" | "lecture_
  * Lots de six lectures pour ne pas saturer la connexion sur un long historique. */
 export async function disponibilitesQuittances(
   db: SupabaseClient,
-  ids: (string | null)[]
+  ids: (string | null)[],
+  releverVersements?: (id: string, parts: ReturnType<typeof partsVersements>) => void
 ): Promise<Record<string, DisponibiliteQuittance>> {
   const uniques = [...new Set(ids.filter((id): id is string => Boolean(id)))];
   const resultat: Record<string, DisponibiliteQuittance> = {};
@@ -297,6 +293,7 @@ export async function disponibilitesQuittances(
     await Promise.all(uniques.slice(i, i + 6).map(async id => {
       try {
         const donnees = await chargerQuittanceDocument(db, id);
+        if (donnees && releverVersements) releverVersements(id, partsVersements(versementsQuittance(donnees)));
         resultat[id] = !donnees ? "lecture_impossible"
           : manquantsQuittance(assemblerQuittanceDelivree(donnees)).length ? "en_preparation" : "disponible";
       } catch { resultat[id] = "lecture_impossible"; }

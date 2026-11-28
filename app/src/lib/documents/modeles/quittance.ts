@@ -129,8 +129,19 @@ export function libelleMode(mode: string | null | undefined): string | null {
   return MODES[mode] ?? mode;
 }
 
-type AppelImpute = { id: string; periode: string; montant_du: number };
-type Versement = { date_paiement: string; mode: string | null; montant: number; created_at?: string | null };
+type AppelImpute = { id: string; periode: string; montant_du: number | string };
+type Versement = { date_paiement: string; mode: string | null; montant: number | string; created_at?: string | null };
+
+export function partsVersements(versements: readonly { mode: string | null; montant: number }[]) {
+  let caf = 0;
+  let locataire = 0;
+  for (const versement of versements) {
+    const centimes = Math.round(versement.montant * 100);
+    if (versement.mode === "caf") caf += centimes;
+    else locataire += centimes;
+  }
+  return { caf: caf / 100, locataire: locataire / 100 };
+}
 
 // Les versements qui ont couvert un terme donné (audit du 27/09). La quittance
 // imprimait la date et le mode du DERNIER encaissement du bail, quel que soit
@@ -179,6 +190,13 @@ export function construireQuittance(d: DonneesQuittance) {
   const au = formaterDateFr(bornes.au);
   const titreDoc = d.estQuittance ? "Quittance de loyer" : "Reçu de paiement partiel";
   const solde = d.montantDu - d.montant;
+  const parts = partsVersements(d.encaissements);
+  const sommeRecue = parts.caf > 0
+    ? `la somme de <b>${eur(d.montant)}</b> pour le compte de ${d.locatairesNoms}`
+    : `de ${d.locatairesNoms} la somme de <b>${eur(d.montant)}</b>`;
+  const origine = parts.caf > 0
+    ? `<p>Versé par le locataire : <b>${eur(parts.locataire)}</b><br>Dont aide au logement versée par la CAF : <b>${eur(parts.caf)}</b>.</p>`
+    : "";
 
   const lignes: string[][] = [
     ["Loyer hors charges", f.montant(d.loyerHc)],
@@ -194,9 +212,9 @@ export function construireQuittance(d: DonneesQuittance) {
   const reglements =
     d.encaissements.length > 1
       ? `Règlements reçus sur ce terme : ${d.encaissements
-          .map((e) => `${eur(e.montant)} le ${f.date(e.date)} par ${f.champ(e.mode, "virement, chèque, espèces…")}`)
+          .map((e) => `${eur(e.montant)} le ${f.date(e.date)} par ${f.champ(libelleMode(e.mode), "virement, chèque, espèces…")}`)
           .join(" ; ")}`
-      : `Règlement reçu le ${f.date(d.encaissements[0]?.date)} par ${f.champ(d.encaissements[0]?.mode, "virement, chèque, espèces…")}`;
+      : `Règlement reçu le ${f.date(d.encaissements[0]?.date)} par ${f.champ(libelleMode(d.encaissements[0]?.mode), "virement, chèque, espèces…")}`;
   // SCI-3 : la déclaration et la signature nomment le représentant d'une société bailleresse quand il y en a un
   // (`signataireQuittance`) — formulation à valider juridiquement.
   const corps = `
@@ -208,8 +226,7 @@ export function construireQuittance(d: DonneesQuittance) {
       ["Logement loué", `<div>${f.champ(d.logementAdresse, "adresse complète, étage, porte")}</div>`],
       ["Bail", `Réf. ${f.champ(d.referenceBail, "référence du bail")} prenant effet le ${f.date(d.dateBail)}`],
     ])}
-    <p>Je soussigné(e) ${d.soussigne ?? d.bailleurNom}, bailleur du logement désigné ci-dessus, déclare avoir reçu de
-    ${d.locatairesNoms} la somme de <b>${eur(d.montant)}</b>, au titre du loyer et des charges pour la
+    <p>Je soussigné(e) ${d.soussigne ?? d.bailleurNom}, bailleur du logement désigné ci-dessus, déclare avoir reçu ${sommeRecue}, au titre du loyer et des charges pour la
     période du ${du} au ${au}${
       d.estQuittance
         ? ", et lui en donne <b>quittance</b>, sous réserve de tous mes droits."
@@ -231,6 +248,7 @@ export function construireQuittance(d: DonneesQuittance) {
         ? ligneTotal("Total du terme", f.montant(d.montantDu, "total du terme"))
         : ""
     }
+    ${origine}
     <p>${reglements}.</p>
     <div class="mentions">
       ${
@@ -275,7 +293,7 @@ export async function assemblerQuittance(
   const ctx = await chargerContexteBail(supabase, orgId, q.bail_id);
   if ("erreur" in ctx) return ctx;
 
-  const [{ data: appels }, { data: encaissements }] = await Promise.all([
+  const [{ data: appels, error: erreurAppels }, { data: encaissements, error: erreurEncaissements }] = await Promise.all([
     supabase
       .from("appels_loyer")
       .select("id, periode, loyer_hc, charges, montant_du, prorata")
@@ -287,6 +305,9 @@ export async function assemblerQuittance(
       .eq("bail_id", q.bail_id)
       .order("date_paiement"),
   ]);
+  if (erreurAppels || erreurEncaissements || (appels?.length ?? 0) >= 1000 || (encaissements?.length ?? 0) >= 1000) {
+    return { erreur: "Les versements du terme n’ont pas pu être vérifiés. Réessayez avant de délivrer le document." };
+  }
   const appel = (appels ?? []).find((a) => a.id === q.appel_id);
   if (!appel) return { erreur: "Appel de loyer introuvable pour cette quittance." };
 
@@ -326,7 +347,7 @@ export async function assemblerQuittance(
         created_at: e.created_at,
       })),
       q.appel_id
-    ).map((e) => ({ ...e, mode: libelleMode(e.mode) })),
+    ),
     bailleurNom: nomsBailleurs(f, ctx.bailleurs),
     soussigne: signataire?.soussigne,
     signataire: signataire?.signature,

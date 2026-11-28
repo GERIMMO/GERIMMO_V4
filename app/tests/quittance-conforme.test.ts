@@ -44,6 +44,26 @@ describe("le document conforme délivré au locataire", () => {
     expect(manquantsQuittance(doc)).toEqual([]);
   });
 
+  it.each([true, false])("distingue les versements du locataire et de la CAF (%s)", (est_quittance) => {
+    const d = quittanceDocumentComplete({
+      est_quittance,
+      montant: 600,
+      loyer_hc: est_quittance ? 550 : 650,
+      montant_du: est_quittance ? 600 : 700,
+      encaissements: [
+        { date_paiement: "2026-09-04", montant: 390, mode: "virement", created_at: null },
+        { date_paiement: "2026-09-05", montant: 210, mode: "caf", created_at: null },
+      ],
+    });
+    d.appels[0].montant_du = d.montant_du;
+    const { html } = assemblerQuittanceDelivree(d);
+    expect(html.includes("Versé par le locataire")).toBe(true);
+    expect(html.includes("Dont aide au logement versée par la CAF")).toBe(true);
+    expect(html).toMatch(/Versé par le locataire.*390,00/);
+    expect(html).toMatch(/Dont aide au logement versée par la CAF.*210,00/);
+    expect(html).not.toMatch(/déclare avoir reçu de\s+.*600,00/);
+  });
+
   it("agence : l'émetteur, son adresse, son SIRET et sa carte professionnelle ; le bailleur « représenté par »", () => {
     const d = quittanceDocumentComplete();
     const doc = assemblerQuittanceDelivree(d);

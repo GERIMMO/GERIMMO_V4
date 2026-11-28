@@ -4,13 +4,13 @@ import { baseApiFictive } from "./base-api-fictive";
 
 // Un nouveau dossier indépendant par scénario. Le signalement, les décisions et
 // les documents de la mission sont ensuite créés depuis les portails.
-export async function locationIntervention(db: Client, artisan: string, sci: boolean) {
+export async function locationIntervention(db: Client, artisan: string, sci: boolean, nouveauDossier = false) {
   baseApiFictive(process.env.SUPALOCAL_DB);
   const id = async (sql: string, args: unknown[]) => String((await db.query(sql,args)).rows[0].id);
   await db.query("begin");
   try {
     const responsable = await id("select id from auth.users where email=$1",["proprietaire@example.com"]);
-    const demonstration = new URL(process.env.SUPALOCAL_DB!).pathname === "/gerimmo_ci_demo_vente_api";
+    const demonstration = !nouveauDossier && new URL(process.env.SUPALOCAL_DB!).pathname === "/gerimmo_ci_demo_vente_api";
     const email = demonstration ? (sci ? "sam.riviere" : "jeanne.martin") + "@example.invalid" : "sam.riviere+"+randomUUID()+"@example.invalid";
     const mot=demonstration ? "Gerimmo-Demo-2026" : randomUUID()+"!A";
     if (demonstration) {

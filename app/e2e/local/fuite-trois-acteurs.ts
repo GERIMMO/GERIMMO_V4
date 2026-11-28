@@ -76,9 +76,16 @@ export async function preparerEtPlanifierFuite(db: Client, browser: Browser, art
         await expect(diagnostic).toBeVisible();
         await expect(completer).toHaveCount(0);
       }
+      // La proposition initiale peut remonter le formulaire. Attendre sa fin
+      // puis vérifier le total calculé avant de quitter l’étape.
+      await artisan.getByRole("button", { name: "Repartir d’un devis vierge", exact: true }).click();
+      await expect(artisan.getByRole("heading", { name: "Devis vierge", exact: true })).toBeVisible();
       await artisan.getByLabel("Ligne 1 : prestation",{exact:true}).fill("Réparation du joint de l’évier");
-      await artisan.getByLabel("Ligne 1 : prix unitaire HT",{exact:true}).fill("100");
+      const prix = artisan.getByLabel("Ligne 1 : prix unitaire HT", { exact: true });
+      await prix.fill("");
+      await prix.pressSequentially("100");
       await artisan.getByLabel("Ligne 1 : TVA",{exact:true}).selectOption("0");
+      await expect(artisan.locator("[data-totaux-devis]")).toContainText(/Total TTC\s*:\s*100,00/);
       async function etape(n:number) {
         const menu=artisan.getByLabel("Aller à une étape",{exact:true});
         if (await menu.isVisible()) await menu.selectOption(String(n-1));

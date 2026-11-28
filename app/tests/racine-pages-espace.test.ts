@@ -551,7 +551,7 @@ function dansUneRevalidation(n: ts.Node): boolean {
 /** Les écrans réservés aux agences, qui gardent leurs adresses /agence écrites à la main (nombre exact). */
 const AGENCE_EN_DUR_ADMISE: Exception[] = [
   {
-    fichier: "src/app/agence/[orgId]/page.tsx", fonction: "PageTableauDeBord", forme: "adresse /agence", nombre: 16,
+    fichier: "src/app/agence/[orgId]/page.tsx", fonction: "PageTableauDeBord", forme: "adresse /agence", nombre: 14,
     raison: "tableau de bord d'AGENCE : le propriétaire direct est servi avant par AccueilProprietaire (liens-espace-proprietaire.test.ts vérifie l'ordre)",
     preuve: ["src/app/agence/[orgId]/page.tsx", "if (estProprietaire) {\n    return (\n      <AccueilProprietaire"],
   },

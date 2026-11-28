@@ -1,3 +1,4 @@
+import { lireSuccesTraitements, ReperesTraitement } from "./suivi-traitements";
 import styles from "../console-direction.module.css";
 import TraitementsDurables from "./traitements-durables";
 import { ConsoleSection } from "@/components/console-section";
@@ -9,7 +10,7 @@ import { lireReglageSouscription } from "@/lib/reglage-souscription-serveur";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { formaterDateHeureParis, NOTE_FUSEAU } from "@/lib/heure-paris";
+import { NOTE_FUSEAU } from "@/lib/heure-paris";
 import { faitsACompleter, faitsManquants } from "@/lib/editeur";
 import { etatVendeurPourLaSante } from "@/lib/garde-souscription";
 import { EQUIPES } from "@/lib/missions";
@@ -112,13 +113,15 @@ export default async function PageSante() {
   const relais = adressesRelaisDuServeur();
   // Le même calcul que /admin et /admin/brief (25/09) : une seule requête du
   // journal, une seule fenêtre, un seul chiffre.
-  const [sante, orgs, passagesRelais] = await Promise.all([
+  const maintenant = new Date();
+  const [sante, orgs, passagesRelais, succes] = await Promise.all([
     chargerSante(supabase, process.env, manquants.length),
     supabase
       .from("organizations")
       .select("status, quittances_envoi_auto, appels_envoi_auto, relances_envoi_auto"),
     // Incident du 12 au 19/11 : l'alerte e-mail de 5 h n'est plus le seul signal de son propre échec.
     lirePassagesRelais(supabase),
+    lireSuccesTraitements(supabase),
   ]);
 
   const { configuration, taches, cycleMensuel: cycle } = sante;
@@ -208,7 +211,7 @@ export default async function PageSante() {
       </ConsoleSection>
 
       {/* ── Tâches planifiées ─────────────────────────────────────────── */}
-      <ConsoleSection id="taches" titre="Tâches automatiques" description="Derniers passages, retards et sauvegarde." icone="historique" ton={taches === null || nbEchec + nbRetard + nbJamais ? "ambre" : "vert"} statut={taches === null ? "Lecture indisponible" : nbEchec+nbRetard+nbJamais ? `${nbEchec+nbRetard+nbJamais} à vérifier` : "Passages consultables"}>
+      <ConsoleSection id="taches" titre="Tâches automatiques" description="Passages, succès, preuves de livraison et prochains créneaux." icone="historique" ton={taches === null || nbEchec + nbRetard + nbJamais ? "ambre" : "vert"} statut={taches === null ? "Lecture indisponible" : nbEchec+nbRetard+nbJamais ? `${nbEchec+nbRetard+nbJamais} à vérifier` : "Passages consultables"}>
         <div className="entete-carte mb-3">
 
           <Link href="/admin/journaux#historique-service" className="lien-discret text-sm">
@@ -223,26 +226,20 @@ export default async function PageSante() {
         ) : (
           <ul className="colonne-liste">
             {taches.map((t) => (
-              <li key={t.nom} id={t.nom === "sauvegarde" ? "sauvegarde" : undefined} className="rang w-full flex-wrap items-start gap-y-2 scroll-mt-6">
-                <span className="min-w-0 flex-1">
+              <li key={t.nom} id={t.nom === "sauvegarde" ? "sauvegarde" : `tache-${t.nom}`} className="rang w-full flex-wrap items-start gap-y-2 scroll-mt-6">
+                <div className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-baseline gap-x-2">
                     <span className="font-medium text-[var(--encre)]">{t.libelle}</span>
                     <span className="mono-discret sans-majuscules">Équipe {EQUIPES[t.equipe].nom} · {t.horaire}</span>
                   </span>
                   <span className="block text-sm text-[var(--texte-secondaire)]">{t.role}</span>
-                  <span className="mt-0.5 block text-sm text-[var(--texte-secondaire)]">
-                    {t.le ? (
-                      <>
-                        Dernière exécution le{" "}
-                        <time dateTime={t.le}>{formaterDateHeureParis(t.le)}</time> — {t.bilan}
-                      </>
-                    ) : (
-                      "Aucun passage enregistré dans l’historique consulté (30 derniers jours pour le suivi des dossiers et la sauvegarde)."
-                    )}
-                  </span>
+                  <ReperesTraitement traitement={{ ...t, passage: t.le, suspendu: t.etat === "pause" }}
+                    succes={succes[t.nom]} maintenant={maintenant} />
+                  {t.etat === "pause" && <Link href="/admin/equipes" className="lien-discret">Vérifier la pause dans Équipes</Link>}
+                  {t.etat === "non_configuree" && <a href="#connexions" className="lien-discret">Vérifier les connexions</a>}
                   {/* La commande de la ligne (audit C5). */}
                   {(t.etat === "jamais" || t.etat === "echec" || t.etat === "retard") && (
-                    <span className="mt-2 block">
+                    <div className="mt-2">
                       {t.commandable ? (
                         cronPose ? <LancerMission mission={t.nom} /> : <span className="text-sm text-[var(--encre)]">Le lancement manuel sera disponible une fois le service relié. Consultez les connexions ci-dessus.</span>
                       ) : t.nom === "sauvegarde" ? (
@@ -250,9 +247,9 @@ export default async function PageSante() {
                       ) : (
                         <Link href="/admin/autonomie?vue=dossiers" className="lien-discret">Actualiser les prochaines étapes dans « Activité et dossiers » →</Link>
                       )}
-                    </span>
+                    </div>
                   )}
-                </span>
+                </div>
                 <span className={`puce ${PUCE_TACHE[t.etat].classe}`}>{PUCE_TACHE[t.etat].libelle}</span>
               </li>
             ))}
@@ -260,8 +257,8 @@ export default async function PageSante() {
         )}
         {/* Le cycle mensuel (D07) : tâche de la base de données, hors Vercel — lue à part, son dernier passage a plus de 30 jours d'âge. */}
         <ul className="colonne-liste mt-3">
-          <li className="rang w-full flex-wrap items-start gap-y-2">
-            <span className="min-w-0 flex-1">
+          <li id="tache-cycle-mensuel" className="rang w-full flex-wrap items-start gap-y-2 scroll-mt-6">
+            <div className="min-w-0 flex-1">
               <span className="flex flex-wrap items-baseline gap-x-2">
                 <span className="font-medium text-[var(--encre)]">Cycle mensuel des loyers</span>
                 <span className="mono-discret sans-majuscules">Équipe {EQUIPES.exploitation.nom} · le 1er de chaque mois, au matin</span>
@@ -269,19 +266,11 @@ export default async function PageSante() {
               <span className="block text-sm text-[var(--texte-secondaire)]">
                 Génère les appels de loyer du mois et les quittances qui en découlent. Tâche de la base de données : elle ne se relance pas depuis cet écran.
               </span>
-              {cycle === null ? (
-                <span className="mt-0.5 block text-sm text-[var(--texte-secondaire)]">
-                  Le dernier passage du cycle mensuel n’a pas pu être lu. Rechargez la page.
-                </span>
-              ) : (
+              {cycle ? <ReperesTraitement traitement={{ nom: "cycle-mensuel", passage: cycle.le, bilan: cycle.bilan, suspendu: cycle.arretEnCours }}
+                succes={succes["cycle-mensuel"]} maintenant={maintenant} /> :
+                <p role="alert">Le dernier passage du cycle mensuel n’a pas pu être lu. Rechargez la page.</p>}
+              {cycle && (
                 <>
-                  <span className="mt-0.5 block text-sm text-[var(--texte-secondaire)]">
-                    {cycle.le ? (
-                      <>Dernière exécution le <time dateTime={cycle.le}>{formaterDateHeureParis(cycle.le)}</time> — {cycle.bilan}</>
-                    ) : (
-                      "Aucun passage enregistré dans l’historique."
-                    )}
-                  </span>
                   {cycle.etat === "retard" && (
                     <span className="mt-2 block text-sm text-[var(--encre)]">
                       Aucun passage depuis {cycle.joursDepuis} jours (seuil : 32). Les appels de loyer ne sont plus générés automatiquement tant que la tâche ne repart pas.
@@ -290,7 +279,7 @@ export default async function PageSante() {
                       reprise (<code className="rounded bg-[var(--filet-leger)] px-1 py-0.5 text-[12px]">app/docs/sauvegarde-et-restauration.md</code>). En attendant, « Générer l’échéancier » rattrape un bail à la fois (page du bail).</details>
                     </span>
                   )}
-                  {cycle.etat === "suspendu" && (
+                  {cycle.arretEnCours && (
                     <span className="mt-2 block text-sm text-[var(--encre)]">
                       Un arrêt d’urgence couvre le cycle mensuel : il ne se lance pas tant que l’arrêt n’est pas levé.{" "}
                       <Link href="/admin/relais" className="lien-discret">Ouvrir « Vacances et relais » →</Link>
@@ -298,7 +287,7 @@ export default async function PageSante() {
                   )}
                 </>
               )}
-            </span>
+            </div>
             <span className={`puce ${PUCE_CYCLE[cycle?.etat ?? "jamais"].classe}`}>{cycle ? PUCE_CYCLE[cycle.etat].libelle : "à vérifier"}</span>
           </li>
         </ul>

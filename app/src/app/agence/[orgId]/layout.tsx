@@ -1,3 +1,4 @@
+import { BandeauEnvoisHorsAccueil } from "./bandeau-envois-hors-accueil";
 import { piloteLimite } from "@/lib/perimetre-pilote";
 import { lireEnvoisProposes } from "@/lib/envois-suspendus";
 import { lireToutesLesPages } from "@/lib/lecture-complete";
@@ -327,7 +328,7 @@ export default async function LayoutAgence({
           </p>
         )}
         {estProprietaire && <span id="contenu-espace" tabIndex={-1} className="sr-only" />}
-        {!estProprietaire && piloteLimite() && bandeauEnvoisSuspendus && <p role="status" className="mx-4 my-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">{bandeauEnvoisSuspendus}</p>}
+        {!estProprietaire && piloteLimite() && bandeauEnvoisSuspendus && <BandeauEnvoisHorsAccueil message={bandeauEnvoisSuspendus} />}
         <FournisseurEtatIA etat={etatDeLIA}><FournisseurVoiesSignature voies={voiesDeSignature}>{children}</FournisseurVoiesSignature></FournisseurEtatIA>
         <BarreBasse espace={espace} navigation={navigation} orgId={orgId} racine={racine} organisations={estProprietaire ? [] : organisations} />
       </div>

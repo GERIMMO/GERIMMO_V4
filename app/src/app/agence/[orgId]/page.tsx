@@ -22,7 +22,8 @@ import { AccueilProprietaire } from "./accueil-proprietaire";
 import { LiensTableauDeBord } from "@/components/liens-tableau-de-bord";
 import { baseEspace } from "@/lib/racine-espace";
 import { ParcoursDemarrage } from "@/components/parcours-demarrage";
-import { envoisEteints as listerEnvoisEteints } from "@/lib/envois-automatiques";
+import { lireEnvoisProposes } from "@/lib/envois-suspendus";
+import { CanauxAccueilAgence } from "./canaux-accueil-agence";
 import { IconeTrait } from "@/components/icone-trait";
 import { PhotoDecor } from "@/components/photo-decor";
 import { PHOTOS_ACCUEIL } from "@/lib/photos-decor";
@@ -80,14 +81,12 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   // le dit — une fois par écran, un lien, jamais un geste à la place du
   // responsable. Les réglages se lisent ici parce que `verifierAccesEspace`
   // ne les porte pas.
-  const { data: reglagesEnvoi } = estResponsable
-    ? await supabase
-        .from("organizations")
-        .select("quittances_envoi_auto, appels_envoi_auto, relances_envoi_auto")
-        .eq("id", orgId)
-        .maybeSingle()
-    : { data: null };
-  const envoisEteints = listerEnvoisEteints(reglagesEnvoi);
+  const [reglagesEnvoi, envoisProposes] = await Promise.all([
+    supabase.from("organizations")
+      .select("quittances_envoi_auto, appels_envoi_auto, relances_envoi_auto")
+      .eq("id", orgId).maybeSingle(),
+    lireEnvoisProposes(supabase),
+  ]);
   // « Mon portefeuille » (maquette v3, RM-18.1.3) : l'agent ne lit que les
   // lots des mandats qui lui sont confiés — null : il voit tout.
   const portefeuille = await lotsDuPortefeuille(supabase, orgId, role, user.id);
@@ -210,7 +209,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   const nbLoues = lotsActifs.filter((l) => l.etat === "loue" || l.etat === "preavis").length;
   // L'assistant propose l'automatique dès qu'un lot est loué ; le parcours de
   // démarrage ne le redit pas sur le même écran.
-  const assistantProposeAutomatique = estResponsable && nbLoues > 0 && envoisEteints.length > 0;
+  const assistantProposeAutomatique = estResponsable && !traverseeLectureSeule && nbLoues > 0 && reglagesEnvoi.data?.quittances_envoi_auto === false;
   const enPreparation = lotsActifs.filter((l) => l.etat === "brouillon");
   // Vide, la carte « Lots en préparation » ne s'affiche pas ; un échec de
   // lecture, lui, se dit toujours (voir LectureImpossible).
@@ -542,26 +541,13 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
               <span className="font-normal text-[var(--texte-3)]"> · {elementsEnAttente}</span>
             )}
           </h2>
-          <Link href={`/agence/${orgId}/alertes`} className="lien-discret">
+          <Link href={`${base}/alertes`} className="lien-discret">
             Tout voir&nbsp;→
           </Link>
         </div>
 
-        {assistantProposeAutomatique && (
-          <div className="assistant-suggestion">
-            <p>
-              <b>Gerimmo peut faire seul</b> : envoyer {envoisEteints.join(", ")}. Rien ne
-              part sans votre accord — il se donne une fois, dans les réglages.
-            </p>
-            <Link
-              href={`/agence/${orgId}/profil#quittances`}
-              className={buttonVariants({ variant: "outline", size: "sm", className: "pointer-coarse:min-h-10" })}
-            >
-              Activer
-              <IndicateurLien />
-            </Link>
-          </div>
-        )}
+        <CanauxAccueilAgence base={base} reglages={reglagesEnvoi.error ? null : reglagesEnvoi.data}
+          envois={envoisProposes} peutRegler={estResponsable && !traverseeLectureSeule} />
 
         {planIllisible ? (
           <div className="p-4">

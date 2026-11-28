@@ -50,7 +50,7 @@ test.describe('Études, validation et visibilité par profil',()=>{
  test('une étude territoriale conserve un résultat sourcé sans lancer de campagne',async({page})=>{
   const fin=new Date().toISOString().slice(0,10),debut=new Date(Date.now()-7*86400000).toISOString().slice(0,10),source='E2E étude locale '+id;
   try{
-   await page.goto('/admin/territoire');await page.getByText('Compléter une étude ou les résultats d’un essai local',{exact:true}).click();
+   await page.goto('/admin/territoire');await page.getByText('Études territoriales',{exact:true}).click();await page.getByText('Compléter une étude ou les résultats d’un essai local',{exact:true}).click();
    await page.getByLabel('Département',{exact:true}).selectOption('75');await page.getByLabel('Information à compléter').selectOption('acquisition');
    await page.getByLabel('Nombre de clients réellement gagnés').fill('2');await page.getByLabel('Dépense totale attribuée au département (€)').fill('10');
    await page.getByLabel('Début de la période').fill(debut);await page.getByLabel('Fin de la période').fill(fin);await page.getByLabel('Source vérifiable').fill(source);await page.getByLabel('Méthode et limites').fill('Résultats entièrement fictifs et attribution locale pour la recette.');

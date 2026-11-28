@@ -1,3 +1,4 @@
+import { SuiviTraitements } from "../sante/suivi-traitements";
 import type { ReactNode } from "react";
 import { ConsoleSection } from "@/components/console-section";
 import type { FinancialSnapshot } from "@/lib/finances-supervision";
@@ -103,6 +104,7 @@ export default async function PageBrief({ searchParams }: { searchParams: Promis
       {vue === "bureau" && historique.erreur && <p role="alert" className="err mb-5">L’historique des comptes rendus est indisponible. Les données du jour restent distinctes de cette erreur.</p>}
       {lecturesEnEchec > 0 && <p role="alert" className="err mb-5">{pluriel(lecturesEnEchec, "lecture")} de cette page {lecturesEnEchec > 1 ? "ont" : "a"} échoué : ce qui manque n’est pas un zéro.</p>}
       {vue === "bureau" && estAujourdhui && <AccueilDirigeant finance={snapshotFinance} assistance={!assistance.error && typeof assistance.count === "number" ? assistance.count : null} decisions={decisions} aujourd={aujourdhui} faits={faits.snapshot} erreurFaits={faits.erreur} echecsEquipes={points.reduce((n, p) => n + p.contenu.echecs.length, 0)} />}
+      {vue === "bureau" && estAujourdhui && <SuiviTraitements db={supabase} />}
       <DetailsAccueil actif={vue === "bureau" && estAujourdhui} ouverte={Boolean(p.jour || p.equipe)}>
       {vue === "bureau" && <nav className={styles.overview} aria-label="Repères du jour">
         <Link href="/admin/brief?vue=decisions" className={styles.metric} data-tone="ambre"><span className={styles.icon}><ClipboardCheck size={21} aria-hidden="true" /></span><span><strong><ValeurVivante valeur={lecturesEnEchec ? "À vérifier" : decisions.total}>{lecturesEnEchec ? "À vérifier" : decisions.total}</ValeurVivante></strong><small>Sujets à traiter</small></span><ArrowRight size={17} aria-hidden="true" /></Link>

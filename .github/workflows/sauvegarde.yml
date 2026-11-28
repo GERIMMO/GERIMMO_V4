@@ -35,9 +35,10 @@
 #
 # SECRETS ATTENDUS (Settings → Secrets and variables → Actions) :
 #   GERIMMO_BACKUP_KEY          64 caractères hexadécimaux (openssl rand -hex 32)
-#   SUPABASE_DB_PASSWORD        mot de passe de la base (déjà utilisé par migrations.yml)
-#   GERIMMO_BACKUP_SERVICE_KEY  clé service_role du projet Supabase
 #   SCW_ACCESS_KEY / SCW_SECRET_KEY  clé d'API Scaleway limitée au compartiment
+# SECRETS DE L’ENVIRONNEMENT gerimmo-donnees (branche main, sans approbation) :
+#   SUPABASE_DB_PASSWORD        mot de passe de la base
+#   SUPABASE_SERVICE_ROLE_KEY   clé service_role du projet Supabase
 # VARIABLES (même écran, onglet Variables) :
 #   SCW_BUCKET  nom du compartiment (ex. gerimmo-sauvegardes)
 #   SCW_REGION  région, fr-par par défaut
@@ -65,7 +66,8 @@ jobs:
   sauvegarder:
     # Tant que le compartiment n'est pas nommé dans les variables, le chantier
     # ne fait rien (pas d'échec quotidien pour une configuration absente).
-    if: ${{ vars.SCW_BUCKET != '' }}
+    if: github.ref == 'refs/heads/main' && vars.SCW_BUCKET != ''
+    environment: gerimmo-donnees
     # Version figée, pas ubuntu-latest (Ubuntu 26 dès le 19/10/2026) : le client Postgres vient du dépôt PGDG
     # nommé d'après la version (lsb_release -cs), qui pourrait ne pas encore exister pour une Ubuntu neuve.
     runs-on: ubuntu-24.04
@@ -96,7 +98,7 @@ jobs:
         env:
           CLE: ${{ secrets.GERIMMO_BACKUP_KEY }}
           MDP: ${{ secrets.SUPABASE_DB_PASSWORD }}
-          SERVICE: ${{ secrets.GERIMMO_BACKUP_SERVICE_KEY }}
+          SERVICE: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           ACCES: ${{ secrets.SCW_ACCESS_KEY }}
           SECRET: ${{ secrets.SCW_SECRET_KEY }}
         run: |
@@ -122,7 +124,7 @@ jobs:
           GERIMMO_BACKUP_KEY: ${{ secrets.GERIMMO_BACKUP_KEY }}
           MDP: ${{ secrets.SUPABASE_DB_PASSWORD }}
           GERIMMO_BACKUP_SOURCE_URL: https://${{ env.REF }}.supabase.co
-          GERIMMO_BACKUP_SERVICE_KEY: ${{ secrets.GERIMMO_BACKUP_SERVICE_KEY }}
+          GERIMMO_BACKUP_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           set -euo pipefail
           # Le mot de passe est encodé pour l'URL (base.mjs le décode et le passe à pg_dump par PGPASSWORD).
@@ -184,7 +186,7 @@ jobs:
       - name: Consigner le passage dans Gerimmo
         if: always()
         env:
-          SERVICE: ${{ secrets.GERIMMO_BACKUP_SERVICE_KEY }}
+          SERVICE: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           ISSUE: ${{ job.status }}
           OCTETS: ${{ steps.relecture.outputs.octets }}
           FICHIERS: ${{ steps.relecture.outputs.fichiers }}

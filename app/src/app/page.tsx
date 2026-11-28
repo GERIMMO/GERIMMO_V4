@@ -85,11 +85,11 @@ export default async function PageVitrine() {
             <div className="public-hero-texte">
               <p className="eyebrow">L’immobilier en confiance</p>
               <h1>Vos locations,<br /><em>l’esprit tranquille.</em></h1>
-              <p className="public-chapo">Du premier bail au suivi des loyers, retrouvez vos biens, vos locataires et vos documents dans un espace simple et organisé.</p>
               <div className="public-actions">
                 <Link href="/inscription" className="btn-or">Créer mon compte <ArrowUpRight size={18} aria-hidden /></Link>
                 <a href="#fonctionnalites" className="btn-secondaire">Découvrir Gerimmo <ArrowRight size={17} aria-hidden /></a>
               </div>
+              <p className="public-chapo">Du premier bail au suivi des loyers, retrouvez vos biens, vos locataires et vos documents dans un espace simple et organisé.</p>
               <Link href="/tarifs" className="public-essai"><span aria-hidden className="public-point" />{badgeEssai()}</Link>
               <p className="public-note">Sans carte bancaire · Gestion locative partout en France</p>
             </div>

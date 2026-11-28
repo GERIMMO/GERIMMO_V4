@@ -10,8 +10,6 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlerteFormulaire } from "@/components/alerte-formulaire";
 
-// `dureeEssai` vient de la page (calculé côté serveur, à la date du jour) :
-// le texte du formulaire suit l'offre de lancement sans écart d'hydratation.
 export function FormulaireInscription({
   codeParrain,
   dureeEssai,
@@ -53,8 +51,8 @@ export function FormulaireInscription({
 
   return (
     <Card>
-      <CardContent className="pt-6">
-        <form data-saisie-libre action={action} className="space-y-4">
+      <CardContent className="pt-4 sm:pt-6">
+        <form data-saisie-libre action={action} className="space-y-3 sm:space-y-4">
           <div className="space-y-2">
             <Label htmlFor="nom">Votre nom</Label>
             <Input id="nom" name="nom" maxLength={100} autoComplete="family-name" required defaultValue={etat.valeurs?.nom} className="min-h-11" />

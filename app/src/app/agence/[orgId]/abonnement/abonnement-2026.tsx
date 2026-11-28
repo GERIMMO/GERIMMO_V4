@@ -43,6 +43,7 @@ import {
 } from "@/lib/tarifs";
 import { EncadreLectureImpossible, EnteteReglages, statutAbonnement } from "../profil/famille-reglages";
 import { baseEspace } from "@/lib/racine-espace";
+import { FormulaireReprisePremierBien } from "./formulaire-reprise-premier-bien";
 
 type Etat = {
   statut: string;
@@ -106,7 +107,7 @@ function montantLu(o: Offre): string {
 export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonnement">) {
   const { orgId } = await props.params;
   const recherche = await props.searchParams;
-  const { supabase, user, organisation, role, estProprietaire } = await verifierAccesEspace(orgId);
+  const { supabase, user, organisation, role, estProprietaire, traverseeLectureSeule } = await verifierAccesEspace(orgId);
   // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
   const base = baseEspace(orgId, estProprietaire);
   if (!["admin_agence", "proprietaire_direct"].includes(role)) notFound();
@@ -153,6 +154,9 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
   const cadeaux = (cadeauxLus.data ?? []) as { id: string; nature: string; fin: string | null; montant_cents: number; applique_le: string | null }[];
   const accesOffert = enEssai && !ferme && cadeaux.some(c => c.nature === "acces" && c.fin === etat.essai_fin);
   const souscrit = paiement.souscrit;
+  const peutRouvrir = estProprietaire && !traverseeLectureSeule && ferme && enEssai
+    && enGestion === 0 && !souscrit && !fermeture
+    && (await supabase.rpc("reprise_premier_bien_possible", { p_org: orgId })).data === true;
   // Relecture adverse du 24/10 (I2) : un défaut de paiement encore inscrit sur une souscription terminée. Résiliée pour
   // impayé (ni résiliation demandée, ni rétractation), le statut du contrat ne prouve pas le règlement ou l’annulation de sa facture.
   const alerteRetard = paiement.paiement_en_retard && souscrit;
@@ -357,9 +361,10 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
             <span className="text-muted-foreground">
               {enEssai ? "Votre essai gratuit est arrivé à son terme." : "Vos droits d'accès payés ont pris fin."} Rien
               n&apos;a été supprimé : vous pouvez tout consulter et tout exporter.
-              {peutSouscrire && " Souscrivez ci-dessous pour reprendre la saisie exactement où vous l’avez laissée."}
+              {peutSouscrire && (estAgence || enGestion > 0) && " Souscrivez ci-dessous pour reprendre la saisie exactement où vous l’avez laissée."}
             </span>
           </p>
+          {peutRouvrir && <FormulaireReprisePremierBien orgId={orgId} />}
         </div>
       )}
 

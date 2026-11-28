@@ -25,6 +25,9 @@
  *
  * Aucune adresse réelle : domaine example.invalid.
  */
+import { Client } from "pg";
+import { verifierBaseDeTest } from "./garde-base";
+import { creerPremierBienFictif, preparerEssaiExpireSansBien } from "./fixtures/reprise-premier-bien";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { libelleActionAudit } from "@/lib/libelles-journaux";
 import { offreParticulier } from "@/lib/tarifs";
@@ -451,12 +454,12 @@ function fauxRegistre() {
 let faux: ReturnType<typeof fauxStripe>;
 let registre: ReturnType<typeof fauxRegistre>;
 
-function etatOrganisation(souscrit: boolean) {
+function etatOrganisation(souscrit: boolean, unites = 1, essaiFin: string | null = null) {
   m.rpc.mockImplementation(async (nom: string) => {
     await tour();
     if (nom === "etat_abonnement") {
       return {
-        data: [{ statut: souscrit ? "active" : "essai", ecriture_ouverte: true, essai_fin: null, public_tarif: "proprietaire_direct", unites_facturees: 1, en_ligne_possible: true, grille: "2026-09-28", unites_a_couvrir: 1, unites_souscrites: souscrit ? 1 : null }],
+        data: [{ statut: souscrit ? "active" : "essai", ecriture_ouverte: true, essai_fin: essaiFin, public_tarif: "proprietaire_direct", unites_facturees: unites, en_ligne_possible: true, grille: "2026-09-28", unites_a_couvrir: unites, unites_souscrites: souscrit ? 1 : null }],
         error: null,
       };
     }
@@ -511,6 +514,38 @@ beforeEach(() => {
   m.serviceRpc.mockImplementation(registre.rpc);
   vi.spyOn(console, "info").mockImplementation(() => {});
   vi.spyOn(console, "error").mockImplementation(() => {});
+});
+
+const urlBaseReprise = process.env.SUPABASE_DB_URL;
+verifierBaseDeTest(urlBaseReprise);
+
+it.skipIf(!urlBaseReprise)("rouvre l’essai réel en base, refuse zéro bien, puis souscrit après l’ajout du premier bien", async () => {
+  const db = new Client({ connectionString: urlBaseReprise });
+  await db.connect();
+  try {
+    await db.query("begin");
+    const { org, commeTitulaire } = await preparerEssaiExpireSansBien(db);
+    await commeTitulaire();
+    const { rows: [{ fin }] } = await db.query("select public.rouvrir_essai_premier_bien($1)::text as fin", [org]);
+    expect(fin).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    const relireEtat = async () => (await db.query("select unites_a_couvrir from public.etat_abonnement($1)", [org])).rows[0].unites_a_couvrir;
+
+    etatOrganisation(false, await relireEtat(), fin);
+    expect(await issue(demarrerAbonnement(ORG, {}, souscrire()))).toEqual({ erreur: "Aucun bien actif à facturer." });
+    expect(ouvertes()).toHaveLength(0);
+
+    expect(await creerPremierBienFictif(db, org)).toMatchObject({ lot_unique_id: expect.any(String) });
+    etatOrganisation(false, await relireEtat(), fin);
+    expect((await issue(demarrerAbonnement(ORG, {}, souscrire()))).url).toMatch(/^https:\/\/checkout\.stripe\.test/);
+    expect(ouvertes()).toHaveLength(1);
+    const preuve = m.serviceRpc.mock.calls.find(([nom]) => nom === "abonnement_geste_consigner");
+    expect(preuve?.[1]).toMatchObject({
+      p_details: { montant_cents: 599, periodicite: "mensuel", premier_prelevement_differe: true },
+    });
+  } finally {
+    await db.query("rollback");
+    await db.end();
+  }
 });
 
 describe("A01 — une seule page de paiement par organisation", () => {

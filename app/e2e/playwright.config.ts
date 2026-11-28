@@ -15,6 +15,7 @@ export default defineConfig({
     // Ces trois parcours exigent un fournisseur fictif, lancé dans la passe dédiée.
     /lot2-(?:pilote|artisan|invitations)\.spec\.ts/,
     /premiere-location-continue\.spec\.ts/,
+    /inscription-premier-bien\.courriels\.spec\.ts/,
     ...(process.env.E2E_CI === "1" ? [/visuel\.spec\.ts/] : []),
   ],
   outputDir: "./.results",

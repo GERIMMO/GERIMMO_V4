@@ -65,6 +65,7 @@ const ACTIONS: Record<string, string> = {
   avenant_bail_annule: "Avenant annulé avant son application",
   reglement_facture_enregistre: "Règlement d’une facture d’artisan déclaré (écriture de dépense liée)",
   reglement_facture_retire: "Règlement d’une facture d’artisan retiré (contre-écriture passée)",
+  reprise_essai_premier_bien: "Réouverture de 7 jours pour ajouter un premier bien",
   mois_abonnement_offerts: "Mois d’abonnement offerts",
   mois_offerts_credit_applique: "Crédit de mois offerts appliqué",
   mois_reouvert: "Mois comptable rouvert",

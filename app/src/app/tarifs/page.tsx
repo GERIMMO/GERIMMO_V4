@@ -1,44 +1,82 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import { connection } from "next/server";
 import { EnTetePublic, PiedPublic } from "@/components/chrome-public";
 import { EncartOutils } from "@/components/outils/encart-outils";
 import { Article } from "@/components/coquille-legale";
 import { CartesOffresPubliques } from "@/components/cartes-offres-publiques";
 import { REGIME_TVA } from "@/lib/editeur";
-import { badgeEssai, dureeEssai, etiquetteTaxes, mentionTaxesPubliques } from "@/lib/tarifs";
+import { badgeEssai, dureeEssai, etiquetteTaxes, euros, mentionTaxesPubliques, montantAbonnementUnique } from "@/lib/tarifs";
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
+
+import { clientDeService } from "@/lib/supabase/service";
+import { datePremierPrelevement } from "@/lib/stripe-offres";
+import { jourEnLettres } from "@/lib/delai-retractation";
+
+export const revalidate = 3600;
 
 const TTC = etiquetteTaxes("ttc", REGIME_TVA);
 const avec = (e: string | null) => (e ? ` ${e}` : "");
-
-export const revalidate = 3600;
+const dateExemple = datePremierPrelevement("2027-01-27", Date.parse("2026-11-27T12:00:00+01:00"));
 
 export function generateMetadata() {
   return metadonneesPubliques({
     titre: "Tarifs — Gerimmo",
-    description: `Un abonnement Gerimmo pour les particuliers et SCI, dès 5,99 €${avec(TTC)}/mois.${REGIME_TVA?.nature === "franchise" ? " TVA non applicable, article 293 B du CGI." : ""} Essai gratuit de ${dureeEssai()}.`,
+    description: `Un abonnement Gerimmo pour les particuliers et SCI, dès ${euros(montantAbonnementUnique(1, "mensuel"))}${avec(TTC)}/mois.${REGIME_TVA?.nature === "franchise" ? " TVA non applicable, article 293 B du CGI." : ""} Essai gratuit de ${dureeEssai()}.`,
     chemin: "/tarifs",
   });
 }
 
-// La page des tarifs (grille du 28/09/2026). Les tableaux sont rendus depuis
-// lib/tarifs.ts, le module qui sert aussi à facturer : aucun prix n'est
-// recopié ici. Ce qui n'est pas proposé est dit — pas de promesse sur des
-// services externes dont le coût n'est pas défini.
+const AIDE_SOUSCRIPTION = "Consultez « Mon abonnement » dans votre espace pour connaître les modalités de souscription.";
+
+async function EtatSouscriptions() {
+  await connection();
+  const reglages = await clientDeService()?.from("supervision_identite")
+    .select("souscriptions_payantes_ouvertes").eq("singleton", true).maybeSingle();
+  const ventesOuvertes = reglages?.data?.souscriptions_payantes_ouvertes;
+  return (
+    <p className="mt-4">{ventesOuvertes === true
+      ? "Les souscriptions sont ouvertes. Dans votre espace, choisissez le paiement mensuel ou annuel dans « Mon abonnement »."
+      : ventesOuvertes === false
+        ? "Les souscriptions sont fermées pour le moment. Vous pouvez commencer votre essai."
+        : AIDE_SOUSCRIPTION}</p>
+  );
+}
+
 export default function PageTarifs() {
   const mentionTaxes = mentionTaxesPubliques(REGIME_TVA);
-  const duree = dureeEssai();
   return (
     <div className="site-public flex min-h-full flex-1 flex-col">
       <EnTetePublic />
       <main className="flex-1">
         <header className="public-page-intro"><div className="public-conteneur">
           <h1>L’abonnement Gerimmo pour votre espace propriétaire.</h1>
-          <p>L’inscription ouvre un essai gratuit de {duree}, sans carte bancaire. Les tarifs ci-dessous vous permettent d’estimer un futur abonnement. Lorsque les souscriptions sont ouvertes, vous choisissez votre formule dans « Mon abonnement ».</p>
-          <p className="public-essai mt-4">{badgeEssai()}</p>
+          <p>{badgeEssai()}, sans carte bancaire.</p>
+          <Link href="/inscription" className="btn-or mt-4">Commencer mon essai gratuit</Link>
+          <Suspense fallback={<p className="mt-4">{AIDE_SOUSCRIPTION}</p>}>
+            <EtatSouscriptions />
+          </Suspense>
         </div></header>
         <div className="public-conteneur public-section">
           <CartesOffresPubliques />
           <p className="public-note">{mentionTaxes}</p>
+          <section className="offre-publique mx-auto mt-8 max-w-2xl">
+            <h2 id="exemples-prelevement">Exemples de premier prélèvement</h2>
+            <p className="my-3">Pour un espace ouvert le 27 novembre 2026, avec une souscription ce jour-là et un nombre de biens stable, le premier prélèvement a lieu le {jourEnLettres(dateExemple!)}.</p>
+            <table aria-labelledby="exemples-prelevement" className="w-full text-left text-sm">
+              <thead><tr><th scope="col" className="py-2">Biens</th><th scope="col">Mensuel</th><th scope="col">Annuel</th></tr></thead>
+              <tbody>
+                {[1, 2, 8].map(biens => (
+                  <tr key={biens} className="border-t border-[var(--filet)]">
+                    <th scope="row" className="py-2">{biens}</th>
+                    <td>{euros(montantAbonnementUnique(biens, "mensuel"))}</td>
+                    <td>{euros(montantAbonnementUnique(biens, "annuel"))}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="mt-3 text-sm">L’annuel est prélevé en une fois et coûte l’équivalent de 10 mensualités. La date et le montant de votre premier prélèvement sont affichés dans « Mon abonnement » avant de confirmer.</p>
+          </section>
           <div className="public-tarifs-details">
         <Article titre="Particuliers et SCI gérant leurs propres biens">
           <ul className="list-disc space-y-1 pl-5">

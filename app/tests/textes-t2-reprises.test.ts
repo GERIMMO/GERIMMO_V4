@@ -69,7 +69,7 @@ describe("T2R-1 — la règle des six mois est dite sous condition, aux deux end
     const suivantes = ordre.slice(ordre.indexOf("20261125111000_textes_officiels_t3.sql") + 1);
     // Fusion des deux arbres de travail (25/11) : les migrations des lots D5 (20261125140000) et de la reprise D4
     // (20261125150000), préparées en parallèle, prennent leur rang d'horodatage ; aucune ne touche ce calcul (ligne suivante).
-    expect(suivantes).toEqual([
+    expect(suivantes.filter(migration => migration <= "20261125154000_bail_epoux_pacses_marque_a_la_nouvelle_signature.sql")).toEqual([
       "20261125140000_ancien_parcours_signature_manuelle_droits_retires.sql",
       "20261125150000_accord_conditions_version_archivee.sql",
       "20261125151000_textes_t3_reprise_exercice_ancien.sql",

@@ -137,7 +137,7 @@ const SRC = path.resolve(__dirname, "../src");
  */
 const EXCEPTIONS: Record<string, { fonctions: Record<string, number>; raison: string }> = {
   "app/agence/[orgId]/page.tsx": {
-    fonctions: { PageTableauDeBord: 16 },
+    fonctions: { PageTableauDeBord: 14 },
     raison: "tableau de bord d'AGENCE : le propriétaire direct est servi plus haut par AccueilProprietaire",
   },
   "app/agence/[orgId]/fil-activite.tsx": {

@@ -1,10 +1,10 @@
+import { formaterDate } from '@/lib/ged';
 import {SuiviProspects} from "./prospects";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from 'next/link';
 import {appliquerEtudes,type EtudeTerritoriale} from '@/lib/etudes-territoriales';
 import {FormulaireEtude} from './etude';
-import { ArrowRight, ArrowUpRight, Building2, Inbox, MapPin, ShieldCheck, Users, UserRound, Clock3 } from 'lucide-react';
-import { LIBELLES_STATUT_ORGANISATION } from '@/lib/libelles';
+import { ArrowRight, ArrowUpRight, Inbox, ShieldCheck, Users } from 'lucide-react';
 import { formaterDateParis } from '@/lib/heure-paris';
 import base from '../repertoires.module.css';
 import styles from '../pilotage.module.css';
@@ -32,7 +32,7 @@ function sourcePublique(url?: string) {
 export default async function PageTerritoire({searchParams}:{searchParams:Promise<Record<string,string|undefined>>}) {
   const p=await searchParams;
   const supabase = await createClient();
-  const [orgs, biens, lots, baux, passes, erreurs, bugs, donneesMarche, etudes, demandes] = await Promise.all([
+  const [orgs, biens, lots, baux, passes, erreurs, bugs, donneesMarche, etudes, demandes, echeance] = await Promise.all([
     lireTerritoire(supabase, 'organizations', 'id,name,type,status,postal_code,created_at'),
     lireTerritoire(supabase, 'biens', 'id,organization_id,postal_code'),
     lireTerritoire(supabase, 'lots', 'id,bien_id,etat'),
@@ -42,7 +42,10 @@ export default async function PageTerritoire({searchParams}:{searchParams:Promis
     supabase.from('retours_utilisateurs').select('id', { count: 'exact', head: true }).eq('nature', 'bug').eq('gravite', 'N1').in('etat', ['nouveau','en_examen','en_cours']),
     supabase.from('territory_market_data').select("departement,logements_locatifs,agences_locales,tension_marche,concurrence,artisans_disponibles,cout_publicitaire_cents,clics_publicitaires,prospects,clients_gagnes,cout_acquisition_cents,cout_prospect_cents,periode_publicite_debut,periode_publicite_fin,observations,mesure_le"),
     supabase.from('territory_studies_latest').select('*'),
-    supabase.from('demandes_devis').select('id,nom,agence,created_at', {count:'exact'}).is('traitee_le',null).order('created_at',{ascending:true}).limit(5),
+    supabase.from('demandes_devis').select('id,nom,agence,created_at', {count:'exact'}).is('traitee_le',null).order('created_at',{ascending:true}).limit(3),
+    supabase.from('supervision_prospects').select('id,nom,echeance,prochaine_action')
+      .not('etape', 'in', '(gagne,perdu)').not('echeance', 'is', null)
+      .order('echeance').order('id').limit(1).maybeSingle(),
   ]);
   const echec = [orgs.error, biens.error, lots.error, baux.error].some(Boolean);
   const empreinte = empreinteParDepartement({ organisations: (orgs.data ?? []) as LigneOrganisation[], biens: (biens.data ?? []) as LigneBien[], lots: (lots.data ?? []) as LigneLot[], baux: (baux.data ?? []) as LigneBail[] });
@@ -85,32 +88,42 @@ export default async function PageTerritoire({searchParams}:{searchParams:Promis
     { titre: 'Réseau vérifié', valeur: reseauVerifie, detail: 'départements dont la couverture est connue', accent: reseauVerifie === 0 ? 'ambre' : '' },
   ];
 
-  const organisations = (orgs.data ?? []) as (LigneOrganisation & { name:string; created_at:string })[];
-  const owners = organisations.filter(o=>o.type==='proprietaire_direct');
-  const trialCount = organisations.filter(o=>o.status==='essai').length;
   return <main className={base.page}>
     <header className={base.header}><div><TitreEcran rubrique="territoire">Développement commercial</TitreEcran><p className={base.subtitle}>Les demandes à examiner, vos espaces clients et les territoires à explorer.</p></div><div className={styles.actions}><Link href="/admin/clients" className="btn-secondaire"><Users size={15} aria-hidden="true"/>Utilisateurs</Link><Link href="/admin/devis" className="btn-secondaire"><Inbox size={16} aria-hidden="true"/>Demandes de contact</Link></div></header>
-    <div className={base.stats}>{[
-      {title:'Demandes à qualifier',value:demandes.error?'—':demandes.count??0,detail:'Contacts du site en attente',icon:Inbox,tone:'ambre'},
-      {title:'Propriétaires bailleurs',value:orgs.error?'—':owners.length,detail:'Espaces enregistrés, tous statuts',icon:UserRound,tone:'vert'},
-      {title:'Espaces en essai',value:orgs.error?'—':trialCount,detail:'Propriétaires et agences',icon:Clock3,tone:'bleu'},
-      {title:'Départements présents',value:echec?'—':empreinte.lignes.length,detail:'Présence du parc immobilier',icon:MapPin,tone:'bleu'},
-    ].map(t=><div key={t.title} className={base.stat} data-tone={t.tone}><span className={base.statIcon}><t.icon size={19} aria-hidden="true"/></span><strong>{t.value}</strong><span>{t.title}</span><small>{t.detail}</small></div>)}</div>
-    <SuiviProspects p={p}/>
-    <div className={styles.hero}>
-      <section className={`${styles.panel} ${styles.feature}`}><div className={styles.head}><div><p className={styles.eyebrow}>VOTRE SUIVI IMMÉDIAT</p><h2>Les demandes à examiner</h2><p>Les cinq plus anciennes demandes en attente de traitement.</p></div><span className={styles.icon}><Inbox size={21} aria-hidden="true"/></span></div>
-        {demandes.error?<p role="alert" className="err">Les demandes sont indisponibles. Réessayez depuis leur liste.</p>:!demandes.data?.length?<div className={styles.empty}><Inbox size={29} aria-hidden="true"/><div><h3>Aucune demande en attente</h3><p>Les messages du site apparaissent ici. Qualifiez chaque contact avant de le considérer comme une opportunité commerciale.</p></div></div>:<div>{demandes.data.map(d=><Link key={d.id} href={`/admin/devis#demande-${d.id}`} className={styles.contentRow}><strong>{d.nom}{d.agence?` · ${d.agence}`:''}</strong><small>Reçue le {date(d.created_at)} · Examiner la demande →</small></Link>)}</div>}
-        <Link href="/admin/devis" className={styles.link}>Toutes les demandes et leur suivi <ArrowUpRight size={15} aria-hidden="true"/></Link>
-        <p className={styles.note}>Ces contacts peuvent aussi concerner l’assistance ou les données personnelles. Une demande n’est pas une inscription.</p>
+    <div className="grid gap-4 lg:grid-cols-3">
+      <section className={styles.panel}>
+        <h2>Demandes à rappeler</h2>
+        {demandes.error ? <p role="alert">Les demandes sont indisponibles.</p> : <>
+          <p>{demandes.count ?? 0} en attente de traitement</p>
+          {demandes.data?.map(d => <Link key={d.id} href={`/admin/devis#demande-${d.id}`} className={styles.contentRow}>
+            <strong className="break-words">{d.nom}</strong><small>Reçue le {date(d.created_at)}</small>
+          </Link>)}
+        </>}
+        <Link href="/admin/devis" className={styles.link}>Examiner les demandes <ArrowUpRight size={15} aria-hidden="true" /></Link>
       </section>
-      <aside className={`${styles.panel} ${styles.gold}`}><p className={styles.eyebrow}>DE LA DEMANDE AU CLIENT</p><h2>Les prochaines étapes</h2>{[
-        {title:'Qualifier le besoin',text:'Identifier le profil, le besoin et la réponse à apporter.'},
-        {title:'Accompagner l’essai',text:'Ouvrir la fiche du client et vérifier son accès et ses premières démarches.'},
-        {title:'Suivre la souscription',text:'Retrouver le statut de paiement et l’échéance dans Abonnements et finances.'},
-      ].map((step,i)=><div className={styles.step} key={step.title}><span>{i+1}</span><div><strong>{step.title}</strong><p>{step.text}</p></div></div>)}<Link className={styles.link} href="/admin">Suivre les abonnements <ArrowUpRight size={15} aria-hidden="true"/></Link></aside>
+      <section className={styles.panel}>
+        <h2>Échéance la plus proche</h2>
+        {echeance.error ? <p role="alert">L’échéance est indisponible.</p> : echeance.data ? (
+          <Link href={`/admin/territoire/prospects/${echeance.data.id}`} className={styles.contentRow}>
+            <strong>{formaterDate(echeance.data.echeance)}</strong>
+            <span className="break-words">{echeance.data.nom}</span>
+            <small className="break-words">{echeance.data.prochaine_action ?? 'Ouvrir le dossier'}</small>
+          </Link>
+        ) : <p>Aucune échéance prévue pour les prospects en cours.</p>}
+      </section>
+      <section className={styles.panel}>
+        <h2>Suivi</h2>
+        <div className="grid gap-2">
+          <Link href="/admin/territoire?suivi=1#prospects" className={styles.link}>Voir les prospects</Link>
+          <Link href="/admin/clients" className={styles.link}>Accompagner les clients</Link>
+          <Link href="/admin" className={styles.link}>Suivre les abonnements</Link>
+        </div>
+      </section>
     </div>
-    <section className={styles.panel}><div className={styles.head}><div><p className={styles.eyebrow}>VOTRE PORTEFEUILLE</p><h2>Les derniers espaces créés</h2><p>Ouvrez une fiche pour accompagner le client dans ses premières démarches.</p></div><Building2 size={21} aria-hidden="true"/></div>{orgs.error?<p className="err" role="alert">Les espaces sont momentanément indisponibles.</p>:!organisations.length?<p className={styles.intro}>Aucun espace client enregistré.</p>:<div className={styles.columns}>{[...organisations].sort((a,b)=>b.created_at.localeCompare(a.created_at)).slice(0,6).map(o=><Link key={o.id} href={`/admin/organisations/${o.id}`} className={styles.contentRow}><div className="flex flex-wrap items-start justify-between gap-2"><strong>{o.name}</strong><span className={base.badge} data-tone={o.status==='essai'?'ambre':o.status==='active'?'vert':'gris'}>{LIBELLES_STATUT_ORGANISATION[o.status]??o.status}</span></div><small>{o.type==='proprietaire_direct'?'Propriétaire bailleur':'Agence'} · créé le {date(o.created_at)}</small><span className={styles.link}>Ouvrir la fiche <ArrowUpRight size={14} aria-hidden="true"/></span></Link>)}</div>}<p className={styles.note}>L’état de l’espace concerne son accès. Un abonnement payé se vérifie dans <Link href="/admin" className="underline">Abonnements et finances</Link>.</p></section>
-    <section className={styles.territory} aria-labelledby="territoire-titre"><div className={styles.sectionTitle}><div><p className={styles.eyebrow}>CHOISIR OÙ DÉVELOPPER GERIMMO</p><h2 id="territoire-titre">Marché et présence territoriale</h2><p>Une recommandation documentée avant tout recrutement ou campagne.</p></div><Link href="/admin/couverture" className={styles.link}>Couverture des artisans <ArrowUpRight size={15} aria-hidden="true"/></Link></div>
+    {(p.suivi || p.qProspect || p.etapeProspect || p.retard || p.pageProspects || p.opposition) && <SuiviProspects p={p}/>}
+    <details className={styles.panel}>
+      <summary className="cursor-pointer text-lg font-semibold">Études territoriales</summary>
+      <section className={styles.territory} aria-label="Marché et présence territoriale">
     <p className="text-sm">La gestion locative est déjà accessible partout en France. Les priorités de recrutement ne conditionnent pas l’inscription. <Link href="/admin/couverture" className="underline">Voir la couverture du réseau d’artisans, par commune et métier →</Link></p>
     {(echec || donneesMarche.error) && <p role="alert" className="err">Certaines informations ne sont pas disponibles. {echec ? 'La recommandation est suspendue pour éviter de choisir sur un portefeuille incomplet.' : 'Les sources publiques restent visibles ; le réseau et les résultats commerciaux doivent être actualisés.'}</p>}
     {/* La tuile commune de la console (24/09). La couleur suit la valeur : ambre
@@ -159,6 +172,7 @@ export default async function PageTerritoire({searchParams}:{searchParams:Promis
     {/* Doctrine repliée (nuit du 25/09) : un pavé de texte sans décision, entre deux tableaux. */}
     <details className="section-ecran"><summary className="cursor-pointer text-lg font-semibold">Du classement à un essai local</summary><p className="mesure-lecture mt-3 text-sm">Lorsque les contrôles de qualité le permettent, Gerimmo prépare une idée de recrutement pour le département conseillé et le public prioritaire. Retrouvez-la dans l’Agent marketing pour préparer son contenu, puis suivre ses résultats. Cette préparation ne déclenche aucune diffusion ni dépense.</p><Link className="btn-secondaire mt-4" href="/admin/marketing">Voir les idées et les campagnes</Link></details>
     <section className="section-ecran"><div className="entete-carte"><h2>Où Gerimmo est déjà présent</h2><span className="mono-discret">Biens localisés, quel que soit le siège de l’agence</span></div>{empreinte.lignes.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">{echec ? 'Présence momentanément indisponible.' : 'La présence apparaît dès qu’une organisation ou un bien possède un code postal.'}</p> : <><ul className="colonne-liste mt-3 sm:hidden">{empreinte.lignes.map(l => <li key={l.code} className="rang w-full flex-col items-stretch text-sm"><p className="font-semibold">{l.nom} ({l.code})</p><p className="mt-1">{pluriel(l.biens, 'bien', 'biens')} · {pluriel(l.lots, 'lot', 'lots')} · {pluriel(l.bauxEnCours, 'bail en cours', 'baux en cours')}</p><p className="mt-1 text-sm text-[var(--texte-secondaire)]">{pluriel(l.agences, 'agence', 'agences')} · {pluriel(l.proprietairesDirects, 'bailleur direct', 'bailleurs directs')}</p></li>)}</ul><div className="tableau-defilant mt-3 hidden sm:block" tabIndex={0} role="group" aria-label="Présence de Gerimmo par département"><table className="tableau w-full min-w-[38rem] text-sm"><caption className="sr-only">Portefeuille de Gerimmo par département</caption><thead><tr><th>Département</th><th>Agences</th><th>Bailleurs directs</th><th>Biens</th><th>Lots</th><th>Baux en cours</th></tr></thead><tbody>{empreinte.lignes.map(l => <tr key={l.code}><td>{l.nom} ({l.code})</td><td>{l.agences}</td><td>{l.proprietairesDirects}</td><td>{l.biens}</td><td>{l.lots}</td><td>{l.bauxEnCours}</td></tr>)}</tbody></table></div></>}</section>
-    </section>
+      </section>
+    </details>
   </main>;
 }

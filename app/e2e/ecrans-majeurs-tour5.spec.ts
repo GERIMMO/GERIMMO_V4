@@ -55,7 +55,7 @@ test.describe("console du super admin", () => {
   });
 
   test("E088 : à 390 px, le champ de recherche des prospects garde sa largeur et son libellé sur une ligne", async ({ page }) => {
-    await page.goto("/admin/territoire#prospects");
+    await page.goto("/admin/territoire?suivi=1#prospects");
     const champ = page.locator('input[name="qProspect"]');
     // Vérification groupée de la fusion (25/11) : la console est rendue en flux (src/app/admin/loading.tsx) ; sur un serveur
     // froid, le défilement partait avant que le contenu soit en place (« élément détaché »). On attend la section, puis le champ.

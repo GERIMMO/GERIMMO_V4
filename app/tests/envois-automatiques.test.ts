@@ -13,12 +13,13 @@ describe("les envois encore manuels", () => {
     expect(toutManuel({ quittances_envoi_auto: true, appels_envoi_auto: false, relances_envoi_auto: false })).toBe(false);
   });
 
-  it("le parcours de démarrage propose l'automatique vers le profil, et le tableau de bord partage la liste", () => {
+  it("le démarrage garde son lien de réglage et l’accueil se fonde sur les canaux disponibles", () => {
     const src = path.resolve(__dirname, "..", "src");
     const parcours = fs.readFileSync(path.join(src, "components/parcours-demarrage.tsx"), "utf8");
     expect(parcours).toContain("toutManuel(");
     expect(parcours).toContain("/profil#quittances");
     const tableau = fs.readFileSync(path.join(src, "app/agence/[orgId]/page.tsx"), "utf8");
-    expect(tableau).toContain('from "@/lib/envois-automatiques"');
+    expect(tableau).toContain("lireEnvoisProposes(supabase)");
+    expect(tableau).toContain("envois={envoisProposes}");
   });
 });

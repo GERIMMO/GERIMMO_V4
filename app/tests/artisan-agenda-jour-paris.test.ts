@@ -70,7 +70,7 @@ it("retire un travail déjà terminé du nombre de rendez-vous à venir et prés
 it("lit le créneau proposé dans sa journée et permet de filtrer les missions sans rendez-vous", async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-11-16T12:00:00Z"));
-  const lignes = [
+  const lignes: Record<string, string | number>[] = [
     { statut: "planifiee", debut_prevu: "2026-11-21T08:00:00Z", intervention_id: "mission-fixee" },
     { statut: "acceptee", debut_prevu: "", creneaux_en_attente: 1, intervention_id: "mission-proposee" },
   ];

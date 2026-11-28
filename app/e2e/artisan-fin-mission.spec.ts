@@ -13,8 +13,13 @@ async function capturer(page: Page, info: TestInfo, nom: string) {
   try {
     for (const width of [390, 768, 1440]) {
       await page.setViewportSize({ width, height: 900 });
+      await page.evaluate(async () => {
+        await document.fonts.ready;
+        await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+      });
+      await expect(page.getByText("Chargement de la page…", { exact: true }).filter({ visible: true })).toHaveCount(0);
       expect(await debordementHorizontal(page)).toBe(0);
-      await page.screenshot({ path: info.outputPath(`${nom}-${width}.png`), fullPage: true });
+      await page.screenshot({ animations: "disabled", path: info.outputPath(`${nom}-${width}.png`), fullPage: true });
     }
   } finally {
     await page.setViewportSize(viewport);
@@ -49,6 +54,7 @@ for (const mode of ['depot', 'creation', 'sci'] as const) test(`incident et inte
       await page.getByRole("link", { name: "À organiser", exact: true }).click();
       await expect(page.getByRole("link", { name: "À organiser", exact: true })).toHaveAttribute("aria-current", "page");
       await expect(page.getByRole("heading", { name: /Sans rendez-vous/ })).toBeVisible();
+      if (mode === "sci") await capturer(page, info, "agenda-a-organiser");
     });
     incident=dossier.incidentId; mission=dossier.mission; sessionLocataire=dossier.sessionLocataire;
     Object.assign(preuve,{mission,fixture:'Déclaration avec photo et choix du créneau en navigateur ; accord sur le devis dans le portail de gestion ; qualification, préparation du devis et décision depuis les portails.'});

@@ -31,7 +31,7 @@ test('invitation locale : refus, expiration, attente du bail, occupation et dép
   const latest=async()=>(await db.query("select id from invitations_locataires where person_id=$1 and etat='en_attente' and expire_le>now()",[person])).rows[0].id as string;
   let id=await latest();
   await captures(p, 'invitation-proprietaire', (nom) => info.outputPath(nom));
-  const boite = process.env.E2E_BOITE_FICTIVE ?? 'http://127.0.0.1:55520';
+  const boite = 'http://127.0.0.1:55520';
   const courriels = await (await p.request.get(`${boite}/messages`)).json() as {to:string[];html:string}[];
   expect(courriels.find((message) => message.to.includes(email))?.html).toContain(id);
   console.log('ETAPE connexion locataire');await login(t,email);await expect(t.getByRole('heading',{name:'Vos invitations'})).toBeVisible();await t.getByRole('link').filter({hasText:'Invitation locataire à accepter ou refuser'}).click();

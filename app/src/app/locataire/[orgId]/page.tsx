@@ -330,7 +330,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
     ? aFaire.find((t) => t.cle === "creneau") ?? aFaire.find((t) => t.cle === "loyer") ??
       (!aUnRendezVousConfirme && prochaine && resteADevoir > 0 ? {
         cle: "echeance",
-        titre: `Prochain loyer de ${moisLong(prochaine.periode)}`,
+        titre: `Prochain loyer ${deElide(moisLong(prochaine.periode))}`,
         detail: `${eur(resteADevoir)} à régler par virement à votre ${qui}.`,
         href: `/locataire/${orgId}/loyers`,
         action: "Mes paiements",

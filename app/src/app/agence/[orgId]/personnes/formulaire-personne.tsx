@@ -60,6 +60,7 @@ function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dans
   const [role, setRole] = useState<string | null>(initial?.role ?? null);
   const [etape, setEtape] = useState(initial?.etape ?? 0);
   const [morale, setMorale] = useState(initial?.morale ?? false);
+  const [qualiteSociete, setQualiteSociete] = useState<BrouillonPersonne["qualiteSociete"]>(initial?.qualiteSociete ?? "SCI");
   const [valeurs, setValeurs] = useState(initial?.valeurs ?? VIDE);
   const [emailCorrect, setEmailCorrect] = useState(Boolean(initial?.valeurs.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(initial.valeurs.email)));
   const [lotId, setLotId] = useState(initial?.lotId ?? "");
@@ -69,7 +70,7 @@ function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dans
   // Une copie d'avant cette décision, déjà marquée « création incertaine », n'a pas de clé : rien ne prouve qu'un
   // renvoi ne créerait pas de doublon, elle garde l'ancienne protection (bouton fermé, fiche à vérifier dans la liste).
   const [creationId] = useState<string | undefined>(() => initial?.creationId ?? (initial?.bilan.creationIncertaine ? undefined : crypto.randomUUID()));
-  const contenu = useMemo(() => ({ role: role as BrouillonPersonne["role"], morale, etape, valeurs, pieces, lotId, creationId }), [role, morale, etape, valeurs, pieces, lotId, creationId]);
+  const contenu = useMemo(() => ({ role: role as BrouillonPersonne["role"], morale, qualiteSociete, etape, valeurs, pieces, lotId, creationId }), [role, morale, qualiteSociete, etape, valeurs, pieces, lotId, creationId]);
   const [etat, formAction, enCours] = useActionState<BilanCreationFiche, FormData>(
     async (precedent, data) => {
       const bilan = await enregistrerFicheAvecJustificatifs(orgId, data, pieces, precedent, {
@@ -170,7 +171,7 @@ function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dans
         <fieldset data-etape-personne="1" hidden={etape!==1} disabled={enCours || Boolean(etat.personneCreee)} className="min-w-0 space-y-5">
           <legend className="sr-only">Identité</legend>
           {estProprio && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={morale} onChange={e=>setMorale(e.target.checked)} />Personne morale (SCI, société…)</label>}
-          {personneMorale && <label className="block space-y-1 text-sm">Type de société<select name="qualite" defaultValue="SCI" className="min-h-11 w-full rounded-lg border border-border bg-background px-3"><option value="SCI">SCI</option><option value="SCI familiale">SCI familiale</option><option value="Personne morale">Autre société</option></select></label>}
+          {personneMorale && <label className="block space-y-1 text-sm">Type de société<select name="qualite" value={qualiteSociete} onChange={e => setQualiteSociete(e.target.value as BrouillonPersonne["qualiteSociete"])} className="min-h-11 w-full rounded-lg border border-border bg-background px-3"><option value="SCI">SCI</option><option value="SCI familiale">SCI familiale</option><option value="Personne morale">Autre société</option></select></label>}
           <div className={styles.grille}>
             {champ("nom",personneMorale ? "Raison sociale" : "Nom",{autoComplete:personneMorale ? "organization" : "family-name",large:personneMorale})}
             <fieldset hidden={personneMorale} disabled={personneMorale} className="contents">{champ("prenom","Prénom",{autoComplete:"given-name"})}{champ("date_naissance","Date de naissance",{type:"date",autoComplete:"bday"})}{champ("commune_naissance","Commune de naissance")}</fieldset>
@@ -197,6 +198,7 @@ function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dans
           <div className={styles.recap}>
             <section><header><h3>Identité</h3><button type="button" onClick={()=>changer(1)}><Pencil size={13} aria-hidden="true" />Modifier</button></header><dl>
               <div><dt>Rôle</dt><dd>{roles.find(r=>r.cle===role)?.libelle}</dd></div><div><dt>{personneMorale ? "Raison sociale" : "Nom et prénom"}</dt><dd>{personneMorale ? valeurs.nom : [valeurs.prenom,valeurs.nom].filter(Boolean).join(" ")}</dd></div>
+              {personneMorale && <div><dt>Type de société</dt><dd>{qualiteSociete}</dd></div>}
               {!personneMorale && <div><dt>Naissance</dt><dd>{valeurs.date_naissance ? formaterDate(valeurs.date_naissance) : "À compléter"} · {valeurs.commune_naissance}</dd></div>}
             </dl></section>
             <section><header><h3>Coordonnées</h3><button type="button" onClick={()=>changer(2)}><Pencil size={13} aria-hidden="true" />Modifier</button></header><dl>

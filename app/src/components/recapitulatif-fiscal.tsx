@@ -1,3 +1,4 @@
+import { lireJustificatifs2044, type Justificatif2044 } from "@/lib/justificatifs-2044";
 import { biensDuPerimetre, dansPerimetreFinancier } from "@/lib/finances";
 import { lireEntitesPatrimoine } from "@/lib/entites-patrimoine";
 import Link from "next/link";
@@ -247,7 +248,11 @@ export async function RecapitulatifFiscal(props: {
   // Audit palier 1, P2-09 : le plafond et l'abattement du micro-foncier ne sont plus écrits ici. Ils se lisent dans le
   // réglage du superviseur, avec la date de leur dernière vérification ; illisibles, la phrase ne cite aucun chiffre.
   // Lus seulement pour l'écran complet (la vue compacte n'affiche pas cette aide).
-  const reperesFiscaux = await chargerReperesFiscaux(supabase);
+  const [reperesFiscaux, justificatifs] = await Promise.all([
+    chargerReperesFiscaux(supabase),
+    lireJustificatifs2044(supabase, orgId, base, recap.rubriques),
+  ]);
+  const nomsLots = new Map(lots.map(lot => [lot.id, lot.nom]));
   const microFoncier = phrasesMicroFoncier(reperesFiscaux);
 
   return (
@@ -267,10 +272,9 @@ export async function RecapitulatifFiscal(props: {
           </span>
         </div>
         <p className="text-sm text-muted-foreground">
-          Vos recettes et charges de l&apos;année, rangées selon les rubriques
-          de la déclaration 2044 (revenus fonciers, location nue). C&apos;est une
-          aide pour recopier, pas une déclaration : vérifiez chaque montant et
-          complétez ce que le livre ne suit pas.
+          Vos recettes et charges de l’année, rangées selon les rubriques de la déclaration 2044.
+          Gerimmo vous aide à préparer votre déclaration. Vérifiez chaque montant avec vos pièces.
+          Pour un conseil fiscal, adressez-vous à votre comptable ou à l’administration fiscale.
         </p>
         {/* Les mots du fisc gardent leur place dans l'écran ; cette ligne les dit en clair (refonte du 20/11). */}
         <p className="mt-2 text-sm text-muted-foreground">
@@ -376,6 +380,9 @@ export async function RecapitulatifFiscal(props: {
         </Card>
       )}
 
+      {justificatifs.incomplet && <p role="status" className="loc-carte text-sm">
+        Certains justificatifs n’ont pas pu être lus. Rechargez la page avant de vérifier les montants.
+      </p>}
       {!anneeVide && (
         <>
           <TableauRubriques
@@ -383,6 +390,8 @@ export async function RecapitulatifFiscal(props: {
             description="Lignes 211 à 213 confirmées. Les loyers proviennent des composantes historiques conservées ou d’une qualification justifiée. Les provisions récupérées restent hors recettes imposables. Les recettes anciennes non démontrées restent à compléter."
             rubriques={recettes}
             ventile={recap.ventile}
+            justificatifs={justificatifs.parEcriture}
+            nomsLots={nomsLots}
           />
           {/* L'organisation parle, pas la marque de l'outil (24/09) : l'espace
               est aux couleurs de son organisation. */}
@@ -391,6 +400,8 @@ export async function RecapitulatifFiscal(props: {
             description="Les seules dépenses qualifiées sont comptées. Ligne 229 : provisions éligibles effectivement versées, sans retirer les charges récupérables de cette même année. Ligne 230 : régularisation de l’année précédente, retranchée du total des charges. Les intérêts nécessitent leurs pièces ; le forfait 222 reste à compléter séparément."
             rubriques={charges}
             ventile={recap.ventile}
+            justificatifs={justificatifs.parEcriture}
+            nomsLots={nomsLots}
           />
         </>
       )}
@@ -479,11 +490,15 @@ function TableauRubriques({
   description,
   rubriques,
   ventile,
+  justificatifs,
+  nomsLots,
 }: {
   titre: string;
   description: string;
   rubriques: ReturnType<typeof recapitulatifFiscal>["rubriques"];
   ventile: boolean;
+  justificatifs: Map<string, Justificatif2044[]>;
+  nomsLots: Map<string, string>;
 }) {
   return (
     <Card>
@@ -492,83 +507,53 @@ function TableauRubriques({
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
-        {/* Sous sm, chaque rubrique devient une carte empilée : le montant à
-            recopier sur la 2044 se lit sans défilement horizontal. Une
-            rubrique à compléter dit « à reporter », jamais « … » ; et une
-            rubrique sans catégorie n'affiche pas un « — » isolé sur sa ligne,
-            qui passait pour un rang cassé (24/09). */}
-        <ul className="space-y-3 sm:hidden">
-          {rubriques.map((r) => (
-            <li
-              key={r.code + r.libelle}
-              className="space-y-1 border-b border-border pb-3 last:border-0 last:pb-0"
-            >
-              <p className="text-sm">
-                <span className="mono-discret mr-2">{r.code}</span>
-                {r.libelle}
-              </p>
-              {(r.aCompleter || r.categories.length > 0) && (
-                <p className="text-xs text-muted-foreground">
-                  {r.aCompleter ? "à compléter par vos soins" : r.categories.join(", ")}
-                </p>
-              )}
-              {!r.aCompleter && (
-                <p className="flex flex-wrap gap-x-4 gap-y-0.5 text-sm">
-                  <span className={ventile ? "" : "font-medium"}>
-                    {ventile ? "Total" : "Montant"} :{" "}
-                    <span className="montant">{eur(r.montant)}</span>
+        <ul className="divide-y divide-border">
+          {rubriques.map(r => (
+            <li key={r.code} className="py-3 first:pt-0 last:pb-0">
+              <details className="min-w-0">
+                <summary className="min-h-11 cursor-pointer py-2 text-sm">
+                  <span className="mono-discret mr-2">{r.code}</span>
+                  <span className="font-medium">{r.libelle}</span>
+                  <span className="mt-1 block pl-5 sm:inline sm:pl-3">
+                    {r.aCompleter ? "à compléter" : eur(r.montant)}
+                    {ventile && !r.aCompleter && <> · Votre quote-part {eur(r.montantQuotePart)}</>}
                   </span>
-                  {ventile && (
-                    <span className="font-medium">
-                      Votre quote-part :{" "}
-                      <span className="montant">{eur(r.montantQuotePart)}</span>
-                    </span>
-                  )}
-                </p>
-              )}
+                </summary>
+                <div className="space-y-3 py-2 pl-5 text-sm">
+                  {r.reintegration && <p>La régularisation de l’année précédente est retranchée du total des charges.</p>}
+                  {r.detail.length === 0 ? <p className="text-muted-foreground">
+                    {r.aCompleter ? "Montant à renseigner à partir de vos pièces." : "Aucune opération confirmée dans cette rubrique."}
+                  </p> : <ul className="space-y-3">
+                    {r.detail.map((c, i) => {
+                      const e = "ecriture" in c ? c.ecriture : null;
+                      const liens = e?.id ? justificatifs.get(e.id) ?? [] : [];
+                      const lot = "lotId" in c ? c.lotId : e?.lot_id;
+                      return <li key={e?.id ?? lot ?? i} className="rounded-lg border border-border p-3 [overflow-wrap:anywhere]">
+                        <p className="font-medium">{e ? `${e.date_piece} · ${e.libelle || e.categorie}` : nomsLots.get(lot ?? "") ?? "Régularisation du logement"}</p>
+                        {e?.contre_ecriture_de && <p>Annulation de l’écriture d’origine</p>}
+                        {"charges" in c && c.charges !== undefined && <p>
+                          Pièce de {eur(Number(e?.montant))}, dont {eur(c.charges)} de charges retirées
+                          {c.nonVentile ? ` et ${eur(c.nonVentile)} restant à répartir` : ""}.
+                        </p>}
+                        <p>Montant retenu {eur(c.montant)}
+                          {ventile && <> × {c.quotePart.toLocaleString("fr-FR")} %</>}
+                        </p>
+                        {c.justification && <p className="text-muted-foreground">{c.justification}</p>}
+                        {liens.length ? <ul>{liens.map(l => <li key={l.href}>
+                          <a className="inline-flex min-h-11 items-center underline" href={l.href}>{l.titre}</a>
+                        </li>)}</ul> : <p className="text-muted-foreground">Aucun justificatif consultable pour ce calcul.</p>}
+                      </li>;
+                    })}
+                  </ul>}
+                  {r.detail.length > 0 && <p>
+                    Sous-total confirmé {eur(r.montant)}
+                    {ventile && <> · Votre quote-part après arrondi {eur(r.montantQuotePart)}</>}
+                  </p>}
+                </div>
+              </details>
             </li>
           ))}
         </ul>
-        <div className="tableau-defilant hidden sm:block">
-          <table className="tableau">
-            <thead>
-              <tr>
-                <th>Ligne</th>
-                <th>Rubrique</th>
-                <th>Catégories du livre</th>
-                <th className="nombre">{ventile ? "Total" : "Montant"}</th>
-                {ventile && <th className="nombre">Votre quote-part</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {rubriques.map((r) => (
-                <tr key={r.code + r.libelle}>
-                  <td className="mono-discret">{r.code}</td>
-                  <td>{r.libelle}</td>
-                  <td className="text-xs text-muted-foreground">
-                    {r.aCompleter ? "à compléter par vos soins" : r.categories.join(", ") || "—"}
-                  </td>
-                  <td className="nombre montant">
-                    {r.aCompleter ? (
-                      <span className="text-xs text-muted-foreground">à reporter</span>
-                    ) : (
-                      eur(r.montant)
-                    )}
-                  </td>
-                  {ventile && (
-                    <td className="nombre montant font-medium">
-                      {r.aCompleter ? (
-                        <span className="text-xs font-normal text-muted-foreground">à reporter</span>
-                      ) : (
-                        eur(r.montantQuotePart)
-                      )}
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
       </CardContent>
     </Card>
   );

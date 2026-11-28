@@ -37,7 +37,20 @@ test('fiscalité : qualifier copro, terrain et 230, puis retrouver le même expo
   const telechargement=page.waitForEvent('download');await page.getByRole('link',{name:'Exporter les montants (CSV)'}).click();const fichier=await telechargement;const chemin=await fichier.path();expect(chemin).toBeTruthy();expect(readFileSync(chemin!,'utf8')).toBe(csv);await fichier.saveAs(testInfo.outputPath(`export-fiscal-ui-${testInfo.project.name}.csv`));
   const qualification=(await db.query('select nature,rubrique,version from fiscal_qualifications_ecritures where ecriture_id=$1',[copro])).rows;expect(qualification).toEqual([{nature:'deductible',rubrique:'229',version:1}]);
   expect(await debordementHorizontal(page)).toBe(0);
-  await page.screenshot({path:testInfo.outputPath(`ui-fiscal-${testInfo.project.name}.png`),fullPage:true});
+  const rubrique229 = page.locator("summary").filter({ hasText: "Provisions de copropriété effectivement versées" });
+  await rubrique229.click();
+  const detail229 = rubrique229.locator("..");
+  await expect(detail229.getByText("Relevé bancaire TEST", { exact: false })).toBeVisible();
+  await expect(detail229.getByText("Aucun justificatif consultable pour ce calcul.")).toBeVisible();
+  const initial = page.viewportSize()!;
+  for (const width of [390, 768, 1440]) {
+    await page.setViewportSize({ width, height: initial.height });
+    await expect(rubrique229).toBeVisible();
+    expect(await debordementHorizontal(page)).toBe(0);
+    await rubrique229.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: testInfo.outputPath(`fiscal-detail-${width}.png`) });
+  }
+  await page.setViewportSize(initial);
   // Autre état de notre seule fixture : 230 reste visible sans pièce de l’année.
   await db.query('delete from fiscal_qualifications_ecritures where ecriture_id=any($1::uuid[])',[[copro,terrain]]);
   await db.query('delete from ecritures where id=any($1::uuid[])',[[copro,terrain]]);

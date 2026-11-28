@@ -9,7 +9,15 @@ export type ExerciceFiscalLot={lot_id:string;annee:number;periodes:PeriodeFiscal
 export type OptionsFiscales={qualifications?:Map<string,QualificationFiscale>;composantes?:Map<string,ComposantesFiscales>;exercices?:Map<string,ExerciceFiscalLot>;exigerPerimetre?:boolean;
  /** Compatibilité des lecteurs internes ; jamais alimenté par l'état courant dans l'interface fiscale. */
  quoteParts?:Map<string,number>;lotsMeubles?:Set<string>;ventilationLoyers?:Map<string,{loyerHc:number;charges:number}>;chargesCoproRecuperables?:Map<string,number>};
-export type RubriqueFiscale={code:string;libelle:string;sens:'recette'|'depense';montant:number;montantQuotePart:number;aCompleter?:boolean;categories:string[];reintegration?:boolean};
+export type ContributionFiscale = {
+ montant: number;
+ quotePart: number;
+ justification?: string;
+} & (
+ | { ecriture: EcritureFiscale; charges?: number; nonVentile?: number; appels?: unknown }
+ | { lotId: string }
+);
+export type RubriqueFiscale={code:string;libelle:string;sens:'recette'|'depense';montant:number;montantQuotePart:number;aCompleter?:boolean;categories:string[];detail:ContributionFiscale[];reintegration?:boolean};
 export type RecapitulatifFiscal={annee:number;versionRegles:string;rubriques:RubriqueFiscale[];fondsTravauxAlur:number;totalRecettes:number;totalCharges:number;revenuNet:number;totalRecettesQuotePart:number;totalChargesQuotePart:number;revenuNetQuotePart:number;ventile:boolean;meuble:{recettes:number;depenses:number;nbEcritures:number};nbEcritures:number;nbRetenues:number;nbHorsPerimetre:number;chargesRecuperees:number;teomExclue:number;coproRecuperableExclue:number;aQualifier:number;nonDeductible:number;incomplet:boolean;alertes:string[];ecrituresAQualifier:string[];
  /** Parmi les pièces à qualifier, les loyers encaissés dont la répartition loyer / charges n'est pas encore justifiée (FIN-11, D02). */
  ecrituresLoyersSansVentilation:string[];
@@ -58,7 +66,16 @@ export function recapitulatifFiscal(ecritures:EcritureFiscale[],annee:number,opt
  const montants=new Map<string,number>(),parts=new Map<string,number>(),categories=new Map<string,Set<string>>(),alertes=new Set<string>(),aQualifierIds=new Set<string>(),loyersSansVentilationIds=new Set<string>(),fondsTravauxAlurIds=new Set<string>(),lots=new Set<string>();
  let fondsTravauxAlur=0,chargesRecuperees=0,teomExclue=0,aQualifier=0,nonDeductible=0,nbEcritures=0,nbRetenues=0,nbHorsPerimetre=0,ventile=false;
  const meuble={recettes:0,depenses:0,nbEcritures:0};
- const ajouter=(code:string,montant:number,quote:number,categorie:string)=>{montants.set(code,(montants.get(code)??0)+montant);parts.set(code,(parts.get(code)??0)+montant*quote/100);if(!categories.has(code))categories.set(code,new Set());categories.get(code)!.add(categorie);};
+ const details = new Map<string, ContributionFiscale[]>();
+ const ajouter = (code: string, categorie: string, contribution: ContributionFiscale) => {
+  const { montant, quotePart } = contribution;
+  montants.set(code, (montants.get(code) ?? 0) + montant);
+  parts.set(code, (parts.get(code) ?? 0) + montant * quotePart / 100);
+  if (!categories.has(code)) categories.set(code, new Set());
+  categories.get(code)!.add(categorie);
+  if (!details.has(code)) details.set(code, []);
+  details.get(code)!.push(contribution);
+ };
  const inconnue=(e:EcritureFiscale,montant:number,motif:string)=>{aQualifier+=montant;if(e.id)aQualifierIds.add(e.contre_ecriture_de??e.id);alertes.add(motif);};
  for(const e of ecritures){
   if(!e.date_piece?.startsWith(String(annee))||!['recette','depense'].includes(e.sens)||e.categorie==='depot_garantie')continue;
@@ -88,7 +105,7 @@ export function recapitulatifFiscal(ecritures:EcritureFiscale[],annee:number,opt
   if(!q&&capture&&normaliser(e.categorie)==='trop_percu_restitue'){
    const hc=Number(capture.loyer_hc),ch=Number(capture.charges),reste=Number(capture.non_ventile);
    if([hc,ch,reste].every(Number.isFinite)&&hc>=0&&ch>=0&&reste>=0&&Math.abs(hc+ch+reste-brut)<=.005){
-    ajouter('211',-hc*signe,quote,e.categorie);nbRetenues++;chargesRecuperees-=ch*signe;
+    ajouter('211', e.categorie, { ecriture: e, montant: -hc*signe, quotePart: quote, charges: ch, nonVentile: reste, appels: capture.appels });nbRetenues++;chargesRecuperees-=ch*signe;
     if(reste)inconnue(e,reste*signe,'Des pièces attendent une qualification fiscale justifiée.');
     continue;
    }
@@ -98,7 +115,7 @@ export function recapitulatifFiscal(ecritures:EcritureFiscale[],annee:number,opt
    const manuel=q?.loyer_hc!=null&&q?.charges!=null&&(!capture||Number(capture.non_ventile)>0);
    const hc=Number(manuel?q.loyer_hc:capture?.loyer_hc),ch=Number(manuel?q.charges:capture?.charges),reste=manuel?0:Number(capture?.non_ventile);
    if(![hc,ch,reste].every(Number.isFinite)||hc<0||ch<0||reste<0||Math.abs(hc+ch+reste-brut)>.005){inconnue(e,montant,MOTIF_VENTILATION);if(id)loyersSansVentilationIds.add(id);continue;}
-   ajouter('211',hc*signe,quote,e.categorie);nbRetenues++;chargesRecuperees+=ch*signe;
+   ajouter('211', e.categorie, { ecriture: e, montant: hc*signe, quotePart: quote, charges: ch, nonVentile: reste, appels: manuel ? undefined : capture?.appels, justification: manuel ? q?.justification : undefined });nbRetenues++;chargesRecuperees+=ch*signe;
    if(reste){inconnue(e,reste*signe,'Une avance ou une part d’encaissement ne correspond pas encore à un appel historique vérifié.');}
    continue;
   }
@@ -106,7 +123,7 @@ export function recapitulatifFiscal(ecritures:EcritureFiscale[],annee:number,opt
   if(!q||q.nature==='a_qualifier'||!q.rubrique){inconnue(e,montant,'Des pièces attendent une qualification fiscale justifiée.');continue;}
   const regle=RUBRIQUES_FISCALES.find(r=>r.code===q.rubrique&&r.sens===sens);
   if(!regle||!['recette','deductible'].includes(q.nature)){inconnue(e,montant,'Une qualification fiscale ne correspond pas au sens de la pièce.');continue;}
-  ajouter(regle.code,montant,quote,e.categorie);nbRetenues++;
+  ajouter(regle.code, e.categorie, { ecriture: e, montant, quotePart: quote, justification: q.justification });nbRetenues++;
  }
  // 230 est une réintégration : elle diminue les charges déductibles et augmente
  // le revenu net. Un zéro confirmé diffère d'une donnée absente.
@@ -120,10 +137,10 @@ export function recapitulatifFiscal(ecritures:EcritureFiscale[],annee:number,opt
   if(!x||x.annee!==annee||x.regularisation230===null){manque230=true;continue;}
   const m=Number(x.regularisation230),q=Number(x.quote_part230);
   if(!Number.isFinite(m)||m<0||!Number.isFinite(q)||q<0||q>100||!x.justification230){manque230=true;continue;}
-  ajouter('230',m,q,'Régularisation N−1 confirmée');if(q!==100)ventile=true;
+  ajouter('230', 'Régularisation N−1 confirmée', { lotId: lot, montant: m, quotePart: q, justification: x.justification230 });if(q!==100)ventile=true;
  }
  if(manque230)alertes.add('La régularisation 230 de l’année précédente est à compléter ou à confirmer à zéro.');
- const rubriques:RubriqueFiscale[]=RUBRIQUES_FISCALES.map(r=>({...r,montant:arrondir(montants.get(r.code)??0),montantQuotePart:arrondir(parts.get(r.code)??0),categories:[...(categories.get(r.code)??[])],aCompleter:r.code==='230'?manque230:(r.code==='222'||r.code==='250')&&!montants.has(r.code),reintegration:r.code==='230'}));
+ const rubriques:RubriqueFiscale[]=RUBRIQUES_FISCALES.map(r=>({...r,montant:arrondir(montants.get(r.code)??0),montantQuotePart:arrondir(parts.get(r.code)??0),categories:[...(categories.get(r.code)??[])],detail:details.get(r.code)??[],aCompleter:r.code==='230'?manque230:(r.code==='222'||r.code==='250')&&!montants.has(r.code),reintegration:r.code==='230'}));
  const somme=(sens:string,part:boolean)=>arrondir(rubriques.filter(r=>r.sens===sens).reduce((s,r)=>s+(r.reintegration?-1:1)*(part?r.montantQuotePart:r.montant),0));
  const totalRecettes=somme('recette',false),totalCharges=somme('depense',false),totalRecettesQuotePart=somme('recette',true),totalChargesQuotePart=somme('depense',true);
  return{annee,versionRegles:'2026-10-12-v1',rubriques,fondsTravauxAlur:arrondir(fondsTravauxAlur),totalRecettes,totalCharges,revenuNet:arrondir(totalRecettes-totalCharges),totalRecettesQuotePart,totalChargesQuotePart,revenuNetQuotePart:arrondir(totalRecettesQuotePart-totalChargesQuotePart),ventile,meuble:{recettes:arrondir(meuble.recettes),depenses:arrondir(meuble.depenses),nbEcritures:meuble.nbEcritures},nbEcritures,nbRetenues,nbHorsPerimetre,chargesRecuperees:arrondir(chargesRecuperees),teomExclue:arrondir(teomExclue),coproRecuperableExclue:0,aQualifier:arrondir(aQualifier),nonDeductible:arrondir(nonDeductible),incomplet:alertes.size>0,alertes:[...alertes],ecrituresAQualifier:[...aQualifierIds],ecrituresLoyersSansVentilation:[...loyersSansVentilationIds].filter(i=>aQualifierIds.has(i)),ecrituresFondsTravauxAlur:[...fondsTravauxAlurIds]};

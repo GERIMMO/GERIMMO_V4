@@ -69,6 +69,15 @@ describe("contrat commun de colocation", () => {
     expect(c.tables.includes("inventaire_lignes")).toBe(meuble);
     if (meuble) expect(r.document.html).toContain("Table commune");
   });
+  it.each([false, true])("laisse l’adresse électronique facultative dans le contrat commun (meublé=%s)", async meuble => {
+    const c = colocation(meuble);
+    c.locataires[1].email = null;
+    c.bailleurs[0].email = null;
+    mocks.charger.mockResolvedValue(c);
+    const r = await assemblerBailColocation(client().supabase, "org", "b1");
+    if ("erreur" in r) throw new Error(r.erreur);
+    expect(r.document.manquants).not.toContain("adresse électronique");
+  });
   it.each(["nu", "meuble"])("refuse un autre type de bail : %s", async type => {
     const c = colocation(); c.bail.type = type; mocks.charger.mockResolvedValue(c);
     expect(await assemblerBailColocation(client().supabase, "org", "b1")).toHaveProperty("erreur");

@@ -137,7 +137,7 @@ export function construireBailMeuble(
 
   // Reprise du lot 48 (U04, U06) : le bloc du bailleur passe par `f.bailleur` (même texte, empreinte inchangée), comme au bail nu.
   const corps = `
-    ${enTete(f, exp, { libelle: "Contrat", reference: referenceBail, etabliLe: new Date().toISOString() })}
+    ${enTete(f, { ...exp, emailFacultatif: !adresseElectroniqueObligatoire && exp.emetteur === "detenteurs" }, { libelle: "Contrat", reference: referenceBail, etabliLe: new Date().toISOString() })}
     ${titre(individuel ? "Contrat individuel de colocation" : colocation ? "Contrat commun de colocation" : "Contrat de location", "Logement meublé · résidence principale", [
       "Soumis au titre Ier bis de la loi n° 89-462 du 6 juillet 1989 (articles 25-3 à 25-11)",
       individuel ? "Contrat indépendant — article 8-1 de la loi du 6 juillet 1989" : "Contrat type — annexe 2 du décret n° 2015-587 du 29 mai 2015",

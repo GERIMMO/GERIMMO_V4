@@ -73,6 +73,7 @@ describe("contrat commun de colocation", () => {
     const c = colocation(meuble);
     c.locataires[1].email = null;
     c.bailleurs[0].email = null;
+    c.organisation.email_contact = null;
     mocks.charger.mockResolvedValue(c);
     const r = await assemblerBailColocation(client().supabase, "org", "b1");
     if ("erreur" in r) throw new Error(r.erreur);

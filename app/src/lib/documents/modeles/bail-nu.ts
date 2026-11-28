@@ -102,7 +102,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
   // Reprise du lot 48 (U04, U06) : le bloc du bailleur passe par `f.bailleur` (même texte, empreinte inchangée) pour que ses
   // manques mènent à l'écran du détenteur du lot, et non à la fiche du locataire ou du bail.
   const corps = `
-    ${enTete(f, exp, { libelle: "Contrat", reference: referenceBail, etabliLe: new Date().toISOString() })}
+    ${enTete(f, { ...exp, emailFacultatif: !adresseElectroniqueObligatoire && exp.emetteur === "detenteurs" }, { libelle: "Contrat", reference: referenceBail, etabliLe: new Date().toISOString() })}
     ${titre(individuel ? "Contrat individuel de colocation" : colocation ? "Contrat commun de colocation" : "Contrat de location", "Logement nu · résidence principale", [
       "Soumis au titre Ier de la loi n° 89-462 du 6 juillet 1989",
       individuel ? "Contrat indépendant — article 8-1 de la loi du 6 juillet 1989" : "Contrat type — annexe 1 du décret n° 2015-587 du 29 mai 2015",

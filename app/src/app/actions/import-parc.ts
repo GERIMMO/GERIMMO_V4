@@ -3,12 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
 import { sansJargon } from "@/lib/erreurs";
-import { lireCsv } from "@/lib/import-parc";
+import { COLONNES, lireCsv, type LigneImport } from "@/lib/import-parc";
 import { ROLES_RESPONSABLES } from "@/lib/ged";
 
 export type ResultatLigne = {
   ligne: number;
-  statut: "ok" | "erreur";
+  statut: "ok" | "erreur" | "doublon";
   message: string;
   bien_id: string | null;
   lot_id: string | null;
@@ -24,6 +24,7 @@ export type EtatImport = {
   controle?: boolean;
   resultats?: ResultatLigne[];
   inconnues?: string[];
+  lignes?: LigneImport[];
   manquantes?: string[];
 };
 
@@ -42,7 +43,7 @@ const LIGNES_MAX = 5000;
  */
 export async function importerParc(
   orgId: string,
-  _etat: EtatImport,
+  etat: EtatImport,
   formData: FormData
 ): Promise<EtatImport> {
   const { supabase, user, role } = await verifierGerant(orgId);
@@ -51,10 +52,14 @@ export async function importerParc(
   }
 
   const bascule = formData.get("bascule") !== null;
-  // Le fichier au premier passage, son contenu reposé ensuite.
+  if (bascule && etat.controle !== true) {
+    return { erreur: "Contrôlez le fichier avant de lancer l’import." };
+  }
+  const correction = formData.get("corriger") !== null;
+  // Le fichier au premier passage, son contenu contrôlé ensuite.
   let contenu = String(formData.get("contenu") ?? "");
   let fichier = String(formData.get("nom_fichier") ?? "");
-  const depose = formData.get("fichier");
+  const depose = bascule || correction ? null : formData.get("fichier");
   if (depose instanceof File && depose.size > 0) {
     if (depose.size > TAILLE_MAX) {
       return { erreur: `Fichier trop lourd (${Math.round(depose.size / 1024)} ko) — 2 Mo au maximum.` };
@@ -84,9 +89,45 @@ export async function importerParc(
     };
   }
 
+  const numeroCorrige = formData.get("corriger");
+  const ligneCorrigee = correction
+    ? lecture.lignes.find((_, index) => String(index + 1) === numeroCorrige)
+    : undefined;
+  if (ligneCorrigee && !bascule) {
+    for (const [cle] of COLONNES) {
+      const valeur = formData.get(`correction-${cle}`);
+      if (typeof valeur === "string") ligneCorrigee[cle] = valeur.trim().replace(/[\r\n]+/g, " ");
+    }
+    const cles = COLONNES.map(([cle]) => cle);
+    contenu = [
+      cles.join(";"),
+      ...lecture.lignes.map((ligne) => cles.map((cle) =>
+        `"${(ligne[cle] ?? "").replace(/"/g, '""')}"`
+      ).join(";")),
+    ].join("\n");
+  }
+
+  const uniques: { ligne: number; valeurs: LigneImport }[] = [];
+  const doublons: ResultatLigne[] = [];
+  const premieresLignes = new Map<string, number>();
+  for (const [index, valeurs] of lecture.lignes.entries()) {
+    const ligne = index + 1;
+    const identite = JSON.stringify(COLONNES.map(([cle]) => valeurs[cle] ?? ""));
+    const premiere = premieresLignes.get(identite);
+    if (premiere !== undefined) {
+      doublons.push({
+        ligne, statut: "doublon", message: `Identique à la ligne ${premiere}.`,
+        bien_id: null, lot_id: null, bail_id: null,
+      });
+    } else {
+      premieresLignes.set(identite, ligne);
+      uniques.push({ ligne, valeurs });
+    }
+  }
+
   const { data, error } = await supabase.rpc("importer_parc", {
     p_org: orgId,
-    p_lignes: lecture.lignes,
+    p_lignes: uniques.map(({ valeurs }) => valeurs),
     p_controle_seulement: !bascule,
   });
   if (error) return { erreur: sansJargon(error.message), contenu, fichier };
@@ -99,7 +140,11 @@ export async function importerParc(
     contenu,
     fichier,
     controle: !bascule,
-    resultats: (data ?? []) as ResultatLigne[],
-    inconnues: lecture.inconnues,
+    resultats: [
+      ...((data ?? []) as ResultatLigne[]).map((r) => ({ ...r, ligne: uniques[r.ligne - 1].ligne })),
+      ...doublons,
+    ].sort((a, b) => a.ligne - b.ligne),
+    lignes: bascule ? undefined : lecture.lignes,
+    inconnues: depose instanceof File && depose.size > 0 ? lecture.inconnues : etat.inconnues ?? lecture.inconnues,
   };
 }

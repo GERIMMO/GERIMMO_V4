@@ -13,7 +13,7 @@ import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ArretSupervision } from "@/lib/controle-effets";
 import { neutraliserFormule } from "@/lib/csv-sur";
-import { creerZip, type EntreeZip } from "@/lib/zip";
+import { creerZip, nomZipSur, type EntreeZip } from "@/lib/zip";
 
 export const COMPARTIMENT_EXPORTS = "exports-complets";
 /** Au-delà, l'archive n'est pas préparée : la demande échoue avec un message, sans rien déposer. */
@@ -73,10 +73,80 @@ export function tableEnCsv(lignes: Record<string, unknown>[]): string {
   return `﻿${[colonnes.join(";"), ...corps].join("\r\n")}\r\n`;
 }
 
+type LigneDonnee = Record<string, unknown>;
+type TablesExport = Record<string, LigneDonnee[]>;
+
+function identifiants(lignes: LigneDonnee[], colonne = "id"): Set<unknown> {
+  return new Set(lignes.map((ligne) => ligne[colonne]).filter((id) => typeof id === "string" && id.length > 0));
+}
+
+/** Classe uniquement les lignes et fichiers déjà inclus dans l’archive de cet espace. */
+function dossiersLogements(tables: TablesExport, fichiers: Map<string, EntreeZip>): EntreeZip[] {
+  const logements = (tables.lots ?? []).filter((lot) => typeof lot.id === "string");
+  if (logements.length === 0) return [];
+  const entrees: EntreeZip[] = [];
+  const index: LigneDonnee[] = [];
+  for (const lot of logements) {
+    const dossier = `logements/${lot.id}`;
+    const bien = (tables.biens ?? []).find((ligne) => ligne.id === lot.bien_id);
+    const baux = (tables.baux ?? []).filter((bail) => bail.lot_id === lot.id);
+    const idsBaux = identifiants(baux);
+    const historique = Object.fromEntries(Object.entries(tables).map(([table, lignes]) => [
+      table, lignes.filter((ligne) => ligne.lot_id === lot.id || idsBaux.has(ligne.bail_id)),
+    ]).filter(([, lignes]) => lignes.length > 0)) as TablesExport;
+    const personnes = new Set([
+      ...identifiants(historique.detentions ?? [], "person_id"),
+      ...identifiants(baux, "locataire_principal"),
+      ...identifiants(historique.bail_personnes ?? [], "person_id"),
+    ]);
+    historique.persons = (tables.persons ?? []).filter((personne) => personnes.has(personne.id));
+    historique.lots = [lot];
+    if (bien) historique.biens = [bien];
+
+    const idsIncidents = identifiants(historique.incidents ?? []);
+    const liens = (tables.document_liens ?? []).filter((lien) =>
+      (lien.entite === "lot" && lien.entite_id === lot.id)
+      || (lien.entite === "bail" && idsBaux.has(lien.entite_id))
+      || (lien.entite === "incident" && idsIncidents.has(lien.entite_id))
+    );
+    const idsDocuments = identifiants(liens, "document_id");
+    for (const circuit of historique.bail_signature_circuits ?? []) {
+      if (!Array.isArray(circuit.annexes)) continue;
+      for (const annexe of circuit.annexes) {
+        if (annexe && typeof annexe.id === "string") idsDocuments.add(annexe.id);
+      }
+    }
+    for (const lignes of Object.values(historique)) {
+      for (const colonne of ["document_id", "document_signe", "preuve_document_id", "photo_document_id", "reglement_copropriete"]) {
+        for (const id of identifiants(lignes, colonne)) idsDocuments.add(id);
+      }
+    }
+    const documents = (tables.documents ?? []).filter((document) => idsDocuments.has(document.id));
+    const indexPieces = documents.map((document) => {
+      const fichier = typeof document.storage_path === "string" ? fichiers.get(document.storage_path) : undefined;
+      const nom = fichier?.nom.split("/").at(-1);
+      const chemin = nom ? `pieces/${document.id}/${nom}` : null;
+      if (fichier && chemin) {
+        const date = new Date(String(document.created_at ?? ""));
+        entrees.push({ ...fichier, nom: `${dossier}/${chemin}`, date: Number.isNaN(date.getTime()) ? undefined : date });
+      }
+      return { ...document, fichier: chemin, etat_fichier: chemin ? "inclus" : "indisponible" };
+    });
+    entrees.push({ nom: `${dossier}/index.csv`, contenu: indexPieces.length ? tableEnCsv(indexPieces) : "Fichier;État\r\n" });
+    historique.document_liens = liens;
+    for (const [table, lignes] of Object.entries(historique)) {
+      if (lignes.length > 0) entrees.push({ nom: `${dossier}/historique/${table}.csv`, contenu: tableEnCsv(lignes) });
+    }
+    index.push({ logement: lot.nom, bien: bien?.nom, adresse: bien?.address_line1, ville: bien?.city, dossier, pieces: indexPieces.length });
+  }
+  return [{ nom: "logements/index.csv", contenu: tableEnCsv(index) }, ...entrees];
+}
+
 const LISEZ_MOI = `Archive complète de votre espace Gerimmo
 
 - donnees/ : un fichier CSV par table de votre espace (séparateur point-virgule, encodage UTF-8).
 - compte.json : votre compte, vos accès et vos acceptations des conditions générales.
+- logements/ : un index des logements, puis un dossier par logement avec son historique et les pièces liées.
 - fichiers/ : tous les fichiers de votre espace, documents signés et certificats compris, rangés comme dans Gerimmo.
 
 Cette archive contient des données personnelles (les vôtres, celles de vos locataires et de leurs garants) :
@@ -128,16 +198,29 @@ export async function construireExportComplet(
       entrees.push({ nom: `donnees/${table}.csv`, contenu: tableEnCsv(lignes) });
     }
     const prefixe = `${x.organisation_id_export}/`;
+    const fichiersParChemin = new Map<string, EntreeZip>();
     for (const f of listeFichiers) {
       await avant();
       const { data: blob, error: telechargement } = await db.storage.from("documents").download(f.chemin);
       if (telechargement || !blob) return await echec("Un fichier de l'espace n'a pas pu être lu ; réessayez plus tard.");
-      entrees.push({ nom: `fichiers/${f.chemin.startsWith(prefixe) ? f.chemin.slice(prefixe.length) : f.chemin}`, contenu: new Uint8Array(await blob.arrayBuffer()) });
+      const entree = {
+        nom: nomZipSur(`fichiers/${f.chemin.startsWith(prefixe) ? f.chemin.slice(prefixe.length) : f.chemin}`),
+        contenu: new Uint8Array(await blob.arrayBuffer()),
+      };
+      fichiersParChemin.set(f.chemin, entree);
+      entrees.push(entree);
     }
     const pieces = (tables.documents ?? [])
       .filter((d) => TYPES_SENSIBLES.has(String(d.type)) && typeof d.storage_path === "string" && typeof d.id === "string")
       .map((d) => String(d.id));
-    const archive = creerZip(entrees);
+    const dossiers = dossiersLogements(tables, fichiersParChemin);
+    const volume = [...entrees, ...dossiers].reduce((octets, entree) => octets + (
+      typeof entree.contenu === "string" ? Buffer.byteLength(entree.contenu) : entree.contenu.byteLength
+    ), 0);
+    if (volume > TAILLE_MAX_EXPORT_OCTETS) {
+      return await echec("L’archive dépasse 400 Mo : écrivez-nous depuis « Mes données personnelles » pour recevoir vos données.");
+    }
+    const archive = creerZip([...entrees, ...dossiers]);
     const empreinte = createHash("sha256").update(archive).digest("hex");
     const chemin = `${x.organisation_id_export}/${exportId}.zip`;
     await avant();

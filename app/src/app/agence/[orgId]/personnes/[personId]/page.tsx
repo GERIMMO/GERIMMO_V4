@@ -972,6 +972,7 @@ export default async function PagePersonne(
           <FormulaireInvitation
             orgId={orgId}
             personId={personId}
+            nomLocataire={[personne.prenom, personne.nom].filter(Boolean).join(" ")}
             email={personne.email}
             dejaInvite={accesLocataire?.role === "locataire" && accesLocataire.status === "active"}
             accesSuspendu={accesLocataire?.role === "locataire" && accesLocataire.status === "inactive"}

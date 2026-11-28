@@ -60,25 +60,16 @@ export default async function PageContactLocataire(
         <PanneLecture quoi="votre fil de messages" interlocuteur={interlocuteurDeLIdentite(identiteContact)} />
       )}
 
-      <div className="loc-grille">
-        <FilMessages
-          orgId={orgId}
-          messages={messages}
-          agence={identiteContact.nom ?? (identiteContact.agence ? "votre gestionnaire" : "votre bailleur")}
-          lectureSeule={!adhesionActive}
-          lectureEnEchec={aEchoue(eFil)}
-          interlocuteur={interlocuteurDeLIdentite(identiteContact)}
-        />
-        <div className="space-y-4">
-          {g && (
+      <div className="space-y-4">
+        {(g || identiteContact.nom) && (
             <div className="loc-carte">
               <h2 className="titre-carte text-base font-medium">{identiteContact.nom ?? "Identité à confirmer"}</h2>
               <p className="mt-1 text-[13px] text-muted-foreground">{libelleBailleur}</p>
               <div className="mt-2">
-                <Interlocuteur gestionnaire={g} />
+                {g && <Interlocuteur gestionnaire={g} />}
               </div>
               <div className="mt-2">
-                {g.email_contact && (
+                {g?.email_contact && (
                   <div className="ligne-info">
                     <span className="shrink-0 whitespace-nowrap">E-mail</span>
                     <a href={`mailto:${g.email_contact}`} className="lien-discret min-w-0 py-1.5 wrap-anywhere">
@@ -86,7 +77,7 @@ export default async function PageContactLocataire(
                     </a>
                   </div>
                 )}
-                {g.telephone && (
+                {g?.telephone && (
                   <div className="ligne-info">
                     <span className="shrink-0 whitespace-nowrap">Téléphone</span>
                     <a
@@ -111,9 +102,15 @@ export default async function PageContactLocataire(
                 </p>
               )}
             </div>
-          )}
-
-        </div>
+        )}
+        <FilMessages
+          orgId={orgId}
+          messages={messages}
+          agence={identiteContact.nom ?? (identiteContact.agence ? "votre gestionnaire" : "votre bailleur")}
+          lectureSeule={!adhesionActive}
+          lectureEnEchec={aEchoue(eFil)}
+          interlocuteur={interlocuteurDeLIdentite(identiteContact)}
+        />
       </div>
       <AssistantPrive key={`${orgId}:${user.id}`} orgId={orgId} compteId={user.id} lectureSeule={!adhesionActive}
         aides={[{ href: `/locataire/${orgId}/faq`, libelle: "Aide et questions fréquentes" }, { href: `/locataire/${orgId}/regles`, libelle: "Les règles à connaître" }]} />

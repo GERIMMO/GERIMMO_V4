@@ -125,8 +125,7 @@ export default async function LayoutLocataire({
           orgId={orgId}
           libelleContact={identite.titre}
           badgeDocuments={
-            (assuranceOk ? 0 : 1) +
-            ((demandes ?? []) as unknown[]).length
+            adhesionActive ? (assuranceOk ? 0 : 1) + ((demandes ?? []) as unknown[]).length : 0
           }
           // Audit palier 1 (P1-05) : une discussion d'intervention à lire s'ajoute aux demandes en cours.
           badgeDemandes={demandesEnCours + echangesNonLus.lignes.length}
@@ -136,7 +135,7 @@ export default async function LayoutLocataire({
       <div className="min-w-0">
         <header className="loc-haut">
           <span className="ambiance-repere" aria-hidden="true" />
-          <Link href={`/locataire/${orgId}/incident#consignes-urgence`} className={BOUTON_URGENCE}>Urgence</Link>
+          {adhesionActive && <Link href={`/locataire/${orgId}/incident#consignes-urgence`} className={BOUTON_URGENCE}>Urgence</Link>}
           <MenuCompte
             initiales={
               personne

@@ -202,7 +202,8 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
 
   const moisLong = (d: string) =>
     new Date(d).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
-  const aujourdhui = new Date().toLocaleDateString("fr-FR", {
+  const maintenant = new Date();
+  const aujourdhui = maintenant.toLocaleDateString("fr-FR", {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -217,6 +218,14 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
     ? Number(prochaine.montant_du) - Number(prochaine.montant_couvert)
     : 0;
 
+  const historique = !adhesionActive || (!eBaux && bail?.etat === "termine" && !peutSignaler);
+  const enAttente = !eBaux && adhesionActive && (!bail || bail.etat === "brouillon") && !peutSignaler;
+  const prochainsRendezVous = rendezVous.error ? [] : rendezVous.data ?? [];
+  const aUnRendezVousConfirme = prochainsRendezVous.some(
+    (rdv: { statut_mission: string; rdv_debut: string | null; rdv_fin: string | null }) =>
+      rdv.statut_mission === "planifiee" && rdv.rdv_debut && rdv.rdv_fin && Date.parse(rdv.rdv_fin) > maintenant.getTime()
+  );
+  const rendezVousConfirme = <RendezVousLocataireConfirme orgId={orgId} lignes={prochainsRendezVous} />;
   // « Ce qui vous attend » : tout ce que le menu comptait déjà en badges, dit
   // en clair et avec le geste à côté. Le loyer en retard y prend sa place —
   // il avait sa propre carte plus bas, qui répétait la même chose.
@@ -317,6 +326,57 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
     });
   }
 
+  const priorite = peutSignaler
+    ? aFaire.find((t) => t.cle === "creneau") ?? aFaire.find((t) => t.cle === "loyer") ??
+      (!aUnRendezVousConfirme && prochaine && resteADevoir > 0 ? {
+        cle: "echeance",
+        titre: `Prochain loyer ${deElide(moisLong(prochaine.periode))}`,
+        detail: `${eur(resteADevoir)} à régler par virement à votre ${qui}.`,
+        href: `/locataire/${orgId}/loyers`,
+        action: "Mes paiements",
+      } : null)
+    : null;
+  const autresActions = aFaire.filter((t) => t !== priorite);
+  const documents = <Link href={`/locataire/${orgId}/documents`} className={buttonVariants({ variant: "outline", size: "sm" })}>Mes documents</Link>;
+  const contact = <Link href={`/locataire/${orgId}/contact`} className={buttonVariants({ variant: "outline", size: "sm" })}>Écrire à mon {qui}</Link>;
+  const decomptes = avisCharges.error ? <p role="alert" className="err !mb-0">Les avis de charges sont momentanément indisponibles.</p> :
+    (avisCharges.data ?? []).map((avis: { document_id: string; annee: number; avis_le: string }) =>
+      <section className="loc-carte" key={avis.document_id}>
+        <h2>Décompte de charges {avis.annee}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Mis à disposition le {formaterDate(avis.avis_le.slice(0, 10))}</p>
+        <ConsultationDocument titre={`Décompte de charges ${avis.annee}`} cible={{ fichier: `/locataire/${orgId}/documents/${avis.document_id}/fichier`, mime: "application/pdf" }} className="lien-discret">Voir le PDF</ConsultationDocument>
+      </section>);
+
+  if (historique) return (
+    <div className="flex flex-col gap-4">
+      <section className="loc-carte">
+        <h1>Votre bail est terminé</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Vos quittances et documents restent consultables.</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {documents}
+          <Link href={`/locataire/${orgId}/logement#etats-des-lieux`} className={buttonVariants({ variant: "outline", size: "sm" })}>Mes états des lieux</Link>
+        </div>
+      </section>
+      {decomptes}
+      {eRestitution ? (
+        <section className="loc-carte"><LectureImpossible quoi="votre dépôt de garantie" /></section>
+      ) : restitution ? (
+        <CarteDepotGarantie orgId={orgId} restitution={restitution} classeCarte={CARTE_KPI} classeLien={LIEN_ETIRE} />
+      ) : !eEcheancier && !prochaine && (
+        <p className="text-sm text-muted-foreground">Rien à régler pour l&apos;instant.</p>
+      )}
+    </div>
+  );
+
+  if (enAttente) return (
+    <section className="loc-carte">
+      <h1>Votre bail n’est pas encore actif</h1>
+      <p className="mt-2 text-sm text-muted-foreground">{bail ? (bail.document_signe ? `Un contrat signé est enregistré. Votre ${qui} doit encore vérifier le dossier et activer le bail.` : `Le contrat signé n’est pas encore disponible dans votre espace. Votre ${qui} doit finaliser le dossier, puis activer le bail.`) : `Aucun bail n’est encore rattaché à votre espace. Votre ${qui} doit préparer ou vérifier ce rattachement.`}</p>
+      <p className="mt-2 text-sm">Responsable de la prochaine étape : votre {qui}.{nbPiecesDemandees > 0 && " Des pièces vous sont aussi demandées dans Mes documents."}</p>
+      <div className="mt-3 flex flex-wrap gap-2">{documents}{contact}</div>
+    </section>
+  );
+
   return (
     // `flex` + `gap` et non `space-y-4` : entre deux `.loc-carte` voisines, la règle commune pose 28 px, entre une
     // carte et une grille 16 px. L'accueil garde un seul pas, 16 px, entre tous ses blocs.
@@ -334,15 +394,18 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
         <p className="mt-1 text-sm text-muted-foreground">
           Vos prochaines actions, puis le suivi de votre logement et de vos paiements.
         </p>
-        <div className="mt-3 flex flex-wrap gap-2"><Link href={`/locataire/${orgId}/documents`} className={buttonVariants({ variant: "outline", size: "sm" })}>Mes documents</Link><Link href={`/locataire/${orgId}/contact`} className={buttonVariants({ variant: "outline", size: "sm" })}>Écrire à mon {qui}</Link></div>
+        {!priorite && !aUnRendezVousConfirme && <div className="mt-3 flex flex-wrap gap-2">{documents}{contact}</div>}
       </div>
-      {!rendezVous.error && <RendezVousLocataireConfirme orgId={orgId} lignes={rendezVous.data ?? []}/>}
-      {avisCharges.error ? <p role="alert" className="err !mb-0">Les avis de charges sont momentanément indisponibles.</p> :
-        (avisCharges.data ?? []).map((avis:{document_id:string;annee:number;avis_le:string}) =>
-          <section className="loc-carte" key={avis.document_id}><h2>Décompte de charges {avis.annee}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Mis à disposition le {formaterDate(avis.avis_le.slice(0,10))}</p>
-            <ConsultationDocument titre={`Décompte de charges ${avis.annee}`} cible={{fichier:`/locataire/${orgId}/documents/${avis.document_id}/fichier`,mime:"application/pdf"}} className="lien-discret">Voir le PDF</ConsultationDocument>
-          </section>)}
+      {priorite && (
+        <section className="loc-carte" aria-labelledby="priorite-locataire">
+          <h2 id="priorite-locataire" className="titre-carte text-base font-medium">À faire en priorité</h2>
+          <p className="mt-2 font-medium">{priorite.titre}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{priorite.detail}</p>
+          <Link href={priorite.href} className={`mt-3 ${buttonVariants({ size: "sm" })}`}>{priorite.action}</Link>
+        </section>
+      )}
+      {!priorite && rendezVousConfirme}
+      {decomptes}
       <SuiviEcheanciersCharges org={orgId} proprietaire={false} base={`/locataire/${orgId}`} rappelsSeulement niveauTitre={2} />
 
       {aEchoue(
@@ -354,13 +417,6 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
         eAnnonces,
         eDemandes
       ) && <PanneLecture quoi="l'essentiel de votre logement" interlocuteur={qui} />}
-
-      {!eBaux && adhesionActive && (!bail || bail.etat === "brouillon") && !signalementOuvert(baux as BailLocataire[] | null) && <section className="loc-carte" aria-label="Situation de votre bail">
-        <h2 className="titre-carte text-base font-medium">Votre bail n’est pas encore actif</h2>
-        <p className="mt-2 text-sm text-muted-foreground">{bail ? (bail.document_signe ? "Un contrat signé est enregistré. Votre bailleur doit encore vérifier le dossier et activer le bail." : "Le contrat signé n’est pas encore disponible dans votre espace. Votre bailleur doit finaliser le dossier, puis activer le bail.") : "Aucun bail n’est encore rattaché à votre espace. Votre bailleur doit préparer ou vérifier ce rattachement."}</p>
-        <p className="mt-2 text-sm">Responsable de la prochaine étape : votre bailleur.{nbPiecesDemandees > 0 && " Des pièces vous sont aussi demandées dans Mes documents."}</p>
-        <Link href={`/locataire/${orgId}/contact`} className="lien-discret mt-2 inline-flex min-h-11 items-center">Écrire à mon bailleur →</Link>
-      </section>}
 
       {bail && (
         <div className="loc-carte">
@@ -412,12 +468,15 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
         </div>
       )}
 
-      {aFaire.length > 0 && (
+      {priorite && rendezVousConfirme}
+      {(priorite || aUnRendezVousConfirme) && <div className="flex flex-wrap gap-2">{documents}{contact}</div>}
+
+      {autresActions.length > 0 && (
         <div className="loc-carte">
           <div className="entete-carte !mb-1">
             <h2 className="titre-carte text-base font-medium">Ce qui vous attend</h2>
             {/* « 3 points » se lisait comme un score (24/09) */}
-            <span className="loc-tag ambre">{aFaire.length} à faire</span>
+            <span className="loc-tag ambre">{autresActions.length} à faire</span>
           </div>
           {/* Le rang ENTIER est le lien (24/09) : seul le petit bouton de
               droite réagissait, le titre et l'explication — 70 % de la
@@ -426,7 +485,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
               le lien). -mx-4 : le rang déborde dans la marge de la carte
               pour que son texte reste aligné sur le titre. */}
           <ul className="divide-y divide-border">
-            {aFaire.map((t) => (
+            {autresActions.map((t) => (
               <li key={t.cle}>
                 <Link href={t.href} className="rang group -mx-4 text-sm">
                   <span className="min-w-0 flex-1">

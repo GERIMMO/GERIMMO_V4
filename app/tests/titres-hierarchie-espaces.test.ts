@@ -43,7 +43,10 @@ describe("DES-A-03 : hiérarchie des titres", () => {
     // locataire (ancien parcours « télécharger, signer, redéposer ») est retirée.
     expect(avecClasse.length).toBe(45);
     const accueil = readFileSync("src/app/locataire/[orgId]/page.tsx", "utf8");
-    for (const titre of ["Votre bail n’est pas encore actif", "Ce qui vous attend"])
+    // Mission 9 : l’état d’attente est un écran à part entière, avec son titre principal.
+    expect(accueil).toMatch(/<h1>Votre bail n’est pas encore actif<\/h1>/);
+    expect(accueil).toMatch(/<h1>Votre bail est terminé<\/h1>/);
+    for (const titre of ["À faire en priorité", "Ce qui vous attend"])
       expect(accueil).toMatch(new RegExp(`<h2[^>]*titre-carte[^>]*>${titre}</h2>`));
   });
 

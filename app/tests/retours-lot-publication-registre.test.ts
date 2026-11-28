@@ -84,11 +84,12 @@ function instructions(sql: string): string[] {
   return resultat;
 }
 
-describe("RET-01 — les 52 retours du lot retirent leur version du registre (sans base)", () => {
-  it("le lot compte 52 migrations, de 20261122090000 à 20261125154000, chacune avec son retour", () => {
-    expect(LOT).toHaveLength(52);
+describe("RET-01 — les retours depuis le lot du 25/11 retirent leur version du registre (sans base)", () => {
+  it("les 52 migrations du lot du 25/11 et la migration de la mission 9 ont chacune un retour", () => {
+    expect(LOT).toHaveLength(53);
     expect(LOT[0]).toBe("20261122090000_bail_repris_dpe_g_et_edl_entree");
     expect(LOT[51]).toBe("20261125154000_bail_epoux_pacses_marque_a_la_nouvelle_signature");
+    expect(LOT[52]).toBe("20261128053102_etat_des_lieux_archive_locataire");
     for (const nom of LOT) expect(() => retour(nom), nom).not.toThrow();
   });
 
@@ -113,7 +114,7 @@ describe("RET-01 — les 52 retours du lot retirent leur version du registre (sa
   });
 });
 
-describe.skipIf(!url)("RET-01 — la chaîne des 52 retours ne laisse aucune version au registre (avec base)", () => {
+describe.skipIf(!url)("RET-01 — la chaîne des retours ne laisse aucune version au registre (avec base)", () => {
   let db: Client;
   beforeAll(async () => {
     db = new Client({ connectionString: url });
@@ -124,7 +125,7 @@ describe.skipIf(!url)("RET-01 — la chaîne des 52 retours ne laisse aucune ver
     await db.end();
   });
 
-  it("dans l'ordre du plan, chaque retour passe ; à la fin, aucune des 52 versions ne reste (transaction annulée)", async () => {
+  it("dans l'ordre du plan, chaque retour passe ; à la fin, aucune des versions ne reste (transaction annulée)", async () => {
     const versions = LOT.map((nom) => nom.slice(0, 14));
     await db.query("begin");
     try {
@@ -134,7 +135,7 @@ describe.skipIf(!url)("RET-01 — la chaîne des 52 retours ne laisse aucune ver
         "insert into supabase_migrations.schema_migrations(version, name) select v, 'essai RET-01' from unnest($1::text[]) v on conflict do nothing",
         [versions]
       );
-      expect((await db.query("select count(*)::int n from supabase_migrations.schema_migrations where version = any($1::text[])", [versions])).rows[0].n).toBe(52);
+      expect((await db.query("select count(*)::int n from supabase_migrations.schema_migrations where version = any($1::text[])", [versions])).rows[0].n).toBe(53);
       for (const nom of CHAINE) {
         try {
           await db.query(retour(nom));

@@ -12,6 +12,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const banc = vi.hoisted(() => ({
+  adhesionActive: false,
   donnees: {} as Record<string, unknown>,
   erreurs: {} as Record<string, unknown>,
   rpc: vi.fn(),
@@ -35,7 +36,7 @@ vi.mock("@/lib/espace", () => ({
       },
     },
     personne: { prenom: "Claire" },
-    adhesionActive: false,
+    adhesionActive: banc.adhesionActive,
   }),
 }));
 vi.mock("@/lib/quittance-conforme", () => ({ disponibilitesQuittances: async () => ({}) }));
@@ -77,6 +78,7 @@ const bailActif = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  banc.adhesionActive = false;
   banc.donnees = {};
   banc.erreurs = {};
   banc.rpc.mockResolvedValue({ error: null });
@@ -161,6 +163,7 @@ describe("D36 (B) — l'accueil du locataire", () => {
   });
 
   it("un loyer encore à suivre garde sa carte, même si une restitution existe", async () => {
+    banc.adhesionActive = true;
     banc.donnees = {
       mon_bail_locataire: [bailActif],
       mon_echeancier_locataire: [

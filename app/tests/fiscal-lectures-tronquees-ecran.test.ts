@@ -104,7 +104,13 @@ describe("X12 (FIN-12) : qualifications et captures se lisent pour les écriture
       expect(filtre, `${table} sans filtre sur les identifiants`).toBeDefined();
       expect(filtre!.val).toEqual(expect.arrayContaining(["loyer1", "loyer2", "loyer3", "loyer-inverse", "loyer-origine"]));
     }
-    expect(lecturesSansFiltreOrganisation(baseCourante(), "org")).toEqual([]);
+    const horsOrganisation = lecturesSansFiltreOrganisation(baseCourante(), "org");
+    expect(horsOrganisation.filter(table => table !== "ecritures_factures_fourniture")).toEqual([]);
+    // Cette table de liaison n'a pas de colonne organisation : elle est
+    // bornée par les écritures retenues, déjà lues dans l'organisation.
+    expect(filtresDe(baseCourante(), "ecritures_factures_fourniture")).toContainEqual({
+      op: "in", col: "ecriture_id", val: ["loyer1", "loyer2", "loyer3"],
+    });
   });
 
   it("la contre-écriture d'un loyer de l'an dernier retrouve la capture de sa pièce d'origine : 1 560,00 €", async () => {
@@ -241,5 +247,58 @@ describe("X12 : une lecture en panne fait refuser tout montant, quelle que soit 
     poser(dossier(), { fiscal_exercices_lots: "panne", lots: "panne" });
     const texte = await page();
     expect(texte).toContain("Aucun montant n'est affiché : les exercices confirmés, les lots n'ont pas pu être lues.");
+  });
+});
+
+describe("Justificatifs des lignes de la 2044", () => {
+  it("rattache les pièces exactes du dossier nu et écarte une facture indisponible", async () => {
+    const tables = dossier();
+    tables.fiscal_encaissements_composantes[0].appels = [{ appel_id: "mars" }];
+    tables.ecritures.push(
+      piece("avis", { categorie: "Taxe foncière", montant: 900, avis_fiscal_id: "doc-avis" }),
+      piece("travaux", { categorie: "Travaux de plomberie", montant: 350 }),
+      piece("facture-remplacee", { categorie: "Entretien", montant: 99 }),
+    );
+    tables.fiscal_qualifications_ecritures.push(
+      qualification("avis", 1, { rubrique: "227" }), qualification("travaux"), qualification("facture-remplacee"),
+    );
+    tables.quittances = [{ ...o, id: "quittance-mars", appel_id: "mars", est_quittance: true }];
+    tables.intervention_facture_reglements = [
+      { ...o, ecriture_id: "travaux", facture_id: "facture" },
+      { ...o, ecriture_id: "facture-remplacee", facture_id: "facture-purgee" },
+    ];
+    tables.intervention_factures = [
+      { ...o, id: "facture", document_id: "doc-facture" },
+      { ...o, id: "facture-purgee", document_id: "doc-purge" },
+    ];
+    tables.documents = [
+      { ...o, id: "doc-avis", titre: "Avis taxe foncière 2026", purged_at: null, storage_path: "avis.pdf" },
+      { ...o, id: "doc-facture", titre: "Facture plomberie", purged_at: null, storage_path: "plomberie.pdf" },
+      { ...o, id: "doc-purge", titre: "Facture purgée", purged_at: "2026-12-20", storage_path: null },
+    ];
+    poser(tables);
+
+    const html = renderToStaticMarkup(await PageRecap({
+      params: Promise.resolve({ orgId: "org" }), searchParams: Promise.resolve({ annee: "2026" }),
+    }));
+    expect(html).toContain('href="/quittance/quittance-mars"');
+    expect(html).toContain('href="/espace/org/documents/doc-avis/fichier"');
+    expect(html).toContain('href="/espace/org/documents/doc-facture/fichier"');
+    expect(html).not.toContain("doc-purge");
+    expect(html).toContain("Aucun justificatif consultable pour ce calcul.");
+  });
+
+  it.each([
+    { qualite: "Personne physique", nue: "non_concerne", meuble: "micro", formulaire: "2042-C-PRO" },
+    { qualite: "SCI familiale", nue: "reel", meuble: "non_concerne", formulaire: "2072" },
+  ])("garde le dossier $qualite hors de la 2044 lorsque son régime le demande", async ({ qualite, nue, meuble, formulaire }) => {
+    const tables = avecDetenteursAuReel(dossier());
+    tables.persons[0].qualite = qualite;
+    Object.assign(tables.fiscal_profils_detenteurs[0], { qualite, location_nue: nue, location_meublee: meuble });
+    banc.base = baseSimulee(tables);
+    const texte = await page();
+    expect(texte).toContain(formulaire);
+    expect(texte).not.toContain("Exporter les montants (CSV)");
+    expect(texte).not.toContain("Loyers bruts encaissés hors charges");
   });
 });

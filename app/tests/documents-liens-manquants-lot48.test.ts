@@ -137,26 +137,28 @@ describe("U05 — liste des pièces sans locataire principal, avec un colocatair
 });
 
 describe("U06 — contrat d'un lot sans détenteur : tout le bloc du bailleur mène à la détention du lot", () => {
-  it("bail nu : la qualité et l'adresse électronique du bailleur mènent à la détention, comme son adresse et son nom", async () => {
+  it("bail nu : la qualité du bailleur mène à la détention, comme son adresse et son nom", async () => {
     const ctx = contexte({ bailleurs: [] });
     mocks.charger.mockResolvedValue(ctx);
     const r = succes(await assemblerBailNu(base(), "org", "b1"));
     expect(r.document.emetteur).toBe("espace");
     const qualite = "personne physique, indivision, SCI familiale, SCI, personne morale";
-    expect(r.document.manquants).toEqual(expect.arrayContaining([qualite, "adresse électronique", "domicile ou siège social", "nom et prénom(s), ou dénomination"]));
+    expect(r.document.manquants).toEqual(expect.arrayContaining([qualite, "domicile ou siège social", "nom et prénom(s), ou dénomination"]));
     expect(r.liens).toContainEqual({ entite: "personne", entiteId: "p1" });
     const detention = `/espace/org/lots/${ctx.lot.id}?vers=detention`;
     const liens = liensDe(r, "bail_nu", "/espace");
-    for (const m of [qualite, "adresse électronique", "domicile ou siège social", "nom et prénom(s), ou dénomination"]) expect(liens[m], m).toBe(detention);
+    for (const m of [qualite, "domicile ou siège social", "nom et prénom(s), ou dénomination"]) expect(liens[m], m).toBe(detention);
   });
 
-  it("bail meublé : l'adresse électronique du bailleur mène aussi à la détention", async () => {
+  it("bail meublé : la qualité mène à la détention et l’adresse électronique reste facultative", async () => {
     const ctx = contexte({ bailleurs: [] });
     Object.assign(ctx.bail, { type: "meuble" });
     ctx.lot.meuble = true;
     mocks.charger.mockResolvedValue(ctx);
     const r = succes(await assemblerBailMeuble(base(), "org", "b1"));
-    expect(liensDe(r, "bail_meuble", "/espace")["adresse électronique"]).toBe(`/espace/org/lots/${ctx.lot.id}?vers=detention`);
+    const liens = liensDe(r, "bail_meuble", "/espace");
+    expect(liens["adresse électronique"]).toBeUndefined();
+    expect(liens["personne physique, SCI, indivision…"]).toBe(`/espace/org/lots/${ctx.lot.id}?vers=detention`);
   });
 
   // Reprise du lot 48 : ce cas disait voulu que la qualité vide mène à la détention même AVEC un détenteur, où elle ne se saisit

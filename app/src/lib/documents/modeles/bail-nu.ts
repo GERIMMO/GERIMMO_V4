@@ -66,10 +66,10 @@ function premiereEcheance(f: Fusion, bail: ContexteBail["bail"]): string {
   return `${f.montant(prorata, libelle)} (premier mois au prorata)`;
 }
 
-function blocLocataire(f: Fusion, p: PersonneDocument): string {
+function blocLocataire(f: Fusion, p: PersonneDocument, adresseElectroniqueObligatoire: boolean): string {
   return `<p>${f.champ(nomPersonne(p), "nom et prénom(s)")}, né(e) le ${f.date(p.date_naissance, "Date de naissance du locataire")}
   à ${f.champ(p.commune_naissance, "commune de naissance")}, demeurant ${f.champ(adressePersonne(p), "adresse actuelle")}.<br/>
-  Adresse électronique : ${f.champ(p.email, "adresse électronique")} — Numéro de téléphone portable :
+  Adresse électronique : ${adresseElectroniqueObligatoire ? f.champ(p.email, "adresse électronique") : facultatif(p.email)} — Numéro de téléphone portable :
   ${facultatif(p.telephone)}.</p>`;
 }
 
@@ -79,6 +79,7 @@ function blocLocataire(f: Fusion, p: PersonneDocument): string {
 export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string | null; f: Fusion; presentationAncienne?: boolean; typographieArchivee?: boolean }) {
   const f = options.f;
   const t = typographie(options.presentationAncienne || options.typographieArchivee);
+  const adresseElectroniqueObligatoire = t.archivee || Boolean(ctx.bail.chambre_id);
   const exp = expediteur(options.presentationAncienne ? { organisation: ctx.organisation } : ctx);
   const referenceBail = referenceCourte("BAIL", ctx.bail.id);
   const bailleurPrincipal = ctx.bailleurs[0] ?? null;
@@ -101,7 +102,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
   // Reprise du lot 48 (U04, U06) : le bloc du bailleur passe par `f.bailleur` (même texte, empreinte inchangée) pour que ses
   // manques mènent à l'écran du détenteur du lot, et non à la fiche du locataire ou du bail.
   const corps = `
-    ${enTete(f, exp, { libelle: "Contrat", reference: referenceBail, etabliLe: new Date().toISOString() })}
+    ${enTete(f, { ...exp, emailFacultatif: !adresseElectroniqueObligatoire && exp.emetteur === "detenteurs" }, { libelle: "Contrat", reference: referenceBail, etabliLe: new Date().toISOString() })}
     ${titre(individuel ? "Contrat individuel de colocation" : colocation ? "Contrat commun de colocation" : "Contrat de location", "Logement nu · résidence principale", [
       "Soumis au titre Ier de la loi n° 89-462 du 6 juillet 1989",
       individuel ? "Contrat indépendant — article 8-1 de la loi du 6 juillet 1989" : "Contrat type — annexe 1 du décret n° 2015-587 du 29 mai 2015",
@@ -116,7 +117,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
     ${f.bailleur(() => `<p>Nom et prénom(s) ou dénomination : ${f.champ(nomPersonne(bailleurPrincipal), "nom et prénom(s), ou dénomination")}
     — Qualité : ${f.champ(bailleurPrincipal?.qualite, "personne physique, indivision, SCI familiale, SCI, personne morale")}<br/>
     ${!options.presentationAncienne && bailleurPrincipal?.siren ? `SIREN : ${echapper(bailleurPrincipal.siren)}<br/>` : ""}Domicile ou siège social : ${f.champ(adressePersonne(bailleurPrincipal), "domicile ou siège social")}<br/>
-    Adresse électronique : ${f.champ(bailleurPrincipal?.email, "adresse électronique")} — Numéro de
+    Adresse électronique : ${adresseElectroniqueObligatoire ? f.champ(bailleurPrincipal?.email, "adresse électronique") : facultatif(bailleurPrincipal?.email)} — Numéro de
     téléphone portable : ${facultatif(bailleurPrincipal?.telephone)}</p>`)}
     ${
       indivision
@@ -131,7 +132,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
     ${sousSection(plusieursLocataires ? "Les locataires" : "Le locataire")}
     ${
       ctx.locataires.length > 0
-        ? ctx.locataires.map((l) => blocLocataire(f, l)).join("")
+        ? ctx.locataires.map((l) => blocLocataire(f, l, adresseElectroniqueObligatoire)).join("")
         : blocLocataire(f, {
             id: "",
             nom: "",
@@ -144,7 +145,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
             postal_code: null,
             city: null,
             qualite: null,
-          })
+          }, adresseElectroniqueObligatoire)
     }
     <p>Ci-après dénommé${plusieursLocataires ? "s" : ""} « le locataire ».</p>
 

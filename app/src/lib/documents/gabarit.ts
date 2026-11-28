@@ -286,6 +286,7 @@ export type EnTeteExpediteur = {
   telephone?: string | null;
   contactGestion?: boolean;
   emetteur?: EmetteurEnTete;
+  emailFacultatif?: boolean;
 };
 
 // Bloc expéditeur + cartouche référence, sous filet (page 1 de chaque épreuve)
@@ -300,7 +301,7 @@ export function enTete(
   try {
     const nom = f.champ(exp.nom, "nom et prénom(s), ou dénomination");
     const adresse = f.champ(exp.adresse, "domicile ou siège social");
-    const email = f.champ(exp.email, "adresse électronique");
+    const email = exp.emailFacultatif ? facultatif(exp.email) : f.champ(exp.email, "adresse électronique");
     const reference = f.champ(cartouche.reference, "référence");
     const etabli = f.date(cartouche.etabliLe);
     return `<header class="entete">

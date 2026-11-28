@@ -21,7 +21,7 @@ const banc = vi.hoisted(() => ({
 
 function requete(table: string) {
   const q: Record<string, unknown> = {};
-  for (const methode of ["select", "eq", "order", "limit", "gte", "lte", "in"]) q[methode] = () => q;
+  for (const methode of ["select", "eq", "order", "limit", "gte", "lte", "in", "not", "is"]) q[methode] = () => q;
   q.maybeSingle = async () => ({ data: (banc.donnees[table] ?? [])[0] ?? null, error: null });
   q.then = (suite: (r: { data: unknown[]; error: null }) => unknown) =>
     Promise.resolve({ data: banc.donnees[table] ?? [], error: null }).then(suite);

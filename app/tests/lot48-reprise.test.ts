@@ -86,39 +86,39 @@ describe("U04 — « adresse électronique » suit l'information qui manque vrai
     expect(liensDe(r, modele, "/agence")["adresse électronique"]).toBe("/agence/org/profil");
   });
 
-  it.each(["bail_nu", "bail_meuble"] as const)("%s, agence, mandant sans e-mail : sa fiche dans Personnes, plus celle du locataire", async (modele) => {
+  it.each(["bail_nu", "bail_meuble"] as const)("%s, agence, mandant sans e-mail : aucune adresse à renseigner", async (modele) => {
     const ctx = agence();
     ctx.bailleurs[0].email = null;
     const r = await assembler(modele, ctx);
-    expect(r.document.videsBailleur).toContain("adresse électronique");
-    expect(liensDe(r, modele, "/agence")["adresse électronique"]).toBe("/agence/org/personnes");
+    expect(r.document.videsBailleur ?? []).not.toContain("adresse électronique");
+    expect(liensDe(r, modele, "/agence")["adresse électronique"]).toBeUndefined();
   });
 
-  it.each(["bail_nu", "bail_meuble"] as const)("%s, propriétaire, détenteur sans e-mail dans un espace sans contact de gestion : sa fiche", async (modele) => {
+  it.each(["bail_nu", "bail_meuble"] as const)("%s, propriétaire, détenteur sans e-mail dans un espace sans contact de gestion : l’en-tête reste complet", async (modele) => {
     const ctx = contexte();
     ctx.bailleurs[0].email = null;
     ctx.organisation.email_contact = null;
     const r = await assembler(modele, ctx);
     expect(r.document.emetteur).toBe("detenteurs");
-    expect(liensDe(r, modele, "/espace")["adresse électronique"]).toBe("/espace/org/personnes");
+    expect(liensDe(r, modele, "/espace")["adresse électronique"]).toBeUndefined();
   });
 
-  it("témoin : seul l'e-mail du locataire manque — la fiche du locataire, comme avant", async () => {
+  it("seul l’e-mail du locataire manque : aucune adresse à renseigner", async () => {
     const ctx = agence();
     ctx.locataires[0].email = null;
     const r = await assembler("bail_nu", ctx);
     expect(r.document.seulementEnTete ?? []).not.toContain("adresse électronique");
     expect(r.document.videsBailleur ?? []).not.toContain("adresse électronique");
-    expect(liensDe(r, "bail_nu", "/agence")["adresse électronique"]).toBe(`/agence/org/personnes/${ctx.locataires[0].id}`);
+    expect(liensDe(r, "bail_nu", "/agence")["adresse électronique"]).toBeUndefined();
   });
 });
 
 describe("U06 — tout le bloc du bailleur mène à l'écran du détenteur, dans les deux types d'espace", () => {
-  it.each([["bail_nu", QUALITE_NU], ["bail_meuble", QUALITE_MEUBLE]] as const)("%s, agence, lot sans détenteur : les quatre libellés du bailleur mènent à la détention", async (modele, qualite) => {
+  it.each([["bail_nu", QUALITE_NU], ["bail_meuble", QUALITE_MEUBLE]] as const)("%s, agence, lot sans détenteur : les trois libellés du bailleur mènent à la détention", async (modele, qualite) => {
     const ctx = agence(contexte({ bailleurs: [] }));
     const r = await assembler(modele, ctx);
     const liens = liensDe(r, modele, "/agence");
-    for (const m of ["nom et prénom(s), ou dénomination", qualite, "domicile ou siège social", "adresse électronique"]) {
+    for (const m of ["nom et prénom(s), ou dénomination", qualite, "domicile ou siège social"]) {
       expect(liens[m], m).toBe(`/agence/org/lots/${ctx.lot.id}?vers=detention`);
     }
   });
@@ -133,11 +133,11 @@ describe("U06 — tout le bloc du bailleur mène à l'écran du détenteur, dans
     expect(liens["domicile ou siège social"]).toBe("/agence/org/baux/b1");
   });
 
-  it("témoin : chez un propriétaire, le lot sans détenteur mène toujours les quatre libellés à la détention", async () => {
+  it("témoin : chez un propriétaire, le lot sans détenteur mène toujours les trois libellés à la détention", async () => {
     const ctx = contexte({ bailleurs: [] });
     const r = await assembler("bail_nu", ctx);
     const liens = liensDe(r, "bail_nu", "/espace");
-    for (const m of ["nom et prénom(s), ou dénomination", QUALITE_NU, "domicile ou siège social", "adresse électronique"]) {
+    for (const m of ["nom et prénom(s), ou dénomination", QUALITE_NU, "domicile ou siège social"]) {
       expect(liens[m], m).toBe(`/espace/org/lots/${ctx.lot.id}?vers=detention`);
     }
   });
@@ -153,15 +153,17 @@ describe("U06 — tout le bloc du bailleur mène à l'écran du détenteur, dans
     }
   );
 
-  it("le bloc du bailleur s'imprime à l'identique : seuls ses manques sont notés à part", () => {
+  it("le bloc archivé garde ses manques et le modèle courant rend l’e-mail facultatif", () => {
     const ctx = contexte();
     ctx.bailleurs[0].qualite = null;
     ctx.bailleurs[0].email = null;
     const f = new Fusion();
-    const doc = construireBailNu(ctx, { dpeClasse: "D", f });
+    const doc = construireBailNu(ctx, { dpeClasse: "D", f, typographieArchivee: true });
     expect(doc.html).toContain(`— Qualité : <span class="fusion">${QUALITE_NU}</span><br/>`);
     expect(doc.html).toContain('Adresse électronique : <span class="fusion">adresse électronique</span> — Numéro de');
     expect(doc.videsBailleur).toEqual([QUALITE_NU, "adresse électronique"]);
+    const actuel = construireBailNu(ctx, { dpeClasse: "D", f: new Fusion() });
+    expect(actuel.videsBailleur).toEqual([QUALITE_NU]);
     // Hors du bloc, rien n'est noté comme venant du bailleur.
     const g = new Fusion();
     g.champ(null, "adresse électronique");

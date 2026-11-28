@@ -79,7 +79,7 @@ const ORG = "44444444-4444-4444-8444-444444444444";
 const EXPORT = "55555555-5555-4555-8555-555555555555";
 const COMPTE = "66666666-6666-4666-8666-666666666666";
 
-function fausseBase(o: { prise?: boolean; fichiers?: { chemin: string; taille: number }[]; ligne?: Record<string, unknown>; titulaire?: boolean } = {}) {
+function fausseBase(o: { prise?: boolean; fichiers?: { chemin: string; taille: number }[]; ligne?: Record<string, unknown>; titulaire?: boolean; tables?: Record<string, Record<string, unknown>[]> } = {}) {
   const rpc: { nom: string; args: Record<string, unknown> }[] = [];
   const depots: { compartiment: string; chemin: string; contenu: Buffer }[] = [];
   const retraits: string[][] = [];
@@ -89,7 +89,7 @@ function fausseBase(o: { prise?: boolean; fichiers?: { chemin: string; taille: n
     rpc: async (nom: string, args: Record<string, unknown>) => {
       rpc.push({ nom, args });
       if (nom === "prendre_export_complet") return { data: o.prise ?? true, error: null };
-      if (nom === "export_complet_donnees") return { data: {
+      if (nom === "export_complet_donnees") return { data: o.tables ?? {
         organizations: [{ id: ORG, name: "Espace d'essai" }],
         persons: [{ id: "p1", nom: "=Locataire", email: "locataire@example.invalid" }],
         documents: [{ id: "d1", type: "piece_identite", storage_path: `${ORG}/pieces/p.pdf` }, { id: "d2", type: "bail", storage_path: `${ORG}/bail.pdf` }],
@@ -133,6 +133,44 @@ describe("préparation de l'archive", () => {
     const fin = b.rpc.find((r) => r.nom === "terminer_export_complet")!.args;
     expect(fin).toMatchObject({ p_export: EXPORT, p_fichiers: 1, p_tables: 3, p_pieces: ["d1"], p_erreur: null });
     expect(fin.p_empreinte).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it("range les pièces et l’historique daté des deux patrimoines dans leurs logements", async () => {
+    const b = fausseBase({
+      fichiers: ["bail.pdf", "annexe.pdf", "justificatif.pdf"].map((nom) => ({ chemin: `${ORG}/${nom}`, taille: 3 })),
+      tables: {
+        organizations: [{ id: ORG, name: "Espace fictif", trial_ends_at: "2026-11-01" }],
+        lots: [{ id: "lot1", bien_id: "bien1", nom: "Acacias" }, { id: "lot2", bien_id: "bien2", nom: "Mimosas" }],
+        biens: [{ id: "bien1", nom: "Maison" }, { id: "bien2", nom: "Immeuble" }],
+        baux: [{ id: "bail1", lot_id: "lot1", date_debut: "2024-01-01", locataire_principal: "loc" }],
+        detentions: [
+          { lot_id: "lot1", person_id: "nom", date_fin: "2026-10-31" },
+          { lot_id: "lot2", person_id: "sci", date_debut: "2025-09-01" },
+        ],
+        persons: [{ id: "nom", nom: "Dupont" }, { id: "sci", nom: "SCI Fictive" }, { id: "loc", nom: "Locataire fictif" }],
+        documents: ["bail.pdf", "annexe.pdf", "justificatif.pdf"].map((nom, i) => ({
+          id: `doc${i + 1}`, storage_path: `${ORG}/${nom}`, created_at: "2025-09-01",
+        })),
+        bail_signature_circuits: [{ bail_id: "bail1", annexes: [{ id: "doc2" }] }],
+        document_liens: [
+          { document_id: "doc1", entite: "bail", entite_id: "bail1" },
+          { document_id: "doc3", entite: "lot", entite_id: "lot2" },
+        ],
+      },
+    });
+    expect(await construireExportComplet(b.db, EXPORT)).toMatchObject({ ok: true });
+    const lu = lireZip(b.depots[0].contenu);
+    expect(lu.get("logements/index.csv")?.toString()).toContain("Acacias");
+    expect(lu.get("logements/lot1/historique/baux.csv")?.toString()).toContain("2024-01-01");
+    expect(lu.get("logements/lot1/historique/detentions.csv")?.toString()).toContain("2026-10-31");
+    expect(lu.get("logements/lot1/historique/persons.csv")?.toString()).toContain("Dupont");
+    expect(lu.get("logements/lot1/historique/persons.csv")?.toString()).not.toContain("SCI Fictive");
+    expect(lu.get("logements/lot2/historique/persons.csv")?.toString()).toContain("SCI Fictive");
+    expect(lu.get("logements/lot2/index.csv")?.toString()).toContain("2025-09-01");
+    expect(lu.has("logements/lot1/pieces/doc1/bail.pdf")).toBe(true);
+    expect(lu.has("logements/lot1/pieces/doc2/annexe.pdf")).toBe(true);
+    expect(lu.has("logements/lot1/pieces/doc3/justificatif.pdf")).toBe(false);
+    expect(lu.has("logements/lot2/pieces/doc3/justificatif.pdf")).toBe(true);
   });
 
   it("déjà prise par une autre passe : rien ; trop volumineuse : échec écrit, rien de déposé", async () => {

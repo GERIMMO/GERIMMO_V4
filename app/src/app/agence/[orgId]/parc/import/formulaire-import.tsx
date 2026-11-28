@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useId } from "react";
+import { useId, useState } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { useFormStatus } from "react-dom";
 import { importerParc, type EtatImport } from "@/app/actions/import-parc";
+import { COLONNES } from "@/lib/import-parc";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { ChampFichier } from "@/components/champ-fichier";
@@ -18,10 +19,13 @@ export function FormulaireImport({ orgId }: { orgId: string }) {
     {}
   );
   const base = useId();
+  const [edition, ouvrirEdition] = useState<{ ligne: number; apercu: EtatImport }>();
+  const ligneEnEdition = edition?.apercu === etat ? edition.ligne : undefined;
 
   const resultats = etat.resultats ?? [];
   const ok = resultats.filter((r) => r.statut === "ok");
   const erreurs = resultats.filter((r) => r.statut === "erreur");
+  const doublons = resultats.filter((r) => r.statut === "doublon").length;
   const baux = ok.filter((r) => r.bail_id).length;
   // Après la bascule, la question n'est plus « est-ce que ça passe » mais
   // « qu'est-ce qui a été créé » : la liste change de sens, pas de forme.
@@ -91,8 +95,12 @@ export function FormulaireImport({ orgId }: { orgId: string }) {
                 }`
               : erreurs.length === 0
                 ? "Tout est lisible. L'import peut être lancé."
-                : `${erreurs.length} ligne${erreurs.length > 1 ? "s" : ""} à corriger dans votre fichier avant d'importer — les autres passeront.`}
+                : `${erreurs.length} ligne${erreurs.length > 1 ? "s" : ""} à corriger avant d’importer — les autres passeront.`}
           </p>
+
+          {doublons > 0 && (
+            <p className="text-sm">{doublons} {doublons === 1 ? "ligne identique écartée" : "lignes identiques écartées"}.</p>
+          )}
 
           {/* Une rangée par ligne du fichier, comme les listes de lots. Une
               ligne créée ouvre son lot, et c'est TOUTE la rangée qui mène à
@@ -112,7 +120,7 @@ export function FormulaireImport({ orgId }: { orgId: string }) {
                     <small className="block tabular-nums">Ligne {r.ligne}</small>
                   </span>
                   <span className={`puce shrink-0 ${r.statut === "ok" ? "puce-loue" : "puce-rouge"}`}>
-                    {r.statut === "ok" ? (apresBascule ? "créée" : "prête") : "à corriger"}
+                    {r.statut === "ok" ? (apresBascule ? "importée" : "prête") : r.statut === "doublon" ? "doublon" : "à corriger"}
                   </span>
                 </>
               );
@@ -126,14 +134,46 @@ export function FormulaireImport({ orgId }: { orgId: string }) {
                       {contenu}
                     </Link>
                   ) : (
-                    <div className="rang hover:border-l-transparent hover:bg-transparent">{contenu}</div>
+                    <div className="rang flex-wrap hover:border-l-transparent hover:bg-transparent">
+                      {contenu}
+                      {etat.controle && (
+                        <button
+                          type="button"
+                          className="btn-secondaire"
+                          disabled={enCours}
+                          aria-expanded={ligneEnEdition === r.ligne}
+                          onClick={() => ouvrirEdition(ligneEnEdition === r.ligne ? undefined : { ligne: r.ligne, apercu: etat })}
+                        >
+                          Modifier la ligne {r.ligne}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {ligneEnEdition === r.ligne && etat.lignes && (
+                    <fieldset className="grid gap-3 p-3 sm:grid-cols-2">
+                      <legend>Modifier la ligne {r.ligne}</legend>
+                      {COLONNES.map(([cle, libelle]) => (
+                        <label key={cle} className="grid gap-1 text-sm">
+                          {libelle}
+                          <input
+                            className="w-full rounded border bg-background p-2"
+                            name={`correction-${cle}`}
+                            form={`${base}-import`}
+                            defaultValue={etat.lignes?.[r.ligne - 1]?.[cle]}
+                          />
+                        </label>
+                      ))}
+                      <button type="submit" form={`${base}-import`} name="corriger" value={r.ligne} disabled={enCours} className="btn-secondaire">
+                        Contrôler la correction
+                      </button>
+                    </fieldset>
                   )}
                 </li>
               );
             })}
           </ol>
 
-          {etat.controle && ok.length > 0 && <div className="mt-4 border-t border-border pt-4"><p className="mb-3 text-sm">Après vérification de cet aperçu, importez les lignes prêtes.</p><button type="submit" form={`${base}-import`} name="bascule" value="1" disabled={enCours} className="btn-or disabled:opacity-50">{enCours ? "Import…" : "Importer"} {ok.length} ligne{ok.length > 1 ? "s" : ""}</button></div>}
+          {etat.controle && ok.length > 0 && <div className="mt-4 border-t border-border pt-4"><p className="mb-3 text-sm">Après vérification de cet aperçu, importez les lignes prêtes.</p><button type="submit" form={`${base}-import`} name="bascule" value="1" disabled={enCours || ligneEnEdition !== undefined} className="btn-or disabled:opacity-50">{enCours ? "Import…" : "Importer"} {ok.length} ligne{ok.length > 1 ? "s" : ""}</button></div>}
           {apresBascule && baux > 0 && (
             <p className="mt-3 text-xs text-muted-foreground">
               Un bail en brouillon ne facture rien : il s&apos;active depuis la

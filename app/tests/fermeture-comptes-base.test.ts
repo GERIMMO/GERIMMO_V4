@@ -737,6 +737,25 @@ describe.skipIf(!url)("fermeture des comptes, inactivité, export complet (avec 
     expect(await nombre("select count(*) n from public.exports_complets where id = $1 and statut = 'expire' and chemin is null", [id])).toBe(1);
   });
 
+  it("export : le titulaire peut retrouver les lots après la fin de l’essai", async () => {
+    const titulaire = await compte("fc-export-essai-fini");
+    const org = await espace(titulaire);
+    await garnir(org, titulaire);
+    await db.query("select public.tache_systeme()");
+    await db.query("update public.organizations set status = 'essai', essai_fin = public.aujourdhui_paris() - 1 where id = $1", [org]);
+    await db.query("select set_config('gerimmo.systeme', '', true)");
+    expect((await un<{ ouverte: boolean }>("select public.org_ecriture_ouverte($1) as ouverte", [org])).ouverte).toBe(false);
+    await session(titulaire);
+    const { id } = await un<{ id: string }>("select public.demander_export_complet($1) as id", [org]);
+    await serviceRole();
+    expect((await un<{ ok: boolean }>("select public.prendre_export_complet($1) as ok", [id])).ok).toBe(true);
+    const { donnees } = await un<{ donnees: Record<string, unknown[]> }>(
+      "select public.export_complet_donnees($1, $2) as donnees", [org, titulaire]
+    );
+    expect(donnees.lots.length).toBeGreaterThan(0);
+    expect(donnees.baux.length).toBeGreaterThan(0);
+  });
+
   it("export : fichiers de l'espace (chemin, taille) ; export de l'artisan étendu à ses données de plateforme, journalisé", async () => {
     const titulaire = await compte("fc-fichiers");
     const org = await espace(titulaire);

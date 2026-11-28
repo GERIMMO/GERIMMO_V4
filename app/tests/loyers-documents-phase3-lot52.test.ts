@@ -187,6 +187,21 @@ describe("W25 à W29 — révision du loyer", () => {
 
 describe("W30 à W32 — attestation de loyer et dossier de préparation CAF", () => {
   const options = { destinataire: "CAF du Rhône", allocataire: "1234567" };
+  it.each(["attestation_loyer", "attestation_caf"] as const)("détaille le versement CAF du terme sur %s", async (code) => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-27T12:00:00Z"));
+    const document = succes(await assemblerComplementBail(code, base({
+      appels_loyer: [{ id: "a1", periode: "2026-11-01", montant_du: 600 }],
+      encaissements: [
+        { date_paiement: "2026-11-04", montant: 390, mode: "virement" },
+        { date_paiement: "2026-11-05", montant: 210, mode: "caf" },
+      ],
+    }), "org", "b1")).document;
+    const texte = texteDe(document.html);
+    expect(texte.includes("versé par le locataire : 390,00")).toBe(true);
+    expect(texte.includes("Dont aide au logement versée par la CAF : 210,00")).toBe(true);
+  });
+
   it.each(["attestation_loyer", "attestation_caf"] as const)("W30 — %s : en-tête « Contrat n° », sans sous-titre « Dossier de location »", async (code) => {
     const html = succes(await assemblerComplementBail(code, base({}), "org", "b1", options)).document.html;
     expect(html).not.toContain("Dossier de location");

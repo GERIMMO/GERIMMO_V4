@@ -106,7 +106,10 @@ export default async function PagePaiementsLocataire(
     charges?: number | null;
     prorata?: boolean | null;
   }[];
-  const disponibilites = await disponibilitesQuittances(supabase, lignesLoyer.map(l => l.quittance_id));
+  const versements = new Map<string, { caf: number; locataire: number }>();
+  const disponibilites = await disponibilitesQuittances(supabase, lignesLoyer.map(l => l.quittance_id),
+    (id, parts) => versements.set(id, parts));
+  const partsDuTerme = (id: string | null) => id ? versements.get(id) : undefined;
   // Lot 61 : un document de l'historique est retenu faute d'informations obligatoires de l'émetteur (« Document en
   // préparation ») : la quittance du mois soldé le sera aussi, tant qu'elles manquent.
   const documentEnPreparation = Object.values(disponibilites).includes("en_preparation");
@@ -238,7 +241,7 @@ export default async function PagePaiementsLocataire(
                   )}
                   .
                   {prochaine.statut === "partiel"
-                    ? ` Déjà réglé : ${eur(Number(prochaine.montant_couvert))}.`
+                    ? ` Déjà reçu pour cette échéance : ${eur(Number(prochaine.montant_couvert))}.`
                     : ""}
                 </p>
                 {ibanBrut && (
@@ -348,6 +351,7 @@ export default async function PagePaiementsLocataire(
             // sans survol ni chevron. -mx-4 : texte aligné sur le titre.
             <ul className="divide-y divide-border">
               {[...lignesLoyer].reverse().map((l) => {
+                const parts = partsDuTerme(l.quittance_id);
                 const contenu = (
                   <>
                     <span className="min-w-0 flex-1">
@@ -359,6 +363,12 @@ export default async function PagePaiementsLocataire(
                           ? `${eur(Number(l.montant_couvert))} reçus sur ${eur(Number(l.montant_du))}`
                           : eur(Number(l.montant_du))}
                       </span>
+                      {parts && parts.caf > 0 && (
+                        <span className="block text-[13px] text-muted-foreground">
+                          <span className="block">Versé par le locataire : {eur(parts.locataire)}</span>
+                          <span className="block">Dont aide au logement versée par la CAF : {eur(parts.caf)}</span>
+                        </span>
+                      )}
                     </span>
                     <span
                       className={`shrink-0 ${tagLocataire(COULEURS_STATUT_APPEL_LOYER[l.statut])}`}

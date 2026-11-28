@@ -1,4 +1,5 @@
 "use client";
+import { SignalementAideLogement } from "./signalement-aide-logement";
 import { InputDateJour } from "@/components/input-date-jour";
 
 import Link from "next/link";
@@ -417,6 +418,10 @@ export function FormulaireLoyers({
 
   return (
     <div className="space-y-5">
+      {proprietaire && recouvrementOuvert && echeancier.some((l) =>
+        l.date_echeance < aujourdhui && Number(l.montant_du) > Number(l.montant_couvert)) && (
+        <SignalementAideLogement jour={aujourdhui} versementCafConnu={encaissements.some((e) => e.mode === "caf")} />
+      )}
       {/* Résumé + actions */}
       {/* TROIS CHIFFRES, PAS UNE PHRASE. « Dû 1 859,76 € · Encaissé 920,00 € ·
           Solde 939,76 € » se lisait d'un bout à l'autre pour trouver le seul

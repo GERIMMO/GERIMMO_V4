@@ -54,9 +54,9 @@ export async function lireSuccesTraitements(db: Client) {
   })));
 }
 
-function dateLue(le: string | null | undefined) {
+function dateLue(le: string | undefined) {
   if (le === undefined) return "Lecture indisponible";
-  return le ? <time dateTime={le}>{formaterDateHeureParis(le)}</time> : "Aucun résultat consigné";
+  return <time dateTime={le}>{formaterDateHeureParis(le)}</time>;
 }
 
 export function ReperesTraitement({ traitement, succes, maintenant }: {
@@ -67,7 +67,7 @@ export function ReperesTraitement({ traitement, succes, maintenant }: {
   const echeance = echeanceTraitement(nom, maintenant);
   return <dl className="my-2 grid gap-2 text-sm sm:grid-cols-2">
     <div><dt className="font-semibold">Dernier passage</dt><dd>{passage ? <>{dateLue(passage)} · {bilan}</> : "Aucun passage enregistré"}</dd></div>
-    <div><dt className="font-semibold">Dernier succès</dt><dd>{dateLue(succes)}</dd></div>
+    <div><dt className="font-semibold">Dernier succès</dt><dd>{succes === null ? "Aucun succès enregistré" : dateLue(succes)}</dd></div>
     <div><dt className="font-semibold">Preuve de livraison</dt><dd>{
       COURRIELS.has(nom) ? <Link className="lien-discret" href="/admin/sante#traitements-durables">Vérifier le suivi des courriels</Link> :
         nom === "sauvegarde" ? <a className="lien-discret" href={SAUVEGARDE}>Vérifier le dépôt dans GitHub</a> :

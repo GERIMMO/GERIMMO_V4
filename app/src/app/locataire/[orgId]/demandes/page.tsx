@@ -182,11 +182,7 @@ export default async function PageDemandesLocataire(
               ? `${aChoisir} rendez-vous attendent votre choix`
               : "Un rendez-vous attend votre choix"}
           </h2>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            L&apos;artisan a proposé ses créneaux&nbsp;: choisissez celui qui vous
-            arrange. Tant que personne n&apos;a choisi, la réparation attend.
-          </p>
-          <span className="btn-or mt-3">Choisir mon créneau{"\u00a0"}→</span>
+          <span className="underline">Voir les dates proposées →</span>
         </a>
       )}
 

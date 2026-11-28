@@ -74,7 +74,8 @@ function semaineAVenir(aujourdhui: string): Date[] {
   });
 }
 
-export default async function PageAgendaArtisan() {
+export default async function PageAgendaArtisan({ searchParams }: PageProps<"/artisan/agenda">) {
+  const aOrganiser = (await searchParams).vue === "a-organiser";
   const { fiche } = await verifierAccesArtisan();
   const [agenda, demandesRdv, echanges] = await Promise.all([chargerAgenda(), chargerDemandesRdv(), chargerEchangesNonLus()]);
   // Audit palier 1 (P1-05) : la mission dont la discussion porte un message à lire le dit sur sa carte.
@@ -109,7 +110,7 @@ export default async function PageAgendaArtisan() {
   );
   const aGarder = joursAGarder([...proposees.values()].filter((c) => c !== null));
 
-  const joursAVenir = [...jours];
+  const joursAVenir = [...new Set([...jours.keys(), ...aGarder.keys()])].filter(cle => cle >= aujourdhui).sort();
   const joursPasses = [...historique];
   const semaine = semaineAVenir(aujourdhui);
 
@@ -126,9 +127,13 @@ export default async function PageAgendaArtisan() {
 
       {demandesRdv.erreur && <Erreur>Les demandes de report et d’annulation n’ont pas pu être lues. Ouvrez la mission pour vérifier son rendez-vous avant de vous déplacer.</Erreur>}
 
+      <nav aria-label="Filtrer les interventions" className="flex flex-wrap gap-2">
+        <Link className={aOrganiser ? "btn-secondaire" : "btn-or"} href="/artisan/agenda" aria-current={!aOrganiser ? "page" : undefined}>Toutes les interventions</Link>
+        <Link className={aOrganiser ? "btn-or" : "btn-secondaire"} href="/artisan/agenda?vue=a-organiser" aria-current={aOrganiser ? "page" : undefined}>À organiser</Link>
+      </nav>
       {/* La semaine qui vient, en sept cases. Une case avec des rendez-vous
           mène à sa journée ; les autres ne se cliquent pas (rien dessous). */}
-      {!agenda.erreur && (
+      {!aOrganiser && !agenda.erreur && (
         <Carte>
           <TitreSection>Mes 7 prochains jours</TitreSection>
           <ol className="artisan-semaine grid grid-cols-7 gap-1.5 sm:gap-3" aria-label="Rendez-vous des sept prochains jours">
@@ -177,7 +182,7 @@ export default async function PageAgendaArtisan() {
               }`;
               return (
                 <li key={cle}>
-                  {nombre > 0 ? (
+                  {nombre > 0 || gardees > 0 ? (
                     <Link
                       href={`#jour-${cle}`}
                       className={`${cadre} transition-colors hover:border-[var(--marque)] hover:bg-[var(--survol)]`}
@@ -200,15 +205,22 @@ export default async function PageAgendaArtisan() {
         </Carte>
       )}
 
-      {joursAVenir.length > 0 ? (
-        joursAVenir.map(([cle, lignes]) => (
+      {!aOrganiser && (joursAVenir.length > 0 ? (
+        joursAVenir.map(cle => (
           <section key={cle} id={`jour-${cle}`} className="scroll-mt-28">
             <TitreSection>
               {cle === aujourdhui ? "Aujourd'hui — " : ""}
-              {jourLong(lignes[0].debut_prevu)}
+              {jourLong(`${cle}T12:00:00Z`)}
             </TitreSection>
+            {aGarder.has(cle) && <ul className="mb-3 space-y-1 text-sm">
+              {[...proposees].flatMap(([id, creneaux]) => (creneaux ?? [])
+                .filter(c => jourCivil(c.debut) === cle)
+                .map(c => <li key={c.creneau_id}><Link className="underline" href={`/artisan/missions/${id}`}>
+                  {creneauTexte(c.debut, c.fin)} — proposé · à garder libre
+                </Link></li>))}
+            </ul>}
             <div className="artisan-liste">
-              {lignes.map((l) => (
+              {(jours.get(cle) ?? []).map((l) => (
                 <CarteMission key={l.intervention_id} ligne={l} badgeRdv={badge(l)} nouveauxMessages={aLire.get(l.intervention_id)} />
               ))}
             </div>
@@ -230,8 +242,9 @@ export default async function PageAgendaArtisan() {
             ? " Votre inscription est encore en cours de validation : vous pourrez recevoir de nouvelles demandes après validation."
             : ""}
         </Vide>
-      )}
+      ))}
 
+      {aOrganiser && !agenda.erreur && sansDate.length === 0 && <Vide>Aucune intervention à organiser.</Vide>}
       {sansDate.length > 0 && (
         <section>
           <TitreSection>Sans rendez-vous ({sansDate.length})</TitreSection>
@@ -253,9 +266,9 @@ export default async function PageAgendaArtisan() {
       )}
 
       {/* Les chantiers des clients externes viennent après les missions : l'agenda s'ouvre sur la semaine qui vient. */}
-      <ChantiersDansAgenda />
+      {!aOrganiser && <ChantiersDansAgenda />}
 
-      {joursPasses.length > 0 && (
+      {!aOrganiser && joursPasses.length > 0 && (
         <section>
           <TitreSection>Historique des rendez-vous</TitreSection>
           <div className="space-y-6">

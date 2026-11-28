@@ -8,7 +8,8 @@ import { baseApiFictive } from "./base-api-fictive";
 // vérifient le résultat sur les données synthétiques, sans créer de mission.
 export type MomentAvisFuite = { evenement: "devis_recu" | "rdv_report_demande" | "rdv_report_accepte"; incident: string; mission?: string; destinataire: Page };
 export async function preparerEtPlanifierFuite(db: Client, browser: Browser, artisan: Page, organisation: string, artisanId: string, loc: {email:string;mot:string;description?:string},
-  verifierAvis?: (moment: MomentAvisFuite) => Promise<void>) {
+  verifierAvis?: (moment: MomentAvisFuite) => Promise<void>,
+  verifierCreneaux?: (dossier: { locataire: Page; incident: string; mission: string }) => Promise<void>) {
   baseApiFictive(process.env.SUPALOCAL_DB);
   const locataire = await browser.newContext({storageState:{cookies:[],origins:[]}, viewport:artisan.viewportSize()});
   try {
@@ -150,6 +151,7 @@ export async function preparerEtPlanifierFuite(db: Client, browser: Browser, art
     await expect.poll(async()=>(await db.query("select count(*)::int n from intervention_creneaux where intervention_id=$1 and statut='propose'",[mission])).rows[0].n).toBe(3);
     await page.goto(`/locataire/${organisation}/demandes`);
     const dossier=page.locator("#demande-"+incident.id);
+    await verifierCreneaux?.({ locataire: page, incident: incident.id, mission });
     await dossier.locator("input[type=radio] + label").first().click({timeout:12000});
     await dossier.getByRole("button",{name:"Confirmer ce rendez-vous"}).click();
     await expect.poll(async()=>(await db.query("select statut from incident_interventions where id=$1",[mission])).rows[0].statut).toBe("planifiee");

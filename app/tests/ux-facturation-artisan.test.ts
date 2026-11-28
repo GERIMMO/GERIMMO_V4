@@ -17,7 +17,7 @@ describe("facturation lisible sans modifier les comptes", () => {
     const d = activite([facture("a"), facture("b")]);
     const v = preparerVueFactures(d, [client("a", "deposee"), client("b", "validee")]);
     expect(v.lignes.map(l => l.statut)).toEqual(["En attente de validation", "À régler"]);
-    expect([v.reste, v.attendues, v.enValidation]).toEqual([20000, 2, 1]);
+    expect([v.reste, v.attendues, v.enValidation, v.montantEnValidation]).toEqual([10000, 1, 1, 10000]);
   });
   it("particulier, SCI et externe : 100 + (200 − 50) + (300 − 300) = 250 €", () => {
     const d = activite([facture("a"), facture("b", "SCI des Amandiers", 20000), facture("c", "Client extérieur", 30000, "externe")], [reglement("b", 5000), { ...reglement("c", 30000), facture_gerimmo_id: null, facture_externe_id: "c" }]);
@@ -31,15 +31,15 @@ describe("facturation lisible sans modifier les comptes", () => {
   it("ne cumule jamais la déclaration du client avec celle de l’artisan", () => {
     const d = activite([facture("a")], [reglement("a", 4000)]);
     const v = preparerVueFactures(d, [client("a", "reglee")]);
-    expect(v.reste).toBe(6000); expect(v.lignes[0].bilan.declare).toBe(4000);
+    expect(v.reste).toBe(0); expect(v.lignes[0].bilan.declare).toBe(4000);
     expect(v.lignes[0].client?.etat).toBe("reglee");
     expect(preparerVueFactures(activite([facture("a")]), [client("a", "reglee")]).lignes[0].statut).toBe("Réception à confirmer");
   });
   it("une même facture présente deux fois ne double pas le total", () => {
-    const f = facture("a"); expect(preparerVueFactures(activite([f, f]), []).reste).toBe(10000);
+    const f = facture("a"); expect(preparerVueFactures(activite([f, f]), [client("a", "validee")]).reste).toBe(10000);
   });
   it("une déclaration annulée ne réduit pas le solde", () => {
-    expect(preparerVueFactures(activite([facture("a")], [reglement("a", 10000, true)]), []).reste).toBe(10000);
+    expect(preparerVueFactures(activite([facture("a")], [reglement("a", 10000, true)]), [client("a", "validee")]).reste).toBe(10000);
   });
   it("un avoir reste visible et n’entre pas dans les sommes attendues", () => {
     const d = activite([facture("a", "Client extérieur", 10000, "externe")]);

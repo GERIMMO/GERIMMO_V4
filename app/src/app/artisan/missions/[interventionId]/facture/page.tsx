@@ -1,3 +1,4 @@
+import type { LigneDevis } from "@/lib/devis-structure";
 import { clientDeService } from "@/lib/supabase/service";
 import { LectureImpossibleArtisan } from "../../../ui";
 import { notFound, redirect } from "next/navigation";
@@ -38,8 +39,17 @@ export default async function PageFacture(
   // Audit palier 1 (P1-03) : si la facture précédente a été refusée, son motif se relit au moment de la corriger.
   const factureRefusee = (await chargerFacturesRefusees()).lignes.find((r) => r.intervention_id === interventionId);
 
-  const profil = await clientDeService()?.from("artisan_profils_documents")
-    .select("adresse,mentions").eq("artisan_id", fiche.artisan_id).maybeSingle();
+  const service = clientDeService();
+  const [profil, lienDevis] = await Promise.all([
+    service?.from("artisan_profils_documents").select("adresse,mentions").eq("artisan_id", fiche.artisan_id).maybeSingle(),
+    service?.from("incident_interventions").select("devis_id")
+      .eq("id", interventionId).eq("organization_id", mission.organization_id).eq("artisan_id", fiche.artisan_id).maybeSingle(),
+  ]);
+  const devis = lienDevis?.data?.devis_id ? await service?.from("incident_devis").select("lignes")
+    .eq("id", lienDevis.data.devis_id).eq("organization_id", mission.organization_id)
+    .eq("artisan_id", fiche.artisan_id).maybeSingle() : null;
+  const lignes = Array.isArray(devis?.data?.lignes) ? devis.data.lignes as LigneDevis[] : [];
+
 
   return (
     <div className="space-y-5">
@@ -75,9 +85,13 @@ export default async function PageFacture(
       {/* D20 (ART-21) : facturer plus de 2 h avant le rendez-vous confirmé reste possible ; on le dit. */}
       <AvertissementRendezVousAnticipe debutPrevu={mission.debut_prevu} finPrevue={mission.fin_prevue} geste="facturer" />
 
+      {(!service || lienDevis?.error || devis?.error) && <p role="status">Les prestations du devis sont indisponibles. Vous pouvez les saisir à partir de votre exemplaire.</p>}
       <FormulaireFacture
         interventionId={interventionId}
         plafondCents={mission.montant_plafond_cents}
+        devisCents={mission.montant_ttc_cents}
+        lignesDevis={lignes}
+        referenceDossier={mission.incident_numero}
         adresseEntreprise={profil?.data?.adresse ?? ""}
         mentionsEntreprise={profil?.data?.mentions ?? ""}
         lieuTravaux={[mission.adresse, mission.code_postal, mission.ville].filter(Boolean).join(" ")}

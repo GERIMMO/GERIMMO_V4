@@ -34,14 +34,14 @@ type Rang = {
   titre?:string|null;
   description?:string|null;
   bien_id?:string|null;
-  bien?:UnOuPlusieurs<{nom:string}>;
+  bien?:UnOuPlusieurs<{nom:string; address_line1:string|null}>;
   numero: string;
   categorie: string;
   urgence: string;
   etat: string;
   created_at: string;
   responsable_account_id: string | null;
-  lot: UnOuPlusieurs<{ nom: string }>;
+  lot: UnOuPlusieurs<{ nom: string; bien: UnOuPlusieurs<{ address_line1: string | null }> }>;
   declarant: UnOuPlusieurs<{ nom: string; prenom: string | null }>;
 };
 
@@ -97,7 +97,7 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
     );
   }
   const colonnes =
-    "id, lot_id, bien_id, titre, description, numero, categorie, urgence, etat, created_at, responsable_account_id, lot:lots(nom), bien:biens!incidents_bien_meme_org_fk(nom), declarant:persons(nom, prenom)";
+    "id, lot_id, bien_id, titre, description, numero, categorie, urgence, etat, created_at, responsable_account_id, lot:lots(nom,bien:biens!lots_bien_id_fkey(address_line1)), bien:biens!incidents_bien_meme_org_fk(nom,address_line1), declarant:persons(nom, prenom)";
   let vivantsQuery = supabase.from("incidents").select(colonnes)
     .eq("organization_id", orgId).neq("etat", "clos")
     .order("created_at", { ascending: false });
@@ -149,6 +149,7 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
     incident_id: string;
     incident_numero: string;
     raison_sociale: string;
+    lot_nom: string;
   }[]).filter(e => !portefeuille || incidents.some(i => i.id === e.incident_id));
   const emails = new Map(membres.map((m) => [m.account_id, m.email.split("@")[0]]));
 
@@ -255,24 +256,22 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
           bloque rien, elle se propose. Un lien par dossier, pas une modale :
           on note en rouvrant l'intervention, avec le chantier sous les yeux. */}
       {aEvaluer.length > 0 && (!estProprietaire || !sel) && (
-        <div className="mb-4 rounded-[var(--rayon-carte)] border border-[var(--or-filet)] bg-[var(--or-clair)] px-4 py-3 text-sm">
-          <p className="font-medium">
-            {aEvaluer.length} intervention{aEvaluer.length > 1 ? "s" : ""} terminée
-            {aEvaluer.length > 1 ? "s" : ""} attend{aEvaluer.length > 1 ? "ent" : ""} votre
-            note.
-          </p>
-          <p className="mt-1 text-muted-foreground">
-            {aEvaluer.slice(0, 4).map((i, n) => (
-              <span key={i.intervention_id}>
-                {n > 0 && " · "}
-                <Link href={lien(vue, i.incident_id)} className="hover:underline">
-                  {i.raison_sociale} — {i.incident_numero}
+        <details className="mb-4 rounded-[var(--rayon-carte)] border border-[var(--or-filet)] bg-[var(--or-clair)] px-4 py-2 text-sm">
+          <summary className="min-h-11 cursor-pointer content-center font-medium">
+            {aEvaluer.length} intervention{aEvaluer.length > 1 ? "s" : ""} à noter
+          </summary>
+          <ul className="space-y-2 pb-2 text-muted-foreground">
+            {aEvaluer.map(i => {
+              const dossier = incidents.find(d => d.id === i.incident_id);
+              const adresse = premier(dossier?.bien ?? null)?.address_line1 ?? premier(premier(dossier?.lot ?? null)?.bien ?? null)?.address_line1 ?? i.lot_nom;
+              return <li key={i.intervention_id}>
+                <Link href={lien(vue, i.incident_id)} className="inline-flex min-h-11 items-center underline">
+                  {adresse} — {i.raison_sociale} ({i.incident_numero})
                 </Link>
-              </span>
-            ))}
-            {aEvaluer.length > 4 && ` · et ${aEvaluer.length - 4} autre${aEvaluer.length - 4 > 1 ? "s" : ""}`}
-          </p>
-        </div>
+              </li>;
+            })}
+          </ul>
+        </details>
       )}
 
       {/* Vue scindée maquette : la liste à gauche, le dossier sélectionné à

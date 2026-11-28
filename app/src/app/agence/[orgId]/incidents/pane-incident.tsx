@@ -1,3 +1,5 @@
+import { prochaineActionIncident } from "@/lib/prochaine-action-incident";
+import { BandeauProchaineAction } from "@/components/prochaine-action-incident";
 import { PresentationSignalementIncident } from "@/components/presentation-signalement-incident";
 import { CadreIncident, NavigationIncident, RubriqueIncident } from "@/components/navigation-incident";
 import { consigneIncident, libelleEtatIncidentProprietaire } from "@/lib/consigne-incident";
@@ -406,6 +408,24 @@ export async function PaneIncident({
           ? { titre: "Dossier clos", texte: "Retrouvez les décisions et les échanges dans la chronologie.", cible: "chronologie", bouton: "Voir l’historique", ton: "termine" }
           : { titre: "Suivre l’intervention", texte: "Consultez l’avancement et les informations transmises par l’artisan.", cible: "intervention", bouton: "Voir le suivi", ton: "info" };
 
+  const missionsPourBandeau = estProprietaire && !["declare", "rouvert", "clos"].includes(etatIncident)
+    ? await supabase.from("incident_interventions").select("id, statut, debut_prevu")
+      .eq("incident_id", incidentId).eq("organization_id", orgId)
+      .order("confiee_le", { ascending: false })
+    : null;
+  const missionsLues = missionsPourBandeau?.data ?? [];
+  const missionPourBandeau = missionsLues.find(m => ["proposee", "acceptee", "planifiee", "en_cours"].includes(m.statut)) ?? missionsLues[0];
+  const creneauxPourBandeau = missionPourBandeau?.statut === "acceptee" ? await supabase
+    .from("intervention_creneaux").select("propose_par")
+    .eq("organization_id", orgId).eq("intervention_id", missionPourBandeau.id)
+    .eq("statut", "propose").gt("debut", new Date().toISOString()) : null;
+  const bandeau = estProprietaire && (missionsPourBandeau?.error || creneauxPourBandeau?.error
+    ? <EchecLecture quoi={["la prochaine action"]} />
+    : <BandeauProchaineAction action={prochaineActionIncident(etatIncident, missionPourBandeau && {
+      statut: missionPourBandeau.statut,
+      date: missionPourBandeau.debut_prevu,
+      attendLocataire: Boolean(incident.lot_id && creneauxPourBandeau?.data?.some(c => c.propose_par === "artisan")),
+    })} />);
   const actionPrincipale = { titre: prochaineAction.bouton, cible: prochaineAction.cible, responsable: "Vous", priorite: aQualifier && decisionRequise ? 100 : etatIncident === "termine" ? 45 : 0 };
   const decisionRepliee = estProprietaire && !(aQualifier && decisionRequise);
   const ConteneurDecision = decisionRepliee ? "details" : "div";
@@ -636,6 +656,7 @@ export async function PaneIncident({
     const note=incident.description?.startsWith(incident.titre+"\n")?incident.description.slice(incident.titre.length+1):incident.description===incident.titre?null:incident.description;
     const decisionCommuns = (aQualifier && <details id="qualification" open={decisionRequise} className="incident-decision-communs rounded-lg border border-border p-4"><summary className="min-h-11 cursor-pointer content-center font-semibold">Prise en charge de l’intervention</summary><FormulaireQualification orgId={orgId} incidentId={incidentId} categorie={incident.categorie} estProprietaire={estProprietaire} informeLocataire={false} partiesCommunes imputation="proprietaire" justification={incident.imputation_justification??`Intervention sur les parties communes de ${bienIncident?.nom??"l’immeuble"}.`} /></details>);
     return <CadreIncident key={incidentId} actif={estProprietaire} action={actionPrincipale} etat={etatIncident}><div className="incident-dossier incident-communs min-w-0 space-y-3" data-proprietaire={estProprietaire || undefined}>
+      {bandeau}
       {estProprietaire ? presentationSignalement : (
       <section className="incident-entete" aria-label="Résumé du signalement des parties communes">
         <div className="incident-entete-haut"><div><p className="incident-reference">{incident.numero}</p><h2>{incident.titre?.trim() || "Incident du bâtiment"}</h2></div><span className={`incident-statut ${COULEURS_ETAT_INCIDENT[incident.etat]??"puce puce-grise"}`}>{ETATS_INCIDENT[incident.etat]??incident.etat}</span></div>
@@ -659,6 +680,7 @@ export async function PaneIncident({
   }
   return (
     <CadreIncident key={incidentId} actif={estProprietaire} action={actionPrincipale} etat={etatIncident}><div className="incident-dossier min-w-0 space-y-4" data-proprietaire={estProprietaire || undefined}>
+      {bandeau}
       {incident.etat === "clos" && <RubriqueIncident rubrique="historique"><BilanContactIncident orgId={orgId} incidentId={incidentId} /></RubriqueIncident>}
       <EchecLecture quoi={lecturesManquees} />
       {estProprietaire ? presentationSignalement : (

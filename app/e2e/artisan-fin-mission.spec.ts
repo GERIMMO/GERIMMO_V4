@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page, type TestInfo } from '@playwright/test';
 import { Client } from 'pg';
 import { randomUUID } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
@@ -7,9 +7,23 @@ import { locationIntervention } from "./local/location-intervention";
 import { preparerEtPlanifierFuite } from "./local/fuite-trois-acteurs";
 import { pdfFictif } from './pdf-fictif';
 
+async function capturer(page: Page, info: TestInfo, nom: string) {
+  const viewport = page.viewportSize();
+  if (!viewport) throw new Error("Le parcours de recette doit définir un format d’écran.");
+  try {
+    for (const width of [390, 768, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      expect(await debordementHorizontal(page)).toBe(0);
+      await page.screenshot({ path: info.outputPath(`${nom}-${width}.png`), fullPage: true });
+    }
+  } finally {
+    await page.setViewportSize(viewport);
+  }
+}
+
 test.use({ storageState: 'e2e/.auth/artisan.json' });
-for (const mode of ['depot', 'creation', 'sci'] as const) test(`intervention acceptée : démarrage, photo, bilan, facture (${mode}) et réception gestionnaire`, async ({page,browser},info)=>{
- test.setTimeout(120000);
+for (const mode of ['depot', 'creation', 'sci'] as const) test(`incident et intervention : facture (${mode}) et clôture par le propriétaire quand applicable`, async ({page,browser},info)=>{
+ test.setTimeout(180000);
  const cible=process.env.SUPALOCAL_DB;
  test.skip(!cible||!/^postgres(?:ql)?:\/\/[^@]*@(?:127\.0\.0\.1|localhost):\d{1,5}\/gerimmo_ci_[a-z_]+_api$/.test(cible),'Base API fictive locale requise');
  const db=new Client({connectionString:cible});await db.connect();
@@ -24,7 +38,18 @@ for (const mode of ['depot', 'creation', 'sci'] as const) test(`intervention acc
   const {rows:[existant]}=await db.query("select i.organization_id,i.lot_id from incidents i join organizations o on o.id=i.organization_id where o.name='Agence Alpha' and i.id in (select incident_id from incident_interventions where artisan_id=$1) order by i.id limit 1",[a.id]);
   const lot=mode==='depot'?existant:await locationIntervention(db,a.id,mode==='sci');
   if (mode !== 'depot') {
-    const dossier = await preparerEtPlanifierFuite(db, browser, page, lot.organization_id, a.id, lot);
+    const dossier = await preparerEtPlanifierFuite(db, browser, page, lot.organization_id, a.id, lot, undefined, async ({ locataire, incident, mission }) => {
+      const demande = locataire.locator("#demande-" + incident);
+      await expect(demande).toContainText("à faire par : Locataire");
+      await expect(demande.getByRole("button", { name: "Confirmer ce rendez-vous" })).toHaveCount(1);
+      await capturer(locataire, info, "choix-rendez-vous-locataire");
+      await page.goto("/artisan/agenda");
+      await expect(page.locator(`section[id^="jour-"] a[href="/artisan/missions/${mission}"]`).filter({ hasText: "proposé · à garder libre" })).toHaveCount(3);
+      await capturer(page, info, "agenda-artisan");
+      await page.getByRole("link", { name: "À organiser", exact: true }).click();
+      await expect(page.getByRole("link", { name: "À organiser", exact: true })).toHaveAttribute("aria-current", "page");
+      await expect(page.getByRole("heading", { name: /Sans rendez-vous/ })).toBeVisible();
+    });
     incident=dossier.incidentId; mission=dossier.mission; sessionLocataire=dossier.sessionLocataire;
     Object.assign(preuve,{mission,fixture:'Déclaration avec photo et choix du créneau en navigateur ; accord sur le devis dans le portail de gestion ; qualification, préparation du devis et décision depuis les portails.'});
   } else {
@@ -34,6 +59,8 @@ for (const mode of ['depot', 'creation', 'sci'] as const) test(`intervention acc
   await sansSyntheseAlertes(page);
   await page.goto(`/artisan/missions/${mission}/compte-rendu/bilan`);
   await expect(page).toHaveURL(url => url.pathname === `/artisan/missions/${mission}` && url.searchParams.get('raison') === 'demarrer');
+  await expect(page.getByText("Prochaine action :", { exact: true })).toBeVisible();
+  if (mode === "sci") await capturer(page, info, "mission-artisan");
   await page.getByRole('button',{name:"Je démarre l'intervention",exact:true}).click();
   await expect.poll(async()=>(await db.query('select statut from incident_interventions where id=$1',[mission])).rows[0].statut).toBe('en_cours');
   await page.goto(`/artisan/missions/${mission}/compte-rendu/bilan`);
@@ -54,13 +81,21 @@ for (const mode of ['depot', 'creation', 'sci'] as const) test(`intervention acc
   await page.getByRole('button',{name:"Terminer l'intervention",exact:true}).click();
   await expect(page).toHaveURL(url => url.pathname === `/artisan/missions/${mission}` && url.searchParams.get('termine') === '1');
   await page.getByRole('link',{name:'Déposer ma facture',exact:true}).click();
-  await expect(page.getByRole('heading',{name:'Déposer ma facture',exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Déposer ma facture',exact:true})).toBeVisible({timeout:60000});
   await page.getByLabel('Numéro de la facture',{exact:true}).fill(numero);
   if (mode === 'depot') {
     await page.getByLabel('Montant TTC (€)',{exact:true}).fill('100,00');
     await page.getByLabel('Votre facture',{exact:true}).setInputFiles({name:'facture-fictive.pdf',mimeType:'application/pdf',buffer:pdfFictif()});
   } else {
     await page.getByLabel(mode === 'sci' ? 'Créer une facture pour une SCI' : 'Créer une facture de travaux pour un particulier').check();
+    await expect(page.getByLabel('Ligne 1 : prestation')).toHaveValue('Réparation du joint de l’évier');
+    await expect(page.getByLabel('Ligne 1 : prix unitaire HT')).toHaveValue('100,00');
+    await expect(page.getByLabel('Ligne 1 : TVA')).toHaveValue('0');
+    const prix = page.getByLabel('Ligne 1 : prix unitaire HT');
+    await prix.fill('110');
+    await expect(page.getByText(/Écart avec le devis retenu.*10,00/)).toBeVisible();
+    await prix.fill('100');
+    await expect(page.getByText(/Écart avec le devis retenu.*0,00/)).toBeVisible();
     await page.getByLabel('Adresse de votre entreprise').fill('8 rue des Tilleuls, 75012 Paris');
     if (mode === 'sci') {
       await page.getByLabel('SIREN de la SCI cliente').fill('123456789');
@@ -80,17 +115,25 @@ for (const mode of ['depot', 'creation', 'sci'] as const) test(`intervention acc
     await page.getByLabel('Ligne 1 : TVA').selectOption('0');
     await page.getByLabel('Je confirme le destinataire', {exact:false}).check();
   }
-  await page.screenshot({path:info.outputPath('facture-avant-depot.png'),fullPage:true});
+  await capturer(page, info, "facture-avant-depot");
   expect(await debordementHorizontal(page)).toBe(0);
   await page.getByRole('button',{name:mode === 'depot' ? 'Déposer ma facture' : 'Créer et transmettre ma facture',exact:true}).click();
   await expect(page).toHaveURL(/\/artisan\/facturation\?facture=[0-9a-f-]{36}/);
   const {rows:[f]}=await db.query('select id,document_id,montant_ttc_cents from intervention_factures where intervention_id=$1',[mission]);
   expect(f.montant_ttc_cents).toBe('10000');
+  if (mode === "sci") {
+    const totaux = page.getByRole("region", { name: "Suivi des factures Gerimmo" });
+    await expect(totaux).toContainText("À recevoir");
+    await expect(totaux).toContainText("En attente de validation");
+    await expect(page.locator(`[data-facture="${f.id}"]`)).toContainText("En attente de validation");
+    await capturer(page, info, "facturation-artisan");
+  }
   expect((await db.query('select travaux_realises from intervention_comptes_rendus where intervention_id=$1',[mission])).rows[0].travaux_realises).toBe(bilan);
   const {rows:[p]}=await db.query("select document_id from intervention_photos where intervention_id=$1 and moment='apres'",[mission]);expect(p.document_id).toBeTruthy();
   const gerant=await gestion.newPage();await sansSyntheseAlertes(gerant);
   await gerant.goto(`/${mode === "depot" ? "agence" : "espace"}/${lot.organization_id}/incidents/${incident}`);
   if (mode !== 'depot') await gerant.getByRole('link', {name:'Devis et facture',exact:true}).click();
+  await expect(gerant.getByText('Prochaine action :', {exact:true})).toHaveCount(mode === 'depot' ? 0 : 1);
   await expect(gerant.getByRole('heading',{name:`Facture ${numero} — 100,00 € TTC`,exact:true})).toBeVisible();
   if (mode !== 'depot') await gerant.getByRole('link', {name:'Suivi',exact:true}).click();
   await expect(gerant.getByText(`« ${bilan} »`,{exact:true})).toBeVisible();
@@ -98,7 +141,7 @@ for (const mode of ['depot', 'creation', 'sci'] as const) test(`intervention acc
   const lien=gerant.getByRole('link',{name:'Consulter la facture avant de décider',exact:true});await expect(lien).toBeVisible();
   const lecture=await gerant.request.get((await lien.getAttribute('href'))!);expect(lecture.status()).toBe(200);expect(await lecture.text()).toContain('URL.createObjectURL');
   expect(await debordementHorizontal(gerant)).toBe(0);
-  await gerant.screenshot({path:info.outputPath('reception-gestionnaire.png'),fullPage:true});
+  await capturer(gerant, info, "reception-gestionnaire");
   if (mode !== 'depot') {
     await gerant.getByLabel('Résultat du contrôle de la facture').fill('Intervention réalisée, facture et justificatif vérifiés.');
     await gerant.getByRole('button',{name:'Valider cette facture'}).click();
@@ -122,10 +165,20 @@ for (const mode of ['depot', 'creation', 'sci'] as const) test(`intervention acc
     await cloture.getByLabel('Ce qui a été fait').fill('Fuite réparée et justificatifs vérifiés.');
     await cloture.getByRole('button',{name:"Clôturer l'incident"}).click();
     await expect.poll(async()=>(await db.query('select etat from incidents where id=$1',[incident])).rows[0].etat).toBe('clos');
+    if (mode === "sci") {
+      await gerant.goto(`/espace/${lot.organization_id}/incidents`);
+      const notes = gerant.locator("details").filter({ has: gerant.locator("summary").filter({ hasText: /interventions? à noter/ }) });
+      await expect(notes).toHaveCount(1);
+      await expect(notes).not.toHaveAttribute("open", "");
+      await notes.locator("summary").click();
+      await expect(notes.getByRole("link").first()).toBeVisible();
+      await capturer(gerant, info, "interventions-a-noter");
+    }
     const locataire=await browser.newContext({storageState:sessionLocataire,viewport:page.viewportSize()});
     try {
       const suivi=await locataire.newPage();
       await suivi.goto(`/locataire/${lot.organization_id}/demandes`);
+      await expect(suivi.locator('#demande-'+incident)).toContainText('Prochaine action : Dossier clos');
       await expect(suivi.locator('#demande-'+incident).getByRole('button',{name:'Le problème persiste'})).toBeVisible();
     } finally { await locataire.close(); }
     Object.assign(preuve,{incidentClos:true,resolutionConfirmeeParLocataire:true,factureValideeSansReglement:true,locatairePeutSignalerUnePersistance:true});

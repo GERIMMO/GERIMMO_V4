@@ -7,7 +7,7 @@ import { deposerMaFacture, type EtatArtisanAction } from "@/app/actions/artisan"
 import { LignesDevis } from "../../../lignes-devis";
 import { ChampFichier } from "@/components/champ-fichier";
 import { compresserChampFichiers } from "@/lib/compresser-image";
-import { montantEnCentimes } from "@/lib/devis-structure";
+import { montantEnCentimes, type LigneDevis } from "@/lib/devis-structure";
 import {
   CLASSE_AIDE,
   CLASSE_BOUTON_PRINCIPAL,
@@ -41,10 +41,13 @@ function enSaisie(cents: number | null): string {
 
 export function FormulaireFacture({
   interventionId,
-  plafondCents, adresseEntreprise, mentionsEntreprise, lieuTravaux,
+  plafondCents, devisCents, lignesDevis, referenceDossier, adresseEntreprise, mentionsEntreprise, lieuTravaux,
 }: {
   interventionId: string;
   plafondCents: number | null;
+  devisCents: number | null;
+  lignesDevis: LigneDevis[];
+  referenceDossier: string;
   adresseEntreprise?: string;
   mentionsEntreprise?: string;
   lieuTravaux?: string;
@@ -154,7 +157,8 @@ export function FormulaireFacture({
           ["conditions_facture", "Conditions de règlement", "text", 1000],
         ] as const).filter(([nom]) => mode !== "sci" || (nom !== "client_facture" && nom !== "adresse_client")).map(([nom, libelle, type, max]) => <label key={nom} className="block space-y-1"><span className={CLASSE_LIBELLE}>{libelle}</span><input name={nom} type={type} required maxLength={max} defaultValue={etat.valeurs?.[nom] ?? suggestions[nom]} className={CLASSE_CHAMP}/></label>)}
         <label className="block space-y-1"><span className={CLASSE_LIBELLE}>Mentions de votre entreprise et de TVA</span><textarea required maxLength={3000} className={CLASSE_ZONE_TEXTE} name="mentions_facture" defaultValue={etat.valeurs?.mentions_facture ?? mentionsEntreprise}/><span className={CLASSE_AIDE}>Indiquez vos mentions professionnelles, votre numéro de TVA ou le motif d’exonération applicable et, si nécessaire, votre assurance.</span></label>
-        <LignesDevis titre="Prestations facturées"/>
+        <p>Référence du dossier : <strong>{referenceDossier}</strong></p>
+        <LignesDevis titre="Prestations facturées" initiales={lignesDevis} referenceDevisCents={devisCents} afficherHtIncomplet />
         {plafondCents !== null && <label className="block space-y-1"><span className={CLASSE_LIBELLE}>Justification si le total diffère du devis accepté</span><textarea name="justification" maxLength={4000} className={CLASSE_ZONE_TEXTE} defaultValue={etat.valeurs?.justification}/></label>}
         <label className="flex items-start gap-2"><input type="checkbox" required name="confirmation_facture" value="oui"/>Je confirme le destinataire, le numéro de ma série, les mentions et le total à facturer.</label>
       </fieldset> : <div className="space-y-1.5">

@@ -358,7 +358,13 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
         </div>
       </section>
       {decomptes}
-      {restitution && <CarteDepotGarantie orgId={orgId} restitution={restitution} classeCarte={CARTE_KPI} classeLien={LIEN_ETIRE} />}
+      {eRestitution ? (
+        <section className="loc-carte"><LectureImpossible quoi="votre dépôt de garantie" /></section>
+      ) : restitution ? (
+        <CarteDepotGarantie orgId={orgId} restitution={restitution} classeCarte={CARTE_KPI} classeLien={LIEN_ETIRE} />
+      ) : !eEcheancier && !prochaine && (
+        <p className="text-sm text-muted-foreground">Rien à régler pour l&apos;instant.</p>
+      )}
     </div>
   );
 

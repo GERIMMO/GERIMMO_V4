@@ -202,7 +202,8 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
 
   const moisLong = (d: string) =>
     new Date(d).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
-  const aujourdhui = new Date().toLocaleDateString("fr-FR", {
+  const maintenant = new Date();
+  const aujourdhui = maintenant.toLocaleDateString("fr-FR", {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -222,7 +223,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
   const prochainsRendezVous = rendezVous.error ? [] : rendezVous.data ?? [];
   const aUnRendezVousConfirme = prochainsRendezVous.some(
     (rdv: { statut_mission: string; rdv_debut: string | null; rdv_fin: string | null }) =>
-      rdv.statut_mission === "planifiee" && rdv.rdv_debut && rdv.rdv_fin && Date.parse(rdv.rdv_fin) > Date.now()
+      rdv.statut_mission === "planifiee" && rdv.rdv_debut && rdv.rdv_fin && Date.parse(rdv.rdv_fin) > maintenant.getTime()
   );
   const rendezVousConfirme = <RendezVousLocataireConfirme orgId={orgId} lignes={prochainsRendezVous} />;
   // « Ce qui vous attend » : tout ce que le menu comptait déjà en badges, dit

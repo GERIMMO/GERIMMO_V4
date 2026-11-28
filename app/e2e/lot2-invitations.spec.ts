@@ -53,9 +53,11 @@ test('invitation locale : refus, expiration, attente du bail, occupation et dép
 
   // Le bail, le terme et l'état des lieux sont des données fictives du même dossier.
   const bien = (await db.query("insert into biens(organization_id,nom,type,address_line1,postal_code,city,zone_tendue) values($1,'Immeuble Invitation','immeuble','12 rue fictive','45000','Orléans',false) returning id", [org])).rows[0].id;
+  await db.query("begin");
   const lot = (await db.query("insert into lots(organization_id,bien_id,nom,etat) values($1,$2,'Appartement fictif','loue') returning id", [org,bien])).rows[0].id;
   const bail = (await db.query("insert into baux(organization_id,lot_id,locataire_principal,type,etat,date_debut,loyer_hc,charges) values($1,$2,$3,'nu','actif',current_date-90,600,40) returning id", [org,lot,person])).rows[0].id;
   await db.query("insert into appels_loyer(organization_id,bail_id,periode,date_echeance,loyer_hc,charges,montant_du) values($1,$2,date_trunc('month',current_date),current_date,600,40,640) on conflict do nothing", [org,bail]);
+  await db.query("commit");
   await t.reload();
   await expect(t.getByRole('heading',{name:'À faire en priorité'})).toHaveCount(1);
   await captures(t, 'accueil-actif', (nom) => info.outputPath(nom));

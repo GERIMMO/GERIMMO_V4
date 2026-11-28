@@ -66,8 +66,12 @@ jobs:
       - name: Restaurer la base et les fichiers dans le banc jetable
         env:
           GERIMMO_BACKUP_KEY: ${{ secrets.GERIMMO_BACKUP_KEY }}
-          GERIMMO_RESTORE_VERIFIER_DOSSIERS: ${{ inputs.verifier_dossiers }}
-        run: node app/scripts/sauvegarde/restaurer-archive.mjs "$RUNNER_TEMP/restauration-archives" "$JOUR" "$RUNNER_TEMP/bilan-restauration.json"
+          VERIFIER_DOSSIERS: ${{ inputs.verifier_dossiers }}
+        run: |
+          set -euo pipefail
+          options=()
+          if [[ "$VERIFIER_DOSSIERS" == true ]]; then options+=(--verifier-dossiers); fi
+          node app/scripts/sauvegarde/restaurer-archive.mjs "$RUNNER_TEMP/restauration-archives" "$JOUR" "$RUNNER_TEMP/bilan-restauration.json" "${options[@]}"
       - name: Conserver seulement le bilan sans données personnelles
         uses: actions/upload-artifact@v7
         with:

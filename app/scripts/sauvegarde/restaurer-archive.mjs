@@ -283,9 +283,9 @@ export async function restaurerArchive({ dossier, prefixe, cle, destination, ver
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
-    const [dossier, prefixe, rapport] = process.argv.slice(2);
+    const [dossier, prefixe, rapport, option] = process.argv.slice(2);
     const bilan = await restaurerArchive({ dossier, prefixe, cle: lireCle(process.env.GERIMMO_BACKUP_KEY),
-      verifierDossiers: process.env.GERIMMO_RESTORE_VERIFIER_DOSSIERS === 'true',
+      verifierDossiers: option === '--verifier-dossiers',
       destination: process.env.GERIMMO_RESTORE_URL ?? `postgres://postgres:gerimmo-reprise@127.0.0.1:5432/gerimmo_restauration_${randomBytes(6).toString('hex')}` });
     if (rapport) await fs.writeFile(rapport, JSON.stringify(bilan, null, 2));
     console.log(JSON.stringify(bilan));

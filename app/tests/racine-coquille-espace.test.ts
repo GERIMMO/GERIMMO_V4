@@ -20,6 +20,7 @@ const m = vi.hoisted(() => ({
   rappels: vi.fn(),
   navigation: vi.fn(),
   client: null as unknown,
+  segment: vi.fn<() => string | null>(),
   redirect: vi.fn((url: string) => {
     throw Object.assign(new Error("NEXT_REDIRECT"), { url });
   }),
@@ -33,7 +34,7 @@ function adresses(v: unknown): string[] {
   return [];
 }
 
-vi.mock("next/navigation", () => ({ redirect: m.redirect, usePathname: () => "/", useRouter: () => ({ push: vi.fn() }) }));
+vi.mock("next/navigation", () => ({ redirect: m.redirect, usePathname: () => "/", useSelectedLayoutSegment: m.segment, useRouter: () => ({ push: vi.fn() }) }));
 vi.mock("@/lib/espace", () => ({ verifierAccesEspace: m.acces }));
 vi.mock("@/lib/portefeuille", () => ({ lotsDuPortefeuille: async () => null }));
 vi.mock("@/lib/alertes", () => ({ chargerSyntheseAlertes: m.alertes }));
@@ -68,6 +69,7 @@ vi.mock("@/components/rappels-loyers", () => ({ RappelsLoyers: (p: { lectureSeul
   m.rappels(p);
   return createElement("div", { "data-rappels-loyers": true });
 } }));
+import { BandeauEnvoisHorsAccueil } from "@/app/agence/[orgId]/bandeau-envois-hors-accueil";
 import LayoutAgence from "@/app/agence/[orgId]/layout";
 import { AccueilProprietaire } from "@/app/agence/[orgId]/accueil-proprietaire";
 import PageEspaces from "@/app/espaces/page";
@@ -105,8 +107,17 @@ const PROFILS = [
 
 beforeEach(() => {
   vi.clearAllMocks();
+  m.segment.mockReturnValue("profil");
   m.compter.mockResolvedValue({ total: 0, critiques: 0 });
   m.charger.mockResolvedValue({ plan: { surLesBaux: [], enRetard: [], aVenir: [], total: 0, critiques: 0 }, attendues: [], erreurs: { baux: false, alertes: false, rapports: false } });
+});
+
+it("le bandeau de relance disparaît uniquement à l’accueil d’agence", () => {
+  const bandeau = createElement(BandeauEnvoisHorsAccueil, { message: "Relances à préparer en PDF" });
+  m.segment.mockReturnValue(null);
+  expect(renderToStaticMarkup(bandeau)).toBe("");
+  m.segment.mockReturnValue("profil");
+  expect(renderToStaticMarkup(bandeau)).toContain("Relances à préparer en PDF");
 });
 
 describe("la coquille de l'espace (layout) : contexte, barres, recherche, menu du compte, aide et essai", () => {

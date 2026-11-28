@@ -4,7 +4,7 @@ import { TitreEcran } from "@/components/titre-ecran";
 import Link from 'next/link';
 import {appliquerEtudes,type EtudeTerritoriale} from '@/lib/etudes-territoriales';
 import {FormulaireEtude} from './etude';
-import { ArrowRight, ArrowUpRight, Inbox, ShieldCheck, Users, Clock3 } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Inbox, ShieldCheck, Users } from 'lucide-react';
 import { formaterDateParis } from '@/lib/heure-paris';
 import base from '../repertoires.module.css';
 import styles from '../pilotage.module.css';

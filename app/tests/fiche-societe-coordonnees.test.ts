@@ -203,9 +203,10 @@ describe("le récapitulatif du bail d'une société", () => {
     return correctionsRecapBail(manquants, [], "org", "/espace/org").map((c) => c.libelle);
   }
 
-  it("fiche de société sans e-mail ni adresse (avant) : « Adresse du propriétaire » et « Adresse e-mail des parties »", async () => {
+  it("fiche de société sans e-mail ni adresse : seule l’adresse postale est demandée parmi les coordonnées", async () => {
     const libelles = await corrections({ email: null, address_line1: null, postal_code: null, city: null });
-    expect(libelles).toEqual(expect.arrayContaining(["Adresse du propriétaire", "Adresse e-mail des parties"]));
+    expect(libelles).toContain("Adresse du propriétaire");
+    expect(libelles).not.toContain("Adresse e-mail des parties");
   });
 
   it("fiche complétée à la création (e-mail du compte) et par le profil (adresse) : plus rien à compléter côté propriétaire", async () => {

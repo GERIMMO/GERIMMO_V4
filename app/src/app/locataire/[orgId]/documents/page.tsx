@@ -161,11 +161,11 @@ export default async function PageDocumentsLocataire(
 
       <SignaturesElectroniques signatures={signaturesElectroniques} />
 
-      {(demandes.length > 0 || (adhesionActive && !lecturePiecesKO && !etatAssurance.nonExpiree)) && <p className="flex flex-wrap items-center gap-x-2 rounded-[var(--rayon-carte)] border border-[var(--filet)] bg-[var(--carte)] px-4 py-2 text-sm shadow-[var(--ombre-1)]"><span><b>À faire :</b> vérifiez les pièces attendues.</span> <a className="inline-flex min-h-11 items-center font-medium text-[var(--bleu)] underline underline-offset-2" href="#documents-a-transmettre">Voir les éléments à transmettre →</a></p>}
+      {adhesionActive && (demandes.length > 0 || (!lecturePiecesKO && !etatAssurance.nonExpiree)) && <p className="flex flex-wrap items-center gap-x-2 rounded-[var(--rayon-carte)] border border-[var(--filet)] bg-[var(--carte)] px-4 py-2 text-sm shadow-[var(--ombre-1)]"><span><b>À faire :</b> vérifiez les pièces attendues.</span> <a className="inline-flex min-h-11 items-center font-medium text-[var(--bleu)] underline underline-offset-2" href="#documents-a-transmettre">Voir les éléments à transmettre →</a></p>}
       <OngletsDossier libelle="Rubriques de mes documents"
         initiale="documents-disponibles"
         rubriques={[
-          { id: "documents-a-transmettre", titre: "À transmettre", contenu: <>
+          ...(adhesionActive ? [{ id: "documents-a-transmettre", titre: "À transmettre", contenu: <>
       {/* Les pièces que votre gestionnaire attend (RM-0b.2.5) */}
       {demandes.length > 0 && (
         <div className="loc-carte">
@@ -228,7 +228,7 @@ export default async function PageDocumentsLocataire(
           </RubriqueDossier>
         )}
       </div>
-</> },
+</> }] : []),
           { id: "documents-disponibles", titre: "Mes fichiers", contenu: <>
 
       <div className="loc-carte">

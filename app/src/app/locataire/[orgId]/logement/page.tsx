@@ -22,7 +22,7 @@ export default async function PageLogementLocataire(
   props: PageProps<"/locataire/[orgId]/logement">
 ) {
   const { orgId } = await props.params;
-  const { supabase } = await verifierAccesEspaceLocataire(orgId);
+  const { supabase, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
   // Lot 47 : « votre gestionnaire » seulement dans un espace d'agence ; chez un propriétaire, « votre bailleur ».
   const qui = interlocuteurDeLIdentite(await lireIdentiteContact(orgId));
 
@@ -54,6 +54,56 @@ export default async function PageLogementLocataire(
     encaisse: number;
   }[])[0];
 
+  const etatsDesLieux = (() => {
+    // États des lieux (chantier D3) : l'EDL est opposable au locataire —
+    // il en suit l'avancement ici ; la signature reste un geste sur place.
+    const edls = ((edlRows ?? []) as {
+      id: string;
+      type: string;
+      etat: string;
+      date_edl: string | null;
+      signe_le: string | null;
+    }[]).filter((e) => (e.type === "entree" || e.type === "sortie") && (adhesionActive || e.etat === "signe"));
+    if (edls.length === 0) return null;
+    return (
+      <div id="etats-des-lieux" className="loc-carte scroll-mt-24">
+        <h2 className="titre-carte text-base font-medium">Mes états des lieux</h2>
+        <div className="mt-2">
+          {edls.map((e) => (
+            // La pastille passe sous le libellé à 390 px (25/09 au soir) :
+            // « État des lieux d'entrée » se cassait en deux lignes en
+            // face de « en préparation — prévu le … ».
+            <div key={e.id} className="ligne-info flex-wrap gap-y-1.5">
+              <span className="shrink-0">État des lieux {e.type === "entree" ? "d'entrée" : "de sortie"}</span>
+              <span className="ml-auto text-right">
+                {e.etat === "signe" ? (
+                  <span className="loc-tag vert">
+                    signé{e.signe_le ? ` le ${formaterDate(e.signe_le)}` : ""}
+                  </span>
+                ) : (
+                  <span className="loc-tag ambre">
+                    en préparation
+                    {e.date_edl
+                      ? // Une date passée ne s'annonce pas comme à venir
+                        // (27/09) : « prévu le 25/09 » un 27/09.
+                        e.date_edl.slice(0, 10) < aujourdhuiParis()
+                        ? ` — prévu le ${formaterDate(e.date_edl)} (date dépassée : voyez-la avec votre ${qui})`
+                        : ` — prévu le ${formaterDate(e.date_edl)}`
+                      : ""}
+                  </span>
+                )}
+              </span>
+            </div>
+          ))}
+        </div>
+        {adhesionActive && <p className="mt-3 text-[13px] text-muted-foreground">
+          L&apos;état des lieux se signe sur place, le jour du rendez-vous avec
+          votre {qui} — vous en gardez un exemplaire.
+        </p>}
+      </div>
+    );
+  })();
+
   // « Aucun bail actif » est la phrase la plus lourde de l'espace : elle ne
   // doit jamais tomber sur une simple lecture ratée (relevé 11/09).
   if (!bail) {
@@ -67,11 +117,13 @@ export default async function PageLogementLocataire(
             <LectureImpossible quoi="votre logement" />
           ) : (
             <p className="text-sm text-muted-foreground">
-              Aucun bail actif — votre logement apparaîtra ici dès la signature
-              de votre bail.
+              {adhesionActive
+                ? "Aucun bail actif. Votre logement apparaîtra ici après l’activation du bail."
+                : "Votre bail est terminé. Retrouvez ci-dessous les états des lieux enregistrés."}
             </p>
           )}
         </div>
+        {aEchoue(eEdl) ? <LectureImpossible quoi="vos états des lieux" /> : etatsDesLieux}
       </div>
     );
   }
@@ -296,57 +348,9 @@ export default async function PageLogementLocataire(
         );
       })()}
 
-      {(() => {
-        // États des lieux (chantier D3) : l'EDL est opposable au locataire —
-        // il en suit l'avancement ici ; la signature reste un geste sur place.
-        const edls = ((edlRows ?? []) as {
-          id: string;
-          type: string;
-          etat: string;
-          date_edl: string | null;
-          signe_le: string | null;
-        }[]).filter((e) => e.type === "entree" || e.type === "sortie");
-        if (edls.length === 0) return null;
-        return (
-          <div className="loc-carte">
-            <h2 className="titre-carte text-base font-medium">Mes états des lieux</h2>
-            <div className="mt-2">
-              {edls.map((e) => (
-                // La pastille passe sous le libellé à 390 px (25/09 au soir) :
-                // « État des lieux d'entrée » se cassait en deux lignes en
-                // face de « en préparation — prévu le … ».
-                <div key={e.id} className="ligne-info flex-wrap gap-y-1.5">
-                  <span className="shrink-0">État des lieux {e.type === "entree" ? "d'entrée" : "de sortie"}</span>
-                  <span className="ml-auto text-right">
-                    {e.etat === "signe" ? (
-                      <span className="loc-tag vert">
-                        signé{e.signe_le ? ` le ${formaterDate(e.signe_le)}` : ""}
-                      </span>
-                    ) : (
-                      <span className="loc-tag ambre">
-                        en préparation
-                        {e.date_edl
-                          ? // Une date passée ne s'annonce pas comme à venir
-                            // (27/09) : « prévu le 25/09 » un 27/09.
-                            e.date_edl.slice(0, 10) < aujourdhuiParis()
-                            ? ` — prévu le ${formaterDate(e.date_edl)} (date dépassée : voyez-la avec votre ${qui})`
-                            : ` — prévu le ${formaterDate(e.date_edl)}`
-                          : ""}
-                      </span>
-                    )}
-                  </span>
-                </div>
-              ))}
-            </div>
-            <p className="mt-3 text-[13px] text-muted-foreground">
-              L&apos;état des lieux se signe sur place, le jour du rendez-vous avec
-              votre {qui} — vous en gardez un exemplaire.
-            </p>
-          </div>
-        );
-      })()}
+      {etatsDesLieux}
 
-      <CarteConge
+      {adhesionActive && (bail.etat === "actif" || bail.etat === "preavis") && <CarteConge
         orgId={orgId}
         enPreavis={bail.etat === "preavis"}
         dateFin={bail.date_fin}
@@ -358,7 +362,7 @@ export default async function PageLogementLocataire(
           )?.created_at ?? null
         }
         interlocuteur={qui}
-      />
+      />}
     </div>
     </FenetreLotProvider>
   );

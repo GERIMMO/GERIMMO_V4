@@ -108,35 +108,6 @@ export function FilMessages({
         </p>
       ) : (
       <>
-      {/* Un intitulé (27/09) : sans lui, les pastilles se lisaient comme des
-          messages déjà envoyés. */}
-      <p id="idees-message" className="mt-4 text-xs font-medium text-muted-foreground">
-        Idées de message — touchez-en une pour l&apos;écrire à votre place
-      </p>
-      <div className="mt-2 flex flex-wrap gap-2" role="group" aria-labelledby="idees-message">
-        {SUGGESTIONS.map((s) => (
-          <button
-            key={s}
-            type="button"
-            disabled={!pret}
-            title={pret ? undefined : AIDE_BOUTON_EN_ATTENTE}
-            // La phrase entière, qui est celle insérée (24/09) : coupée à 42
-            // caractères, elle ne se lisait qu'au survol du title, donc
-            // jamais au doigt. La pastille passe à la ligne au besoin.
-            // Au doigt, 44 px de haut (20/11) : la pastille en faisait une trentaine.
-            className="filtre text-left pointer-coarse:min-h-11 hover:!bg-[var(--ardoise)]"
-            onClick={() => {
-              if (champ.current) {
-                champ.current.value = s;
-                champ.current.focus();
-              }
-            }}
-          >
-            {s}
-          </button>
-        ))}
-      </div>
-
       <form data-saisie-confirmee action={action} className="mt-3">
         <Label htmlFor="msg-texte">Votre message</Label>
         {/* Non contrôlé, re-monté à chaque nouveau message : le champ se vide
@@ -176,6 +147,34 @@ export function FilMessages({
           </p>
         )}
       </form>
+      {/* Un intitulé (27/09) : sans lui, les pastilles se lisaient comme des
+          messages déjà envoyés. */}
+      <p id="idees-message" className="mt-4 text-xs font-medium text-muted-foreground">
+        Idées de message — touchez-en une pour l&apos;écrire à votre place
+      </p>
+      <div className="mt-2 flex flex-wrap gap-2" role="group" aria-labelledby="idees-message">
+        {SUGGESTIONS.map((s) => (
+          <button
+            key={s}
+            type="button"
+            disabled={!pret}
+            title={pret ? undefined : AIDE_BOUTON_EN_ATTENTE}
+            // La phrase entière, qui est celle insérée (24/09) : coupée à 42
+            // caractères, elle ne se lisait qu'au survol du title, donc
+            // jamais au doigt. La pastille passe à la ligne au besoin.
+            // Au doigt, 44 px de haut (20/11) : la pastille en faisait une trentaine.
+            className="filtre text-left pointer-coarse:min-h-11 hover:!bg-[var(--ardoise)]"
+            onClick={() => {
+              if (champ.current) {
+                champ.current.value = s;
+                champ.current.focus();
+              }
+            }}
+          >
+            {s}
+          </button>
+        ))}
+      </div>
       </>
       )}
     </div>

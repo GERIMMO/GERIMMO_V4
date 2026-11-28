@@ -328,6 +328,9 @@ describe("la fiche personne dit « Relancé le … »", () => {
     expect(avec).not.toContain("01/10/2026");
     expect(avec).toContain("Les rappels automatiques restent suspendus");
     expect(avec).not.toContain("aucun rappel ne partira");
+    const attente = rendu({ nomLocataire: "Sam Martin", historique: [invitation] });
+    expect(attente).toContain("En attente de Sam Martin depuis le 02/11/2026");
+    expect(attente).toContain("Renvoyer l’invitation");
     const ancienne = rendu({ historique: [{ ...invitation, relances_prevues: false }], relances: [] });
     expect(ancienne).toContain("aucun rappel ne partira pour elle");
     expect(ancienne).not.toContain("Relancé le");

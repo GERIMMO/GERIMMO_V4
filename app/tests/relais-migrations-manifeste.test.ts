@@ -334,8 +334,7 @@ const MISSION_OCTOBRE = [
   // 25/11, reprise de la relecture de la fusion (X-01) : la marque « entrée après la signature » est remise à faux, à la sortie
   // du brouillon, pour les personnes présentes à cette signature (« Corriger » puis nouveau bail signé).
   "20261125154000_bail_epoux_pacses_marque_a_la_nouvelle_signature.sql",
-
-
+  "20261128053102_etat_des_lieux_archive_locataire.sql",
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */
 const DEJA_EN_PRODUCTION = [

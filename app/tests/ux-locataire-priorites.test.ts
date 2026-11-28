@@ -60,6 +60,23 @@ describe("prochaine étape du locataire", () => {
     banc.donnees.mon_bail_locataire = [{ ...bail, etat: "brouillon", document_signe: "document" }];
     expect(renderToStaticMarkup(await Accueil(params))).toContain("Un contrat signé est enregistré. Votre bailleur doit encore vérifier le dossier et activer le bail.");
   });
+  it("place une seule priorité datée avant le logement", async () => {
+    banc.donnees.mon_bail_locataire = [{ ...bail, adresse: "12 rue fictive" }];
+    banc.donnees.mon_echeancier_locataire = [{ periode: "2026-11-01", montant_du: 700, montant_couvert: 0, statut: "attendu", quittance_id: null }];
+    const html = renderToStaticMarkup(await Accueil(params));
+    expect(html).toContain("À faire en priorité");
+    expect(html.indexOf("À faire en priorité")).toBeLessThan(html.indexOf("12 rue fictive"));
+  });
+  it("après le départ, ouvre les documents et retire les rappels d’occupant", async () => {
+    banc.actif = false;
+    banc.donnees.mon_bail_locataire = [{ ...bail, etat: "termine" }];
+    banc.donnees.mes_pieces_demandees = [{ id: "demande" }];
+    const html = renderToStaticMarkup(await Accueil(params));
+    expect(html).toContain("Votre bail est terminé");
+    expect(html).toContain("Mes documents");
+    expect(html).not.toContain("Une pièce vous est demandée");
+    expect(html).not.toContain("Écrire à mon bailleur");
+  });
   it("un bail actif ne reçoit pas l’avertissement de préparation", async () => {
     banc.donnees.mon_bail_locataire = [bail];
     expect(renderToStaticMarkup(await Accueil(params))).not.toContain("Votre bail n’est pas encore actif");
@@ -86,12 +103,23 @@ describe("documents et contact prioritaires", () => {
     expect(html).toContain("Dépôt demandé conservé");
     expect(html).toContain("Formulaire assurance conservé");
   });
+  it("laisse les fichiers accessibles sans proposer de dépôt après le départ", async () => {
+    banc.actif = false;
+    banc.donnees.mes_pieces_demandees = [{ id: "demande" }];
+    banc.donnees.mes_pieces_locataire = [{ document_id: "bail", type: "bail", titre: "Bail signé", mime_type: "application/pdf", depose_le: "2026-11-01" }];
+    const html = renderToStaticMarkup(await Documents(params));
+    expect(html).toContain("Bail signé");
+    expect(html).not.toContain("À transmettre");
+    expect(html).not.toContain("Dépôt demandé conservé");
+  });
   it("le contact humain est avant l’assistant et ne nomme jamais le parc", async () => {
     banc.donnees.attestation_emetteur_locataire = { type: "proprietaire_direct", nom: "Parc privé", bailleurs: [{ nom: "SCI des Amandiers" }] };
     banc.donnees.mon_gestionnaire_locataire = [{ agence: "Parc privé", telephone: null, email_contact: null, agent_email: null }];
     const html = renderToStaticMarkup(await Contact(params));
     expect(html).toContain("Écrire à SCI des Amandiers");
     expect(html).not.toContain("Parc privé");
+    expect(html.indexOf("Votre bailleur")).toBeLessThan(html.indexOf("Votre message"));
+    expect(html.indexOf("Envoyer le message")).toBeLessThan(html.indexOf("Idées de message"));
     expect(html.indexOf("Votre message")).toBeLessThan(html.indexOf("Assistant facultatif"));
   });
 });

@@ -1,4 +1,5 @@
 import type {SupabaseClient} from '@supabase/supabase-js';
+import {signalerPassage} from './signal-passage.mjs';
 import {bilanMission,type Mission} from './missions';
 import {genererPointsDuMatin} from './point-du-matin';
 import {ArretSupervision,verifierAvantEffet} from './controle-effets';
@@ -25,6 +26,7 @@ export async function executerMission(db:SupabaseClient,mission:Mission,traiter:
  const bilan=bilanMission(await response.clone().json().catch(()=>({erreur:true})),response.status);
  const {error:trace}=await db.rpc('terminer_mission',{p_id:id,p_ok:bilan.ok,p_compte:bilan.compte,p_bilan:bilan.bilan});
  if(trace)return Response.json({erreur:'Le traitement a eu lieu mais son résultat doit être vérifié.'},{status:503});
+ await signalerPassage(mission,bilan.ok);
  const point=await genererPointsDuMatin(db);
  if(point.erreur)console.error('[point du matin]',point.erreur);
  return response;

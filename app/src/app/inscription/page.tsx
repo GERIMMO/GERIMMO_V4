@@ -27,26 +27,9 @@ export default async function PageInscription(props: PageProps<"/inscription">) 
     <CoquilleAuth
       promesse="Vos locations, simplement."
       sousPromesse="L’essentiel de votre gestion locative, au même endroit."
-      benefices={[
-        "Retrouvez vos biens et vos locataires.",
-        "Suivez vos loyers et vos dépenses.",
-        "Gardez vos baux et quittances à portée de main.",
-      ]}
       mention={`${duree} d'essai, sans carte bancaire`}
       titre="Ouvrir mon espace propriétaire"
-      // La réassurance « sans carte bancaire » passe dans le chapo (24/09) : la
-      // mention du panneau est masquée sur téléphone, où elle n'apparaissait pas.
-      chapo={
-        <>
-          <span
-            className="mb-2 inline-flex rounded-full border border-[var(--or-filet)] bg-[var(--or-clair)] px-3 py-1 text-[12.5px] font-semibold text-[var(--prestige-champagne-texte)]"
-          >
-            {badgeEssai()}
-          </span>
-          <br />
-          {`Sans carte bancaire ni abonnement automatique.`}
-        </>
-      }
+      chapo={<>{badgeEssai()}, sans carte ni abonnement automatique.</>}
       largeur="420px"
     >
       <FormulaireInscription codeParrain={codeParrain} dureeEssai={duree} />

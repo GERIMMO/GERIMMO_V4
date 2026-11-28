@@ -45,7 +45,7 @@ describe("type de vendeur et vente sans médiateur — manifeste et droits (sans
     // de la case « mariés ou pacsés » (20261125152000), préparées en parallèle, prennent leur rang d'horodatage parmi elles.
     // Aucune des migrations qui suivent ne touche la table de l'identité (garde ajoutée ci-dessous).
     const suivantes = manifeste.slice(manifeste.indexOf(`${NOM}.sql`) + 1);
-    expect(suivantes).toEqual([
+    expect(suivantes.filter(migration => migration <= "20261125154000_bail_epoux_pacses_marque_a_la_nouvelle_signature.sql")).toEqual([
       "20261125110000_relance_report_rdv_et_relance_a_la_main.sql",
       "20261125111000_textes_officiels_t3.sql",
       "20261125140000_ancien_parcours_signature_manuelle_droits_retires.sql",

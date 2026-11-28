@@ -10,6 +10,7 @@ for (const chemin of ["/", "/tarifs"]) {
     const prix = simulateur.locator(".offre-prix");
     const biens = simulateur.getByRole("slider");
     await expect(prix).toHaveText(/5,99\s*€ par mois/);
+    await expect(biens).toBeEnabled();
     await biens.press("Home");
     for (let n = 1; n < 8; n++) await biens.press("ArrowRight");
     await expect(prix).toHaveText(/19,90\s*€ par mois/);

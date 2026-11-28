@@ -355,7 +355,10 @@ describe("lot relais-alertes — manifeste et procédure de retour (sans base)",
     for (const nom of LOT) expect(lignes.filter((l) => l === nom), nom).toHaveLength(1);
     const premiere = lignes.indexOf(LOT[0]);
     expect(lignes.slice(premiere, premiere + LOT.length)).toEqual(LOT);
-    expect(lignes.slice(premiere + LOT.length)).toEqual([...POSTERIEURES, ...MISSION_OCTOBRE]);
+    expect(lignes.slice(premiere + LOT.length)).toEqual([
+      ...POSTERIEURES, ...MISSION_OCTOBRE,
+      "20261127210000_reprise_essai_premier_bien.sql",
+    ]);
   });
 
   it("les migrations déjà appliquées en production (820000, 821000, puis celles de la PR #190) restent devant celles du lot", () => {

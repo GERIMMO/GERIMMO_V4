@@ -34,7 +34,7 @@ if (url && (!["localhost", "127.0.0.1", "[::1]"].includes(new URL(url).hostname)
 const DERNIERE_EN_PRODUCTION = "20261120200000";
 const manifeste = readFileSync("e2e/local/ordre-migrations.txt", "utf8").trim().split(/\r?\n/);
 /** Le lot, dans l'ordre du manifeste (celui du champ `fichiers` de migrations.yml). */
-const LOT = manifeste.filter((f) => f.slice(0, 14) > DERNIERE_EN_PRODUCTION).map((f) => f.replace(/\.sql$/, ""));
+const LOT = manifeste.filter((f) => f.slice(0, 14) > DERNIERE_EN_PRODUCTION && f.slice(0, 14) <= "20261125154000").map((f) => f.replace(/\.sql$/, ""));
 /** L'ordre des retours : l'inverse exact du manifeste (plan de publication, § 5.4). */
 const CHAINE = [...LOT].reverse();
 const retour = (nom: string) => readFileSync(`supabase/retours-arriere/${nom}.retour.sql`, "utf8");

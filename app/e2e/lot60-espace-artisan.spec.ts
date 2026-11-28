@@ -215,7 +215,8 @@ test("mission acceptée, trois dates proposées : l'agenda écrit les dates de l
 
   // ── L'agenda : la carte de la mission écrit les mêmes dates ; la bande marque ces trois jours.
   await page.goto("/artisan/agenda");
-  const carte = page.locator(`a[href="/artisan/missions/${mission}"]`);
+  const sansRendezVous = page.locator("section").filter({ has: page.getByRole("heading", { name: /^Sans rendez-vous/ }) });
+  const carte = sansRendezVous.locator(`a[href="/artisan/missions/${mission}"]`);
   await expect(carte).toContainText("3 dates au choix du locataire");
   expect(await carte.locator("[data-dates-a-garder] li").allInnerTexts()).toEqual(surFiche);
   for (const jour of jours) await expect(page.locator(`[data-jour-a-garder="${jour}"]`)).toHaveCount(1);
@@ -239,12 +240,13 @@ test("agenda : une date proposée déjà passée n'est plus comptée ; toutes pa
   await sansSyntheseAlertes(page);
   await page.goto("/artisan/agenda");
 
-  const carte = page.locator(`a[href="/artisan/missions/${unePassee}"]`);
+  const sansRendezVous = page.locator("section").filter({ has: page.getByRole("heading", { name: /^Sans rendez-vous/ }) });
+  const carte = sansRendezVous.locator(`a[href="/artisan/missions/${unePassee}"]`);
   await expect(carte).toContainText("2 dates au choix du locataire");
   await expect(carte).not.toContainText("3 dates");
   await expect(carte.locator("[data-dates-a-garder] li")).toHaveCount(2);
 
-  const perimee = page.locator(`a[href="/artisan/missions/${toutesPassees}"]`);
+  const perimee = sansRendezVous.locator(`a[href="/artisan/missions/${toutesPassees}"]`);
   await expect(perimee).toContainText("Plus aucune date proposée n’est disponible : proposez-en de nouvelles");
   await expect(perimee).not.toContainText("au choix du locataire");
   await expect(perimee).not.toContainText("En attente du locataire");

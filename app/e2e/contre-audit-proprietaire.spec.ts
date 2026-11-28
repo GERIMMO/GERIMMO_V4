@@ -145,7 +145,7 @@ for (const largeur of [390, 1440]) test(`incident : décider puis consulter l’
   // Les préchargements de documents ne conditionnent pas la sélection du dossier.
   await page.goto(`${base}/incidents`, { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Incidents", exact: true })).toBeVisible();
-  const lienDossier = page.locator('a[href*="/incidents?sel="]').first();
+  const lienDossier = page.locator('.volet-liste a[href*="/incidents?sel="]').first();
   if (process.env.SUPALOCAL_DB && !await lienDossier.count()) {
     baseApiFictive(process.env.SUPALOCAL_DB);
     if (!["localhost", "127.0.0.1"].includes(new URL(page.url()).hostname)) throw new Error("Site fictif local requis.");

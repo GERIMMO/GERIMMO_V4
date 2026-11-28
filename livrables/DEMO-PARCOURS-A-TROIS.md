@@ -45,7 +45,7 @@ SUPALOCAL_DB=postgres://postgres@127.0.0.1:56786/gerimmo_ci_demo_vente_api \
   node e2e/local/lancer-demo-parcours-a-trois.mjs
 ```
 
-Le lanceur démarre l’application locale, l’émulateur Supabase sur les ports 3286 et 54386. Les éventuels courriels sont simulés en mémoire. Le script joue les deux formats et écrit les captures dans `app/e2e/.results/demo-parcours-a-trois/`. Chaque passage prépare son logement et son bail fictifs avant de jouer les gestes à l’écran.
+Le lanceur démarre l’application locale, l’émulateur Supabase sur les ports 3286 et 54386. Les éventuels courriels sont simulés en mémoire. Le script joue les deux formats et écrit les captures dans `app/e2e/.results/demo-parcours-a-trois/`. Chaque passage prépare son logement et son bail fictifs avant de jouer les gestes à l’écran. Pour afficher la vignette sur le banc HTTP, Playwright relaie uniquement le fichier autorisé et signé par l’application.
 
 Les cinq minutes correspondent à une présentation commentée. Le premier lancement du test peut prendre plus de temps à cause de la compilation locale.
 

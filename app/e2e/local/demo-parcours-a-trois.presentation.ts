@@ -34,6 +34,24 @@ test("de la fuite à l’aide à la 2044", async ({ browser, page }, info) => {
       db, browser, page, lot.organization_id, artisan.id, { ...lot, description }, {
         signalement: vue => capture("01-signalement")(vue, vue.getByText(/1 photo jointe/)),
         alerte: async (vue, incident) => {
+          const site = new URL(process.env.E2E_BASE_URL!);
+          const stockage = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!);
+          // En production le stockage est en HTTPS. Sur le banc HTTP, relayer
+          // uniquement l’image signée par la route authentifiée de l’application.
+          await vue.route(url => url.origin === site.origin && url.pathname.startsWith(racine + "/documents/")
+            && url.pathname.endsWith("/fichier") && url.searchParams.get("apercu") === "image", async route => {
+            const apercu = await route.fetch({ maxRedirects: 0 });
+            const adresse = apercu.headers().location;
+            if (apercu.status() === 303 && adresse) {
+              const cible = new URL(adresse, route.request().url());
+              if (cible.origin === stockage.origin && cible.pathname.startsWith("/storage/v1/object/sign/")) {
+                const image = await vue.request.get(cible.href, { maxRedirects: 0 });
+                await route.fulfill({ response: image });
+                return;
+              }
+            }
+            await route.fulfill({ response: apercu });
+          });
           await vue.goto(`${racine}/alertes`);
           const lien = vue.locator(`a[href$="incidents?sel=${incident}"]:visible`).first();
           await capture("02-alerte")(vue, lien);
@@ -41,7 +59,11 @@ test("de la fuite à l’aide à la 2044", async ({ browser, page }, info) => {
           const signalement = vue.locator("summary").filter({ hasText: "Signalement, contacts et pièces jointes" });
           await expect(signalement).toBeVisible();
           if (await signalement.locator("..").getAttribute("open") === null) await signalement.click();
-          await capture("02b-dossier")(vue, vue.getByText(description, { exact: false }).filter({ visible: true }).first());
+          const vignette = vue.getByRole("img", { name: /^Photo — INC-/ });
+          await expect(vignette).toBeVisible();
+          await expect.poll(() => vignette.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+          await expect(vue.getByText(description, { exact: false }).filter({ visible: true }).first()).toBeVisible();
+          await capture("02b-dossier")(vue, vignette);
         },
         devis: vue => capture("03-devis")(vue, vue.getByRole("link", { name: "Télécharger le détail du devis (PDF)" })),
         creneaux: vue => capture("04-creneaux")(vue, vue.locator("fieldset").first()),
